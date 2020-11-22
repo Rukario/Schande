@@ -1,0 +1,116 @@
+Launch HTML server = Yes
+Browser = C:\Program Files\Mozilla Firefox\firefox.exe
+Geistauge = Yes
+Proxy = socks5://
+
+http://www.pixiv.net for https://i.pximg.net
+https://www.fanbox.cc for https://api.fanbox.cc
+Pixiv Merge\* - Pixiv for https://i.pximg.net
+Paysite\* for https://downloads.fanbox.cc
+R-18 *date\* for https://i.4cdn.org/b/
+R-18 *date\* for https://is2.4chan.org/b/
+R-18 *date\* for https://thebarchive.com/data/b/
+R-18 *date\* for https://i.redd.it/
+R-18 *date\
+Update me\* for https://
+Update me\* for http://
+md5 for IMG_* 8-9 letters
+
+ipb_member_id ... for .exhentai.org
+ipb_pass_hash ... for .exhentai.org
+session_id ... for .patreon.com
+PHPSESSID ... for .pixiv.net
+FANBOXSESSID ... for .fanbox.cc
+
+https://exhentai.org/g/
+title <h1 id="gn">*</h1> customize with * 
+folder1 /g/*/ customize with [* 
+folder2 ^/*^/ customize with * ExHentai]\
+pages no-repeat"><a href="*"
+pages ^<a href="*" onclick="return false">&gt;</a>
+
+https://exhentai.org/s/
+replace &amp; with &
+name </a></div><div>* :: 
+file https://exhentai.org/fullimg.php*" customize with https://exhentai.org/fullimg.php*
+file id="img" src="*"
+
+https://www.youtube.com/watch?v=
+urlfix https://www.youtube.com/watch?v=* with https://youtube.com/get_video_info?video_id=*
+choose player_response >> streamingData > adaptiveFormats > 0 > itag = 308 > 299 > 298 > 137 > 136
+file player_response >> streamingData > adaptiveFormats > 0 > url
+name player_response >> videoDetails > title
+choose player_response >> streamingData > adaptiveFormats > 0 > itag = 140
+file player_response >> streamingData > adaptiveFormats > 0 > url
+name player_response >> videoDetails > title customize with * (audio)
+choose player_response >> captions > playerCaptionsTracklistRenderer > captionTracks > 0 > name > simpleText = English > English - CC (English)
+file player_response >> captions > playerCaptionsTracklistRenderer > captionTracks > 0 > baseUrl customize with *&fmt=vtt
+name player_response >> videoDetails > title customize with *.vtt
+extfix &mime=*%2F*&
+
+https://boards.4chan.org/b/thread/
+folder ^/* 9-10 letters
+meta ^/*^. customize with *.
+name1 File: <a title="*"
+name1 File: <a href="*" target="_blank">*</a>
+files <a class="fileThumb" href="//*" customize with https://*
+
+https://thebarchive.com/b/thread/
+folder ^/* 9-10 letters
+files <a class="post_file_filename" href="*"
+files </a> </span> <a href="*"
+meta ^/*^. customize with *.
+name1 class="post_file_filename" rel="tooltip" title="*"
+name1 target="_blank">*<
+
+https://u18chan.com/board/u18chan/
+title ^<span class="Subject">*^</span><span class="UserName">*^href="javascript:DownloadZip 2-100 letters customize with *
+folder1 ^/* customize with [* U-18Chan]\
+files <div class="FileDetails">File: <a href="*"
+name target="_blank"><u>*</u>
+saveurl
+
+https://imgur.com/
+file property="og:video"*https://i.imgur.com/*.mp4" customize with https://i.imgur.com/*.mp4
+name <meta property="og:title" data-react-helmet="true" content="*"
+meta1 ^/*^.mp4 customize with  - *.mp4
+
+http://192.168.1.239:8886/
+relpages <li><a href="*">*</a></li> ends with /
+relfiles <li><a href="*">*</a></li> not ends with /
+meta http://192.168.1.239:8886/*
+
+https://www.patreon.com/api/
+body data > 0 > attributes > content
+files included > 0 > attributes > download_url
+name1 included > 0 > attributes > file_name
+files included > 0 > attributes > url
+name1 included > 0 > attributes > name
+files data > 0 > attributes > post_file > url
+name1 data > 0 > attributes > post_file > name
+meta /p/post/*/ customize with *.
+meta file?h=*& customize with *.
+name1 <img data-media-id="*"
+files src="https://c10*" customize with https://c10*
+extfix /1.*?token-time=
+pages links > next
+
+https://www.patreon.com/
+title /patreon-media/p/user/*/
+pages /patreon-media/p/campaign/*/ customize with https://www.patreon.com/api/posts?include=attachments%2Cimages.null%2Caudio.null&fields[post]=content%2Ccurrent_user_can_view%2Cedited_at%2Cembed%2Cpost_file%2Cpost_type%2Ctitle&fields[media]=download_url%2Cfile_name%2Cowner_id&sort=-published_at&filter[campaign_id]=*
+
+https://www.pixiv.net/en/artworks/
+urlfix https://www.pixiv.net/en/artworks/* with https://www.pixiv.net/ajax/illust/*/pages?lang=en
+replace \ with 
+files "original":"*"
+meta ^/*
+
+https://www.fanbox.cc/@
+pages /fanbox/public/images/creator/*/cover/ customize with https://api.fanbox.cc/post.listCreator?userId=*&limit=10
+
+https://api.fanbox.cc/
+pages body > nextUrl
+files body > items > 0 > body > images > 0 > originalUrl
+name1 body > items > 0 > body > images > 0 > id
+name2 body > items > 0 > body > images > 0 > extension customize with .*
+meta ^/*^/ customize with *.

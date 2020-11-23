@@ -174,6 +174,7 @@ def quicktutorial():
  + Rule syntax for scraping (aka pickers):
  |  "http..."            validates a site to start a scraper, attribute all pickers to this.
  |  "urlfix ...*... with ...*..." redirector.
+ |  "send X Y"           send data (Y) to url (X) before accessing page.
  |  "body ...*..."       pick part of the page. API: pick content for HTML-based pickers.
  |  "replace X with X"   find'n'replace before start picking in page/body.
  |  "title ...*..."      pick and use as folder from first scraped page.
@@ -197,7 +198,7 @@ def quicktutorial():
  | Manipulating asterisk:
  |  > Multiple asterisks to pick the last asterisk better and/or to discard others.
  |  > Arrange name and file pickers if needed to follow their position in page. file before -> name -> file after.
- |  > First with match will be chosen first. This doesn't apply to plural pickers such as files, pages.
+ |  > First with match will be chosen first. This doesn't apply to body and plural pickers such as files, pages.
  |  > Name match closest to the file will be chosen. file before -> name to before -> name to after -> file after.
  |
  | Right-to-left:

@@ -779,6 +779,8 @@ def get(url, todisk="", conflict=[[], []], context=None, headers={'Referer':"", 
                 echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {echourl}""", friction=True)
         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
         os.rename(todisk + ".part", todisk)
+        stdout[0] = ""
+        stdout[1] = ""
         return 1
     else:
         data = b''
@@ -787,6 +789,8 @@ def get(url, todisk="", conflict=[[], []], context=None, headers={'Referer':"", 
                 block = resp.read(262144)
                 if not block:
                     if not total or dl == total:
+                        stdout[0] = ""
+                        stdout[1] = ""
                         return data
                     if not retry(stderr) or not (resp := fetch(url, context, headers, stderr, dl, threadn)):
                         return
@@ -923,6 +927,7 @@ def downloadtodisk(htmlassets, makedirs=False):
         echothreadn.append(threadn)
         download.put((threadn, html, log, ondisk, onserver))
     download.join()
+    title(batchfile, True)
 
 
 
@@ -1341,6 +1346,7 @@ def scrape(page):
             break
         pages = iter(pages)
         more = []
+    title(batchfile, True)
 
     if htmlassets["filelist"]:
         if not ready[0]:
@@ -2245,7 +2251,10 @@ while True:
             referer = x[0] if (x := [v for k, v in referers.items() if k in m]) else ""
             html = get(m, headers={'Referer':referer, 'Origin':referer}, stderr="Page loading failed successfully")
             if html:
-                print(html.decode("utf-8"))
+                html = "\n".join([s.rstrip() if s.rstrip() else "" for s in html.decode("utf-8").replace("	", "    ").splitlines()])
+                print(html)
+                # with open(f"{batchdir}{batchname} (source).html", 'wb') as f:
+                #     f.write(bytes(html, 'utf-8'))
         else:
             choice(bg=True)
     elif any(word for word in scraper.keys() if m.startswith(word)):

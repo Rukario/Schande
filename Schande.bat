@@ -52,7 +52,6 @@ skiptonext = [False]
 sf = [0]
 disableinput = False
 # Keylistener will break input() unless input() didn't exist
-# Keylistener will also break Ctrl + C
 
 # HTML builder
 buildthumbnail = False
@@ -68,7 +67,6 @@ if buildthumbnail:
     import subprocess
 
 # Geistauge and organize tools
-import numpy, cv2, hashlib
 from fnmatch import fnmatch
 from PIL import Image
 
@@ -157,7 +155,6 @@ def quicktutorial():
  | Rule syntax for organizing from \\{mainfolder}:
  |  "... for ..."             organize matching (commas are forbidden here, write rule per line like usual)
  |  "... !for ..., ..., ..."  organize non-matching (commas for multiple matches or it'll take everything!)
- |  "....html for ..., ..."   build pattern HTMLs after organize has finished.
  |  The pattern after for/!for uses unix wildcard, meaning ? matches 1 character, * matches everything.
  |
  | First rule in list will take its turn to handle the download/file before else.
@@ -447,7 +444,15 @@ if Browser:
     print(" BROWSER: " + Browser.replace("\\", "/").rsplit("/", 1)[-1])
 else:
     print(" BROWSER: NONE")
-print(f""" GEISTAUGE: {"ON" if Geistauge else "OFF"}""")
+if Geistauge:
+    try:
+        import numpy, cv2, hashlib
+        print(" GEISTAUGE: ON")
+    except:
+        print(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install numpy==1.19.3\n{sys.exec_prefix}\Scripts\pip.exe install opencv-python")
+        sys.exit()
+else:    
+    print(" GEISTAUGE: OFF")
 if "socks5://" in proxy and proxy[10:]:
     if not ":" in proxy[10:]:
         print(" PROXY: Invalid socks5:// address, it must be socks5://X.X.X.X:port OR socks5://user:pass@X.X.X.X:port\n\n TRY AGAIN!")
@@ -494,13 +499,12 @@ customdir = {}
 organize = {}
 rename = []
 referers = {}
-patternhtml = {}
 exempt = []
 mag = []
 med = []
 scraper = {}
 def new_scraper():
-    return {"replace":[], "send":[], "body":[], "choose":[], "folder":[], "file":[], "file2":[], "files":False, "name":[], "extfix":"", "urlfix":"", "pages":[], "saveurl":False, "ready":False}
+    return {"replace":[], "send":[], "body":[], "folder":[], "choose":[], "file":[], "file2":[], "files":False, "name":[], "extfix":"", "urlfix":"", "pages":[], "saveurl":False, "ready":False}
 scraper.update({"void":new_scraper()})
 for rule in rules:
     if not rule or rule.startswith("#"):
@@ -512,8 +516,6 @@ for rule in rules:
     elif len(rule := rule.split(" for ")) == 2:
         if rule[0].startswith("md5"):
             rename += [rule[1]]
-        elif rule[0].endswith(".html"):
-            patternhtml.update({rule[0]: rule[1].lower().split(", ")})
         elif rule[1].startswith("http"):
             if rule[0].startswith("http"):
                 referers.update({rule[1]: rule[0]})
@@ -540,14 +542,14 @@ for rule in rules:
     elif rule[0].startswith("send "):
         rule = rule[0].split(" ", 2)
         scraper[site]["send"] += [[rule[1], rule[2]]]
+    elif rule[0].startswith("body "):
+        scraper[site]["body"] += [rule[0].split("body ", 1)[1]]
     elif rule[0].startswith("folder"):
         at(scraper[site]["folder"], rule[0].split("folder", 1)[1], alt=False)
-    elif rule[0].startswith("body"):
-        scraper[site]["body"] += [rule[0].split("body", 1)[1]]
-    elif rule[0].startswith("choose "):
-        scraper[site]["choose"] += [rule[0].split("choose ", 1)[1]]
     elif rule[0].startswith("title"):
         at(scraper[site]["folder"], rule[0].split("title", 1)[1])
+    elif rule[0].startswith("choose "):
+        scraper[site]["choose"] += [rule[0].split("choose ", 1)[1]]
     elif rule[0].startswith("file "):
         at(scraper[site]["file2" if scraper[site]["name"] else "file"], rule[0].split("file", 1)[1])
     elif rule[0].startswith("relfile "):
@@ -635,21 +637,22 @@ done""")
 
 
 
+seek = [False]
 def keylistener():
     while True:
-        errorlevel = choice("xsq")
-        if errorlevel == 1:
+        el = choice("xsq")
+        if el == 1:
             echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
             retryx[0] = False if retryx[0] else True
             offlinepromptx[0] = True
-        elif errorlevel == 2:
+        elif el == 2:
             echo("", 1)
             skiptonext[0] = True
-        elif errorlevel == 3:
+        elif el == 3:
             echo("", 1)
             offlinepromptx[0] = False
         else:
-            print("Ctrl + C")
+            seek[0] = True
 if disableinput:
     t = Thread(target=keylistener)
     t.daemon = True
@@ -675,12 +678,12 @@ def retry(stderr):
                 else:
                     title("OFFLINE", True)
                     print(f"{stderr} (R)etry? (A)lways (N)ext")
-                    errorlevel = choice("ran", True)
-                    if errorlevel == 1:
+                    el = choice("ran", True)
+                    if el == 1:
                         retryall[0] = True
-                    elif errorlevel == 2:
+                    elif el == 2:
                         offlinepromptx[0] = True
-                    elif errorlevel == 3:
+                    elif el == 3:
                         title(FAVORITE, True)
                         offlineprompt[0] = False
                         return
@@ -778,6 +781,11 @@ def get(url, todisk="", conflict=[[], []], context=None, headers={'Referer':"", 
                 dl += Bytes
                 echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
                 echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {echourl}""", friction=True)
+                if seek[0]:
+                    resp = fetch(url, context, headers, stderr, dl, threadn)
+                    if resp.status == 200 and dl > 0:
+                        kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
+                    seek[0] = False
         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
         os.rename(todisk + ".part", todisk)
         stdout[0] = ""
@@ -817,6 +825,12 @@ def get(url, todisk="", conflict=[[], []], context=None, headers={'Referer':"", 
             dl += Bytes
             echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
             echo(threadn, f"{int(dl/1048576)} MB", friction=True)
+            if seek[0]:
+                resp = fetch(url, context, headers, stderr, dl, threadn)
+                if resp.status == 200:
+                    data = b''
+                    dl = 0
+                seek[0] = False
 
 
 
@@ -1160,8 +1174,7 @@ def page_assets(queue):
                     if not db:
                         db = opendb(data)
                     z = z.rsplit(" > ", 1)
-                    keys = [z[0], [{"key":z[-1], "error":""}]]
-                    for d in nested(db, keys):
+                    for d in nested(db, [z[0], [{"key":z[-1], "error":""}]]):
                         body += d[0]
                 else:
                     body += "".join(x[0] for x in carrots([[data, ""]], z, False, cw))
@@ -1182,8 +1195,7 @@ def page_assets(queue):
                             if not db:
                                 db = opendb(data)
                             z = z.rsplit(" > ", 1)
-                            keys = [z[0], [{"key":z[-1], "error":""}]]
-                            for d in nested(db, keys):
+                            for d in nested(db, [z[0], [{"key":z[-1], "error":""}]]):
                                 folder[0] += d[0]
                         elif y[0]["alt"]:
                             if len(c := carrots(body, z, False, cw)) == 2:
@@ -1202,8 +1214,7 @@ def page_assets(queue):
                         if not db:
                             db = opendb(data)
                         z = z.rsplit(" > ", 1)
-                        keys = [z[0], [{"key":z[-1], "error":""}]]
-                        pages = nested(db, keys)
+                        pages = nested(db, [z[0], [{"key":z[-1], "error":""}]])
                         if pages and not pages[0][0] == "None":
                             more += [p[0] if y[0]["alt"] else page + p[0] for p in pages if not p[0] == page and not page + p[0] == page]
                     else:
@@ -2118,8 +2129,8 @@ def delmode(m):
                     break
         elif file.lower() == "d" and delfiles:
             choice(bg="4c")
-            delete = input("Enter (D)elete again to confirm: ")
-            if delete.lower() == "d":
+            print("(D)elete again to confirm (A)bort")
+            if choice("da") == 1:
                 for dfile in delfiles:
                     try:
                         os.remove(dfile)
@@ -2187,34 +2198,6 @@ def finish_organize():
             elif fnmatch(file, filename):
                 takeme(file, folder[0])
                 break
-    for html in patternhtml.keys():
-        builder = ""
-        lastfolder = ""
-        for subdir, dirs, files in os.walk("."):
-            subdir = subdir.replace(".\\", "")
-            for file in files:
-                if not any(word in str(file).lower() for word in patternhtml[html]):
-                    continue
-                elif not str(file).lower().endswith(tuple(imagefile)):
-                    continue
-                if not lastfolder == subdir:
-                    print(f"""Found some in {subdir}""")
-                    builder += f"""<p>- - - - {subdir} - - - -</p>"""
-                builder += f"""<a href="{subdir}/{file.replace("#", "%23")}"><img src="{subdir}/{file.replace("#", "%23")}" height=200px></a>\n"""
-                lastfolder = subdir
-        if builder:
-            with open(html, 'wb') as f:
-                f.write(bytes("""<!DOCTYPE html>
-<html>
-<body>
-<meta charset="utf-8"/>
-<style>
-html,body
-{background-color:#0c0c0c; color:#9900ff; font-family:consolas; font-size:14px;}
-</style>""" + f"""
-{builder}
-</body>
-</html>""", 'utf-8'))
 
 
 
@@ -2243,7 +2226,7 @@ else:
         print(f" No urls in {textfile}! Doing so will enable parallel downloading urls and resume the interrupted downloads.")
 mainmenu()
 while True:
-    m = input("Enter valid input or ready to (O)rganize and build pattern HTML, (H)elp: ").replace("\"", "")
+    m = input("Enter valid input or ready to (O)rganize, (H)elp: ").replace("\"", "")
     if m == "h":
         quicktutorial()
     elif m == "v":
@@ -2374,8 +2357,8 @@ exit))
 set pythondir=!pythondir:\=\\!
 
 if exist Lib\site-packages\socks.py (echo.) else (goto install)
-if exist Lib\site-packages\cv2 (echo.) else (goto install)
-if exist Lib\site-packages\numpy\ (echo.) else (goto install)
+::if exist Lib\site-packages\cv2 (echo.) else (goto install)
+::if exist Lib\site-packages\numpy\ (echo.) else (goto install)
 if exist Lib\site-packages\PIL (goto start) else (echo.)
 
 :install
@@ -2383,8 +2366,8 @@ echo  Hold on . . . I need to install the missing packages.
 if exist "Scripts\pip.exe" (echo.) else (color %stopcolor% && echo  PIP.exe doesn't seem to exist . . . Please install Python properly^^! I must exit^^! && pause>nul && exit)
 python -m pip install --upgrade pip
 Scripts\pip.exe install PySocks
-Scripts\pip.exe install opencv-python
-Scripts\pip.exe install numpy==1.19.3
+::Scripts\pip.exe install opencv-python
+::Scripts\pip.exe install numpy==1.19.3
 Scripts\pip.exe install Pillow
 echo.
 pause

@@ -1,7 +1,7 @@
 # Schande
 DIY scraper, download and organize
 
-Made for Windows 10 with Python 3 and Visual Studio 2017 installed, but any OS with Python 3 installed should work.
+Made for Windows 10 with Python 3 installed, but any OS with Python 3 installed should work.
 
 Start guide
 1. Check and change the file extension back to .bat if it's in something else.

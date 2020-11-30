@@ -27,12 +27,14 @@ batchname = os.path.splitext(batchfile)[0]
 os.chdir(batchdir)
 
 date = datetime.now().strftime('%Y') + "-" + datetime.now().strftime('%m') + "-XX"
-mainfolder = batchname + "\\"
-cdfolder = batchname + " cd\\"
+mf = batchname + "/"
+tmf = "\\" + mf.replace("/", "\\")
+cd = batchname + " cd/"
+tcd = "\\" + cd.replace("/", "\\")
 htmlfile = batchname + ".html"
 rulefile = batchname + ".cd"
-savrfile = batchname + ".sav"
-savrhtml = batchname + ".savx"
+sav = batchname + ".sav"
+savx = batchname + ".savx"
 textfile = batchname + ".txt"
 
 archivefile = [".7z", ".rar", ".zip"]
@@ -147,18 +149,18 @@ def quicktutorial():
  + Rule syntax for while downloading:
  |  "key value for .site"     cookie for a site that requires login.
  |  "http... for http..."     visit page with referer.
- |  "...\\* for http..."       custom dir for downloads, \\{mainfolder} if no custom dir specified.
+ |  "...\\* for http..."       custom dir for downloads, {tmf} if no custom dir specified.
  |  "...*date\\* for http..."  custom dir for downloads, "*date" will become "{date}".
  |  "...\\...*... for http..." and the file are also renamed (prepend/append).
- |  "...*... for http..."     and they go to \\{mainfolder} while renamed.
+ |  "...*... for http..."     and they go to {tmf} while renamed.
  |
- | Rule syntax for organizing from \\{mainfolder}:
+ | Rule syntax for organizing from {tmf}:
  |  "... for ..."             organize matching (commas are forbidden here, write rule per line like usual)
  |  "... !for ..., ..., ..."  organize non-matching (commas for multiple matches or it'll take everything!)
  |  The pattern after for/!for uses unix wildcard, meaning ? matches 1 character, * matches everything.
  |
  | First rule in list will take its turn to handle the download/file before else.
- | If {rulefile} tried to organize files to the non-existent folder, they go to \\{cdfolder} instead.
+ | If {rulefile} tried to organize files to the non-existent folder, they go to {tcd} instead.
  |  It can help ensure that no other rule can organize them any more (first rule = first to organize).
  +  Conveniently used to migrate to another directory where the folder actually exists.
 
@@ -411,8 +413,9 @@ def handler(directory):
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     pass
 def startserver(port, directory):
-    folder = "\\" + os.path.basename(directory) + "\\"
-    print(f""" HTML SERVER: Serving {folder if os.path.basename(directory) else "current directory"} at port {port}""")
+    d = os.path.basename(directory)
+    d = f"\\{d}\\" if d else "current drive"
+    print(f""" HTML SERVER: Serving {d} at port {port}""")
     ThreadedHTTPServer(("", port), handler(directory)).serve_forever()
 
 
@@ -494,6 +497,52 @@ def at(a, r, alt=True):
 
 
 
+def topicker(s, rule):
+    if rule[0].startswith("send "):
+        rule = rule[0].split(" ", 2)
+        s["send"] += [[rule[1], rule[2]]]
+    elif rule[0].startswith("body "):
+        s["body"] += [rule[0].split("body ", 1)[1]]
+    elif rule[0].startswith("folder"):
+        at(s["folder"], rule[0].split("folder", 1)[1], alt=False)
+    elif rule[0].startswith("title"):
+        at(s["folder"], rule[0].split("title", 1)[1])
+    elif rule[0].startswith("choose "):
+        s["choose"] += [rule[0].split("choose ", 1)[1]]
+    elif rule[0].startswith("file "):
+        at(s["file2" if s["name"] else "file"], rule[0].split("file", 1)[1])
+    elif rule[0].startswith("relfile "):
+        at(s["file2" if s["name"] else "file"], rule[0].split("relfile", 1)[1], alt=False)
+    elif rule[0].startswith("files "):
+        at(s["file2" if s["name"] else "file"], rule[0].split("files", 1)[1])
+        s["files"] = True
+    elif rule[0].startswith("relfiles "):
+        at(s["file2" if s["name"] else "file"], rule[0].split("relfiles", 1)[1], alt=False)
+        s["files"] = True
+    elif rule[0].startswith("name"):
+        at(s["name"], rule[0].split("name", 1)[1])
+    elif rule[0].startswith("meta"):
+        at(s["name"], rule[0].split("meta", 1)[1], alt=False)
+    elif rule[0].startswith("extfix "):
+        s["extfix"] = rule[0].split("extfix ", 1)[1]
+    elif rule[0].startswith("urlfix "):
+        rule = rule[0].split(" ", 1)[1].split(" with ", 1)
+        x = rule[1].split("*", 1)
+        s["urlfix"] = [x[0], [rule[0]], x[1]]
+    elif rule[0].startswith("pages "):
+        at(s["pages"], rule[0].split("pages", 1)[1])
+    elif rule[0].startswith("relpages "):
+        at(s["pages"], rule[0].split("relpages", 1)[1], alt=False)
+    elif rule[0].startswith("ready"):
+        s["ready"] = True
+    elif rule[0].startswith("saveurl"):
+        s["saveurl"] = True
+    else:
+        return
+    return True
+
+
+
 # Loading referer, organize, and custom dir rules, pickers, and global file rejection by file types from rulefile
 customdir = {}
 organize = {}
@@ -506,6 +555,7 @@ scraper = {}
 def new_scraper():
     return {"replace":[], "send":[], "body":[], "folder":[], "choose":[], "file":[], "file2":[], "files":False, "name":[], "extfix":"", "urlfix":"", "pages":[], "saveurl":False, "ready":False}
 scraper.update({"void":new_scraper()})
+site = "void"
 for rule in rules:
     if not rule or rule.startswith("#"):
         continue
@@ -539,45 +589,8 @@ for rule in rules:
     elif rule[0].startswith("replace "):
         rule = rule[0].split(" ", 1)[1].split(" with ", 1)
         scraper[site]["replace"] += [[rule[0], rule[1]]]
-    elif rule[0].startswith("send "):
-        rule = rule[0].split(" ", 2)
-        scraper[site]["send"] += [[rule[1], rule[2]]]
-    elif rule[0].startswith("body "):
-        scraper[site]["body"] += [rule[0].split("body ", 1)[1]]
-    elif rule[0].startswith("folder"):
-        at(scraper[site]["folder"], rule[0].split("folder", 1)[1], alt=False)
-    elif rule[0].startswith("title"):
-        at(scraper[site]["folder"], rule[0].split("title", 1)[1])
-    elif rule[0].startswith("choose "):
-        scraper[site]["choose"] += [rule[0].split("choose ", 1)[1]]
-    elif rule[0].startswith("file "):
-        at(scraper[site]["file2" if scraper[site]["name"] else "file"], rule[0].split("file", 1)[1])
-    elif rule[0].startswith("relfile "):
-        at(scraper[site]["file2" if scraper[site]["name"] else "file"], rule[0].split("relfile", 1)[1], alt=False)
-    elif rule[0].startswith("files "):
-        at(scraper[site]["file2" if scraper[site]["name"] else "file"], rule[0].split("files", 1)[1])
-        scraper[site]["files"] = True
-    elif rule[0].startswith("relfiles "):
-        at(scraper[site]["file2" if scraper[site]["name"] else "file"], rule[0].split("relfiles", 1)[1], alt=False)
-        scraper[site]["files"] = True
-    elif rule[0].startswith("name"):
-        at(scraper[site]["name"], rule[0].split("name", 1)[1])
-    elif rule[0].startswith("meta"):
-        at(scraper[site]["name"], rule[0].split("meta", 1)[1], alt=False)
-    elif rule[0].startswith("extfix "):
-        scraper[site]["extfix"] = rule[0].split("extfix ", 1)[1]
-    elif rule[0].startswith("urlfix "):
-        rule = rule[0].split(" ", 1)[1].split(" with ", 1)
-        x = rule[1].split("*", 1)
-        scraper[site]["urlfix"] = [x[0], [rule[0]], x[1]]
-    elif rule[0].startswith("pages "):
-        at(scraper[site]["pages"], rule[0].split("pages", 1)[1])
-    elif rule[0].startswith("relpages "):
-        at(scraper[site]["pages"], rule[0].split("relpages", 1)[1], alt=False)
-    elif rule[0].startswith("ready"):
-        scraper[site]["ready"] = True
-    elif rule[0].startswith("saveurl"):
-        scraper[site]["saveurl"] = True
+    elif topicker(scraper[site], rule):
+        pass
     else:
         exempt += [rule[0]]
 request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookie)))
@@ -871,7 +884,7 @@ for i in range(8):
 def cd(file, makedirs=False, preview=False):
     threadn = 0
     url = file["url"] if preview else file.pop("url")
-    todisk = mainfolder + file["name"]
+    todisk = mf + file["name"]
     if rule := [v for k, v in customdir.items() if k in url]:
         name, ext = os.path.splitext(file["name"])
         name = name.rsplit("/", 1)
@@ -891,8 +904,8 @@ def cd(file, makedirs=False, preview=False):
                 print(f" Error downloading: {url}")
                 error[0] += [todisk]
                 url = ""
-    elif not os.path.exists(mainfolder):
-        os.makedirs(mainfolder)
+    elif not os.path.exists(mf):
+        os.makedirs(mf)
     if not preview:
         if makedirs and not os.path.exists(os.path.split(todisk)[0]):
             os.makedirs(os.path.split(todisk)[0])
@@ -1190,7 +1203,7 @@ def page_assets(queue):
             if pick["folder"]:
                 for y in pick["folder"]:
                     for z in y[1:]:
-                        z, cw, a = peanut(z, ["", "\\"])
+                        z, cw, a = peanut(z, ["", "/"])
                         if a:
                             if not db:
                                 db = opendb(data)
@@ -1205,7 +1218,7 @@ def page_assets(queue):
                             if len(c := carrots([[page, ""]], z, False, cw)) == 2:
                                 folder[0] += c[-2][1]
             if pick["saveurl"]:
-                htmlassets["page"] = {"url":page, "name":saint(folder[0] + folder[0].rsplit("\\", 2)[-2] + ".URL"), "edited":0}
+                htmlassets["page"] = {"url":page, "name":saint(folder[0] + folder[0].rsplit("/", 2)[-2] + ".URL"), "edited":0}
         if pick["pages"]:
             for y in pick["pages"]:
                 for z in y[1:]:
@@ -1405,7 +1418,7 @@ def phthread(ph_q):
                 print(f"{file}\nSame file found! (C)ontinue")
                 choice("c", "2e")
         except:
-            error[0] += file
+            error[0] += [file]
         if threadn%16 == 0:
             echo(str(int((threadn / total) * 100)) + "%")
         ph_q.task_done()
@@ -1417,7 +1430,7 @@ for i in range(8):
 
 
 
-def scanthread(filelist, filevs, savrwrite):
+def scanthread(filelist, filevs, savwrite):
     accu = []
     threadn = 0
     total = len(filelist)
@@ -1426,15 +1439,15 @@ def scanthread(filelist, filevs, savrwrite):
         ph_q.put((threadn, total, file, filevs, accu))
     ph_q.join()
     if accu:
-        savrwrite.write(bytes('\n'.join(accu) + "\n", 'utf-8'))
-        savrwrite.flush()
+        savwrite.write(bytes('\n'.join(accu) + "\n", 'utf-8'))
+        savwrite.flush()
     print("100%")
 
 
 
 def todb(m, filevs=""):
-    savrread = opensavr(savrfile)
-    savrwrite = open(savrfile, 'ab')
+    savread = opensavr(sav)
+    savwrite = open(sav, 'ab')
     filelist = []
     error[0] = []
     title("Top directory")
@@ -1442,11 +1455,11 @@ def todb(m, filevs=""):
     for file in next(os.walk(m))[2]:
         if not file.lower().endswith(tuple(imagefile)):
             continue
-        if (file := f"{m}\\{file}") in savrread:
+        if (file := f"{m}/{file}") in savread:
             continue
         else:
             filelist += [file]
-    scanthread(filelist, filevs, savrwrite)
+    scanthread(filelist, filevs, savwrite)
 
 
 
@@ -1454,16 +1467,16 @@ def todb(m, filevs=""):
         filelist = []
         title(subfolder)
         print("\n - - - - " + subfolder + " - - - -")
-        for root, folders, files in os.walk(f"{m}\\{subfolder}"):
+        for root, folders, files in os.walk(f"{m}/{subfolder}"):
             for file in files:
                 if not file.lower().endswith(tuple(imagefile)):
                     continue
-                if (file := f"{m}\\{os.path.relpath(root, m)}\\{file}") in savrread:
+                if (file := f"{m}/{os.path.relpath(root, m)}/{file}") in savread:
                     continue
                 else:
                     filelist += [file]
-        scanthread(filelist, filevs, savrwrite)
-    savrwrite.close()
+        scanthread(filelist, filevs, savwrite)
+    savwrite.close()
 
 
 
@@ -1475,7 +1488,7 @@ def todb(m, filevs=""):
 
 
 
-def opensavr(file):
+def opensav(file):
     if os.path.exists(file):
         with open(file, 'r', encoding='utf-8') as f:
             return f.read()
@@ -1974,14 +1987,14 @@ def tohtml(delete=False):
     print("\n Now compiling duplicates to HTML . . . kill this CLI to cancel.\n")
     builder = ""
     counter = 1
-    db = opensavr(savrfile).splitlines()
+    db = opensav(sav).splitlines()
     db.sort(key=lambda s: s.split(" ", 1)[1].replace("\\", ""))
     datagroup = {}
     for line in db:
         phash, file = line.split(" ", 1)
         datagroup.setdefault(phash, [])
         datagroup[phash].append(file)
-    dbz = opensavr(savrhtml).splitlines()
+    dbz = opensav(savx).splitlines()
     for v in datagroup.values():
         if len(v := [x for x in v if os.path.exists(x)]) < 2:
             continue
@@ -2038,7 +2051,7 @@ def tohtml(delete=False):
             morehtml = htmlfile.replace(".html", f" {int(counter/512)}.html")
             with open(morehtml, 'wb') as f:
                 f.write(bytes(new_html(builder), 'utf-8'))
-            with open(savrhtml, 'wb') as f:
+            with open(savx, 'wb') as f:
                 f.write(bytes("\n".join(dbz), 'utf-8'))
             print("\"" + morehtml + "\" created!")
             builder = ""
@@ -2046,7 +2059,7 @@ def tohtml(delete=False):
     morehtml = htmlfile.replace(".html", f" {int(counter/512) + 1}.html")
     with open(morehtml, 'wb') as f:
         f.write(bytes(new_html(builder), 'utf-8'))
-    with open(savrhtml, 'wb') as f:
+    with open(savx, 'wb') as f:
         f.write(bytes("\n".join(dbz), 'utf-8'))
     print("\"" + morehtml + "\" created!")
     print(f"total runtime: {time.time()-start}")
@@ -2059,10 +2072,10 @@ def compare(m):
     except:
         print(" Featuring image is corrupted.")
         sys.exit()
-    s = input("Drag'n'drop the reference image and hit Enter to compare, reference folder to scan, or empty to find in database: ").strip('\"')
+    s = input("Drag'n'drop the reference image and hit Enter to compare, reference folder to scan, or empty to find in database: ").rstrip().strip('\"')
     start = time.time()
     if not s:
-        db = opensavr(savrfile).splitlines()
+        db = opensav(sav).splitlines()
         found = False
         indb = False
         print()
@@ -2112,14 +2125,14 @@ def delmode(m):
         return
     print("\n This is my shortcut to delete the file alongside browser.\n Enter another file:/// local url then/or (V)iew/(R)emove/(D)elete/E(X)it\n Nothing is really deleted until you enter D twice.\n")
     while True:
-        file = parse.unquote(input("Add file to delete list: ").replace("file:///", "").replace("http://localhost:8886/", batchdir))
+        file = parse.unquote(input("Add file to delete list: ").rstrip().replace("file:///", "").replace("http://localhost:8886/", batchdir))
         if file.lower() == "x":
             return
         if file.lower() == "v":
             for dfile in delfiles:
                 print(dfile)
         elif file.lower() == "r":
-            file = parse.unquote(input("Remove file from delete list: ").replace("file:///", "").replace("http://localhost:8886/", batchdir))
+            file = parse.unquote(input("Remove file from delete list: ").rstrip().replace("file:///", "").replace("http://localhost:8886/", batchdir))
             while True:
                 try:
                     delfiles.remove(file)
@@ -2150,38 +2163,38 @@ def delmode(m):
 def takeme(file, folder):
     if not os.path.exists(folder + file):
         try:
-            os.rename(mainfolder + file, folder + file)
+            os.rename(mf + file, folder + file)
         except:
-            if not os.path.exists(cdfolder):
-                os.makedirs(cdfolder)
-            if not os.path.exists(cdfolder + file):
-                os.rename(mainfolder + file, cdfolder + file)
+            if not os.path.exists(cd):
+                os.makedirs(cd)
+            if not os.path.exists(cd + file):
+                os.rename(mf + file, cd + file)
             else:
                 print(f"""I want to (D)elete source file because destination file already exists:
- source:      {mainfolder}{file}
- destination: {cdfolder}{file}""")
+ source:      {mf}{file}
+ destination: {cd}{file}""")
                 if choice("d") == 1:
-                    os.remove(mainfolder + file)
+                    os.remove(mf + file)
     else:
         print(f"""I want to (D)elete source file because destination file already exists:
- source:      {mainfolder}{file}
+ source:      {mf}{file}
  destination: {folder}{file}""")
         if choice("d") == 1:
-            os.remove(mainfolder + file)
+            os.remove(mf + file)
 
 
 
 def finish_organize():
-    for file in next(os.walk(mainfolder))[2]:
+    for file in next(os.walk(mf))[2]:
         if len(c := carrots(file, rename, multi=False)) == 2 and not c[0][0] and not c[-1][0]:
-            ondisk = mainfolder + file
+            ondisk = mf + file
             with open(ondisk, 'rb') as f:
                 s = f.read()
             ext = os.path.splitext(ondisk)[1].lower()
             m = hashlib.md5(s).hexdigest()
             file = m + ext
             if not os.path.exists(m + ext):
-                os.rename(ondisk, mainfolder + file)
+                os.rename(ondisk, mf + file)
             else:
                 print(f"I want to (D)elete {ondisk} because {file} already exists.")
                 if choice("d") == 1:
@@ -2226,11 +2239,11 @@ else:
         print(f" No urls in {textfile}! Doing so will enable parallel downloading urls and resume the interrupted downloads.")
 mainmenu()
 while True:
-    m = input("Enter valid input or ready to (O)rganize, (H)elp: ").replace("\"", "")
+    m = input("Enter valid input or ready to (O)rganize, (H)elp: ").rstrip().replace("\"", "")
     if m == "h":
         quicktutorial()
     elif m == "v":
-        m = input("Enter URL: ")
+        m = input("Enter URL: ").rstrip()
         if m.startswith("http"):
             referer = x[0] if (x := [v for k, v in referers.items() if k in m]) else ""
             html = get(m, headers={'Referer':referer, 'Origin':referer}, stderr="Page loading failed successfully")
@@ -2250,11 +2263,11 @@ while True:
         else:
             downloadtodisk({"filelist":[{"url":m, "name":parse.unquote(m.split("/")[-1])[:200], "edited":0}]})
     elif m == "o":
-        if os.path.exists(mainfolder):
+        if os.path.exists(mf):
             finish_organize()
         else:
             choice(bg=True)
-            print(f" \\{mainfolder} doesn't exist! Nothing to organize.")
+            print(f" {tmf} doesn't exist! Nothing to organize.")
     elif m == "b":
         if Browser and HTMLserver:
             os.system(f"""start "" "{Browser}" "http://localhost:8886/{batchname} 1.html" """)
@@ -2286,7 +2299,7 @@ while True:
             print(" GEISTAUGE: Maybe not.")
         else:
             choice(bg="4c")
-            if not input("Drag'n'drop and enter my SAV file: ").replace("\"", "") == f"{batchdir}{savrfile}":
+            if not input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "") == f"{batchdir}{sav}":
                 continue
             skull()
             tohtml(delete=True)
@@ -2314,9 +2327,9 @@ while True:
 open /Applications/Python\ 3.9/Install\ Certificates.command
 sudo python3 -m pip install --upgrade pip
 sudo python3 -m pip install PySocks
-sudo python3 -m pip install opencv-python
-sudo python3 -m pip install numpy
 sudo python3 -m pip install Pillow
+sudo python3 -m pip install numpy
+sudo python3 -m pip install opencv-python
 python3 -x /drag/n/drop/the/batchfile
 
 :loaded

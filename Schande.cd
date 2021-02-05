@@ -1,7 +1,15 @@
 Launch HTML server = Yes
 Browser = C:\Program Files\Mozilla Firefox\firefox.exe
+Mail = 
 Geistauge = Yes
+Python = 
 Proxy = socks5://
+
+Mozilla/5.0 for https://
+Mozilla/5.0 for http://
+4-8 seconds rarity 75%
+12-24 seconds rarity 23%
+64-128 seconds rarity 2%
 
 http://www.pixiv.net for https://i.pximg.net
 https://www.fanbox.cc for https://api.fanbox.cc

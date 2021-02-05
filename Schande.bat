@@ -2425,7 +2425,7 @@ def syntax(html):
 # browser = webdriver.Firefox()
 # browser.get('https://www.patreon.com/api/user/9325459')
 while False:
-    if """                         <span class="a-offscreen">from seller Amazon.com""" in browser.page_source:
+    if """FOUND""" in browser.page_source:
         echo("FOUND", 0, 1)
     else:
         echo("Nope", 0, 1)

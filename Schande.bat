@@ -1,6 +1,6 @@
 @echo off && goto loaded
 
-import os, sys, ssl, socket, socks, time, json
+import os, sys, getpass, smtplib, ssl, socket, socks, time, zlib, json
 from datetime import datetime
 from http import cookiejar
 from http.server import SimpleHTTPRequestHandler, HTTPServer
@@ -9,6 +9,8 @@ from socketserver import ThreadingMixIn
 from threading import Thread
 from urllib import parse, request
 from codecs import encode, decode
+from random import random
+# from selenium import webdriver
 
 # Local variables
 if len(sys.argv) > 3:
@@ -47,13 +49,12 @@ echothreadn = []
 error = [[]]
 offlineprompt = [False]
 offlinepromptx = [False]
+cooldown = [False]
 retries = [0]
 retryx = [False]
 retryall = [False]
 skiptonext = [False]
 sf = [0]
-disableinput = False
-# Keylistener will break input() unless input() didn't exist
 
 # HTML builder
 buildthumbnail = False
@@ -74,13 +75,8 @@ from PIL import Image
 
 
 
-def title(echo, ss=False):
-    if ss:
-        echo = f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {echo}"""
+def title(echo):
     sys.stdout.write("\033]0;" + echo + "\007")
-
-
-
 cls = "\033[H\033[2J"
 if sys.platform == "win32":
     tcolor = "\033[40;93m"
@@ -121,9 +117,6 @@ def mainmenu():
  | Enter http(s):// to download file.
  + Enter valid site to start a scraper.
 """)
-
-
-
 def skull():
     print("""
               ______
@@ -138,9 +131,6 @@ def skull():
             '--------'
 """)
     choice(bg="4c")
-
-
-
 def quicktutorial():
     print(f"""
  {rulefile} is collection of rules that defines how files are downloaded and organized.
@@ -172,14 +162,17 @@ def quicktutorial():
 
  + Rule syntax for scraping (aka pickers):
  |  "http..."            validates a site to start a scraper, attribute all pickers to this.
- |  "urlfix ...*... with ...*..." redirector.
+ |  "urlfix ...*... with ...*..." permanent redirector.
+ |  "url ...*... with ...*... redirector.
  |  "send X Y"           send data (Y) to url (X) before accessing page.
  |  "body ...*..."       pick part of the page. API: pick content for HTML-based pickers.
  |  "replace X with X"   find'n'replace before start picking in page/body.
+ |  "key ...*..."        pick keywords and start HTML builder, first two keywords will be identifier then title.
  |  "title ...*..."      pick and use as folder from first scraped page.
  |  "folder ...*..."     from url.
  |  "choose .. > .. = X" choose file by a match in another key. "X > X" for multiple possibilities in priority order.
  |  "file(s) ...*..."    pick first or all files to download, "relfile(s)" for relative urls.
+ |  "owner ... > ..."    unorphanize files to an identifier.
  |  "name ...*..."       pick name for each file downloading. There's no file on disk without a filename!
  |  "meta ...*..."       from url.
  |  "extfix ...*..."     fix name without extension from url (detected by ending mismatch).
@@ -230,9 +223,6 @@ if os.path.getsize(rulefile) < 1:
 print(f"Reading {rulefile} . . .")
 with open(rulefile, 'r', encoding="utf-8") as f:
     rules = f.read().splitlines()
-
-
-
 def tidy(offset, append, comment=""):
     if offset == 0:
         data = append + "\n\n" + "\n".join(rules) + comment
@@ -241,14 +231,11 @@ def tidy(offset, append, comment=""):
     with open(rulefile, 'wb') as f:
         f.write(bytes(data, 'utf-8'))
     return data.splitlines()
-
-
-
 def new_comment():
     return ""
 comment = ""
 offset = 0
-settings = ["Launch HTML server = No", "Browser = ", "Geistauge = No", "Python = " + pythondir, "Proxy = socks5://"]
+settings = ["Launch HTML server = No", "Browser = ", "Mail = ", "Geistauge = No", "Python = " + pythondir, "Proxy = socks5://"]
 for setting in settings:
     if not rules[offset].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if not offset and not "#" in "".join(rules):
@@ -277,6 +264,9 @@ def echolistener():
 t = Thread(target=echolistener)
 t.daemon = True
 t.start()
+
+
+
 def echo(threadn, b=0, f=0, friction=False):
     if not str(threadn).isdigit():
         stdout[0] = ""
@@ -294,6 +284,73 @@ def echo(threadn, b=0, f=0, friction=False):
 
 
 
+def send(s, m):
+    message = f"""Subject: {s}
+
+{m}"""
+    try:
+        server = smtplib.SMTP_SSL("smtp.gmail.com")
+        server.ehlo()
+        server.login(Mail[0], Mail[2])
+        server.sendmail(Mail[0], Mail[1], message)
+        server.close()
+        print("Success sending!                           \n | " + "\n | ".join(message.splitlines()))
+    except:
+        print("Sending failed!")
+
+
+
+def alert(page, found=True):
+    if Mail:
+        send(f"""{"" if found else "NOT "}FOUND as expected!""", page)
+    print(f"""{"" if found else "NOT "}FOUND as expected! (C)ontinue""")
+    title("! " + batchfile + monitor())
+    choice("c", bg="2e")
+
+
+
+def kill(threadn, echo=None, r=None, view=None):
+    if not echo:
+        print(threadn)
+    elif r:
+        print(f"""
+ {echo}
+ Please update or remove cookie from "{r}" setting in {rulefile} then restart CLI.""")
+    else:
+        print(f"""Thread {threadn} was killed {"by" if "(" in echo else "because"} {echo} {"(V)iew" if view else ""}""")
+    if view and choice("v") == 1:
+        print(view)
+    sys.exit()
+
+
+
+def choice(keys="", bg=False):
+    if sys.platform == "win32":
+        if bg: os.system(f"""color {"%stopcolor%" if bg == True else bg}""")
+        if keys: errorlevel = os.system(f"choice /c:{keys} /n")
+        if bg: os.system("color %color%")
+    else:
+        if keys: errorlevel = os.system("""while true; do
+read -s -n 1 errorlevel || break
+case $errorlevel in
+""" + "\n".join([f"{k} ) exit {e+1};;" for e, k in enumerate(keys)]) + """
+esac
+done""")
+    echo(tcolorx)
+    if not keys: return
+    if errorlevel >= 256:
+        errorlevel /= 256
+    return errorlevel
+
+
+
+def input(i="Your Input: "):
+    sys.stdout.write(i)
+    sys.stdout.flush()
+    return sys.stdin.readline()
+
+
+
 Bs = [0]
 Bstime = [int(time.time())]
 fp = "▹"
@@ -303,21 +360,46 @@ for n in range(256):
     h0 = int(h[0],16)
     h1 = int(h[1],16)
     fp += chr(10240+h1+int(h0/2)*16+int(h1/8)*64+int(h0/8)*64+(h0%2)*8-int(h1/8)*8)
+
+
+
 def echoMBs(threadn, Bytes, ff):
     if not threadn or (x := echothreadn.index(threadn)) < len(fx[0]):
-        fx[0][x if threadn else 0] = fp[ff]
-    if echofriction[0] < int(time.time()*eps):
-        echofriction[0] = int(time.time()*eps)
+        fx[0][x if threadn else 0] = fp[ff%257]
+    s = time.time()
+    if echofriction[0] < int(s*eps):
+        echofriction[0] = int(s*eps)
         stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {FAVORITE} {''.join(fx[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
     else:
-        echofriction[0] = int(time.time()*eps)
-    if Bstime[0] < int(time.time()):
-        Bstime[0] = int(time.time())
+        echofriction[0] = int(s*eps)
+    if Bstime[0] < int(s):
+        Bstime[0] = int(s)
         MBs[0] = f"{(Bs[0]+Bytes)/1048576:.2f}"
         Bs[0] = Bytes
     else:
         Bs[0] += Bytes
 fx = [[fp[0]]*8]
+
+
+
+pg = [0]
+tp = " ․⁚⋮⍿"
+pr = len(tp)-1
+pgtime = [int(time.time()/5)]
+tm = [x.copy() for _ in range(10) for x in [[tp[0]]*12]]
+def monitor():
+    s = time.time()
+    min = int(s / 60 % 60 % 10)
+    sec = int(s % 60 / 5)
+    tm[min][sec] = tp[pg[0]] if pg[0] < pr else tp[pr]
+    ts = [x.copy() for x in tm]
+    ts[min][sec] = "|"
+    return f""" ꊱ {" ꊱ ".join(["".join(x) for x in ts])} ꊱ"""
+
+
+
+def status():
+    return f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] """
 
 
 
@@ -431,8 +513,9 @@ def y(y, yn=False):
         return y
 HTMLserver = y(rules[0], True)
 Browser = y(rules[1])
-Geistauge = y(rules[2], True)
-proxy = y(rules[4])
+Mail = y(rules[2])
+Geistauge = y(rules[3], True)
+proxy = y(rules[5])
 if HTMLserver:
     port = 8885
     directories = [os.getcwd()]
@@ -447,6 +530,20 @@ if Browser:
     print(" BROWSER: " + Browser.replace("\\", "/").rsplit("/", 1)[-1])
 else:
     print(" BROWSER: NONE")
+if Mail:
+    try:
+        Mail = Mail.split(" ", 2)
+        print(" MAIL: " + Mail[0] + " -> " + Mail[1] + " *")
+    except:
+        print(" MAIL: Please add your two email addresses (sender/receiver)\n\n TRY AGAIN!")
+        sys.exit()
+    try:
+        Mail[2]
+    except:
+        Mail += [getpass.getpass(prompt=f" {Mail[0]}'s password (automatic if saved as third address): ")]
+        echo("", b=1)
+else:
+    print(" MAIL: NONE")
 if Geistauge:
     try:
         import numpy, cv2, hashlib
@@ -503,36 +600,48 @@ def topicker(s, rule):
         s["send"] += [[rule[1], rule[2]]]
     elif rule[0].startswith("body "):
         s["body"] += [rule[0].split("body ", 1)[1]]
+    elif rule[0].startswith("key "):
+        s["key"] += [rule[0].split("key ", 1)[1]]
     elif rule[0].startswith("folder"):
-        at(s["folder"], rule[0].split("folder", 1)[1], alt=False)
+        at(s["folder"], rule[0].split("folder", 1)[1], False)
     elif rule[0].startswith("title"):
         at(s["folder"], rule[0].split("title", 1)[1])
+    elif rule[0].startswith("expect"):
+        at(s["expect"], rule[0].split("expect", 1)[1])
+    elif rule[0].startswith("unexpect"):
+        at(s["expect"], rule[0].split("unexpect", 1)[1], False)
     elif rule[0].startswith("choose "):
         s["choose"] += [rule[0].split("choose ", 1)[1]]
     elif rule[0].startswith("file "):
         at(s["file2" if s["name"] else "file"], rule[0].split("file", 1)[1])
     elif rule[0].startswith("relfile "):
-        at(s["file2" if s["name"] else "file"], rule[0].split("relfile", 1)[1], alt=False)
+        at(s["file2" if s["name"] else "file"], rule[0].split("relfile", 1)[1], False)
     elif rule[0].startswith("files "):
         at(s["file2" if s["name"] else "file"], rule[0].split("files", 1)[1])
         s["files"] = True
     elif rule[0].startswith("relfiles "):
-        at(s["file2" if s["name"] else "file"], rule[0].split("relfiles", 1)[1], alt=False)
+        at(s["file2" if s["name"] else "file"], rule[0].split("relfiles", 1)[1], False)
         s["files"] = True
+    elif rule[0].startswith("owner "):
+        s["owner"] += [rule[0].split("owner ", 1)[1]]
     elif rule[0].startswith("name"):
         at(s["name"], rule[0].split("name", 1)[1])
     elif rule[0].startswith("meta"):
-        at(s["name"], rule[0].split("meta", 1)[1], alt=False)
+        at(s["name"], rule[0].split("meta", 1)[1], False)
     elif rule[0].startswith("extfix "):
         s["extfix"] = rule[0].split("extfix ", 1)[1]
     elif rule[0].startswith("urlfix "):
         rule = rule[0].split(" ", 1)[1].split(" with ", 1)
         x = rule[1].split("*", 1)
         s["urlfix"] = [x[0], [rule[0]], x[1]]
+    elif rule[0].startswith("url "):
+        rule = rule[0].split(" ", 1)[1].split(" with ", 1)
+        x = rule[1].split("*", 1)
+        s["url"] = [x[0], [rule[0]], x[1]]
     elif rule[0].startswith("pages "):
         at(s["pages"], rule[0].split("pages", 1)[1])
     elif rule[0].startswith("relpages "):
-        at(s["pages"], rule[0].split("relpages", 1)[1], alt=False)
+        at(s["pages"], rule[0].split("relpages", 1)[1], False)
     elif rule[0].startswith("ready"):
         s["ready"] = True
     elif rule[0].startswith("saveurl"):
@@ -548,14 +657,16 @@ customdir = {}
 organize = {}
 rename = []
 referers = {}
+mozilla = {}
 exempt = []
 mag = []
 med = []
 scraper = {}
 def new_scraper():
-    return {"replace":[], "send":[], "body":[], "folder":[], "choose":[], "file":[], "file2":[], "files":False, "name":[], "extfix":"", "urlfix":"", "pages":[], "saveurl":False, "ready":False}
+    return {"replace":[], "send":[], "body":[], "expect":[], "key":[], "folder":[], "choose":[], "file":[], "file2":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "saveurl":False, "ready":False}
 scraper.update({"void":new_scraper()})
 site = "void"
+ticks = []
 for rule in rules:
     if not rule or rule.startswith("#"):
         continue
@@ -563,9 +674,13 @@ for rule in rules:
         mag += [rule]
     elif rule.startswith('!.'):
         med += [rule.replace("!.", ".", 1)]
-    elif len(rule := rule.split(" for ")) == 2:
+    elif len(rule := rule.split(" seconds rarity ")) == 2:
+        ticks += [[int(x) for x in rule[0].split("-")]]*int(rule[1].split("%")[0])
+    elif len(rule := rule[0].split(" for ")) == 2:
         if rule[0].startswith("md5"):
             rename += [rule[1]]
+        elif rule[0].startswith("Mozilla/5.0"):
+            mozilla.update({rule[1]: rule[0]})
         elif rule[1].startswith("http"):
             if rule[0].startswith("http"):
                 referers.update({rule[1]: rule[0]})
@@ -574,7 +689,7 @@ for rule in rules:
                 sys.exit()
             else:
                 customdir.update({rule[1]: rule[0]})
-        elif rule[1].startswith('.'):
+        elif rule[1].startswith('.') or rule[1].startswith('www.'):
             c = new_cookie()
             c.update({'domain': rule[1], 'name': rule[0].split(" ")[0], 'value': rule[0].split(" ")[1]})
             cookie.set_cookie(cookiejar.Cookie(**c))
@@ -598,6 +713,32 @@ request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookie))
 
 
 
+tn = len(ticks)
+ticking = [False]
+def timer(e=""):
+    if not ticks:
+        return
+    if not ticking[0]:
+        ticking[0] = True
+        r = ticks[int(tn*random())]
+        s = r[0]+int((r[1]-r[0]+1)*random())
+        for sec in range(s):
+            echo(f"{e}Reloading in {s-sec} . . .")
+            time.sleep(1)
+            if pgtime[0] < int(time.time()/5):
+                pgtime[0] = int(time.time()/5)
+                pg[0] = 0
+                title(batchfile + monitor())
+            if seek[0]:
+                seek[0] = False
+                break
+        ticking[0] = False
+    else:
+        while ticking[0]:
+            time.sleep(0.5)
+
+
+
 # Loading filelist from detected urls in textfile
 if not os.path.exists(textfile):
     open(textfile, 'w').close()
@@ -605,55 +746,24 @@ print(f"\nReading {textfile} . . .")
 with open(textfile, 'r', encoding="utf-8") as f:
     textread = f.read().splitlines()
 htmlassets = {"filelist":[]}
+imore = []
 for url in textread:
     if not url or url.startswith("#"):
         continue
     elif not url.startswith("http"):
         continue
-    name = parse.unquote(url.split("/")[-1])
-    htmlassets["filelist"] += [{"url":url, "name":name, "edited":0}]
-
-
-
-def kill(threadn, echo=None, r=None, view=None):
-    if not echo:
-        print(threadn)
-    elif r:
-        print(f"""
- {echo}
- Please update or remove cookie from "{r}" setting in {rulefile} then restart CLI.""")
+    if any(word for word in scraper.keys() if url.startswith(word)):
+        imore += [url]
     else:
-        print(f"""Thread {threadn} was killed {"by" if "(" in echo else "because"} {echo} {"(V)iew" if view else ""}""")
-    if view and choice("v") == 1:
-        print(view)
-    sys.exit()
-
-
-
-def choice(keys="", bg=False):
-    if sys.platform == "win32":
-        if bg: os.system(f"""color {"%stopcolor%" if bg == True else bg}""")
-        if keys: errorlevel = os.system(f"choice /c:{keys} /n")
-        if bg: os.system("color %color%")
-    else:
-        if keys: errorlevel = os.system("""while true; do
-read -s -n 1 errorlevel || break
-case $errorlevel in
-""" + "\n".join([f"{k} ) exit {e+1};;" for e, k in enumerate(keys)]) + """
-esac
-done""")
-    echo(tcolorx)
-    if not keys: return
-    if errorlevel >= 256:
-        errorlevel /= 256
-    return errorlevel
+        name = parse.unquote(url.split("/")[-1])
+        htmlassets["filelist"] += [{"url":url, "name":name, "edited":0}]
 
 
 
 seek = [False]
 def keylistener():
     while True:
-        el = choice("xsq")
+        el = choice("xstcq")
         if el == 1:
             echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
             retryx[0] = False if retryx[0] else True
@@ -662,18 +772,29 @@ def keylistener():
             echo("", 1)
             skiptonext[0] = True
         elif el == 3:
+            if ticks:
+                echo(f"""COOLDOWN {"DISABLED" if cooldown[0] else "ENABLED"}""", 1, 1)
+            else:
+                echo(f"""Timer not enabled, please add "#-# seconds rarity 100%" in {rulefile}, add another timer to manipulate rarity.""", 1, 1)
+            cooldown[0] = False if cooldown[0] else True
+        elif el == 4:
+            for c in cookie:
+                echo(str(c), 1, 2)
+        elif el == 5:
             echo("", 1)
             offlinepromptx[0] = False
         else:
             seek[0] = True
-if disableinput:
-    t = Thread(target=keylistener)
-    t.daemon = True
-    t.start()
-    print("""
+t = Thread(target=keylistener)
+t.daemon = True
+t.start()
+print("""
  Key listener:
   > Press X to enable or disable indefinite retry on error downloading files (for this session).
   > Press S to skip next error once during downloading files.
+  > Press T to enable or disable cooldown during errors (reduce server strain).
+  > Press C to view cookies.
+  > Press Ctrl + C to break and reconnect of the ongoing downloads or to end timer instantly.
 """)
 
 
@@ -687,9 +808,13 @@ def retry(stderr):
             # raise
             if stderr:
                 if offlinepromptx[0]:
-                    echo(f"""{retries[0]} retries{" (Q)uit trying"}""")
+                    e = f"{retries[0]} retries (Q)uit trying "
+                    if cooldown[0]:
+                        timer(e)
+                    else:
+                        echo(e)
                 else:
-                    title("OFFLINE", True)
+                    title(status() + FAVORITE)
                     print(f"{stderr} (R)etry? (A)lways (N)ext")
                     el = choice("ran", True)
                     if el == 1:
@@ -697,13 +822,12 @@ def retry(stderr):
                     elif el == 2:
                         offlinepromptx[0] = True
                     elif el == 3:
-                        title(FAVORITE, True)
                         offlineprompt[0] = False
                         return
             else:
                 echo(f"{retries[0]} retries (S)kip one, wait it out, or press X to quit trying . . . ")
             time.sleep(0.5)
-            title(FAVORITE, True)
+            title(status() + FAVORITE)
             retries[0] += 1
             offlineprompt[0] = False
             return True
@@ -713,10 +837,11 @@ def retry(stderr):
 
 
 
-def fetch(url, context=None, headers={}, stderr="", dl=0, threadn=0, data=None):
+#, "Accept-Encoding":"gzip, deflate, br", "DNT":1, "Upgrade-Insecure-Requests":1
+def fetch(url, context=None, headers={'User-Agent':'Mozilla/5.0'}, stderr="", dl=0, threadn=0, data=None):
     while True:
         try:
-            headers.update({'Range':f'bytes={dl}-', 'User-Agent': 'Mozilla/5.0', 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"})
+            headers.update({'Range':f'bytes={dl}-', 'Accept':"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"})
             resp = request.urlopen(request.Request(url, headers=headers, data=data), context=context)
             break
         except:
@@ -730,7 +855,7 @@ def fetch(url, context=None, headers={}, stderr="", dl=0, threadn=0, data=None):
 
 
 
-def get(url, todisk="", conflict=[[], []], context=None, headers={'Referer':"", 'Origin':""}, headonly=False, stderr="", threadn=0):
+def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'User-Agent':'Mozilla/5.0', 'Referer':"", 'Origin':""}, headonly=False, stderr="", threadn=0):
     echourl = f"{url[:87]}{(url[87:] and '█')}"
     dl = 0
     if todisk:
@@ -813,7 +938,13 @@ def get(url, todisk="", conflict=[[], []], context=None, headers={'Referer':"", 
                     if not total or dl == total:
                         stdout[0] = ""
                         stdout[1] = ""
-                        return data
+                        if utf8:
+                            try:
+                                return data.decode("utf-8")
+                            except:
+                                return zlib.decompress(data, 16+zlib.MAX_WBITS).decode("utf-8")
+                        else:
+                            return data
                     if not retry(stderr) or not (resp := fetch(url, context, headers, stderr, dl, threadn)):
                         return
                     if resp.status == 200:
@@ -855,7 +986,8 @@ def echosession(download):
             if n and not collisionisreal:
                 continue
             url = onserver[n]
-            referer = x[0] if (x := [v for k, v in referers.items() if k in url]) else ""
+            referer = x[0] if (x := [v for k, v in referers.items() if url.startswith(k)]) else ""
+            ua = x[0] if (x := [v for k, v in mozilla.items() if url.startswith(k)]) else 'Mozilla/5.0'
             if n:
                 if not conflict[0]:
                     conflict[0] += [todisk]
@@ -863,7 +995,7 @@ def echosession(download):
                 conflict[0] += [todisk]
             if os.path.exists(todisk):
                 echo(f"{threadn:>3} Already downloaded: {todisk}", 0, 1)
-            elif el := get(url, todisk=todisk, conflict=conflict, headers={'Referer':referer, 'Origin':referer}, threadn=threadn):
+            elif el := get(url, todisk=todisk, conflict=conflict, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, threadn=threadn):
                 if el == 1:
                     newfilen[0] += 1
                     html.append("<a href=\"" + todisk.replace("#", "%23") + "\"><img src=\"" + todisk.replace("#", "%23") + "\" height=200px></a>")
@@ -895,7 +1027,7 @@ def cd(file, makedirs=False, preview=False):
             folder = ""
             name = name[0]
         prepend, append = explicate(rule[0]).split("*")
-        todisk = f"""{folder}{prepend}{name}{append}{ext}""".replace("\\", "/") # "\\" in file["name"] can work like folder after prepend
+        todisk = f"""{folder}{prepend}{name}{append}{ext}""" # "\\" in file["name"] can work like folder after prepend
         ondisk = os.path.split(todisk)[0]
         if not preview and not os.path.exists(ondisk):
             if makedirs or [explicate(x) for x in exempt if explicate(x) == os.path.split(todisk)[0] + "/"]:
@@ -906,6 +1038,7 @@ def cd(file, makedirs=False, preview=False):
                 url = ""
     elif not os.path.exists(mf):
         os.makedirs(mf)
+    todisk = todisk.replace("\\", "/")
     if not preview:
         if makedirs and not os.path.exists(os.path.split(todisk)[0]):
             os.makedirs(os.path.split(todisk)[0])
@@ -955,7 +1088,7 @@ def downloadtodisk(htmlassets, makedirs=False):
         echothreadn.append(threadn)
         download.put((threadn, html, log, ondisk, onserver))
     download.join()
-    title(batchfile, True)
+    title(status() + batchfile)
 
 
 
@@ -1090,6 +1223,10 @@ def nest(d, z):
         x = k.split(" >> ")
         if not x[0]:
             continue
+        if x[0] == "*":
+            for y in d.values():
+                ds += nest(y, [[z[0][0].split("* > ", 1)[1]] + z[0][1:], z[1]])
+            return ds
         if x[0] in d:
             d = d[x[0]]
             if len(x) == 2:
@@ -1136,7 +1273,8 @@ def peanut(x, cw=[], a=False):
         if not len(cw) == 2:
             kill("There is no asterisk while customizing a pick.")
     x = x[0]
-    if not "*" in x:
+    if " > " in x:
+        x = x.rsplit(" > ", 1)
         a = True
     return x, cw, a
 
@@ -1157,12 +1295,14 @@ def opendb(data):
 
 
 def saint(name):
-    return "".join(i for i in name if i not in "\"/:*?<>|")[:200]
+    return "".join(i for i in name.replace("/", "\\") if i not in "\"/:*?<>|")[:200]
 
 
 
 def page_assets(queue):
     while True:
+        data = ""
+        url = ""
         threadn, page, more, htmlassets = queue.get()
         pick = scraper[[x for x in scraper.keys() if page.startswith(x)][0]]
         if x := pick["urlfix"]:
@@ -1170,15 +1310,41 @@ def page_assets(queue):
                 page = x[0] + carrots([[page, ""]], y, False)[-2][1] + x[2]
         if not pick["ready"]:
             print(f" Visiting {page}")
+        if x := pick["url"]:
+            for y in x[1]:
+                url = x[0] + carrots([[page, ""]], y, False)[-2][1] + x[2]
+        pg[0] += 1
+        referer = x[0] if (x := [v for k, v in referers.items() if page.startswith(k)]) else ""
+        ua = x[0] if (x := [v for k, v in mozilla.items() if page.startswith(k)]) else 'Mozilla/5.0'
         if pick["send"]:
             for x in pick["send"]:
-                fetch(x[0], stderr="Error sending data", data=str(x[1]).encode('utf-8'))
-        referer = x[0] if (x := [v for k, v in referers.items() if k in page]) else ""
-        if data := get(page, headers={'Referer':referer, 'Origin':referer}, stderr="Error or dead (update cookie or referer if these are required to view)"):
-            data = data.decode("utf-8").replace("\n ", "").replace("\n", "")
-        else:
+                data = fetch(x[0], stderr="Error sending data", data=str(x[1]).encode('utf-8'))
+            if not data:
+                print(f" Error visiting {page}")
+                break
+            data = data.read()
+        if not data and (data := get(url if url else page, utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, stderr="Error or dead (update cookie or referer if these are required to view)", threadn=threadn)):
+            data = data.replace("\n ", "").replace("\n", "")
+        elif not data:
+            print(f" Error visiting {page}")
             break
+        title(batchfile + monitor())
         db = ""
+        if pick["key"]:
+            for z in pick["key"]:
+                z, cw, a = peanut(z)
+                if a:
+                    if not db:
+                        db = opendb(data)
+                    for d in nested(db, [z[0], [{"key":z[-1]}]]):
+                        htmlassets["partition"] += [d[0]]
+                else:
+                    for d in carrots([[data, ""]], z, False):
+                        htmlassets["partition"] += [d[0]]
+            print(htmlassets["partition"])
+            print("(C)ontinue")
+            if not choice("c") == 1:
+                time.sleep(1)
         if pick["body"]:
             body = ""
             for z in pick["body"]:
@@ -1186,11 +1352,10 @@ def page_assets(queue):
                 if a:
                     if not db:
                         db = opendb(data)
-                    z = z.rsplit(" > ", 1)
-                    for d in nested(db, [z[0], [{"key":z[-1], "error":""}]]):
+                    for d in nested(db, [z[0], [{"key":z[-1]}]]):
                         body += d[0]
                 else:
-                    body += "".join(x[0] for x in carrots([[data, ""]], z, False, cw))
+                    body += "".join(x[0] for x in carrots([[data, ""]], z, False))
             body = body.replace("\n ", "").replace("\n", "")
             for x in pick["replace"]:
                 body = body.replace(x[0], x[1])
@@ -1199,16 +1364,41 @@ def page_assets(queue):
             for x in pick["replace"]:
                 data = data.replace(x[0], x[1])
             body = [[data, ""]]
+        if pick["expect"]:
+            pos = 0
+            for y in pick["expect"]:
+                for z in y[1:]:
+                    z, cw, a = peanut(z)
+                    if a:
+                        pos += 1
+                        if pick["choose"]:
+                            c = pick["choose"][pos-1].rsplit(" = ", 1)
+                            c[0] = c[0].replace(z[0], "", 1).split(" > ", 1)[1]
+                            c[1] = c[1].split(" > ")
+                        else:
+                            c = ["", []]
+                        result = nested(json.loads(data), [z[0], [{"key":c[0], "value":c[1]}, {"key":z[-1]}]])
+                        if y[0]["alt"] and result:
+                            alert(page)
+                        elif not y[0]["alt"] and not result:
+                            alert(page, False)
+                        more += [page]
+                    else:
+                        if y[0]["alt"] and z in body[0][0]:
+                            alert(page)
+                        elif not y[0]["alt"] and not z in body[0][0]:
+                            alert(page, False)
+                        more += [page]
+                    timer("Not quite as expected! ")
         if not folder[0]:
             if pick["folder"]:
                 for y in pick["folder"]:
                     for z in y[1:]:
-                        z, cw, a = peanut(z, ["", "/"])
+                        z, cw, a = peanut(z, ["", "\\"])
                         if a:
                             if not db:
                                 db = opendb(data)
-                            z = z.rsplit(" > ", 1)
-                            for d in nested(db, [z[0], [{"key":z[-1], "error":""}]]):
+                            for d in nested(db, [z[0], [{"key":z[-1]}]]):
                                 folder[0] += d[0]
                         elif y[0]["alt"]:
                             if len(c := carrots(body, z, False, cw)) == 2:
@@ -1218,7 +1408,7 @@ def page_assets(queue):
                             if len(c := carrots([[page, ""]], z, False, cw)) == 2:
                                 folder[0] += c[-2][1]
             if pick["saveurl"]:
-                htmlassets["page"] = {"url":page, "name":saint(folder[0] + folder[0].rsplit("/", 2)[-2] + ".URL"), "edited":0}
+                htmlassets["page"] = {"url":page, "name":saint(folder[0] + folder[0].rsplit("\\", 2)[-2] + ".URL"), "edited":0}
         if pick["pages"]:
             for y in pick["pages"]:
                 for z in y[1:]:
@@ -1226,8 +1416,7 @@ def page_assets(queue):
                     if a:
                         if not db:
                             db = opendb(data)
-                        z = z.rsplit(" > ", 1)
-                        pages = nested(db, [z[0], [{"key":z[-1], "error":""}]])
+                        pages = nested(db, [z[0], [{"key":z[-1]}]])
                         if pages and not pages[0][0] == "None":
                             more += [p[0] if y[0]["alt"] else page + p[0] for p in pages if not p[0] == page and not page + p[0] == page]
                     else:
@@ -1242,12 +1431,11 @@ def page_assets(queue):
                 for y in p:
                     na = True
                     for z in y[1:]:
-                        z, cw, a = peanut(z)
+                        f, cw, a = peanut(z)
                         if a:
                             pos += 1
                             if not db:
                                 db = opendb(data)
-                            f = z.rsplit(" > ", 1)
                             if pick["choose"]:
                                 c = pick["choose"][pos-1].rsplit(" = ", 1)
                                 c[0] = c[0].replace(f[0], "", 1).split(" > ", 1)[1]
@@ -1262,7 +1450,6 @@ def page_assets(queue):
                                     meta += [z[1:]]
                                     continue
                                 z, cwf, a = peanut(z[pos])
-                                z = z.rsplit(" > ", 1)
                                 if f[0] == z[0]:
                                     name += [{"key":z[-1], "cw":[cwf[0], cwf[1] + "".join(name2)] if name2 else cwf, "error":"there's no name asset found in dictionary for this file."}]
                                     name2 = []
@@ -1296,7 +1483,7 @@ def page_assets(queue):
                                     name = m2 + name
                                 filelist += [{"url":file[0], "name":saint(folder[0] + name), "edited":0}]
                         else:
-                            assets = carrots(body, z, pick["files"], cw)
+                            assets = carrots(body, f, pick["files"], cw)
                             file = ""
                             for asset in assets:
                                 if after:
@@ -1354,24 +1541,26 @@ for i in range(8):
 
 folder = [""]
 ready = [True]
-def scrape(page):
-    htmlassets = {"page":"", "filelist":[]}
-    threadn = 0
+def scrape(pages):
+    htmlassets = {"page":"", "partition":[], "filelist":[]}
     folder[0] = ""
-    pages = iter([page])
-    more = []
+    pages = iter(pages)
     while True:
+        threadn = 0
+        more = []
         for url in pages:
             threadn += 1
             echothreadn.append(threadn)
             queue.put((threadn, url, more, htmlassets))
-        queue.join()
+        try:
+            queue.join()
+        except:
+            pass
         pages = set(filter(None, more))
         if not pages:
             break
         pages = iter(pages)
-        more = []
-    title(batchfile, True)
+    title(status() + batchfile)
 
     if htmlassets["filelist"]:
         if not ready[0]:
@@ -2214,6 +2403,45 @@ def finish_organize():
 
 
 
+def syntax(html):
+    a = [[html,""]]
+    for z in ["http://", "https://", "/"]:
+        a = carrots(a, f"'{z}*' not starts with >", True, ["'" + z, "'"])
+        a = carrots(a, f"\"{z}*\" not starts with >", True, ["\"" + z, "\""])
+    z = []
+    for x in a:
+        y = tcolor
+        if x[1][-4:-1] == ".js":
+            y = tcoloro
+        elif ".json" in x[1] or "/api/" in x[1]:
+            y = tcolorb
+        elif x[1][1:5] == "http":
+            y = tcolorg
+        z += [x[0] + y + x[1] + tcolorx]
+    return "".join(z)
+
+
+
+# browser = webdriver.Firefox()
+# browser.get('https://www.patreon.com/api/user/9325459')
+while False:
+    if """                         <span class="a-offscreen">from seller Amazon.com""" in browser.page_source:
+        echo("FOUND", 0, 1)
+    else:
+        echo("Nope", 0, 1)
+    for bc in browser.get_cookies():
+        if "httpOnly" in bc: del bc["httpOnly"]
+        if "expiry" in bc: del bc["expiry"]
+        if "sameSite" in bc: del bc["sameSite"]
+        c = new_cookie()
+        c.update(bc)
+        cookie.set_cookie(cookiejar.Cookie(**c))
+    print(cookie)
+    input("Refresh?\r")
+    browser.refresh()
+
+
+
 if filelist:
     m = filelist[0]
     if len(filelist) > 1:
@@ -2235,6 +2463,8 @@ if filelist:
 else:
     if htmlassets["filelist"]:
         downloadtodisk(htmlassets)
+    elif imore:
+        scrape(imore)
     else:
         print(f" No urls in {textfile}! Doing so will enable parallel downloading urls and resume the interrupted downloads.")
 mainmenu()
@@ -2245,17 +2475,18 @@ while True:
     elif m == "v":
         m = input("Enter URL: ").rstrip()
         if m.startswith("http"):
-            referer = x[0] if (x := [v for k, v in referers.items() if k in m]) else ""
-            html = get(m, headers={'Referer':referer, 'Origin':referer}, stderr="Page loading failed successfully")
+            referer = x[0] if (x := [v for k, v in referers.items() if m.startswith(k)]) else ""
+            ua = x[0] if (x := [v for k, v in mozilla.items() if m.startswith(k)]) else 'Mozilla/5.0'
+            html = get(m, utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, stderr="Page loading failed successfully")
             if html:
-                html = "\n".join([s.rstrip() if s.rstrip() else "" for s in html.decode("utf-8").replace("	", "    ").splitlines()])
-                print(html)
+                html = "\n".join([s.rstrip() if s.rstrip() else "" for s in html.replace("	", "    ").splitlines()])
+                print(syntax(html))
                 # with open(f"{batchdir}{batchname} (source).html", 'wb') as f:
                 #     f.write(bytes(html, 'utf-8'))
         else:
             choice(bg=True)
     elif any(word for word in scraper.keys() if m.startswith(word)):
-        scrape(m)
+        scrape([m])
     elif m.startswith("http") and not m.startswith("http://localhost"):
         if m.endswith("/"):
             choice(bg=True)
@@ -2372,6 +2603,7 @@ set pythondir=!pythondir:\=\\!
 if exist Lib\site-packages\socks.py (echo.) else (goto install)
 ::if exist Lib\site-packages\cv2 (echo.) else (goto install)
 ::if exist Lib\site-packages\numpy\ (echo.) else (goto install)
+::if exist Lib\site-packages\selenium (echo.) else (goto instal)
 if exist Lib\site-packages\PIL (goto start) else (echo.)
 
 :install
@@ -2382,6 +2614,7 @@ Scripts\pip.exe install PySocks
 ::Scripts\pip.exe install opencv-python
 ::Scripts\pip.exe install numpy==1.19.3
 Scripts\pip.exe install Pillow
+::Scripts\pip.exe install selenium
 echo.
 pause
 

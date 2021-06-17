@@ -42,7 +42,7 @@ textfile = batchname + ".txt"
 archivefile = [".7z", ".rar", ".zip"]
 imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"]
 videofile = [".mkv", ".mp4", ".webm"]
-specialfile = ["magnificent.txt", "mediocre.txt", ".ender"]
+specialfile = [".ender", "gallery.html", "partition.json"]
 
 newfilen = [0]
 echothreadn = []
@@ -162,35 +162,42 @@ def quicktutorial():
 
  + Rule syntax for scraping (aka pickers):
  |  "http..."            validates a site to start a scraper, attribute all pickers to this.
+ |  "visit"              visit especially for cookies before redirection.
  |  "urlfix ...*... with ...*..." permanent redirector.
- |  "url ...*... with ...*... redirector.
+ |  "url ...*... with ...*... redirector. Original url will be used for statement and scraper loop.
  |  "send X Y"           send data (Y) to url (X) before accessing page.
- |  "body ...*..."       pick part of the page. API: pick content for HTML-based pickers.
- |  "replace X with X"   find'n'replace before start picking in page/body.
- |  "key ...*..."        pick keywords and start HTML builder, first two keywords will be identifier then title.
+ |  "part ...*..."       partitioning the page.
+ |  "key ... > ..."      pick identifier and start HTML builder, attribute partition, keywords, and files to this.
+ |  "html ...*..."       pick article from page/partition for HTML builder. API: pick content for HTML-based pickers.
+ |                       HTML-based file pickers will look through articles for inline files too.
+ |  "replace X with X"   find'n'replace before start picking in page/partition.
  |  "title ...*..."      pick and use as folder from first scraped page.
  |  "folder ...*..."     from url.
  |  "choose .. > .. = X" choose file by a match in another key. "X > X" for multiple possibilities in priority order.
+ |  "expect ...*..."     put scraper into loop, exit when a pattern is found in page. "unexpect" for opposition.
+ |  "message ..."        customize alert message. Leave blank to exit loop without alerting.
  |  "file(s) ...*..."    pick first or all files to download, "relfile(s)" for relative urls.
- |  "owner ... > ..."    unorphanize files to an identifier.
  |  "name ...*..."       pick name for each file downloading. There's no file on disk without a filename!
  |  "meta ...*..."       from url.
  |  "extfix ...*..."     fix name without extension from url (detected by ending mismatch).
  |  "pages ...*..."      pick more pages to scrape in parallel, "relpages" for relative urls.
  |  "saveurl"            save first scraped page url as URL file in same directory where files are downloading.
  |
- | Page asterisks will be unique, but asterisks to older pages can cause loophole.
+ | Page picker will make sure all pages are unique to visit, but older pages can cause loophole.
  | Repeat a picker with different pattern for multiple possibilities/actions.
  | folder#, title#, name#, meta# to assemble assets together sequentially.
+ | key# for title (key1), timestamp (key2) then keywords (key3 each) for HTML builder.
  |  "...*..."            HTML-based picker.
- |  "... > ..."          API/QS-based picker, " > 0 > " to iterate a list, " >> " to load a dictionary from inside QS.
- | API/QS (Query String) supported pickers: body, files, name, pages.
+ |  "... > ..."          API/QS-based picker.
+ | API/QS (Query String) supported pickers: part, html, key, expect, files, name, pages.
+ | Magic key: " > 0 > " to iterate a list, " > * > " to iterate all within, " >> " to load a dictionary from inside QS.
  | During API each file picker must be accompanied by name picker and all HTML-based name/meta pickers must descend.
  |
  | Manipulating asterisk:
  |  > Multiple asterisks to pick the last asterisk better and/or to discard others.
  |  > Arrange name and file pickers if needed to follow their position in page. file before -> name -> file after.
- |  > First with match will be chosen first. This doesn't apply to body and plural pickers such as files, pages.
+ |  > Arrange html and file pickers whether to download inline files before conflict of same file name.
+ |  > First with match will be chosen first. This doesn't apply to html and plural pickers such as files, pages.
  |  > Name match closest to the file will be chosen. file before -> name to before -> name to after -> file after.
  |
  | Right-to-left:
@@ -223,31 +230,24 @@ if os.path.getsize(rulefile) < 1:
 print(f"Reading {rulefile} . . .")
 with open(rulefile, 'r', encoding="utf-8") as f:
     rules = f.read().splitlines()
-def tidy(offset, append, comment=""):
+def tidy(offset, append):
     if offset == 0:
-        data = append + "\n\n" + "\n".join(rules) + comment
+        data = append + "\n\n" + "\n".join(rules)
     else:
         data = "\n".join(rules[:offset]) + "\n" + append + "\n" + "\n".join(rules[offset:])
     with open(rulefile, 'wb') as f:
         f.write(bytes(data, 'utf-8'))
     return data.splitlines()
-def new_comment():
-    return ""
-comment = ""
 offset = 0
 settings = ["Launch HTML server = No", "Browser = ", "Mail = ", "Geistauge = No", "Python = " + pythondir, "Proxy = socks5://"]
 for setting in settings:
     if not rules[offset].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if not offset and not "#" in "".join(rules):
-            comment = new_comment()
-            rules = tidy(offset, setting, comment=comment)
+            rules = tidy(offset, setting)
         else:
             rules = tidy(offset, setting)
         print(f"""Added new setting "{setting}" to {rulefile}!""")
     offset += 1
-if comment:
-    print(f"\n New comments (# comment) and download filters were added to {rulefile}.\n You may want to check/edit there then restart CLI before I download artpieces with filters and settings.")
-    sys.exit()
 
 
 
@@ -284,28 +284,34 @@ def echo(threadn, b=0, f=0, friction=False):
 
 
 
-def send(s, m):
+def send(s, m, d):
     message = f"""Subject: {s}
 
 {m}"""
-    try:
-        server = smtplib.SMTP_SSL("smtp.gmail.com")
-        server.ehlo()
-        server.login(Mail[0], Mail[2])
-        server.sendmail(Mail[0], Mail[1], message)
-        server.close()
-        print("Success sending!                           \n | " + "\n | ".join(message.splitlines()))
-    except:
-        print("Sending failed!")
+    if not d and Mail:
+        try:
+            server = smtplib.SMTP_SSL("smtp.gmail.com")
+            server.ehlo()
+            server.login(Mail[0], Mail[2])
+            server.sendmail(Mail[0], Mail[1], message)
+            server.close()
+            print("Success sending!                           ")
+        except:
+            print("Sending failed! Try turning on https://myaccount.google.com/lesssecureapps and make sure user and password is correct.")
+    elif not d:
+        print("You should consider using Mail if you want alert over Mail.")
+    else:
+        print("Dismissing                                 ")
+    print(" | " + "\n | ".join(message.splitlines()) + "\n")
 
 
 
-def alert(page, found=True):
-    if Mail:
-        send(f"""{"" if found else "NOT "}FOUND as expected!""", page)
-    print(f"""{"" if found else "NOT "}FOUND as expected! (C)ontinue""")
+def alert(m, s, d=False):
     title("! " + batchfile + monitor())
-    choice("c", bg="2e")
+    send(s, m, d)
+    if not d:
+        print("(C)ontinue")
+        choice("c", bg="2e")
 
 
 
@@ -327,27 +333,30 @@ def kill(threadn, echo=None, r=None, view=None):
 def choice(keys="", bg=False):
     if sys.platform == "win32":
         if bg: os.system(f"""color {"%stopcolor%" if bg == True else bg}""")
-        if keys: errorlevel = os.system(f"choice /c:{keys} /n")
+        if keys: el = os.system(f"choice /c:{keys} /n")
         if bg: os.system("color %color%")
     else:
-        if keys: errorlevel = os.system("""while true; do
-read -s -n 1 errorlevel || break
-case $errorlevel in
+        if keys: el = os.system("""while true; do
+read -s -n 1 el || break
+case $el in
 """ + "\n".join([f"{k} ) exit {e+1};;" for e, k in enumerate(keys)]) + """
 esac
 done""")
     echo(tcolorx)
     if not keys: return
-    if errorlevel >= 256:
-        errorlevel /= 256
-    return errorlevel
+    if el >= 256:
+        el /= 256
+    return el
 
 
 
-def input(i="Your Input: "):
-    sys.stdout.write(i)
+def input(i="Your Input: ", c=False):
+    sys.stdout.write(str(i))
     sys.stdout.flush()
-    return sys.stdin.readline()
+    if c:
+        return choice(c)
+    else:
+        return sys.stdin.readline()
 
 
 
@@ -383,7 +392,7 @@ fx = [[fp[0]]*8]
 
 
 pg = [0]
-tp = " ․⁚⋮⍿"
+tp = " ․⁚⋮456789abcdef⍿"
 pr = len(tp)-1
 pgtime = [int(time.time()/5)]
 tm = [x.copy() for _ in range(10) for x in [[tp[0]]*12]]
@@ -531,15 +540,16 @@ if Browser:
 else:
     print(" BROWSER: NONE")
 if Mail:
-    try:
-        Mail = Mail.split(" ", 2)
-        print(" MAIL: " + Mail[0] + " -> " + Mail[1] + " *")
-    except:
+    Mail = Mail.split(" ", 2)
+    if len(Mail) > 1:
+        if Mail[0].endswith("@gmail.com"):
+            print(" MAIL: " + Mail[0] + " -> " + Mail[1] + " *")
+        else:
+            print(" MAIL: Non-Gmail as sender is unimplemented for now.\n\n Please try again . . .")
+    else:
         print(" MAIL: Please add your two email addresses (sender/receiver)\n\n TRY AGAIN!")
         sys.exit()
-    try:
-        Mail[2]
-    except:
+    if len(Mail) < 3:
         Mail += [getpass.getpass(prompt=f" {Mail[0]}'s password (automatic if saved as third address): ")]
         echo("", b=1)
 else:
@@ -549,7 +559,7 @@ if Geistauge:
         import numpy, cv2, hashlib
         print(" GEISTAUGE: ON")
     except:
-        print(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install numpy==1.19.3\n{sys.exec_prefix}\Scripts\pip.exe install opencv-python")
+        print(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install numpy\n{sys.exec_prefix}\Scripts\pip.exe install opencv-python")
         sys.exit()
 else:    
     print(" GEISTAUGE: OFF")
@@ -581,6 +591,15 @@ def new_cookie():
 def explicate(rule):
     return rule.replace("*date", date).replace("/", "\\")
 
+def saint(name=False, url=False):
+    if url:
+        url = list(parse.urlsplit(url))
+        url2 = url[2].rsplit("/", 1)
+        url[2] = url2[0] + "/" + parse.quote(url2[1])
+        return parse.urlunsplit(url)
+    else:
+        return "".join(i for i in name.replace("/", "\\") if i not in "\":*?<>|")[:200]
+
 
 
 def at(a, r, alt=True):
@@ -598,10 +617,16 @@ def topicker(s, rule):
     if rule[0].startswith("send "):
         rule = rule[0].split(" ", 2)
         s["send"] += [[rule[1], rule[2]]]
-    elif rule[0].startswith("body "):
-        s["body"] += [rule[0].split("body ", 1)[1]]
-    elif rule[0].startswith("key "):
-        s["key"] += [rule[0].split("key ", 1)[1]]
+    elif rule[0].startswith("visit"):
+        s["visit"] = True
+    elif rule[0].startswith("part "):
+        s["part"] += [rule[0].split("part ", 1)[1]]
+    elif rule[0].startswith("html "):
+        s["html"] += [rule[0].split("html ", 1)[1]]
+        if s["file"] or s["file2"]:
+            s["inlinefirst"] = False
+    elif rule[0].startswith("key"):
+        at(s["key"], rule[0].split("key", 1)[1])
     elif rule[0].startswith("folder"):
         at(s["folder"], rule[0].split("folder", 1)[1], False)
     elif rule[0].startswith("title"):
@@ -610,6 +635,10 @@ def topicker(s, rule):
         at(s["expect"], rule[0].split("expect", 1)[1])
     elif rule[0].startswith("unexpect"):
         at(s["expect"], rule[0].split("unexpect", 1)[1], False)
+    elif rule[0].startswith("dismiss"):
+        s["dismiss"] = True
+    elif rule[0].startswith("message "):
+        s["message"] += [rule[0].split("message ", 1)[1]]
     elif rule[0].startswith("choose "):
         s["choose"] += [rule[0].split("choose ", 1)[1]]
     elif rule[0].startswith("file "):
@@ -642,6 +671,8 @@ def topicker(s, rule):
         at(s["pages"], rule[0].split("pages", 1)[1])
     elif rule[0].startswith("relpages "):
         at(s["pages"], rule[0].split("relpages", 1)[1], False)
+    elif rule[0].startswith("checkpoint"):
+        s["checkpoint"] = True
     elif rule[0].startswith("ready"):
         s["ready"] = True
     elif rule[0].startswith("saveurl"):
@@ -663,7 +694,7 @@ mag = []
 med = []
 scraper = {}
 def new_scraper():
-    return {"replace":[], "send":[], "body":[], "expect":[], "key":[], "folder":[], "choose":[], "file":[], "file2":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "saveurl":False, "ready":False}
+    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file2":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "checkpoint":False, "saveurl":False, "ready":False}
 scraper.update({"void":new_scraper()})
 site = "void"
 ticks = []
@@ -713,14 +744,17 @@ request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookie))
 
 
 
-tn = len(ticks)
+tn = [len(ticks)]
 ticking = [False]
-def timer(e=""):
+def timer(e="", all=True):
     if not ticks:
+        ticks.append([4, 8])
+        tn[0] = len(ticks)
+        echo(f"""\n"#-# seconds rarity 100%" in {rulefile} to customize timer, add another timer to manipulate rarity.\n""", 1, 1)
         return
     if not ticking[0]:
         ticking[0] = True
-        r = ticks[int(tn*random())]
+        r = ticks[int(tn[0]*random())]
         s = r[0]+int((r[1]-r[0]+1)*random())
         for sec in range(s):
             echo(f"{e}Reloading in {s-sec} . . .")
@@ -733,7 +767,7 @@ def timer(e=""):
                 seek[0] = False
                 break
         ticking[0] = False
-    else:
+    elif all:
         while ticking[0]:
             time.sleep(0.5)
 
@@ -745,7 +779,7 @@ if not os.path.exists(textfile):
 print(f"\nReading {textfile} . . .")
 with open(textfile, 'r', encoding="utf-8") as f:
     textread = f.read().splitlines()
-htmlassets = {"filelist":[]}
+htmlassets = {"page":"", "partition":{"0":{"html":"", "keywords":[], "files":[]}}}
 imore = []
 for url in textread:
     if not url or url.startswith("#"):
@@ -756,7 +790,7 @@ for url in textread:
         imore += [url]
     else:
         name = parse.unquote(url.split("/")[-1])
-        htmlassets["filelist"] += [{"url":url, "name":name, "edited":0}]
+        htmlassets["partition"]["0"]["files"] += [{"url":url, "name":saint(name), "edited":0}]
 
 
 
@@ -842,7 +876,7 @@ def fetch(url, context=None, headers={'User-Agent':'Mozilla/5.0'}, stderr="", dl
     while True:
         try:
             headers.update({'Range':f'bytes={dl}-', 'Accept':"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"})
-            resp = request.urlopen(request.Request(url, headers=headers, data=data), context=context)
+            resp = request.urlopen(request.Request(saint(url=url), headers=headers, data=data), context=context)
             break
         except:
             if stderr or retryx[0] and not skiptonext[0]:
@@ -1043,20 +1077,42 @@ def cd(file, makedirs=False, preview=False):
         if makedirs and not os.path.exists(os.path.split(todisk)[0]):
             os.makedirs(os.path.split(todisk)[0])
         file.update({"name":todisk, "edited":file["edited"]})
-    return [url, todisk, file["edited"]]
+    return [[url, todisk, file["edited"]]]
 
 
 
 FAVORITE = batchfile
 def downloadtodisk(htmlassets, makedirs=False):
     filelist = []
-    error[0] = []
-    for file in htmlassets["filelist"]:
-        filelist += cd(file, makedirs)
+    filelisthtml = []
+    htmlpart = htmlassets["partition"]
+    for key in htmlpart.keys():
+        for file in htmlpart[key]["files"]:
+            if not file["name"]:
+                print(f""" I don't have a scraper for {file["url"]}""")
+            else:
+                filelist += cd(file, makedirs)
+        for html in htmlpart[key]["html"]:
+            if len(html) == 2 and html[1]:
+                if not html[1]["name"]:
+                    print(f""" I don't have a scraper for {html[1]["url"]}""")
+                else:
+                    filelisthtml += cd(html[1], makedirs)
+    if htmlassets["inlinefirst"]:
+        filelist = filelisthtml + filelist
+    else:
+        filelist += filelisthtml
     if error[0]:
-        print(f"""\n There is at least one of the bad custom dir rules (non-existent dir), add new rule e.g. "{os.path.split(error[0][0])[0] + "/"}" to allow creating this dir.\n""")
-
-
+        print(f"""\n There is at least one of the bad custom dir rules (non-existent dir).""")
+        done = []
+        for x in error[0]:
+            d = os.path.split(x)[0] + "\\"
+            if d in done:
+                continue
+            else:
+                done += [d]
+            print(f"  {d}")
+    print("\n Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs (developer note: currently unimplemented).")
 
     if not filelist:
         print("Filelist is empty!")
@@ -1064,23 +1120,47 @@ def downloadtodisk(htmlassets, makedirs=False):
     html = []
     log = []
 
-
-
-    if len(filelist) == 3:
-        get(filelist[0], todisk=filelist[1])
+    if len(filelist) == 1:
+        get(filelist[0][0], todisk=filelist[0][1])
         return
     queued = {}
-    files = iter(filelist)
-    for onserver in files:
-        ondisk = next(files)
-        edited = next(files)
-        if not onserver:
+
+    lastfilen = newfilen[0]
+    dirs = set()
+    htmldirs = {}
+    for file in filelist:
+        df = file[1].rsplit("/", 1)
+        part = df[-1].split(".", 1)[0]
+        dir = df[0] + "/"
+        if not dir in dirs and not dirs.add(dir):
+            if os.path.exists(dir + "partition.json"):
+                with open(dir + "partition.json", 'r') as f:
+                    htmldirs.update({dir:json.loads(f.read())})
+            else:
+                htmldirs.update({dir:{}})
+        if dir in htmldirs and part in htmldirs[dir]:
+            if len(htmldirs[dir][part]["keywords"]) < 2:
+                continue
+            k = htmldirs[dir][part]["keywords"][1]
+            if not file[2] == "0" and not file[2] == k:
+                if os.path.exists(file[1]):
+                    if editisreal:
+                        old = ".old_file_" + k
+                        os.rename(file[1], ren(file[1], old))
+                        thumbnail = ren(file[1], append="_small")
+                        if os.path.exists(thumbnail):
+                            os.rename(thumbnail, ren(thumbnail, old))
+                    else:
+                        print(f"  Edited on server: {file[1]}")
+                        continue
+            else:
+                continue
+
+        if not file[0]:
             continue
-        if conflict := [k for k in queued.keys() if ondisk.lower() == k.lower()]:
-            ondisk = conflict[0]
-        queued.update({ondisk: [onserver] + (queued[ondisk] if queued.get(ondisk) else [])})
-
-
+        if conflict := [k for k in queued.keys() if file[1].lower() == k.lower()]:
+            file[1] = conflict[0]
+        queued.update({file[1]: [file[0]] + (queued[file[1]] if queued.get(file[1]) else [])})
 
     threadn = 0
     for ondisk, onserver in queued.items():
@@ -1089,6 +1169,22 @@ def downloadtodisk(htmlassets, makedirs=False):
         download.put((threadn, html, log, ondisk, onserver))
     download.join()
     title(status() + batchfile)
+
+    if len(htmlpart.keys()) > 1:
+        newfile = False if lastfilen == newfilen[0] else True
+        if error[0]:
+            for x in error[0]:
+                htmlpart.pop(os.path.basename(x).split(".", 1)[0], None)
+        print(f"""{"Nothing new to download." if not newfile else ""}{" There are failed downloads I will try again later." if error[0] else ""}""")
+
+        for dir in htmldirs.keys():
+            if not (x := os.path.exists(dir + "gallery.html")):
+                orphfiles = []
+                for file in next(os.walk(dir))[2]:
+                    if not file.endswith(tuple(specialfile)):
+                        orphfiles += [file]
+                tohtml(dir, htmlassets, set(orphfiles).difference([x[1].rsplit("/", 1)[-1] for x in filelist]))
+    error[0] = []
 
 
 
@@ -1099,88 +1195,88 @@ def met(p, n):
 
 
 
-def carrot(x, asset, new, n):
+def carrot(array, x, new, n):
     a = ""
     aa = ""
     p = ""
-    d = asset.copy()
+    new_array = array.copy()
     i = ""
     ii = True
     cc = False
-    carets = []
+    cs = []
     z = [0, x]
     while True:
-        cp = False
+        ac = False
         z = z[-1].split("*", 1)
         if z[0].startswith("^"):
-            carets += [z[0].split("^", 1)[1]]
+            cs += [z[0].split("^", 1)[1]]
             if len(z) == 2:
                 continue
             z[0] = ""
             cc = True
         if len(z) == 2 and not z[0] and not z[1]:
-            if met(d[0], n):
-                asset[0] = ""
-                new += [["", d[0]]]
+            if met(new_array[0], n):
+                array[0] = ""
+                new += [["", new_array[0]]]
             return
         elif len(z) == 2 and not z[0]:
-            y = ["", d[0]]
+            y = ["", new_array[0]]
         elif not z[0]:
-            y = [d[0], ""]
-        elif not len(y := d[0].split(z[0], 1)) == 2:
+            y = [new_array[0], ""]
+        elif not len(y := new_array[0].split(z[0], 1)) == 2:
             return
         if len(z) == 2 and not z[1]:
             if met(y[1], n):
-                asset[0] = ""
+                array[0] = ""
                 new += [[y[0], y[1]]]
             return
-        if carets:
-            carets.reverse()
+        if cs:
+            cs.reverse()
             c = y.copy()
-            cz = ""
-            for caret in carets:
-                if not len(c := c[0].rsplit(caret, 1)) == 2:
+            sc = ""
+            for cz in cs:
+                if not len(c := c[0].rsplit(cz, 1)) == 2:
                     return
                 if cc:
                     y[1] = c[1]
                     cc = False
-                cz = caret if cc else caret + c[1] + cz
-            aa += c[0] + cz
+                sc = cz + c[1] + sc
+            aa += c[0] + sc
             if ii:
                 i = c[0]
                 ii = False
             y[0] = c[1]
-            cp = True
-            carets = []
+            ac = True
+            cs = []
         if len(z) == 2:
-            d[0] = y[1]
+            new_array[0] = y[1]
             aa += y[0] + z[0]
             if ii:
                 i = y[0]
                 ii = False
         else:
             p = y[0]
-            if cp:
+            if ac:
                 y[0] = ""
             if not met(p, n):
                 p = ""
-                d[0] = y[1]
+                new_array[0] = y[1]
                 a = aa + y[0] + z[0]
             elif ii:
-                d[0] = y[1]
+                new_array[0] = y[1]
                 a = i + y[0]
             else:
-                d[0] = y[1]
+                new_array[0] = y[1]
                 a = i
-            if p and n[0]:
+            if n[0]:
                 p = n[0][0] + p + n[0][1]
             new += [[a, p]]
-            return True, d
+            return True, new_array
 
 
 
 def carrots(data, x, any=True, cw=[]):
-    p = []
+    new_array = []
     n = [cw] + [""]*5
     if len(x := x.rsplit(" not ends with ", 1)) == 2:
         n[1] = x[1]
@@ -1205,20 +1301,52 @@ def carrots(data, x, any=True, cw=[]):
                 n[5] = [int(z[0]), int(z[0])]
                 x = y[0]
     new = []
-    for asset in data:
+    for array in data:
         while True:
-            p = carrot(x, asset, new, n)
-            if not p or not any:
+            new_array = carrot(array, x, new, n)
+            if not new_array:
                 break
-            asset = p[1]
-        new += [asset]
+            array = new_array[1]
+            if not any:
+                break
+        new += [array]
     data = new
     return data
 
 
 
+def grab(d, z):
+    dt = []
+    for x in z[1]:
+        dc = d
+        if not x[0]:
+            continue
+        elif x[0] == "0":
+            return dt + ["0"]
+        for y in x[0].split(" > "):
+            y = y.split(" >> ")
+            if not y[0]:
+                continue
+            if dc and y[0] in dc:
+                dc = dc[y[0]]
+                if len(y) == 2:
+                    dc = json.loads(dc)
+                    if dc and y[1] in dc:
+                        dc = dc[y[1]]
+            elif x[3]:
+                kill(0, x[3])
+            else:
+                return
+        if x[1] and not any(c for c in x[1] if c == str(dc)):
+            return
+        if x[2]:
+            dt += [str(dc.join(x[2]))]
+        else:
+            dt += [str(dc)]
+    return dt
 def nest(d, z):
     ds = []
+    n = 1 if z[0][0] else 0
     for k in z[0][0].split(" > "):
         x = k.split(" >> ")
         if not x[0]:
@@ -1238,25 +1366,16 @@ def nest(d, z):
         else:
             return ds
     if len(z[0]) == 1:
-        dt = []
-        for x in z[1]:
-            dc = d
-            if not x["key"]:
-                continue
-            y = x["key"].split(" > ")
-            for z in y:
-                if dc and z in dc:
-                    dc = dc[z]
-                    if "cw" in x and x["cw"]:
-                        dc = dc.join(x["cw"])
-                elif "error" in x and x["error"]:
-                    kill(0, x["error"])
-                else:
-                    return ds
-            if "value" in x and not any(c for c in x["value"] if c == str(dc)):
-                return ds
-            dt += [str(dc)]
-        ds = [dt]
+        if n:
+            dx = []
+            for dc in d:
+                if dt := grab(dc, z):
+                    dx += [dt]
+            if dx:
+                return dx
+        else:
+            if dt := grab(d, z):
+                return [dt]
     else:
         for x in d:
             ds += nest(x, [z[0][1:], z[1]])
@@ -1274,7 +1393,9 @@ def peanut(x, cw=[], a=False):
             kill("There is no asterisk while customizing a pick.")
     x = x[0]
     if " > " in x:
-        x = x.rsplit(" > ", 1)
+        x = x.rsplit(" > 0", 1)
+        if len(x) == 1:
+            x = ["", x[0]]
         a = True
     return x, cw, a
 
@@ -1294,8 +1415,128 @@ def opendb(data):
 
 
 
-def saint(name):
-    return "".join(i for i in name.replace("/", "\\") if i not in "\"/:*?<>|")[:200]
+def carrot_files(threadn, assets, htmlpart, key, na, pick, alt, filelist, after):
+    file = ""
+    for asset in assets:
+        if after:
+            file = asset[1]
+        if file:
+            if not alt:
+                file = page + file
+            name = ""
+            for x in pick["name"]:
+                na = True
+                for z in x[1:]:
+                    z, cw, a = peanut(z)
+                    if a:
+                        continue
+                    elif x[0]["alt"]:
+                        v = asset[0]
+                        if len(n := carrots([[v, ""]], z, True, cw)) >= 2:
+                            name += n[-2 if after else 0][1]
+                            na = False
+                    else:
+                        v = file
+                        if len(n := carrots([[v, ""]], z, False, cw)) == 2:
+                            name += n[-2][1]
+                            na = False
+                if na:
+                    kill(threadn, f"""there's no match for name asset: {x[1:]} in""", view=v)
+            if pick["extfix"]:
+                e, cw, a = peanut(e, [".", ""])
+                if len(ext := carrots([[file, ""]], e, False, cw)) == 2 and not name.endswith(ext := ext[-2][1]):
+                    name += ext
+            filelist += [[key, {"url":file, "name":saint(folder[0] + parse.unquote(name)), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
+        file = asset[1]
+    return assets, na
+
+
+
+def pick_files(threadn, data, db, part, htmlpart, pick, pickf, filelist, pos, after):
+    for y in pickf:
+        na = True
+        for z in y[1:]:
+            f, cw, a = peanut(z)
+            if pick["key"] and pick["key"][0]:
+                kx = pick["key"][0]
+            else:
+                kx = [0, 0]
+            if a:
+                pos += 1
+                if not db:
+                    db = opendb(data)
+                for k in kx[1:]:
+                    if not k:
+                        key = [["0", 0, 0, 0]]
+                    else:
+                        k = peanut(k)[0]
+                        if f[0] == k[0]:
+                            key = [[k[1], 0, 0, 0]]
+                        else:
+                            continue
+                    if pick["choose"]:
+                        c = pick["choose"][pos-1].rsplit(" = ", 1)
+                        c[0] = peanut(c[0])[0][1]
+                        c[1] = c[1].split(" > ")
+                    else:
+                        c = ["", []]
+                    meta = []
+                    name = []
+                    name2 = []
+                    for z in pick["name"]:
+                        if not z[0]["alt"]:
+                            meta += [z[1:]]
+                            continue
+                        z, cwf, _ = peanut(z[pos])
+                        if f[0] == z[0]:
+                            name += [[z[1], 0, [cwf[0], cwf[1] + "".join(name2)] if name2 else cwf, "there's no name asset found in dictionary for this file."]]
+                            name2 = []
+                        else:
+                            name2 += [nested(db, [z[0], [[z[1], 0, cwf, "there's no name asset found in dictionary for this file."]]])[0][0]]
+                    files = nested(db, [f[0], [[c[0], c[1], 0, 0], [f[1], 0, cw, 0]] + name + key])
+                    if c[1]:
+                        cf = []
+                        for cc in c[1]:
+                            if [cx := x[1:] for x in files if x[0] == cc]:
+                                cf = cx
+                                break
+                        files = [cf]
+                    if not files or not files[0]:
+                        continue
+                    for z in name2:
+                        for file in files:
+                            file += [file[1]]
+                            file[1] = z
+                    for file in files:
+                        name = file[1]
+                        key = file[2]
+                        if e := pick["extfix"]:
+                            e, cwx, a = peanut(e, [".", ""])
+                            if len(ext := carrots([[file[0], ""]], e, False, cwx)) == 2 and not name.endswith(ext := ext[-2][1]):
+                                name += ext
+                        for m in meta:
+                            m2 = ""
+                            for z in m:
+                                z, cwx, a = peanut(z)
+                                if len(n := carrots([[file[0], ""]], z, False, cwx)) == 2:
+                                    m2 += n[-2][1]
+                            name = m2 + name
+                        filelist += [[key, {"url":file[0], "name":saint(folder[0] + name), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
+            else:
+                for p in part:
+                    key = "0"
+                    for k in kx[1:]:
+                        if len(d := carrots([p], k, False)) == 2:
+                            key = d[0][1]
+                            break
+                    na = carrot_files(threadn, carrots([p], f, pick["files"], cw), htmlpart, key, na, pick, y[0]["alt"], filelist, after)[1]
+                for k in htmlpart.keys():
+                    if x := htmlpart[k]["html"]:
+                        x, na = carrot_files(threadn, carrots(x, f, pick["files"], cw), htmlpart, k, na, pick, y[0]["alt"], filelist, after)
+                        htmlpart[k]["html"] = x
+            if not pick["files"] and not na:
+                break
+    return pos
 
 
 
@@ -1304,7 +1545,12 @@ def page_assets(queue):
         data = ""
         url = ""
         threadn, page, more, htmlassets = queue.get()
+        htmlpart = htmlassets["partition"]
         pick = scraper[[x for x in scraper.keys() if page.startswith(x)][0]]
+        htmlassets["inlinefirst"] = pick["inlinefirst"]
+        pg[0] += 1
+        if pick["visit"]:
+            fetch(page, stderr="Error visiting visit page")
         if x := pick["urlfix"]:
             for y in x[1]:
                 page = x[0] + carrots([[page, ""]], y, False)[-2][1] + x[2]
@@ -1313,7 +1559,6 @@ def page_assets(queue):
         if x := pick["url"]:
             for y in x[1]:
                 url = x[0] + carrots([[page, ""]], y, False)[-2][1] + x[2]
-        pg[0] += 1
         referer = x[0] if (x := [v for k, v in referers.items() if page.startswith(k)]) else ""
         ua = x[0] if (x := [v for k, v in mozilla.items() if page.startswith(k)]) else 'Mozilla/5.0'
         if pick["send"]:
@@ -1330,40 +1575,95 @@ def page_assets(queue):
             break
         title(batchfile + monitor())
         db = ""
-        if pick["key"]:
-            for z in pick["key"]:
+        if pick["part"]:
+            part = []
+            for z in pick["part"]:
+                part += [[x[1].replace("\n", ""), ""] for x in carrots([[data, ""]], z, True)]
+        else:
+            part = [[data, ""]]
+        if pick["html"]:
+            html = []
+            if pick["key"] and pick["key"][0]:
+                kx = pick["key"][0]
+            else:
+                kx = [0, 0]
+            for z in pick["html"]:
                 z, cw, a = peanut(z)
                 if a:
                     if not db:
                         db = opendb(data)
-                    for d in nested(db, [z[0], [{"key":z[-1]}]]):
-                        htmlassets["partition"] += [d[0]]
+                    for k in kx[1:]:
+                        if not k:
+                            key = [["0", 0, 0, 0]]
+                        else:
+                            k = peanut(k)[0]
+                            if z[0] == k[0]:
+                                key = [[k[1], 0, 0, 0]]
+                            else:
+                                continue
+                        for d in nested(db, [z[0], [[z[1], 0, 0, 0]] + key]):
+                            for x in pick["replace"]:
+                                d[0] = d[0].replace(x[0], x[1])
+                            html += [[d[0].replace("\n", ""), d[1]]]
                 else:
-                    for d in carrots([[data, ""]], z, False):
-                        htmlassets["partition"] += [d[0]]
-            print(htmlassets["partition"])
-            print("(C)ontinue")
-            if not choice("c") == 1:
-                time.sleep(1)
-        if pick["body"]:
-            body = ""
-            for z in pick["body"]:
-                z, cw, a = peanut(z)
-                if a:
-                    if not db:
-                        db = opendb(data)
-                    for d in nested(db, [z[0], [{"key":z[-1]}]]):
-                        body += d[0]
-                else:
-                    body += "".join(x[0] for x in carrots([[data, ""]], z, False))
-            body = body.replace("\n ", "").replace("\n", "")
-            for x in pick["replace"]:
-                body = body.replace(x[0], x[1])
-            body = [[body, ""]]
+                    new_part = []
+                    for p in part:
+                        key = "0"
+                        for k in kx[1:]:
+                            if len(d := carrots([[p[0].replace("\n", ""), ""]], k, False)) == 2:
+                                key = d[0][1]
+                                break
+                        c = carrots([[p[0].replace("\n", ""), ""]], z, False, cw)
+                        for x in pick["replace"]:
+                            c[0][1] = c[0][1].replace(x[0], x[1])
+                        html += [[c[0][1], key]]
+                        new_part += [["".join(x[0].replace("\n", "") for x in c), ""]]
+                    part = new_part
+            for x in html:
+                if not x[1] in htmlpart:
+                    htmlpart.update({x[1]:{"html":[], "keywords":[], "files":[]}})
+                htmlpart[x[1]].update({"html":[[x[0], ""]] + htmlpart[x[1]]["html"]})
+            keywords = []
+            kpos = 0
+            for k in pick["key"][1:]:
+                kpos += 1
+                for z in k[1:]:
+                    z, cw, a = peanut(z)
+                    if a:
+                        if not db:
+                            db = opendb(data)
+                        for k in kx[1:]:
+                            if not k:
+                                key = [["0", 0, 0, 0]]
+                            else:
+                                k = peanut(k)[0]
+                                if z[0] == k[0]:
+                                    key = [[k[1], 0, 0, 0]]
+                                else:
+                                    continue
+                            for d in nested(db, [z[0], [[z[1], 0, 0, 0]] + key]):
+                                keywords += [[d[0], d[1]]]
+                    else:
+                        for p in part:
+                            key = "0"
+                            for k in kx[1:]:
+                                if len(d := carrots([[p[0].replace("\n", ""), ""]], k, False)) == 2:
+                                    key = d[0][1]
+                                    break
+                            if kpos < 3:
+                                if len(x := carrots([p], z, False, cw)) == 2:
+                                    keywords += [[x[0][1], key]]
+                            else:
+                                for x in carrots([p], z, True, cw):
+                                    keywords += [[x[1], key]]
+            for x in keywords:
+                if not x[1] in htmlpart:
+                    htmlpart.update({x[1]:{"html":[], "keywords":[], "files":[]}})
+                htmlpart[x[1]]["keywords"] += [x[0]]
         else:
             for x in pick["replace"]:
-                data = data.replace(x[0], x[1])
-            body = [[data, ""]]
+                for p in part:
+                    p[0] = p[0].replace(x[0], x[1])
         if pick["expect"]:
             pos = 0
             for y in pick["expect"]:
@@ -1373,23 +1673,34 @@ def page_assets(queue):
                         pos += 1
                         if pick["choose"]:
                             c = pick["choose"][pos-1].rsplit(" = ", 1)
-                            c[0] = c[0].replace(z[0], "", 1).split(" > ", 1)[1]
+                            c[0] = peanut(c[0])[0][1]
                             c[1] = c[1].split(" > ")
                         else:
-                            c = ["", []]
-                        result = nested(json.loads(data), [z[0], [{"key":c[0], "value":c[1]}, {"key":z[-1]}]])
+                            c = [[], []]
+                        result = nested(json.loads(data), [z[0], [[c[0], c[1], 0, 0], [z[1], 0, 0, 0]]])
                         if y[0]["alt"] and result:
-                            alert(page)
+                            if not pick["dismiss"] and Browser:
+                                os.system(f"""start "" "{Browser}" "{page}" """)
+                            alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "As expected", pick["dismiss"])
                         elif not y[0]["alt"] and not result:
-                            alert(page, False)
-                        more += [page]
+                            if not pick["dismiss"] and Browser:
+                                os.system(f"""start "" "{Browser}" "{page}" """)
+                            alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "Not any longer", pick["dismiss"])
+                        else:
+                            more += [page]
+                            timer("Not quite as expected! ", False)
                     else:
-                        if y[0]["alt"] and z in body[0][0]:
-                            alert(page)
-                        elif not y[0]["alt"] and not z in body[0][0]:
-                            alert(page, False)
-                        more += [page]
-                    timer("Not quite as expected! ")
+                        if y[0]["alt"] and z in part[0][0]:
+                            if not pick["dismiss"] and Browser:
+                                os.system(f"""start "" "{Browser}" "{page}" """)
+                            alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "As expected", pick["dismiss"])
+                        elif not y[0]["alt"] and not z in part[0][0]:
+                            if not pick["dismiss"] and Browser:
+                                os.system(f"""start "" "{Browser}" "{page}" """)
+                            alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "Not any longer", pick["dismiss"])
+                        else:
+                            more += [page]
+                            timer("Not quite as expected! ", False)
         if not folder[0]:
             if pick["folder"]:
                 for y in pick["folder"]:
@@ -1398,12 +1709,12 @@ def page_assets(queue):
                         if a:
                             if not db:
                                 db = opendb(data)
-                            for d in nested(db, [z[0], [{"key":z[-1]}]]):
+                            for d in nested(db, [z[0], [[z[1], 0, 0, 0]]]):
                                 folder[0] += d[0]
                         elif y[0]["alt"]:
-                            if len(c := carrots(body, z, False, cw)) == 2:
+                            if len(c := carrots(part, z, False, cw)) == 2:
                                 folder[0] += c[-2][1]
-                                body = [["".join(x[0] for x in c), ""]]
+                                part = [["".join(x[0] for x in c), ""]]
                         else:
                             if len(c := carrots([[page, ""]], z, False, cw)) == 2:
                                 folder[0] += c[-2][1]
@@ -1416,117 +1727,57 @@ def page_assets(queue):
                     if a:
                         if not db:
                             db = opendb(data)
-                        pages = nested(db, [z[0], [{"key":z[-1]}]])
+                        pages = nested(db, [z[0], [[z[1], 0, 0, 0]]])
                         if pages and not pages[0][0] == "None":
-                            more += [p[0] if y[0]["alt"] else page + p[0] for p in pages if not p[0] == page and not page + p[0] == page]
+                            for p in pages:
+                                if not p[0] == page and not page + p[0] == page:
+                                    px = p[0] if y[0]["alt"] else page + p[0]
+                                    more += [px]
+                                    if pick["checkpoint"]:
+                                        print(f"Checkpoint: {px}\n")
                     else:
-                        pages = carrots(body, z, True, cw)
-                        more += [p[1] if y[0]["alt"] else page + p[1] for p in pages if not p[1] == page and not page + p[1] == page]
-                        body = [["".join(x[0] for x in pages), ""]]
+                        if len(pages := carrots(part, z, True, cw)) == 2:
+                            for p in pages:
+                                if not p[1] == page and not page + p[1] == page:
+                                    px = p[1] if y[0]["alt"] else page + p[1] 
+                                    more += [px]
+                                    if pick["checkpoint"]:
+                                        print(f"Checkpoint: {px}\n")
+                            part = [["".join(x[0] for x in pages), ""]]
         filelist = []
+        pos = 0
+        if pick["file"]:
+            pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file"], filelist, pos, False)
+        if pick["file2"]:
+            pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file2"], filelist, pos, True)
         if pick["file"] or pick["file2"]:
-            after = False
-            pos = 0
-            for p in [pick["file"], pick["file2"]]:
-                for y in p:
-                    na = True
-                    for z in y[1:]:
-                        f, cw, a = peanut(z)
-                        if a:
-                            pos += 1
-                            if not db:
-                                db = opendb(data)
-                            if pick["choose"]:
-                                c = pick["choose"][pos-1].rsplit(" = ", 1)
-                                c[0] = c[0].replace(f[0], "", 1).split(" > ", 1)[1]
-                                c[1] = c[1].split(" > ")
-                            else:
-                                c = ["", []]
-                            meta = []
-                            name = []
-                            name2 = []
-                            for z in pick["name"]:
-                                if not z[0]["alt"]:
-                                    meta += [z[1:]]
-                                    continue
-                                z, cwf, a = peanut(z[pos])
-                                if f[0] == z[0]:
-                                    name += [{"key":z[-1], "cw":[cwf[0], cwf[1] + "".join(name2)] if name2 else cwf, "error":"there's no name asset found in dictionary for this file."}]
-                                    name2 = []
-                                else:
-                                    name2 += [nested(db, [z[0], [{"key":z[-1], "cw":cwf, "error":"there's no name asset found in dictionary for this file."}]])[0][0]]
-                            files = nested(db, [f[0], [{"key":c[0], "value":c[1]}, {"key":f[-1], "cw":cw}] + name])
-                            if c[1]:
-                                cf = []
-                                for cc in c[1]:
-                                    if [k := x[1:] for x in files if x[0] == cc]:
-                                        cf = k
-                                        break
-                                files = [cf]
-                            if not files or not files[0]:
-                                break
-                            for z in name2:
-                                for file in files:
-                                    file += [z]
-                            for file in files:
-                                name = "".join(file[1:])
-                                if e := pick["extfix"]:
-                                    e, cwx, a = peanut(e, [".", ""])
-                                    if len(ext := carrots([[file[0], ""]], e, False, cwx)) == 2 and not name.endswith(ext := ext[-2][1]):
-                                        name += ext
-                                for m in meta:
-                                    m2 = ""
-                                    for z in m:
-                                        z, cwx, a = peanut(z)
-                                        if len(n := carrots([[file[0], ""]], z, False, cwx)) == 2:
-                                            m2 += n[-2][1]
-                                    name = m2 + name
-                                filelist += [{"url":file[0], "name":saint(folder[0] + name), "edited":0}]
-                        else:
-                            assets = carrots(body, f, pick["files"], cw)
-                            file = ""
-                            for asset in assets:
-                                if after:
-                                    file = asset[1]
-                                if file:
-                                    if not y[0]["alt"]:
-                                        file = page + file
-                                    name = ""
-                                    for x in pick["name"]:
-                                        na = True
-                                        for z in x[1:]:
-                                            z, cw, a = peanut(z)
-                                            if a:
-                                                continue
-                                            elif x[0]["alt"]:
-                                                v = asset[0]
-                                                if len(n := carrots([[v, ""]], z, True, cw)) >= 2:
-                                                    name += n[-2 if after else 0][1]
-                                                    na = False
-                                            else:
-                                                v = file
-                                                if len(n := carrots([[v, ""]], z, False, cw)) == 2:
-                                                    name += n[-2][1]
-                                                    na = False
-                                        if na:
-                                            kill(threadn, f"""there's no match for name asset: {x[1:]} in""", view=v)
-                                    if pick["extfix"]:
-                                        e, cw, a = peanut(e, [".", ""])
-                                        if len(ext := carrots([[file, ""]], e, False, cw)) == 2 and not name.endswith(ext := ext[-2][1]):
-                                            name += ext
-                                    filelist += [{"url":file, "name":saint(folder[0] + parse.unquote(name)), "edited":0}]
-                                file = asset[1]
-                        if not pick["files"] and not na:
-                            break
-                after = True
-            if not filelist and not pick["ready"]:
-                print(f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, check for bad asterisks in other pickers.{tcolorx}")
-        if filelist and not pick["ready"]:
             for file in filelist:
-                x = cd(file, preview=True)
-                print(tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1] + tcolorx)
-            ready[0] = False
-        htmlassets["filelist"] += filelist
+                k = file[0]
+                if not k in htmlpart:
+                    htmlpart.update({k:{"html":[], "keywords":[], "files":[]}})
+                htmlpart[k].update({"files":[file[1]] + htmlpart[k]["files"]})
+            if not pick["ready"]:
+                x = ""
+                for file in filelist:
+                    x = cd(file[1], preview=True)[0]
+                    print(tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1] + tcolorx)
+                if not x:
+                    print(f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, check for bad asterisks in other pickers.{tcolorx}")
+                ready[0] = False
+        for k in htmlpart.keys():
+            print(k)
+            if "html" in htmlpart[k] and htmlpart[k]["html"]:
+                for html in htmlpart[k]["html"]:
+                    if html[0]:
+                        print(tcoloro + html[0] + " ", end="")
+                        if html[1]:
+                            print(tcolor + html[1] + " ", end="")
+                print(tcolorx)
+            if "keywords" in htmlpart[k] and htmlpart[k]["keywords"]:
+                print(tcolorr + ", ".join(f"{kw}" for kw in htmlpart[k]["keywords"]) + tcolorx)
+            if "files" in htmlpart[k]:
+                for file in htmlpart[k]["files"]:
+                    print(tcolorg + file["name"].rsplit("\\")[-1] + tcolorx)
         echothreadn.remove(threadn)
         queue.task_done()
     echothreadn.remove(threadn)
@@ -1542,12 +1793,13 @@ for i in range(8):
 folder = [""]
 ready = [True]
 def scrape(pages):
-    htmlassets = {"page":"", "partition":[], "filelist":[]}
+    htmlassets = {"page":"", "inlinefirst":True, "partition":{"0":{"html":[], "keywords":[], "files":[]}}}
     folder[0] = ""
     pages = iter(pages)
     while True:
         threadn = 0
         more = []
+        visited = set()
         for url in pages:
             threadn += 1
             echothreadn.append(threadn)
@@ -1557,12 +1809,16 @@ def scrape(pages):
         except:
             pass
         pages = set(filter(None, more))
+        for page in pages:
+            if page in visited and not visited.add(page):
+                print(f"{tcolorr}Already visited {page} loophole warning{tcolorx}")
+                # pages.remove(page)
         if not pages:
             break
         pages = iter(pages)
     title(status() + batchfile)
 
-    if htmlassets["filelist"]:
+    if htmlassets["partition"]:
         if not ready[0]:
             print(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue""")
             if not choice("c") == 1:
@@ -1635,7 +1891,7 @@ def scanthread(filelist, filevs, savwrite):
 
 
 def todb(m, filevs=""):
-    savread = opensavr(sav)
+    savread = opensav(sav)
     savwrite = open(sav, 'ab')
     filelist = []
     error[0] = []
@@ -1692,7 +1948,38 @@ def ren(filename, append):
 
 
 
-def container(file, label):
+def container(ondisk, depth=0, check=True):
+    filename = ondisk.rsplit("/", 1)[-1]
+    relfile = ondisk.split("/", depth)[-1]
+    if filename.lower().endswith(tuple(videofile)):
+        data = f"""<div class="frame"><video height="200" autoplay><source src="{relfile.replace("#", "%23")}"></video><div class="sources">{filename}</div></div>\n"""
+    elif filename.lower().endswith(tuple(imagefile)):
+        if buildthumbnail and not "/HTML assets/" in relfile:
+            thumb = "/HTML assets/".join(ren(relfile, "_small").rsplit("/", 1))
+            if not os.path.exists(mainfolder + thumb):
+                try:
+                    img = Image.open(ondisk)
+                    w, h = img.size
+                    if h > 200:
+                        img.resize((int(w*(200/h)), 200), Image.ANTIALIAS).save(mainfolder + thumb, subsampling=0, quality=100)
+                    else:
+                        img.save(mainfolder + thumb)
+                except:
+                    pass
+        else:
+            thumb = relfile
+        data = f"""<div class="frame"><a class="fileThumb" href="{relfile.replace("#", "%23")}"><img class="lazy" data-src="{thumb.replace("#", "%23")}"></a><div class="sources">{filename}</div></div>\n"""
+    elif os.path.exists(ondisk):
+        data = f"""<a href=\"{relfile.replace("#", "%23")}"><div class="aqua" style="height:174px; width:126px;">{filename}</div></a>\n"""
+        if os.path.exists(ondisk.rsplit(".", 1)[0] + "/"):
+            data += f"""<a href="{relfile.rsplit(".", 1)[0].replace("#", "%23")}"><div class="aqua" style="height:174px;"><i class="aqua" style="border-width:0 3px 3px 0; padding:3px; -webkit-transform: rotate(-45deg); margin-top:82px;"></i></div></a>\n"""
+    else:
+        data = f"""<a href=\"{relfile.replace("#", "%23")}"><div style="display:inline-block; vertical-align:top; border:1px solid #b2b2b2; border-top:1px solid #4c4c4c; border-left:1px solid #4c4c4c; padding:12px; height:174px; width:126px; word-wrap: break-word;">☠️</div></a>\n"""
+    return data
+
+
+
+def container_c(file, label):
     if HTMLserver:
         if os.path.exists(batchdir + file.replace(batchdir, "")):
             file = file.replace(batchdir, "").replace("#", "%23").replace("\\", "/")
@@ -1705,13 +1992,16 @@ def container(file, label):
 
 
 
-def new_html(builder, imgsize=200):
+def new_html(builder, title, listurls, imgsize=200):
+    if not listurls:
+        listurls = "Maybe in another page."
     return """<!DOCTYPE html>
 <html>
+<meta charset="utf-8"/>
+""" + f"<title>{title}</title>" + """
 <script>
 var Expand = function(c, t) {
-  if(!c.naturalWidth)
-  {
+  if(!c.naturalWidth) {
     return setTimeout(Expand, 10, c, t);
   }
   c.style.maxWidth = "100%";
@@ -1804,38 +2094,29 @@ function quicklook(e) {
       c.width = s.width
       c.height = s.height
       context = c.getContext("2d")
-      var cgl = document.createElement("canvas");
-      gl = cgl.getContext("webgl2")
 
-      var m = new Image();
-      m.src = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0].getAttribute("href");
-      if(m.src == s.src) {
-        context.fillRect(0, 0, s.width, s.height);
-      } else {
+      if (geistauge == "edge") {
         s.onload = function () {
-          if (geistauge == "reverse") {
-            m.onload = difference(m, s.width, s.height, s, context, gl, side=true);
-          } else if (geistauge == "tangerine") {
-            m.onload = difference(s, s.width, s.height, m, context, gl, side=true);
-          } else {
-            m.onload = difference(s, s.width, s.height, m, context, gl);
+          edgediff(s, s.width, s.height, context);
+        }
+      } else {
+        var m = new Image();
+        m.src = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0].getAttribute("href");
+        if(m.src == s.src) {
+          context.fillRect(0, 0, s.width, s.height);
+        } else {
+          s.onload = function () {
+            var cgl = document.createElement("canvas");
+            gl = cgl.getContext("webgl2")
+            if (geistauge == "reverse") {
+              m.onload = difference(m, s.width, s.height, s, context, gl, side=true);
+            } else if (geistauge == "tangerine") {
+              m.onload = difference(s, s.width, s.height, m, context, gl, side=true);
+            } else {
+              m.onload = difference(s, s.width, s.height, m, context, gl);
+            }
           }
         }
-      }
-      t.parentNode.appendChild(c);
-    } else if(edge) {
-      var s = new Image();
-      s.src = t.parentNode.getAttribute("href");
-
-      c = document.createElement("canvas");
-      c.style = cs;
-      c.setAttribute("id", "quicklook")
-      c.width = s.width
-      c.height = s.height
-      context = c.getContext("2d")
-
-      s.onload = function () {
-        edgediff(s, s.width, s.height, context);
       }
       t.parentNode.appendChild(c);
     } else {
@@ -1852,8 +2133,6 @@ function quicklook(e) {
     t.addEventListener("mouseleave", listener);
   }
 }
-
-document.addEventListener("mouseover", quicklook);
 
 
 
@@ -1953,7 +2232,6 @@ function difference(s, cw, ch, m, context, gl, side=false) {
   context.putImageData(rgb2, 0, 0);
 }
 
-var edge = false;
 var geistauge = false;
 var co = "position:fixed; right:0; top:0; z-index:1; pointer-events:none;"
 var cf = co + "max-height: 100vh; max-width: 100vw;";
@@ -1965,9 +2243,11 @@ function swap(e) {
     geistauge = true;
     let d = document.getElementById("ge");
     d.classList = "previous";
+    d.innerHTML = "vs left"
     t.addEventListener("keyup", function(k) {
       if(k.which == 83) {
         d.classList = "next";
+        d.innerHTML = "Original"
         geistauge = false;
       }
     });
@@ -1975,9 +2255,11 @@ function swap(e) {
     geistauge = "reverse";
     let d = document.getElementById("ge");
     d.classList = "reverse";
+    d.innerHTML = "vs left <"
     t.addEventListener("keyup", function(k) {
       if(k.which == 65) {
         d.classList = "next";
+        d.innerHTML = "Original"
         geistauge = false;
       }
     });
@@ -1985,20 +2267,24 @@ function swap(e) {
     geistauge = "tangerine";
     let d = document.getElementById("ge");
     d.classList = "tangerine";
+    d.innerHTML = "vs left >"
     t.addEventListener("keyup", function(k) {
       if(k.which == 68) {
         d.classList = "next";
+        d.innerHTML = "Original"
         geistauge = false;
       }
     });
-  } else if(e.which == 87 && !edge) {
-    edge = true;
-    let d = document.getElementById("ed");
-    d.classList = "previous";
+  } else if(e.which == 87 && !geistauge) {
+    geistauge = "edge";
+    let d = document.getElementById("ge");
+    d.classList = "edge";
+    d.innerHTML = "Find Edge"
     t.addEventListener("keyup", function(k) {
       if(k.which == 87) {
         d.classList = "next";
-        edge = false;
+        d.innerHTML = "Original"
+        geistauge = false;
       }
     });
   } else if(e.which == 16 && !fit) {
@@ -2010,9 +2296,12 @@ function swap(e) {
     }
     let d = document.getElementById("fi");
     d.classList = "previous";
+    d.innerHTML = "Preview [ ]"
+    document.addEventListener("mouseover", quicklook);
     t.addEventListener("keyup", function(k) {
       if(k.which == 16) {
-        d.classList = "next";
+        d.classList = "tangerine";
+        d.innerHTML = "Preview 1:1"
         cs = co
         let tc = document.getElementById("quicklook")
         if(tc) {
@@ -2026,20 +2315,7 @@ function swap(e) {
 
 document.addEventListener("keydown", swap);
 
-function previewe(e, a) {
-  if (e.classList.contains("next")) {
-    e.classList = "previous";
-    e.setAttribute("data-html-original", e.innerHTML);
-    e.innerHTML = a;
-    edge = true;
-  } else {
-    e.classList = "next";
-    e.innerHTML = e.getAttribute("data-html-original");
-    edge = false;
-  }
-}
-
-function previewg(e, a, r=false, t=false) {
+function previewg(e, a, r=false, t=false, x=false) {
   if (e.classList.contains("next")) {
     e.classList = "previous";
     e.setAttribute("data-html-original", e.innerHTML);
@@ -2065,6 +2341,16 @@ function previewg(e, a, r=false, t=false) {
       e.innerHTML = e.getAttribute("data-html-original");
       geistauge = false;
     }
+  } else if(e.classList.contains("tangerine")) {
+    if(x) {
+      e.classList = "edge";
+      e.innerHTML = x;
+      geistauge = "edge";
+    } else {
+      e.classList = "next";
+      e.innerHTML = e.getAttribute("data-html-original");
+      geistauge = false;
+    }
   } else {
     e.classList = "next";
     e.innerHTML = e.getAttribute("data-html-original");
@@ -2072,31 +2358,106 @@ function previewg(e, a, r=false, t=false) {
   }
 }
 
-function previewf(e, a) {
+function preview(e, a, f=false) {
   if (e.classList.contains("next")) {
     e.classList = "previous";
     e.setAttribute("data-html-original", e.innerHTML);
     e.innerHTML = a;
+    document.addEventListener("mouseover", quicklook);
     fit = true;
     cs = cf
+  } else if(e.classList.contains("previous")) {
+    if(f) {
+        e.classList = "tangerine";
+        e.innerHTML = f;
+        cs = co
+        fit = false;
+    } else {
+        e.classList = "next";
+        e.innerHTML = e.getAttribute("data-html-original");
+        cs = co
+        document.removeEventListener("mouseover", quicklook);
+        fit = false;
+    }
   } else {
     e.classList = "next";
     e.innerHTML = e.getAttribute("data-html-original");
     cs = co
+    document.removeEventListener("mouseover", quicklook);
     fit = false;
   }
 }
 
-function hidePosts(text, display) {
+function showDivs(n) {
+  var i;
+  var x = document.getElementsByClassName("mySlides");
+  if (n > x.length) {slideIndex = 1}
+  if (n < 1) {slideIndex = x.length} ;
+  for (i = 0; i < x.length; i++) {
+    x[i].style.display = "none";
+  }
+  x[slideIndex-1].style.display = "block";
+  var expandImg = document.getElementById("expandedImg");
+  expandImg.parentElement.style.display = "inline-block";
+}
+
+function resizeImg(n) {
+  var x = document.getElementsByClassName("lazy");
+  for (var i=0; i < x.length; i++) {
+    if (n === 'auto') {
+      x[i].style.maxWidth = '100%';
+    } else {
+      x[i].style.maxWidth = 'none';
+    };
+    x[i].style.height = n;
+  }
+}
+
+function hideSources() {
+  var x = document.getElementsByClassName("sources");
+  for (var i=0; i < x.length; i++) {
+    if (x[i].style.display === "none") {
+      x[i].style.display = "";
+    } else {
+      x[i].style.display = "none";
+    }
+  }
+}
+
+function hideParts(text, display) {
   var x = document.getElementsByClassName("container");
   for (var i=0; i < x.length; i++) {
-    if (x[i].textContent.toLowerCase().includes(text.toLowerCase())) {
+    if (x[i].textContent.split("\\n")[2].toLowerCase().includes(text.toLowerCase())) {
       x[i].style.display = display[0];
     } else {
       x[i].style.display = display[1];
     }
   }
 }
+
+function orphFiles(n) {
+  var x = document.getElementsByClassName("cell");
+  for (var i=0; i < x.length; i++) {
+    if (x[i].getElementsByClassName('edits').length > 0||n) {
+      x[i].style.display = "block";
+    } else {
+      x[i].style.display = "none";
+    }
+  }
+}
+
+var links = document.getElementsByTagName('a');
+for(var i=0; i<links.length; i++)
+{links[i].target = "_blank";}
+
+var slideIndex = 1;
+showDivs(slideIndex);
+
+function plusDivs(n)
+{showDivs(slideIndex += n);}
+
+function currentDiv(n)
+{showDivs(slideIndex = n);}
 
 function lazyload() {
   var lazyloadImages;
@@ -2113,33 +2474,66 @@ function lazyload() {
   });
 
   lazyloadImages.forEach(function(image) {
-    image.style.height = "200px"
+    """ + f"""image.style.height = "{imgsize}""" + """px"
     image.style.width = "auto"
     imageObserver.observe(image);
   });
 }
 </script>
 <style>
+html,body{background-color:#10100c; color:#088 /*cb7*/; font-family:consolas, courier; font-size:14px;}
+a{color:#dc8 /*efdfa8*/;}
+a:visited{color:#cccccc;}
+.aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
+.aquatext{color:#22cccc}
+.carbon, .time{background-color:#10100c; border:4px solid #6a6a66; border-radius:16px;}
+.time{color:#ffffff;}
+.cell, .files, .mySlides{background-color:#1c1a19; border:none; border-radius:16px;}
+.files{background-color:#112230 /*07300f*/; border:4px solid #367 /*192*/; border-radius:16px;}
+.edits{background-color:#330717; border:4px solid #912; border-radius:16px; color:#f45;}
+.previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
+.next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
+.closebtn{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
+
 .edits{background-color:#330717; border:4px solid #912; border-radius:16px; color:#f45; padding:12px; margin:6px; word-wrap:break-word;}
 .frame{display:inline-block; vertical-align:top; position:relative;}
 .previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
-.reverse{background-color:#8822dd; color:black; border:none; border-radius:10px; cursor:pointer;}
-.tangerine{background-color:#ffaa33; color:black; border:none; border-radius:10px; cursor:pointer;}
+.reverse{background-color:#63c; color:#d9f; border:none; border-radius:10px; cursor:pointer;}
+.tangerine{background-color:#c60; color:#fc3; border:none; border-radius:10px; cursor:pointer;}
+.edge{background-color:#261; color:#8c4; border:none; border-radius:10px; cursor:pointer;}
 .next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
 .sources{font-size:80%; width:200px;}
+
+img{vertical-align:top;}
+.container{display:none; position:relative;}
+.frame{display:inline-block; vertical-align:top;}
+.sources{font-size:80%; width:200px;}
+.aqua{display:inline-block; vertical-align:top; padding:12px; word-wrap:break-word;}
+.carbon, .time, .files, .edits{display:inline-block; vertical-align:top;}
+.carbon, .time, .cell, .mySlides, .files, .edits{padding:12px; margin:6px; word-wrap:break-word;}
+.mySlides{padding-right:32px;}
+.closebtn{position:absolute; top:15px; right:15px;}
 </style>
 <body>
-<meta charset="utf-8"/>
-<style>
-html,body
-{background-color:#0c0c0c; color:#9900ff; font-family:consolas; font-size:14px;}
-</style>""" + f"""<div style="display:block; height:10px;"></div><div style="background:#0c0c0c; height:20px; border-radius: 0 0 12px 0; position:fixed; padding:6px; top:0px; z-index:1;">
-<button id="ed" class="next" onclick="previewe(this, 'Edge Detect')">Edge Detect</button>
-<button id="ge" class="next" onclick="previewg(this, 'Geistauge !', 'Geistauge <', 'Geistauge >')">Geistauge</button>
-<button id="fi" class="next" onclick="previewf(this, 'Fit')">Fit</button>
-<input class="next" type="text" oninput="hidePosts(this.value, ['block', 'none']);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Search">
-<input class="next" type="text" oninput="hidePosts(this.value, ['none', 'block']);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Ignore">
-<button class="next" onclick="hidePosts('', ['block', 'none'])">&times;</button></div>
+<div style="display:block; height:20px;"></div><div class="container">
+<button class="closebtn" onclick="this.parentElement.style.display='none'">&times;</button>""" + f"""<div class="mySlides">{listurls}</div>
+<img id="expandedImg">
+</div>
+<p>
+<div style="display:block; height:10px;"></div><div style="background:#0c0c0c; height:20px; border-radius: 0 0 12px 0; position:fixed; padding:6px; top:0px; z-index:1;">
+<button class="next" onclick="currentDiv(1)">Links in this HTML</button>
+<button class="next" onclick="resizeImg('{imgsize}px')">1x</button>
+<button class="next" onclick="resizeImg('{imgsize*2}px')">2x</button>
+<button class="next" onclick="resizeImg('{imgsize*4}px')">4x</button>
+<button class="next" onclick="resizeImg('auto')">1:1</button>
+<button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')">Preview</button>
+<button id="ge" class="next" onclick="previewg(this, 'vs left', 'vs left <', 'vs left >', 'Find Edge')">Original</button>
+<button class="next" onclick="hideSources()">Sources</button>
+<input class="next" type="text" oninput="hideParts(this.value, ['block', 'none']);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Search title">
+<input class="next" type="text" oninput="hideParts(this.value, ['none', 'block']);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Ignore title">
+<button class="next" onclick="orphFiles()">Edits</button>
+<button class="next" onclick="hideParts('', ['block', 'none'])">&times;</button>
+<button class="next" onclick="orphFiles(1)">&times;</button></div>
 <p>
 {builder}</body>
 <script>
@@ -2149,9 +2543,161 @@ lazyload();
 
 
 
+def tohtml(dir, htmlassets, orphfiles):
+    builder = ""
+    listurls = ""
+    htmlpart = htmlassets["partition"]
+
+
+
+    if False:
+        if not os.path.exists(dir + "HTML assets/"):
+            os.makedirs(dir + "HTML assets/")
+        if url := htmlassets["avatar"]:
+            relfile = dir + "avatar.png"
+            builder += f"""<img src="{relfile}" height="100px">\n"""
+            if url and not os.path.exists(relfile):
+                if not get(url, todisk=relfile, context=htmlassets["context"]):
+                    echo(f" Error downloading: {url}", 0, 1)
+        if url := htmlassets["cover"]:
+            relfile = dir + "cover.png"
+            builder += f"""<img src="{relfile}" height="100px">\n"""
+            if url and not os.path.exists(relfile):
+                if not get(url, todisk=relfile, context=htmlassets["context"]):
+                    echo(f" Error downloading: {url}", 0, 1)
+    if page := htmlassets["page"]:
+        builder += "<h2>Paysite: <a href=\"" + page["url"] + "\">" + page["name"] + "</a></h2>"
+
+
+
+    for key in htmlpart.keys():
+        htmlx = {}
+        files = []
+        seen = set()
+        for file in htmlpart[key]["files"]:
+            if not file["name"] in seen and not seen.add(file["name"]):
+                files += [file["name"].rsplit("/", 1)[-1]]
+        htmlpart[key]["files"] = files
+        for asset in htmlpart[key]["html"]:
+            if len(asset) == 2 and asset[1]:
+                asset[1]["name"] = asset[1]["name"].rsplit("/", 1)[-1]
+
+
+
+    partfile = dir + "partition.json"
+    if not os.path.exists(partfile):
+        with open(partfile, 'w') as f:
+            f.write(json.dumps(htmlpart))
+    with open(partfile, 'r', encoding="utf-8") as f:
+        relics = json.loads(f.read())
+    orphid = iter(relics.keys())
+    part = {}
+    for id in htmlpart.keys():
+        if not id in relics:
+            part.update({id:htmlpart[id]})
+            continue
+        for idx in orphid:
+            if not id == idx:
+                part.update({idx:relics[idx]})
+            else:
+                break
+        if not relics[id]["html"] or relics[id]["keywords"] < htmlpart[id]["keywords"]:
+            part.update({id:htmlpart[id]})
+        else:
+            part.update({id:relics[id]})
+    with open(partfile, 'w') as f:
+        f.write(json.dumps(part))
+
+
+
+    for file in orphfiles:
+        if file.endswith(tuple(specialfile)):
+            continue
+        id = file.split(".", 1)[0]
+        if not id in part.keys():
+            id = "0"
+        if "orphfiles" in part[id]:
+            part[id]["orphfiles"] += [file]
+        else:
+            part[id]["orphfiles"] = [file]
+    if buildthumbnail:
+        echo("Building thumbnails . . .")
+
+
+
+    for id in part.keys():
+        if id == "0":
+            if "orphfiles" in part[id]:
+                title = "Unorganized"
+                content = "No matching partition found for this files.\n<p>"
+            else:
+                continue
+        else:
+            title = part[id]["keywords"][0] if len(part[id]["keywords"]) > 0 and part[id]["keywords"][0] else "No title for " + id
+            content = ""
+        new_container = False
+        end_container = False
+        time = part[id]["keywords"][2] if len(part[id]["keywords"]) > 2 else "No timestamp"
+        keywords = ", ".join(x for x in part[id]["keywords"][3:]) if len(part[id]["keywords"]) > 3 else "None"
+        builder += f"""<div class=\"cell\">
+<div class="time" id="{id}" style="float:right;"><p>Part ID: {id}<p>{time}<p>Keywords: {keywords}</div>
+<h1>{title}</h1>"""
+        # if file := part[id]["file"]:
+        #     builder += "<div class=\"carbon\">\n"
+        #     builder += container(file["name"], 1)
+        #     builder += "</div>\n"
+        # files = [x for x in part[id]["files"] if not file or not file == x]
+        files = [x for x in part[id]["files"]]
+        if files:
+            builder += "<div class=\"files\">\n"
+            for file in files:
+                builder += container(file, 1)
+            builder += "</div>\n"
+        if "orphfiles" in part[id]:
+            builder += "<div class=\"edits\">\n"
+            for file in part[id]["orphfiles"]:
+                builder += container(file, 1)
+            builder += "<p>orphaned file(s)</p>\n</div>\n"
+        if html := part[id]["html"]:
+            for asset in html:
+                if len(asset) == 2:
+                    if new_container:
+                        content += "<div class=\"carbon\">\n"
+                        end_container = True
+                        new_container = False
+                    if asset[1]:
+                        content += f"""{asset[0]}{container(asset[1], 1)}"""
+                    else:
+                        content += asset[0]
+                elif end_container:
+                    if new_container:
+                        content += "<div class=\"carbon\">\n"
+                        new_container = False
+                    else:
+                        new_container = True
+                    content += asset[0] + "</div><p>"
+                else:
+                    content += asset[0]
+                    new_container = True
+            if "<a href=\"" in content:
+                urls = content.split("<a href=\"")
+                links = ""
+                for link in urls[1:]:
+                    link = link.split("\"", 1)[0]
+                    links += f"""<a href="{link}">{link}</a><br>"""
+                listurls += f"""<p># From <a href="#{id}">#{id}</a> :: {title}<br>{links}\n"""
+            builder += f"<p>{content}\n"
+        else:
+            builder += "<br><div class=\"edits\">Rebuild HTML with higher tier is required to view</div>\n"
+        builder += "</div>\n\n"
+    with open(dir + "gallery.html", 'wb') as f:
+        f.write(bytes(new_html(builder, batchname, listurls), "utf-8"))
+
+
+
 def label(m, s, html=False):
     if m[3] == s[3]:
-        label = "Identical"
+        label = ("<span>" if html else "") + "Identical"
     elif m[0] > s[0] and m[1] > s[1]:
         label = ("""<span style="color:#ff0000;">""" if html else tcolorr) + f"{s[0]} x {s[1]}"
     elif m[0] >= s[0] and m[1] > s[1] or m[0] > s[0] and m[1] <= s[1]:
@@ -2171,7 +2717,7 @@ def label(m, s, html=False):
 
 
 
-def tohtml(delete=False):
+def tohtml_g(delete=False):
     start = time.time()
     print("\n Now compiling duplicates to HTML . . . kill this CLI to cancel.\n")
     builder = ""
@@ -2227,19 +2773,19 @@ def tohtml(delete=False):
                     continue
                 else:
                     break
-            builder2 += container(file2, label(m, s, html=True))
+            builder2 += container_c(file2, label(m, s, html=True))
             if not (file2 := next(v, None)):
                 break
         if builder2:
             builder += f"""<div class="container">
-{container(file, f"{m[0]} x {m[1]}")}{builder2}</div>
+{container_c(file, f"{m[0]} x {m[1]}")}{builder2}</div>
 
 """
             counter += 1
         if counter % 512 == 0:
             morehtml = htmlfile.replace(".html", f" {int(counter/512)}.html")
             with open(morehtml, 'wb') as f:
-                f.write(bytes(new_html(builder), 'utf-8'))
+                f.write(bytes(new_html(builder, batchname, ""), 'utf-8'))
             with open(savx, 'wb') as f:
                 f.write(bytes("\n".join(dbz), 'utf-8'))
             print("\"" + morehtml + "\" created!")
@@ -2247,7 +2793,7 @@ def tohtml(delete=False):
             counter += 1
     morehtml = htmlfile.replace(".html", f" {int(counter/512) + 1}.html")
     with open(morehtml, 'wb') as f:
-        f.write(bytes(new_html(builder), 'utf-8'))
+        f.write(bytes(new_html(builder, batchname, ""), 'utf-8'))
     with open(savx, 'wb') as f:
         f.write(bytes("\n".join(dbz), 'utf-8'))
     print("\"" + morehtml + "\" created!")
@@ -2461,7 +3007,7 @@ if filelist:
     else:
         compare(m)
 else:
-    if htmlassets["filelist"]:
+    if htmlassets["partition"]["0"]["files"]:
         downloadtodisk(htmlassets)
     elif imore:
         scrape(imore)
@@ -2492,7 +3038,7 @@ while True:
             choice(bg=True)
             print(" I don't have a scraper for that!")
         else:
-            downloadtodisk({"filelist":[{"url":m, "name":parse.unquote(m.split("/")[-1])[:200], "edited":0}]})
+            downloadtodisk({"page":"", "partition":{"0":{"html":"", "keywords":[], "files":[{"url":m, "name":saint(parse.unquote(m.split("/")[-1])), "edited":0}]}}})
     elif m == "o":
         if os.path.exists(mf):
             finish_organize()
@@ -2523,7 +3069,7 @@ while True:
             choice(bg=True)
             print(" GEISTAUGE: Maybe not.")
         else:
-            tohtml()
+            tohtml_g()
     elif m == "d":
         if not Geistauge:
             choice(bg=True)
@@ -2533,7 +3079,7 @@ while True:
             if not input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "") == f"{batchdir}{sav}":
                 continue
             skull()
-            tohtml(delete=True)
+            tohtml_g(delete=True)
     elif m.startswith("file:///") or m.startswith("http://localhost"):
         if not Geistauge:
             choice(bg=True)
@@ -2559,8 +3105,6 @@ open /Applications/Python\ 3.9/Install\ Certificates.command
 sudo python3 -m pip install --upgrade pip
 sudo python3 -m pip install PySocks
 sudo python3 -m pip install Pillow
-sudo python3 -m pip install numpy
-sudo python3 -m pip install opencv-python
 python3 -x /drag/n/drop/the/batchfile
 
 :loaded
@@ -2570,7 +3114,6 @@ set batchfile=%~0
 if %cd:~-1%==\ (set batchdir=%cd%) else (set batchdir=%cd%\)
 set txtfile=%~n0.txt
 set txtfilex=%~dpn0.txt
-::if "%cd:~0,3%" == "%cd%" (echo I shouldn't work at drive level&&pause>nul&&exit)
 
 setlocal enabledelayedexpansion
 set batchdir=!batchdir:\=\\!
@@ -2591,18 +3134,16 @@ if exist "!txtfilex!" for /f "delims=" %%i in ('findstr /b /i "Python = " "!txtf
 chcp 437>nul
 set x=Python 3.9
 set pythondirx=!pythondir!!x: 3.=3!
-if exist "!pythondirx!\python.exe" (cd /d "!pythondirx!" && color %color%) else (if exist "!pythondirx!-32\python.exe" (cd /d "!pythondirx!-32\" && color %color%) else (color %stopcolor%
+if exist "!pythondirx!\python.exe" (cd /d "!pythondirx!" && color %color%) else (color %stopcolor%
 echo.
-if "!string!"=="" (echo  I can't seem to find \!x: 3.=3!\python.exe^^! Install !x! in default location please, or edit this batch file.&&echo.&&echo  Download the latest !x!.x from https://www.python.org/downloads/&&echo  ^> 64-bit: Scroll down and choose !x!.x from list, look for a "x86-64 executable installer".) else (echo  Please fix path to \!x: 3.=3!\python.exe in "Python =" setting in !txtfile!)
+if "!string!"=="" (echo  I can't seem to find \!x: 3.=3!\python.exe^^! Install !x! in default location please, or edit this batch file.&&echo.&&echo  Download the latest !x!.x from https://www.python.org/downloads/) else (echo  Please fix path to \!x: 3.=3!\python.exe in "Python =" setting in !txtfile!)
 echo.
 echo  I must exit^^!
 pause%>nul
-exit))
+exit)
 set pythondir=!pythondir:\=\\!
 
 if exist Lib\site-packages\socks.py (echo.) else (goto install)
-::if exist Lib\site-packages\cv2 (echo.) else (goto install)
-::if exist Lib\site-packages\numpy\ (echo.) else (goto install)
 ::if exist Lib\site-packages\selenium (echo.) else (goto instal)
 if exist Lib\site-packages\PIL (goto start) else (echo.)
 
@@ -2611,10 +3152,8 @@ echo  Hold on . . . I need to install the missing packages.
 if exist "Scripts\pip.exe" (echo.) else (color %stopcolor% && echo  PIP.exe doesn't seem to exist . . . Please install Python properly^^! I must exit^^! && pause>nul && exit)
 python -m pip install --upgrade pip
 Scripts\pip.exe install PySocks
-::Scripts\pip.exe install opencv-python
-::Scripts\pip.exe install numpy==1.19.3
-Scripts\pip.exe install Pillow
 ::Scripts\pip.exe install selenium
+Scripts\pip.exe install Pillow
 echo.
 pause
 

@@ -20,7 +20,7 @@ if len(sys.argv) > 3:
 else:
     filelist = []
     pythondir = ""
-batchdir = os.path.dirname(os.path.realpath(__file__))
+batchdir = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
 if "/" in batchdir and not batchdir.endswith("/"): batchdir += "/"
 elif not batchdir.endswith("\\"): batchdir += "\\"
 batchdirx = batchdir.replace("\\", "\\\\")
@@ -42,19 +42,21 @@ textfile = batchname + ".txt"
 archivefile = [".7z", ".rar", ".zip"]
 imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"]
 videofile = [".mkv", ".mp4", ".webm"]
-specialfile = [".ender", "gallery.html", "partition.json"]
+specialfile = ["gallery.html", "partition.json"]
 
-newfilen = [0]
+busy = [False]
+cooldown = [False]
 echothreadn = []
 error = [[]]
 offlineprompt = [False]
 offlinepromptx = [False]
-cooldown = [False]
+newfilen = [0]
+retryall = [False]
 retries = [0]
 retryx = [False]
-retryall = [False]
-skiptonext = [False]
+seek = [False]
 sf = [0]
+skiptonext = [False]
 
 # HTML builder
 buildthumbnail = False
@@ -107,14 +109,15 @@ def mainmenu():
  | while scanning new folder, or find in database.
  + The featuring/reference folder will be added to database, image(s) will not.
 
- - - - - Input/Paste - - - -
- + Enter V to load a page for page source viewing.
- | Enter B to launch HTML in your favorite browser.
- | Enter C to re/compile HTML from database (your browser will be used as comparison GUI).
- | Enter D to delete non-exempted duplicate images immediately with a confirmation.
- |  > One first non-exempt in path alphabetically will be kept if no other duplication are exempted.
- | Enter file:/// or http://localhost url to enter delete mode.
- | Enter http(s):// to download file.
+ - - - - Schande HTML - - - -
+ + Press B to launch HTML in your favorite browser.
+ | Press G to re/compile HTML from database (your browser will be used as comparison GUI).
+ | Press D to delete non-exempted duplicate images immediately with a confirmation.
+ +  > One first non-exempt in path alphabetically will be kept if no other duplication are exempted.
+
+ - - - - Input - - - -
+ + Enter file:/// or http://localhost url to enter delete mode.
+ | Enter http(s):// to download file. Press V for page source viewing.
  + Enter valid site to start a scraper.
 """)
 def skull():
@@ -165,7 +168,7 @@ def quicktutorial():
  |  "visit"              visit especially for cookies before redirection.
  |  "urlfix ...*... with ...*..." permanent redirector.
  |  "url ...*... with ...*... redirector. Original url will be used for statement and scraper loop.
- |  "send X Y"           send data (Y) to url (X) before accessing page.
+ |  "send X Y"           send data (X) to url (Y) or to current page url (no Y) before accessing page.
  |  "part ...*..."       partitioning the page.
  |  "key ... > ..."      pick identifier and start HTML builder, attribute partition, keywords, and files to this.
  |  "html ...*..."       pick article from page/partition for HTML builder. API: pick content for HTML-based pickers.
@@ -196,7 +199,7 @@ def quicktutorial():
  | Manipulating asterisk:
  |  > Multiple asterisks to pick the last asterisk better and/or to discard others.
  |  > Arrange name and file pickers if needed to follow their position in page. file before -> name -> file after.
- |  > Arrange html and file pickers whether to download inline files before conflict of same file name.
+ |  > Arrange html and file pickers whether to download inline file or filelist on conflict of the same file name.
  |  > First with match will be chosen first. This doesn't apply to html and plural pickers such as files, pages.
  |  > Name match closest to the file will be chosen. file before -> name to before -> name to after -> file after.
  |
@@ -392,7 +395,7 @@ fx = [[fp[0]]*8]
 
 
 pg = [0]
-tp = " ․⁚⋮456789abcdef⍿"
+tp = " ․⁚⋮456789abcdef⍿"
 pr = len(tp)-1
 pgtime = [int(time.time()/5)]
 tm = [x.copy() for _ in range(10) for x in [[tp[0]]*12]]
@@ -616,7 +619,7 @@ def at(a, r, alt=True):
 def topicker(s, rule):
     if rule[0].startswith("send "):
         rule = rule[0].split(" ", 2)
-        s["send"] += [[rule[1], rule[2]]]
+        s["send"] += [[rule[1], rule[2]] if len(rule) == 2 else [rule[1], []]]
     elif rule[0].startswith("visit"):
         s["visit"] = True
     elif rule[0].startswith("part "):
@@ -770,66 +773,6 @@ def timer(e="", all=True):
     elif all:
         while ticking[0]:
             time.sleep(0.5)
-
-
-
-# Loading filelist from detected urls in textfile
-if not os.path.exists(textfile):
-    open(textfile, 'w').close()
-print(f"\nReading {textfile} . . .")
-with open(textfile, 'r', encoding="utf-8") as f:
-    textread = f.read().splitlines()
-htmlassets = {"page":"", "partition":{"0":{"html":"", "keywords":[], "files":[]}}}
-imore = []
-for url in textread:
-    if not url or url.startswith("#"):
-        continue
-    elif not url.startswith("http"):
-        continue
-    if any(word for word in scraper.keys() if url.startswith(word)):
-        imore += [url]
-    else:
-        name = parse.unquote(url.split("/")[-1])
-        htmlassets["partition"]["0"]["files"] += [{"url":url, "name":saint(name), "edited":0}]
-
-
-
-seek = [False]
-def keylistener():
-    while True:
-        el = choice("xstcq")
-        if el == 1:
-            echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
-            retryx[0] = False if retryx[0] else True
-            offlinepromptx[0] = True
-        elif el == 2:
-            echo("", 1)
-            skiptonext[0] = True
-        elif el == 3:
-            if ticks:
-                echo(f"""COOLDOWN {"DISABLED" if cooldown[0] else "ENABLED"}""", 1, 1)
-            else:
-                echo(f"""Timer not enabled, please add "#-# seconds rarity 100%" in {rulefile}, add another timer to manipulate rarity.""", 1, 1)
-            cooldown[0] = False if cooldown[0] else True
-        elif el == 4:
-            for c in cookie:
-                echo(str(c), 1, 2)
-        elif el == 5:
-            echo("", 1)
-            offlinepromptx[0] = False
-        else:
-            seek[0] = True
-t = Thread(target=keylistener)
-t.daemon = True
-t.start()
-print("""
- Key listener:
-  > Press X to enable or disable indefinite retry on error downloading files (for this session).
-  > Press S to skip next error once during downloading files.
-  > Press T to enable or disable cooldown during errors (reduce server strain).
-  > Press C to view cookies.
-  > Press Ctrl + C to break and reconnect of the ongoing downloads or to end timer instantly.
-""")
 
 
 
@@ -1077,7 +1020,7 @@ def cd(file, makedirs=False, preview=False):
         if makedirs and not os.path.exists(os.path.split(todisk)[0]):
             os.makedirs(os.path.split(todisk)[0])
         file.update({"name":todisk, "edited":file["edited"]})
-    return [[url, todisk, file["edited"]]]
+    return [url, todisk, file["edited"]]
 
 
 
@@ -1091,13 +1034,13 @@ def downloadtodisk(htmlassets, makedirs=False):
             if not file["name"]:
                 print(f""" I don't have a scraper for {file["url"]}""")
             else:
-                filelist += cd(file, makedirs)
+                filelist += [cd(file, makedirs) + [key]]
         for html in htmlpart[key]["html"]:
             if len(html) == 2 and html[1]:
                 if not html[1]["name"]:
                     print(f""" I don't have a scraper for {html[1]["url"]}""")
                 else:
-                    filelisthtml += cd(html[1], makedirs)
+                    filelisthtml += [cd(html[1], makedirs) + [key]]
     if htmlassets["inlinefirst"]:
         filelist = filelisthtml + filelist
     else:
@@ -1112,7 +1055,7 @@ def downloadtodisk(htmlassets, makedirs=False):
             else:
                 done += [d]
             print(f"  {d}")
-    print("\n Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs (developer note: currently unimplemented).")
+        print("\n Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs (developer note: currently unimplemented).")
 
     if not filelist:
         print("Filelist is empty!")
@@ -1129,19 +1072,18 @@ def downloadtodisk(htmlassets, makedirs=False):
     dirs = set()
     htmldirs = {}
     for file in filelist:
-        df = file[1].rsplit("/", 1)
-        part = df[-1].split(".", 1)[0]
-        dir = df[0] + "/"
+        fp = file[3]
+        dir = file[1].rsplit("/", 1)[0] + "/"
         if not dir in dirs and not dirs.add(dir):
             if os.path.exists(dir + "partition.json"):
                 with open(dir + "partition.json", 'r') as f:
                     htmldirs.update({dir:json.loads(f.read())})
             else:
                 htmldirs.update({dir:{}})
-        if dir in htmldirs and part in htmldirs[dir]:
-            if len(htmldirs[dir][part]["keywords"]) < 2:
+        if dir in htmldirs and fp in htmldirs[dir]:
+            if len(htmldirs[dir][fp]["keywords"]) < 2:
                 continue
-            k = htmldirs[dir][part]["keywords"][1]
+            k = htmldirs[dir][fp]["keywords"][1]
             if not file[2] == "0" and not file[2] == k:
                 if os.path.exists(file[1]):
                     if editisreal:
@@ -1178,7 +1120,7 @@ def downloadtodisk(htmlassets, makedirs=False):
         print(f"""{"Nothing new to download." if not newfile else ""}{" There are failed downloads I will try again later." if error[0] else ""}""")
 
         for dir in htmldirs.keys():
-            if not (x := os.path.exists(dir + "gallery.html")):
+            if not (x := os.path.exists(dir + "gallery.html")) or newfile:
                 orphfiles = []
                 for file in next(os.walk(dir))[2]:
                     if not file.endswith(tuple(specialfile)):
@@ -1563,7 +1505,8 @@ def page_assets(queue):
         ua = x[0] if (x := [v for k, v in mozilla.items() if page.startswith(k)]) else 'Mozilla/5.0'
         if pick["send"]:
             for x in pick["send"]:
-                data = fetch(x[0], stderr="Error sending data", data=str(x[1]).encode('utf-8'))
+                post = x[1] if x[1] else url
+                data = fetch(post, stderr="Error sending data", data=str(x[0]).encode('utf-8'))
             if not data:
                 print(f" Error visiting {page}")
                 break
@@ -1654,7 +1597,7 @@ def page_assets(queue):
                                 if len(x := carrots([p], z, False, cw)) == 2:
                                     keywords += [[x[0][1], key]]
                             else:
-                                for x in carrots([p], z, True, cw):
+                                for x in carrots([p], z, True, cw)[:-1]:
                                     keywords += [[x[1], key]]
             for x in keywords:
                 if not x[1] in htmlpart:
@@ -1759,25 +1702,11 @@ def page_assets(queue):
             if not pick["ready"]:
                 x = ""
                 for file in filelist:
-                    x = cd(file[1], preview=True)[0]
+                    x = cd(file[1], preview=True)
                     print(tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1] + tcolorx)
                 if not x:
                     print(f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, check for bad asterisks in other pickers.{tcolorx}")
                 ready[0] = False
-        for k in htmlpart.keys():
-            print(k)
-            if "html" in htmlpart[k] and htmlpart[k]["html"]:
-                for html in htmlpart[k]["html"]:
-                    if html[0]:
-                        print(tcoloro + html[0] + " ", end="")
-                        if html[1]:
-                            print(tcolor + html[1] + " ", end="")
-                print(tcolorx)
-            if "keywords" in htmlpart[k] and htmlpart[k]["keywords"]:
-                print(tcolorr + ", ".join(f"{kw}" for kw in htmlpart[k]["keywords"]) + tcolorx)
-            if "files" in htmlpart[k]:
-                for file in htmlpart[k]["files"]:
-                    print(tcolorg + file["name"].rsplit("\\")[-1] + tcolorx)
         echothreadn.remove(threadn)
         queue.task_done()
     echothreadn.remove(threadn)
@@ -1820,13 +1749,29 @@ def scrape(pages):
 
     if htmlassets["partition"]:
         if not ready[0]:
+            htmlpart = htmlassets["partition"]
+            if len(htmlpart) > 1 or htmlpart["0"]["html"]:
+                for k in htmlpart.keys():
+                    if k == "0" and not htmlpart[k]["files"]:
+                        continue
+                    print(k)
+                    if htmlpart[k]["html"]:
+                        for html in htmlpart[k]["html"]:
+                            if html[0]:
+                                print(tcoloro + html[0] + " ", end="")
+                                if html[1]:
+                                    print(tcolor + html[1] + " ", end="")
+                        print(tcolorx)
+                    if htmlpart[k]["keywords"]:
+                        print(tcolorr + ", ".join(f"{kw}" for kw in htmlpart[k]["keywords"]) + tcolorx)
+                    for file in htmlpart[k]["files"]:
+                        print(tcolorg + file["name"].rsplit("\\")[-1] + tcolorx)
             print(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue""")
             if not choice("c") == 1:
                 kill(0)
         downloadtodisk(htmlassets, makedirs=True)
         if x := htmlassets["page"]:
-            x = cd(x, preview=True)
-            with open(x[1], 'w') as f:
+            with open(cd(x, preview=True)[1], 'w') as f:
                 f.write(f"""[InternetShortcut]
 URL={x[0]}""")
     return True
@@ -1891,6 +1836,7 @@ def scanthread(filelist, filevs, savwrite):
 
 
 def todb(m, filevs=""):
+    m = m.replace("\\", "/")
     savread = opensav(sav)
     savwrite = open(sav, 'ab')
     filelist = []
@@ -1912,11 +1858,12 @@ def todb(m, filevs=""):
         filelist = []
         title(subfolder)
         print("\n - - - - " + subfolder + " - - - -")
-        for root, folders, files in os.walk(f"{m}/{subfolder}"):
+        for dir, folders, files in os.walk(f"{m}/{subfolder}"):
+            dir = m + "/" + os.path.relpath(dir, m).replace("\\", "/") + "/"
             for file in files:
                 if not file.lower().endswith(tuple(imagefile)):
                     continue
-                if (file := f"{m}/{os.path.relpath(root, m)}/{file}") in savread:
+                if (file := f"{dir}{file}") in savread:
                     continue
                 else:
                     filelist += [file]
@@ -1954,8 +1901,8 @@ def container(ondisk, depth=0, check=True):
     if filename.lower().endswith(tuple(videofile)):
         data = f"""<div class="frame"><video height="200" autoplay><source src="{relfile.replace("#", "%23")}"></video><div class="sources">{filename}</div></div>\n"""
     elif filename.lower().endswith(tuple(imagefile)):
-        if buildthumbnail and not "/HTML assets/" in relfile:
-            thumb = "/HTML assets/".join(ren(relfile, "_small").rsplit("/", 1))
+        if buildthumbnail and not "/Thumbnails/" in relfile:
+            thumb = "/Thumbnails/".join(ren(relfile, "_small").rsplit("/", 1))
             if not os.path.exists(mainfolder + thumb):
                 try:
                     img = Image.open(ondisk)
@@ -2505,7 +2452,7 @@ a:visited{color:#cccccc;}
 .sources{font-size:80%; width:200px;}
 
 img{vertical-align:top;}
-.container{display:none; position:relative;}
+.container{display:block; position:relative;}
 .frame{display:inline-block; vertical-align:top;}
 .sources{font-size:80%; width:200px;}
 .aqua{display:inline-block; vertical-align:top; padding:12px; word-wrap:break-word;}
@@ -2550,21 +2497,6 @@ def tohtml(dir, htmlassets, orphfiles):
 
 
 
-    if False:
-        if not os.path.exists(dir + "HTML assets/"):
-            os.makedirs(dir + "HTML assets/")
-        if url := htmlassets["avatar"]:
-            relfile = dir + "avatar.png"
-            builder += f"""<img src="{relfile}" height="100px">\n"""
-            if url and not os.path.exists(relfile):
-                if not get(url, todisk=relfile, context=htmlassets["context"]):
-                    echo(f" Error downloading: {url}", 0, 1)
-        if url := htmlassets["cover"]:
-            relfile = dir + "cover.png"
-            builder += f"""<img src="{relfile}" height="100px">\n"""
-            if url and not os.path.exists(relfile):
-                if not get(url, todisk=relfile, context=htmlassets["context"]):
-                    echo(f" Error downloading: {url}", 0, 1)
     if page := htmlassets["page"]:
         builder += "<h2>Paysite: <a href=\"" + page["url"] + "\">" + page["name"] + "</a></h2>"
 
@@ -2621,6 +2553,8 @@ def tohtml(dir, htmlassets, orphfiles):
         else:
             part[id]["orphfiles"] = [file]
     if buildthumbnail:
+        if not os.path.exists(dir + "Thumbnails/"):
+            os.makedirs(dir + "Thumbnails/")
         echo("Building thumbnails . . .")
 
 
@@ -2629,7 +2563,7 @@ def tohtml(dir, htmlassets, orphfiles):
         if id == "0":
             if "orphfiles" in part[id]:
                 title = "Unorganized"
-                content = "No matching partition found for this files.\n<p>"
+                content = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really orphans.\n<p>"
             else:
                 continue
         else:
@@ -2637,8 +2571,8 @@ def tohtml(dir, htmlassets, orphfiles):
             content = ""
         new_container = False
         end_container = False
-        time = part[id]["keywords"][2] if len(part[id]["keywords"]) > 2 else "No timestamp"
-        keywords = ", ".join(x for x in part[id]["keywords"][3:]) if len(part[id]["keywords"]) > 3 else "None"
+        time = part[id]["keywords"][1] if len(part[id]["keywords"]) > 1 else "No timestamp"
+        keywords = ", ".join(x for x in part[id]["keywords"][2:]) if len(part[id]["keywords"]) > 2 else "None"
         builder += f"""<div class=\"cell\">
 <div class="time" id="{id}" style="float:right;"><p>Part ID: {id}<p>{time}<p>Keywords: {keywords}</div>
 <h1>{title}</h1>"""
@@ -2988,7 +2922,192 @@ while False:
 
 
 
+def run_input(m):
+    if m == "x":
+        return
+    elif any(word for word in scraper.keys() if m.startswith(word)):
+        scrape([m])
+    elif m.startswith("http") and not m.startswith("http://localhost"):
+        if m.endswith("/"):
+            choice(bg=True)
+            print(" I don't have a scraper for that!")
+        else:
+            downloadtodisk({"page":"", "inlinefirst":True, "partition":{"0":{"html":"", "keywords":[], "files":[{"url":m, "name":saint(parse.unquote(m.split("/")[-1])), "edited":0}]}}})
+    elif m.startswith("file:///") or m.startswith("http://localhost"):
+        if not Geistauge:
+            choice(bg=True)
+            print(" GEISTAUGE: Maybe not.")
+        else:
+            delmode(m)
+    elif os.path.exists(m):
+        if not Geistauge:
+            choice(bg=True)
+            print(" GEISTAUGE: Maybe not.")
+        elif os.path.isdir(m):
+            todb(m)
+        else:
+            compare(m)
+    else:
+        choice(bg=True)
+
+
+
+def ready_input():
+    sys.stdout.write("Enter (I)nput mode or ready to (O)rganize, (H)elp: ")
+    sys.stdout.flush()
+
+
+
+input_mode = [""]
+def keylistener():
+    while True:
+        el = choice("bcdghioqstvx")
+        if el == 1:
+            if Browser and HTMLserver:
+                os.system(f"""start "" "{Browser}" "http://localhost:8886/{batchname} 1.html" """)
+            elif Browser:
+                os.system(f"""start "" "{Browser}" "{batchdir}{batchname} 1.html" """)
+            else:
+                choice(bg=True)
+                print(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""")
+            print("""
+ Browser key listener (Not here!):
+  > W - Edge detect when previewing an image
+  > A - Geistauge: compare to left when previewing an image
+  > S - Geistauge: bright both when previewing an image
+  > D - Geistauge: compare to right (this) when previewing an image
+  > Shift - Fit image to screen
+
+ "Edge detect" and "Geistauge" are canvas features and they require "Access-Control-Allow-Origin: *" (try HTML server)
+""")
+            ready_input()
+        elif el == 2:
+            for c in cookie:
+                echo(str(c), 1, 2)
+        elif el == 3:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            if not Geistauge:
+                choice(bg=True)
+                print(" GEISTAUGE: Maybe not.")
+            else:
+                choice(bg="4c")
+                if not input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "") == f"{batchdir}{sav}":
+                    continue
+                skull()
+                tohtml_g(delete=True)
+            ready_input()
+        elif el == 4:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            if not Geistauge:
+                choice(bg=True)
+                print(" GEISTAUGE: Maybe not.")
+            else:
+                tohtml_g()
+            ready_input()
+        elif el == 5:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            sys.stdout.write("Open (H)elp, you mean (I)nput mode, e(X)it: ")
+            sys.stdout.flush()
+            el = choice("hix")
+            if el == 1:
+                quicktutorial()
+                ready_input()
+            elif el == 2:
+                input_mode[0] = input("Enter valid input, e(X)it: ").rstrip().replace("\"", "")
+            else:
+                ready_input()
+        elif el == 6:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            input_mode[0] = input("Enter valid input, e(X)it: ").rstrip().replace("\"", "")
+        elif el == 7:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            if os.path.exists(mf):
+                finish_organize()
+            else:
+                choice(bg=True)
+                print(f" {tmf} doesn't exist! Nothing to organize.")
+        elif el == 8:
+            echo("", 1)
+            skiptonext[0] = True
+        elif el == 9:
+            echo("", 1)
+            offlinepromptx[0] = False
+        elif el == 10:
+            if ticks:
+                echo(f"""COOLDOWN {"DISABLED" if cooldown[0] else "ENABLED"}""", 1, 1)
+            else:
+                echo(f"""Timer not enabled, please add "#-# seconds rarity 100%" in {rulefile}, add another timer to manipulate rarity.""", 1, 1)
+            cooldown[0] = False if cooldown[0] else True
+        elif el == 11:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            while True:
+                m = input("Enter URL to view source, e(X)it: ").rstrip()
+                if m.startswith("http"):
+                    referer = x[0] if (x := [v for k, v in referers.items() if m.startswith(k)]) else ""
+                    ua = x[0] if (x := [v for k, v in mozilla.items() if m.startswith(k)]) else 'Mozilla/5.0'
+                    html = get(m, utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, stderr="Page loading failed successfully")
+                    if html:
+                        html = "\n".join([s.rstrip() if s.rstrip() else "" for s in html.replace("	", "    ").splitlines()])
+                        print(syntax(html))
+                elif m == "x":
+                    continue
+                else:
+                    choice(bg=True)
+        elif el == 12:
+            echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
+            retryx[0] = False if retryx[0] else True
+            offlinepromptx[0] = True
+        else:
+            seek[0] = True
+t = Thread(target=keylistener)
+t.daemon = True
+t.start()
+print("""
+ Key listener:
+  > Press X to enable or disable indefinite retry on error downloading files (for this session).
+  > Press S to skip next error once during downloading files.
+  > Press T to enable or disable cooldown during errors (reduce server strain).
+  > Press C to view cookies.
+  > Press Ctrl + C to break and reconnect of the ongoing downloads or to end timer instantly.
+""")
+
+
+
+# Loading filelist from detected urls in textfile
+if not os.path.exists(textfile):
+    open(textfile, 'w').close()
+print(f"Reading {textfile} . . .")
+with open(textfile, 'r', encoding="utf-8") as f:
+    textread = f.read().splitlines()
+htmlassets = {"page":"", "partition":{"0":{"html":"", "keywords":[], "files":[]}}}
+imore = []
+for url in textread:
+    if not url or url.startswith("#"):
+        continue
+    elif not url.startswith("http"):
+        continue
+    if any(word for word in scraper.keys() if url.startswith(word)):
+        imore += [url]
+    else:
+        name = parse.unquote(url.split("/")[-1])
+        htmlassets["partition"]["0"]["files"] += [{"url":url, "name":saint(name), "edited":0}]
+
+
+
 if filelist:
+    busy[0] = True
     m = filelist[0]
     if len(filelist) > 1:
         print(f"""
@@ -3006,96 +3125,29 @@ if filelist:
         todb(m)
     else:
         compare(m)
+    busy[0] = False
 else:
+    busy[0] = True
     if htmlassets["partition"]["0"]["files"]:
         downloadtodisk(htmlassets)
     elif imore:
         scrape(imore)
     else:
         print(f" No urls in {textfile}! Doing so will enable parallel downloading urls and resume the interrupted downloads.")
-mainmenu()
-while True:
-    m = input("Enter valid input or ready to (O)rganize, (H)elp: ").rstrip().replace("\"", "")
-    if m == "h":
-        quicktutorial()
-    elif m == "v":
-        m = input("Enter URL: ").rstrip()
-        if m.startswith("http"):
-            referer = x[0] if (x := [v for k, v in referers.items() if m.startswith(k)]) else ""
-            ua = x[0] if (x := [v for k, v in mozilla.items() if m.startswith(k)]) else 'Mozilla/5.0'
-            html = get(m, utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, stderr="Page loading failed successfully")
-            if html:
-                html = "\n".join([s.rstrip() if s.rstrip() else "" for s in html.replace("	", "    ").splitlines()])
-                print(syntax(html))
-                # with open(f"{batchdir}{batchname} (source).html", 'wb') as f:
-                #     f.write(bytes(html, 'utf-8'))
-        else:
-            choice(bg=True)
-    elif any(word for word in scraper.keys() if m.startswith(word)):
-        scrape([m])
-    elif m.startswith("http") and not m.startswith("http://localhost"):
-        if m.endswith("/"):
-            choice(bg=True)
-            print(" I don't have a scraper for that!")
-        else:
-            downloadtodisk({"page":"", "partition":{"0":{"html":"", "keywords":[], "files":[{"url":m, "name":saint(parse.unquote(m.split("/")[-1])), "edited":0}]}}})
-    elif m == "o":
-        if os.path.exists(mf):
-            finish_organize()
-        else:
-            choice(bg=True)
-            print(f" {tmf} doesn't exist! Nothing to organize.")
-    elif m == "b":
-        if Browser and HTMLserver:
-            os.system(f"""start "" "{Browser}" "http://localhost:8886/{batchname} 1.html" """)
-        elif Browser:
-            os.system(f"""start "" "{Browser}" "{batchdir}{batchname} 1.html" """)
-        else:
-            choice(bg=True)
-            print(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""")
-            continue
-        print("""
- HTML key/mouse listener:
-  > W - Edge detect when previewing an image
-  > A - Geistauge: compare to left when previewing an image
-  > S - Geistauge: bright both when previewing an image
-  > D - Geistauge: compare to right (this) when previewing an image
-  > Shift - Fit image to screen
+    busy[0] = False
 
- "Edge detect" and "Geistauge" are canvas features and they require "Access-Control-Allow-Origin: *" (try HTML server)
-""")
-    elif m == "c":
-        if not Geistauge:
-            choice(bg=True)
-            print(" GEISTAUGE: Maybe not.")
-        else:
-            tohtml_g()
-    elif m == "d":
-        if not Geistauge:
-            choice(bg=True)
-            print(" GEISTAUGE: Maybe not.")
-        else:
-            choice(bg="4c")
-            if not input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "") == f"{batchdir}{sav}":
-                continue
-            skull()
-            tohtml_g(delete=True)
-    elif m.startswith("file:///") or m.startswith("http://localhost"):
-        if not Geistauge:
-            choice(bg=True)
-            print(" GEISTAUGE: Maybe not.")
-        else:
-            delmode(m)
-    elif os.path.exists(m):
-        if not Geistauge:
-            choice(bg=True)
-            print(" GEISTAUGE: Maybe not.")
-        elif os.path.isdir(m):
-            todb(m)
-        else:
-            compare(m)
-    else:
-        choice(bg=True)
+
+
+mainmenu()
+ready_input()
+while True:
+    if input_mode[0]:
+        busy[0] = True
+        run_input(input_mode[0])
+        input_mode[0] = ""
+        busy[0] = False
+        ready_input()
+    time.sleep(0.1)
 
 
 

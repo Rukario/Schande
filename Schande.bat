@@ -1270,7 +1270,11 @@ def grab(d, z):
             if not y[0]:
                 continue
             if dc and y[0] in dc:
-                dc = dc[y[0]]
+                try:
+                    dc = dc[y[0]]
+                except:
+                    print(f"{tcolorr}Try again with >> {y[0]} instead of > {y[0]}{tcolorx}")
+                    return
                 if len(y) == 2:
                     dc = json.loads(dc)
                     if dc and y[1] in dc:
@@ -1286,6 +1290,9 @@ def grab(d, z):
         else:
             dt += [str(dc)]
     return dt
+
+
+
 def nest(d, z):
     ds = []
     n = 1 if z[0][0] else 0
@@ -1298,7 +1305,11 @@ def nest(d, z):
                 ds += nest(y, [[z[0][0].split("* > ", 1)[1]] + z[0][1:], z[1]])
             return ds
         if x[0] in d:
-            d = d[x[0]]
+            try:
+                d = d[x[0]]
+            except:
+                print(f"{tcolorr}Try again with >> {x[0]} instead of > {x[0]}{tcolorx}")
+                return
             if len(x) == 2:
                 d = json.loads(d)
                 if x[1] in d:
@@ -1545,8 +1556,6 @@ def page_assets(queue):
                             else:
                                 continue
                         for d in nested(db, [z[0], [[z[1], 0, 0, 0]] + key]):
-                            for x in pick["replace"]:
-                                d[0] = d[0].replace(x[0], x[1])
                             html += [[d[0].replace("\n", ""), d[1]]]
                 else:
                     new_part = []
@@ -1557,14 +1566,14 @@ def page_assets(queue):
                                 key = d[0][1]
                                 break
                         c = carrots([[p[0].replace("\n", ""), ""]], z, False, cw)
-                        for x in pick["replace"]:
-                            c[0][1] = c[0][1].replace(x[0], x[1])
                         html += [[c[0][1], key]]
                         new_part += [["".join(x[0].replace("\n", "") for x in c), ""]]
                     part = new_part
             for x in html:
                 if not x[1] in htmlpart:
                     htmlpart.update({x[1]:{"html":[], "keywords":[], "files":[]}})
+                for r in pick["replace"]:
+                    x[0] = "".join(y[0] + y[1] for y in carrots([[x[0], ""]], r[0], True, r[1].split("*", 1)))
                 htmlpart[x[1]].update({"html":[[x[0], ""]] + htmlpart[x[1]]["html"]})
             keywords = []
             kpos = 0
@@ -1602,11 +1611,13 @@ def page_assets(queue):
             for x in keywords:
                 if not x[1] in htmlpart:
                     htmlpart.update({x[1]:{"html":[], "keywords":[], "files":[]}})
+                for r in pick["replace"]:
+                    x[0] = x[0].replace(r[0], r[1])
                 htmlpart[x[1]]["keywords"] += [x[0]]
         else:
-            for x in pick["replace"]:
+            for r in pick["replace"]:
                 for p in part:
-                    p[0] = p[0].replace(x[0], x[1])
+                    p[0] = p[0].replace(r[0], r[1])
         if pick["expect"]:
             pos = 0
             for y in pick["expect"]:
@@ -1657,7 +1668,8 @@ def page_assets(queue):
                         elif y[0]["alt"]:
                             if len(c := carrots(part, z, False, cw)) == 2:
                                 folder[0] += c[-2][1]
-                                part = [["".join(x[0] for x in c), ""]]
+                                part = [[x[0], ""] for x in c]
+                                # part = [["".join(x[0] for x in c), ""]]
                         else:
                             if len(c := carrots([[page, ""]], z, False, cw)) == 2:
                                 folder[0] += c[-2][1]
@@ -1686,7 +1698,7 @@ def page_assets(queue):
                                     more += [px]
                                     if pick["checkpoint"]:
                                         print(f"Checkpoint: {px}\n")
-                            part = [["".join(x[0] for x in pages), ""]]
+                            part = [[x[0], ""] for x in pages]
         filelist = []
         pos = 0
         if pick["file"]:
@@ -1751,10 +1763,15 @@ def scrape(pages):
         if not ready[0]:
             htmlpart = htmlassets["partition"]
             if len(htmlpart) > 1 or htmlpart["0"]["html"]:
+                print("\n Then create " + tcolorg + cd(htmlassets["page"], preview=True)[1] + tcolorx + " with")
                 for k in htmlpart.keys():
                     if k == "0" and not htmlpart[k]["files"]:
                         continue
-                    print(k)
+                    print(tcolor + k + tcolorx)
+                    if htmlpart[k]["keywords"]:
+                        print(tcolorr + ", ".join(f"{kw}" for kw in htmlpart[k]["keywords"]) + tcolorx)
+                    for file in htmlpart[k]["files"]:
+                        print(tcolorg + file["name"].rsplit("\\")[-1] + tcolorx)
                     if htmlpart[k]["html"]:
                         for html in htmlpart[k]["html"]:
                             if html[0]:
@@ -1762,10 +1779,6 @@ def scrape(pages):
                                 if html[1]:
                                     print(tcolor + html[1] + " ", end="")
                         print(tcolorx)
-                    if htmlpart[k]["keywords"]:
-                        print(tcolorr + ", ".join(f"{kw}" for kw in htmlpart[k]["keywords"]) + tcolorx)
-                    for file in htmlpart[k]["files"]:
-                        print(tcolorg + file["name"].rsplit("\\")[-1] + tcolorx)
             sys.stdout.write(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """)
             sys.stdout.flush()
             if not choice("c") == 1:
@@ -3061,14 +3074,25 @@ def keylistener():
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             while True:
-                m = input("Enter URL to view source, e(X)it: ").rstrip()
+                m = input("Enter URL to view source, append URL with key > s > to read it as dictionary, e(X)it: ").rstrip()
                 if m.startswith("http"):
                     referer = x[0] if (x := [v for k, v in referers.items() if m.startswith(k)]) else ""
                     ua = x[0] if (x := [v for k, v in mozilla.items() if m.startswith(k)]) else 'Mozilla/5.0'
-                    html = get(m, utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, stderr="Page loading failed successfully")
-                    if html:
-                        html = "\n".join([s.rstrip() if s.rstrip() else "" for s in html.replace("	", "    ").splitlines()])
-                        print(syntax(html))
+                    m = m.split(" ", 1)
+                    data = get(m[0], utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, stderr="Page loading failed successfully")
+                    if data:
+                        if len(m) == 2:
+                            z = m[1].rsplit(" > 0", 1)
+                            if len(z) == 1:
+                                z = ["", z[0]]
+                            if x := nested(opendb(data), [z[0], [[z[1], 0, 0, 0]]]):
+                                for y in x:
+                                    print(y[0])
+                            else:
+                                print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}")
+                        else:
+                            data = "\n".join([s.rstrip() if s.rstrip() else "" for s in data.replace("	", "    ").splitlines()])
+                            print(syntax(data))
                 elif m == "x":
                     break
                 else:

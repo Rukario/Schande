@@ -103,11 +103,9 @@ sys.stdout.write(tcolorx + cls)
 
 def mainmenu():
     print("""
- - - - - Drag'n'drop - - - -
- + Drag'n'drop the featuring folder and hit Enter to add to database.
- | Drag'n'drop the featuring image and hit Enter to compare with reference image,
- | while scanning new folder, or find in database.
- + The featuring/reference folder will be added to database, image(s) will not.
+ - - - - Drag'n'drop / Input - - - -
+ + Drag'n'drop and enter folder to add to database.
+ + Drag'n'drop and enter image file to compare with another image, while scanning new folder, or find in database.
 
  - - - - Schande HTML - - - -
  + Press B to launch HTML in your favorite browser.
@@ -2741,7 +2739,7 @@ def compare(m):
     except:
         print(" Featuring image is corrupted.")
         sys.exit()
-    s = input("Drag'n'drop the reference image and hit Enter to compare, reference folder to scan, or empty to find in database: ").rstrip().strip('\"')
+    s = input("Drag'n'drop and enter another image to compare, more folder to scan, or empty to find in database: ").rstrip().strip('\"')
     start = time.time()
     if not s:
         db = opensav(sav).splitlines()
@@ -2854,6 +2852,10 @@ def takeme(file, folder):
 
 
 def finish_organize():
+    if not os.path.exists(mf):
+        choice(bg=True)
+        print(f" {tmf} doesn't exist! Nothing to organize.")
+        return
     for file in next(os.walk(mf))[2]:
         if len(c := carrots(file, rename, multi=False)) == 2 and not c[0][0] and not c[-1][0]:
             ondisk = mf + file
@@ -2880,6 +2882,7 @@ def finish_organize():
             elif fnmatch(file, filename):
                 takeme(file, folder[0])
                 break
+    print("Finished organizing!")
 
 
 
@@ -2948,6 +2951,7 @@ def run_input(m):
         else:
             compare(m)
     else:
+        print("Invalid input or not on disk")
         choice(bg=True)
 
 
@@ -3027,15 +3031,15 @@ def keylistener():
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             input_mode[0] = input("Enter valid input, e(X)it: ").rstrip().replace("\"", "")
+            if not input_mode[0]:
+                choice(bg=True)
+                ready_input()
         elif el == 7:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            if os.path.exists(mf):
-                finish_organize()
-            else:
-                choice(bg=True)
-                print(f" {tmf} doesn't exist! Nothing to organize.")
+            finish_organize()
+            ready_input()
         elif el == 8:
             echo("", 1)
             skiptonext[0] = True
@@ -3062,7 +3066,7 @@ def keylistener():
                         html = "\n".join([s.rstrip() if s.rstrip() else "" for s in html.replace("	", "    ").splitlines()])
                         print(syntax(html))
                 elif m == "x":
-                    continue
+                    break
                 else:
                     choice(bg=True)
         elif el == 12:

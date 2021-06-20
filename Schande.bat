@@ -1062,7 +1062,9 @@ def downloadtodisk(htmlassets, makedirs=False):
     log = []
 
     if len(filelist) == 1:
-        get(filelist[0][0], todisk=filelist[0][1])
+        echothreadn.append(0)
+        download.put((0, [], [], filelist[0][1], filelist[0][0]))
+        download.join()
         return
     queued = {}
 
@@ -1466,7 +1468,7 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, filelist, pos, af
                 for p in part:
                     key = "0"
                     for k in kx[1:]:
-                        if len(d := carrots([p], k, False)) == 2:
+                        if k and len(d := carrots([p], k, False)) == 2:
                             key = d[0][1]
                             break
                     na = carrot_files(threadn, carrots([p], f, pick["files"], cw), htmlpart, key, na, pick, y[0]["alt"], filelist, after)[1]
@@ -1764,7 +1766,8 @@ def scrape(pages):
                         print(tcolorr + ", ".join(f"{kw}" for kw in htmlpart[k]["keywords"]) + tcolorx)
                     for file in htmlpart[k]["files"]:
                         print(tcolorg + file["name"].rsplit("\\")[-1] + tcolorx)
-            print(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue""")
+            sys.stdout.write(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """)
+            sys.stdout.flush()
             if not choice("c") == 1:
                 kill(0)
         downloadtodisk(htmlassets, makedirs=True)

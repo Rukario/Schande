@@ -3016,7 +3016,7 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            sys.stdout.write("Open (H)elp, you mean (I)nput mode, e(X)it: ")
+            sys.stdout.write("Open (H)elp unless you mean (I)nput mode (HTTP...), e(X)it: ")
             sys.stdout.flush()
             el = choice("hix")
             if el == 1:
@@ -3024,8 +3024,9 @@ def keylistener():
                 ready_input()
             elif el == 2:
                 input_mode[0] = input("Enter valid input, e(X)it: ").rstrip().replace("\"", "")
-            else:
-                ready_input()
+                if not input_mode[0]:
+                    choice(bg=True)
+                    ready_input()
         elif el == 6:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -3069,6 +3070,7 @@ def keylistener():
                     break
                 else:
                     choice(bg=True)
+            ready_input()
         elif el == 12:
             echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
             retryx[0] = False if retryx[0] else True

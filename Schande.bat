@@ -1774,7 +1774,7 @@ def scrape(pages):
         if x := htmlassets["page"]:
             with open(cd(x, preview=True)[1], 'w') as f:
                 f.write(f"""[InternetShortcut]
-URL={x[0]}""")
+URL={x["url"]}""")
     return True
 
 

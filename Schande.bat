@@ -202,7 +202,7 @@ def quicktutorial():
  |  > Name match closest to the file will be chosen. file before -> name to before -> name to after -> file after.
  |
  | Right-to-left:
- |  > Use caret "^..." to get the right match. Do "^..*^.." or "..*^.." (greedy), don't put asterisk after caret ^*
+ |  > Use caret "^..." to get the right match. Do "^..*^.." or "..*^.." (greedy), don't put caret before asterisk ^*
  |  > The final asterisk of the non-caret will be greedy and chosen. First asterisk if every asterisk has caret.
  |  > Using caret will finish with one chosen match.
  |

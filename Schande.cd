@@ -76,6 +76,12 @@ name player_response >> videoDetails > title customize with *.vtt
 extfix &mime=*%2F*&
 
 https://boards.4chan.org/b/thread/
+part <div class="postContainer *<div class="postInfoM mobile" id="pim*"> *</div></div>
+key title="Reply to this post">*</a>
+key1 <span class="name">*</span>
+key2 <span class="dateTime" data-utc="*">*</span>
+key3 class="mFileInfo mobile">*</div>
+html <blockquote class="postMessage" id="*">*</blockquote>
 folder ^/* 9-10 letters
 meta ^/*^. customize with *.
 name1 File: <a title="*"

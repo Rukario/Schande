@@ -91,6 +91,15 @@ name1 class="post_file_filename" rel="tooltip" title="*"
 name1 target="_blank">*<
 
 https://u18chan.com/board/u18chan/
+replace ' class='PostLink'*onmouseout='HidePostPreviewBubble();'*> with *'
+replace <a href='https://u18chan.com/board/u18chan/gc/topic/*#*' with <a href='#*'>
+part <div id="FirstPost" style="display: inline-table;">*<span class="OmissionText" style="font-size: 75%;"><a href="javascript:void(0);" onclick="ExpandAllImages();" id="expandAllImagesLink">Expand All Images</a></span></div>
+part <table class="ReplyBoxTable*" cellspacing="0px" cellpadding="0px">*</table></td></tr></table>
+key No.<a class="AltLink" href="javascript:QuotePost(*);">*</a>
+key1 <span class="Subject">* </span>
+key2 <span class="UserName">*</span>*No.<a class="AltLink"
+key3 <span class="UserName">*</span>
+html <span name="post_*_message_div" id="post_*_message_div">*<br /></span>
 title ^<span class="Subject">*^</span><span class="UserName">*^href="javascript:DownloadZip 2-100 letters customize with *
 folder1 ^/* customize with [* U-18Chan]\
 files <div class="FileDetails">File: <a href="*"

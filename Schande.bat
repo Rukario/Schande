@@ -2459,7 +2459,7 @@ a{color:#dc8 /*efdfa8*/;}
 a:visited{color:#cccccc;}
 .aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
 .aquatext{color:#22cccc}
-.carbon, .time{background-color:#10100c; border:3px solid #6a6a66; border-radius:16px;}
+.carbon, .time{background-color:#10100c; border:3px solid #6a6a66; border-radius:12px;}
 .time{color:#ccc; font-size:90%;}
 .cell, .files, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
 .files{background-color:#112230 /*07300f*/; border:3px solid #367 /*192*/; border-radius:12px;}

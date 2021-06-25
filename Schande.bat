@@ -1,6 +1,6 @@
 @echo off && goto loaded
 
-import os, sys, getpass, smtplib, ssl, socket, socks, time, zlib, json
+import os, sys, getpass, smtplib, ssl, socket, socks, time, zlib, json, inspect, hashlib
 from datetime import datetime
 from http import cookiejar
 from http.server import SimpleHTTPRequestHandler, HTTPServer
@@ -226,16 +226,13 @@ def quicktutorial():
 
 if not os.path.exists(rulefile):
     open(rulefile, 'w').close()
-if os.path.getsize(rulefile) < 1:
-    quicktutorial()
-    print(f"Please add a rule in rule file ({rulefile}) and restart CLI to continue.")
-    sys.exit()
 print(f"Reading {rulefile} . . .")
 with open(rulefile, 'r', encoding="utf-8") as f:
     rules = f.read().splitlines()
+    if not rules: rules += "\n"
 def tidy(offset, append):
     if offset == 0:
-        data = append + "\n\n" + "\n".join(rules)
+        data = append + "\n"*len(settings) + "\n".join(rules)
     else:
         data = "\n".join(rules[:offset]) + "\n" + append + "\n" + "\n".join(rules[offset:])
     with open(rulefile, 'wb') as f:
@@ -284,6 +281,11 @@ def echo(threadn, b=0, f=0, friction=False):
             sys.stdout.write(f"{b:<113}\r")
     else:
         return
+
+
+
+def debug(e, b=0, f=1):
+    echo(f"{inspect.getframeinfo(inspect.stack()[1][0]).lineno} {e}", b, f)
 
 
 
@@ -559,7 +561,7 @@ else:
     print(" MAIL: NONE")
 if Geistauge:
     try:
-        import numpy, cv2, hashlib
+        import numpy, cv2
         print(" GEISTAUGE: ON")
     except:
         print(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install numpy\n{sys.exec_prefix}\Scripts\pip.exe install opencv-python")
@@ -919,7 +921,16 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
                             try:
                                 return data.decode("utf-8")
                             except:
-                                return zlib.decompress(data, 16+zlib.MAX_WBITS).decode("utf-8")
+                                try:
+                                    return zlib.decompress(data, 16+zlib.MAX_WBITS).decode("utf-8")
+                                except:
+                                    todisk = saint(parse.unquote(url.split("/")[-1]))
+                                    sys.stdout.write(f" Not an UTF-8 file! Save on disk as {todisk} to open it in another program? (S)ave (D)iscard: ")
+                                    sys.stdout.flush()
+                                    if choice("sd") == 1:
+                                        with open(todisk, 'wb') as f:
+                                            f.write(data);
+                                    return
                         else:
                             return data
                     if not retry(stderr) or not (resp := fetch(url, context, headers, stderr, dl, threadn)):
@@ -990,7 +1001,7 @@ for i in range(8):
 
 
 
-def cd(file, makedirs=False, preview=False):
+def get_cd(file, makedirs=False, preview=False):
     threadn = 0
     url = file["url"] if preview else file.pop("url")
     todisk = mf + file["name"]
@@ -1034,13 +1045,13 @@ def downloadtodisk(htmlassets, makedirs=False):
             if not file["name"]:
                 print(f""" I don't have a scraper for {file["url"]}""")
             else:
-                filelist += [cd(file, makedirs) + [key]]
+                filelist += [get_cd(file, makedirs) + [key]]
         for html in htmlpart[key]["html"]:
             if len(html) == 2 and html[1]:
                 if not html[1]["name"]:
                     print(f""" I don't have a scraper for {html[1]["url"]}""")
                 else:
-                    filelisthtml += [cd(html[1], makedirs) + [key]]
+                    filelisthtml += [get_cd(html[1], makedirs) + [key]]
     if htmlassets["inlinefirst"]:
         filelist = filelisthtml + filelist
     else:
@@ -1062,10 +1073,9 @@ def downloadtodisk(htmlassets, makedirs=False):
         return
     html = []
     log = []
-
     if len(filelist) == 1:
         echothreadn.append(0)
-        download.put((0, [], [], filelist[0][1], filelist[0][0]))
+        download.put((0, [], [], filelist[0][1], [filelist[0][0]]))
         download.join()
         return
     queued = {}
@@ -1715,7 +1725,7 @@ def page_assets(queue):
             if not pick["ready"]:
                 x = ""
                 for file in filelist:
-                    x = cd(file[1], preview=True)
+                    x = get_cd(file[1], preview=True)
                     print(tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1] + tcolorx)
                 if not x:
                     print(f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, check for bad asterisks in other pickers.{tcolorx}")
@@ -1787,7 +1797,7 @@ def scrape(pages):
                 kill(0)
         downloadtodisk(htmlassets, makedirs=True)
         if x := htmlassets["page"]:
-            with open(cd(x, preview=True)[1], 'w') as f:
+            with open(get_cd(x, preview=True)[1], 'w') as f:
                 f.write(f"""[InternetShortcut]
 URL={x["url"]}""")
     return True
@@ -2846,26 +2856,29 @@ def delmode(m):
 
 
 def takeme(file, folder):
-    if not os.path.exists(folder + file):
-        try:
-            os.rename(mf + file, folder + file)
-        except:
-            if not os.path.exists(cd):
-                os.makedirs(cd)
-            if not os.path.exists(cd + file):
-                os.rename(mf + file, cd + file)
-            else:
-                print(f"""I want to (D)elete source file because destination file already exists:
- source:      {mf}{file}
- destination: {cd}{file}""")
-                if choice("d") == 1:
-                    os.remove(mf + file)
-    else:
+    if os.path.exists(folder + file):
         print(f"""I want to (D)elete source file because destination file already exists:
  source:      {mf}{file}
  destination: {folder}{file}""")
         if choice("d") == 1:
             os.remove(mf + file)
+        else:
+            time.sleep(1)
+    elif os.path.exists(folder):
+        os.rename(mf + file, folder + file)
+    else:
+        if not os.path.exists(cd):
+            os.makedirs(cd)
+        if not os.path.exists(cd + file):
+            os.rename(mf + file, cd + file)
+        else:
+            print(f"""I want to (D)elete source file because destination file already exists:
+ source:      {mf}{file}
+ destination: {cd}{file}""")
+            if choice("d") == 1:
+                os.remove(mf + file)
+            else:
+                time.sleep(1)
 
 
 
@@ -2875,19 +2888,21 @@ def finish_organize():
         print(f" {tmf} doesn't exist! Nothing to organize.")
         return
     for file in next(os.walk(mf))[2]:
-        if len(c := carrots(file, rename, multi=False)) == 2 and not c[0][0] and not c[-1][0]:
-            ondisk = mf + file
-            with open(ondisk, 'rb') as f:
-                s = f.read()
-            ext = os.path.splitext(ondisk)[1].lower()
-            m = hashlib.md5(s).hexdigest()
-            file = m + ext
-            if not os.path.exists(m + ext):
-                os.rename(ondisk, mf + file)
-            else:
-                print(f"I want to (D)elete {ondisk} because {file} already exists.")
-                if choice("d") == 1:
-                    os.remove(ondisk)
+        for ren in rename:
+            if len(c := carrots([[file,""]], ren, False)) == 2 and not c[0][0] and not c[-1][0]:
+                ondisk = mf + file
+                with open(ondisk, 'rb') as f:
+                    s = f.read()
+                ext = os.path.splitext(ondisk)[1].lower()
+                m = hashlib.md5(s).hexdigest()
+                file = m + ext
+                if not os.path.exists(m + ext):
+                    os.rename(ondisk, mf + file)
+                else:
+                    print(f"I want to (D)elete {ondisk} because {file} already exists.")
+                    if choice("d") == 1:
+                        os.remove(ondisk)
+                break
         for name, folder in organize.items():
             if folder[1]:
                 found = False
@@ -2897,7 +2912,7 @@ def finish_organize():
                         break
                 if not found:
                     takeme(file, folder[0])
-            elif fnmatch(file, filename):
+            elif fnmatch(file, name):
                 takeme(file, folder[0])
                 break
     print("Finished organizing!")
@@ -2989,10 +3004,7 @@ def keylistener():
                 os.system(f"""start "" "{Browser}" "http://localhost:8886/{batchname} 1.html" """)
             elif Browser:
                 os.system(f"""start "" "{Browser}" "{batchdir}{batchname} 1.html" """)
-            else:
-                choice(bg=True)
-                print(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""")
-            print("""
+                print("""
  Browser key listener (Not here!):
   > W - Edge detect when previewing an image
   > A - Geistauge: compare to left when previewing an image
@@ -3002,10 +3014,16 @@ def keylistener():
 
  "Edge detect" and "Geistauge" are canvas features and they require "Access-Control-Allow-Origin: *" (try HTML server)
 """)
+            else:
+                choice(bg=True)
+                print(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""")
             ready_input()
         elif el == 2:
+            c = False
             for c in cookie:
                 echo(str(c), 1, 2)
+            if not c:
+                echo("No cookies!", 1, 1)
         elif el == 3:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -3080,7 +3098,7 @@ def keylistener():
                     referer = x[0] if (x := [v for k, v in referers.items() if m.startswith(k)]) else ""
                     ua = x[0] if (x := [v for k, v in mozilla.items() if m.startswith(k)]) else 'Mozilla/5.0'
                     m = m.split(" ", 1)
-                    data = get(m[0], utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, stderr="Page loading failed successfully")
+                    data = get(m[0], utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer})
                     if data:
                         if len(m) == 2:
                             z = m[1].rsplit(" > 0", 1)
@@ -3125,7 +3143,7 @@ if not os.path.exists(textfile):
 print(f"Reading {textfile} . . .")
 with open(textfile, 'r', encoding="utf-8") as f:
     textread = f.read().splitlines()
-htmlassets = {"page":"", "partition":{"0":{"html":"", "keywords":[], "files":[]}}}
+htmlassets = {"page":"", "inlinefirst":True, "partition":{"0":{"html":[], "keywords":[], "files":[]}}}
 imore = []
 for url in textread:
     if not url or url.startswith("#"):

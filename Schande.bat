@@ -2459,16 +2459,16 @@ a{color:#dc8 /*efdfa8*/;}
 a:visited{color:#cccccc;}
 .aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
 .aquatext{color:#22cccc}
-.carbon, .time{background-color:#10100c; border:4px solid #6a6a66; border-radius:16px;}
-.time{color:#ffffff;}
-.cell, .files, .mySlides{background-color:#1c1a19; border:none; border-radius:16px;}
-.files{background-color:#112230 /*07300f*/; border:4px solid #367 /*192*/; border-radius:16px;}
-.edits{background-color:#330717; border:4px solid #912; border-radius:16px; color:#f45;}
+.carbon, .time{background-color:#10100c; border:3px solid #6a6a66; border-radius:16px;}
+.time{color:#ccc; font-size:90%;}
+.cell, .files, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
+.files{background-color:#112230 /*07300f*/; border:3px solid #367 /*192*/; border-radius:12px;}
+.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45;}
 .previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
 .next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
 .closebtn{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
 
-.edits{background-color:#330717; border:4px solid #912; border-radius:16px; color:#f45; padding:12px; margin:6px; word-wrap:break-word;}
+.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45; padding:12px; margin:6px; word-wrap:break-word;}
 .frame{display:inline-block; vertical-align:top; position:relative;}
 .previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
 .reverse{background-color:#63c; color:#d9f; border:none; border-radius:10px; cursor:pointer;}
@@ -2483,9 +2483,10 @@ img{vertical-align:top;}
 .sources{font-size:80%; width:200px;}
 .aqua{display:inline-block; vertical-align:top; padding:12px; word-wrap:break-word;}
 .carbon, .time, .files, .edits{display:inline-block; vertical-align:top;}
-.carbon, .time, .cell, .mySlides, .files, .edits{padding:12px; margin:6px; word-wrap:break-word;}
+.carbon, .time, .cell, .mySlides, .files, .edits{padding:8px; margin:6px; word-wrap:break-word;}
 .mySlides{padding-right:32px;}
 .closebtn{position:absolute; top:15px; right:15px;}
+h2,p{margin:4px;}
 </style>
 <body>
 <div style="display:block; height:20px;"></div><div class="container" style="display:none;">
@@ -2600,8 +2601,8 @@ def tohtml(dir, htmlassets, orphfiles):
         time = part[id]["keywords"][1] if part[id]["keywords"][1] else "No timestamp"
         keywords = ", ".join(x for x in part[id]["keywords"][2:]) if len(part[id]["keywords"]) > 2 else "None"
         builder += f"""<div class=\"cell\">
-<div class="time" id="{id}" style="float:right;"><p>Part ID: {id}<p>{time}<p>Keywords: {keywords}</div>
-<h1>{title}</h1>"""
+<div class="time" id="{id}" style="float:right;"><p>Part ID: {id} ꍯ {time}<p>Keywords: {keywords}</div>
+<h2>{title}</h2>"""
         # if file := part[id]["file"]:
         #     builder += "<div class=\"carbon\">\n"
         #     builder += container(file["name"], 1)

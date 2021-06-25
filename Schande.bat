@@ -1156,14 +1156,14 @@ def carrot(array, z, new, n):
     new_array = [array[0], array[1]]
     ii = False
     cc = False
-    cs = []
+    carrot_saver = []
     z = [0, z]
     pc = False
     while True:
         ac = False
         z = z[-1].split("*", 1)
         if z[0].startswith("^"):
-            cs += [z[0].split("^", 1)[1]]
+            carrot_saver += [z[0].split("^", 1)[1]]
             if len(z) == 2:
                 continue
             z[0] = ""
@@ -1184,24 +1184,24 @@ def carrot(array, z, new, n):
                 array[0] = ""
                 new += [[y[0], y[1]]]
             return
-        if cs:
-            cs.reverse()
+        if carrot_saver:
+            carrot_saver.reverse()
             c = [y[0], y[1]]
-            sc = ""
-            for cz in cs:
-                if not len(c := c[0].rsplit(cz, 1)) == 2:
+            carrot_aa = ""
+            for cs in carrot_saver:
+                if not len(c := c[0].rsplit(cs, 1)) == 2:
                     return
                 if cc:
                     y[1] = c[1]
                     c[1] = ""
                     cc = False
-                sc = cz + c[1] + sc
-            aa += c[0] + sc
+                carrot_aa = cs + c[1] + carrot_aa
+            aa += c[0] + carrot_aa
             if not ii:
                 ii = True, c[0]
             y[0] = c[0] if pc else c[1]
             ac = True
-            cs = []
+            carrot_saver = []
         if len(z) == 2:
             new_array[0] = y[1]
             aa += y[0] + z[0]
@@ -2488,7 +2488,7 @@ img{vertical-align:top;}
 .closebtn{position:absolute; top:15px; right:15px;}
 </style>
 <body>
-<div style="display:block; height:20px;"></div><div class="container">
+<div style="display:block; height:20px;"></div><div class="container" style="display:none;">
 <button class="closebtn" onclick="this.parentElement.style.display='none'">&times;</button>""" + f"""<div class="mySlides">{listurls}</div>
 <img id="expandedImg">
 </div>

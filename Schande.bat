@@ -171,7 +171,7 @@ def quicktutorial():
  |  "key ... > ..."      pick identifier and start HTML builder, attribute partition, keywords, and files to this.
  |  "html ...*..."       pick article from page/partition for HTML builder. API: pick content for HTML-based pickers.
  |                       HTML-based file pickers will look through articles for inline files too.
- |  "replace X with X"   find'n'replace before start picking in page/partition.
+ |  "replace ...*... with ...*..." find'n'replace before start picking in page/partition.
  |  "title ...*..."      pick and use as folder from first scraped page.
  |  "folder ...*..."     from url.
  |  "choose .. > .. = X" choose file by a match in another key. "X > X" for multiple possibilities in priority order.
@@ -202,14 +202,16 @@ def quicktutorial():
  |  > Name match closest to the file will be chosen. file before -> name to before -> name to after -> file after.
  |
  | Right-to-left:
- |  > Use caret "^..." to get the right match. Resets on next asterisk unless there's caret again.
- |  > The final non-caret asterisk will be chosen. First asterisk if every asterisk has caret.
+ |  > Use caret "^..." to get the right match. Do "^..*^.." or "..*^.." (greedy), don't put asterisk after caret ^*
+ |  > The final asterisk of the non-caret will be greedy and chosen. First asterisk if every asterisk has caret.
+ |  > Using caret will finish with one chosen match.
  |
  | For difficult asterisks:
  |  "X # letters" (# or #-#) after any picker so the match is expected to be that amount.
  |  "X ends/starts with X" after any picker. "not" for opposition.
  |
- | Customize asset with prepend and append using "X customize with ...*..." after any picker.
+ | Protip: replace picker to discard what you don't need before complicating pickers with many asterisks or carets.
+ | Customize the chosen one with prepend and append using "X customize with ...*..." after any picker.
  + Folder and title pickers will be auto-assigned with \\ to work as folder unless customized.
 
  - - - - Geistauge - - - -
@@ -1137,16 +1139,16 @@ def met(p, n):
 
 
 
-def carrot(array, x, new, n):
+def carrot(array, z, new, n):
     a = ""
     aa = ""
     p = ""
-    new_array = array.copy()
-    i = ""
-    ii = True
+    new_array = [array[0], array[1]]
+    ii = False
     cc = False
     cs = []
-    z = [0, x]
+    z = [0, z]
+    pc = False
     while True:
         ac = False
         z = z[-1].split("*", 1)
@@ -1174,28 +1176,28 @@ def carrot(array, x, new, n):
             return
         if cs:
             cs.reverse()
-            c = y.copy()
+            c = [y[0], y[1]]
             sc = ""
             for cz in cs:
                 if not len(c := c[0].rsplit(cz, 1)) == 2:
                     return
                 if cc:
                     y[1] = c[1]
+                    c[1] = ""
                     cc = False
                 sc = cz + c[1] + sc
             aa += c[0] + sc
-            if ii:
-                i = c[0]
-                ii = False
-            y[0] = c[1]
+            if not ii:
+                ii = True, c[0]
+            y[0] = c[0] if pc else c[1]
             ac = True
             cs = []
         if len(z) == 2:
             new_array[0] = y[1]
             aa += y[0] + z[0]
-            if ii:
-                i = y[0]
-                ii = False
+            if not ii:
+                ii = True, y[0]
+            pc = True
         else:
             p = y[0]
             if ac:
@@ -1204,12 +1206,9 @@ def carrot(array, x, new, n):
                 p = ""
                 new_array[0] = y[1]
                 a = aa + y[0] + z[0]
-            elif ii:
-                new_array[0] = y[1]
-                a = i + y[0]
             else:
                 new_array[0] = y[1]
-                a = i
+                a = ii[1] if ii else y[0]
             if n[0]:
                 p = n[0][0] + p + n[0][1]
             new += [[a, p]]
@@ -1493,6 +1492,13 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, filelist, pos, af
 
 
 
+def rp(x, p):
+    for r in p:
+        x = "".join(y[0] + y[1] for y in carrots([[x, ""]], r[0], True, r[1].split("*", 1)))
+    return x
+
+
+
 def page_assets(queue):
     while True:
         data = ""
@@ -1529,95 +1535,6 @@ def page_assets(queue):
             break
         title(batchfile + monitor())
         db = ""
-        if pick["part"]:
-            part = []
-            for z in pick["part"]:
-                part += [[x[1].replace("\n", ""), ""] for x in carrots([[data, ""]], z, True)]
-        else:
-            part = [[data, ""]]
-        if pick["html"]:
-            html = []
-            if pick["key"] and pick["key"][0]:
-                kx = pick["key"][0]
-            else:
-                kx = [0, 0]
-            for z in pick["html"]:
-                z, cw, a = peanut(z)
-                if a:
-                    if not db:
-                        db = opendb(data)
-                    for k in kx[1:]:
-                        if not k:
-                            key = [["0", 0, 0, 0]]
-                        else:
-                            k = peanut(k)[0]
-                            if z[0] == k[0]:
-                                key = [[k[1], 0, 0, 0]]
-                            else:
-                                continue
-                        for d in nested(db, [z[0], [[z[1], 0, 0, 0]] + key]):
-                            html += [[d[0].replace("\n", ""), d[1]]]
-                else:
-                    new_part = []
-                    for p in part:
-                        key = "0"
-                        for k in kx[1:]:
-                            if len(d := carrots([[p[0].replace("\n", ""), ""]], k, False)) == 2:
-                                key = d[0][1]
-                                break
-                        c = carrots([[p[0].replace("\n", ""), ""]], z, False, cw)
-                        html += [[c[0][1], key]]
-                        new_part += [["".join(x[0].replace("\n", "") for x in c), ""]]
-                    part = new_part
-            for x in html:
-                if not x[1] in htmlpart:
-                    htmlpart.update({x[1]:{"html":[], "keywords":[], "files":[]}})
-                for r in pick["replace"]:
-                    x[0] = "".join(y[0] + y[1] for y in carrots([[x[0], ""]], r[0], True, r[1].split("*", 1)))
-                htmlpart[x[1]].update({"html":[[x[0], ""]] + htmlpart[x[1]]["html"]})
-            keywords = []
-            kpos = 0
-            for k in pick["key"][1:]:
-                kpos += 1
-                for z in k[1:]:
-                    z, cw, a = peanut(z)
-                    if a:
-                        if not db:
-                            db = opendb(data)
-                        for k in kx[1:]:
-                            if not k:
-                                key = [["0", 0, 0, 0]]
-                            else:
-                                k = peanut(k)[0]
-                                if z[0] == k[0]:
-                                    key = [[k[1], 0, 0, 0]]
-                                else:
-                                    continue
-                            for d in nested(db, [z[0], [[z[1], 0, 0, 0]] + key]):
-                                keywords += [[d[0], d[1]]]
-                    else:
-                        for p in part:
-                            key = "0"
-                            for k in kx[1:]:
-                                if len(d := carrots([[p[0].replace("\n", ""), ""]], k, False)) == 2:
-                                    key = d[0][1]
-                                    break
-                            if kpos < 3:
-                                if len(x := carrots([p], z, False, cw)) == 2:
-                                    keywords += [[x[0][1], key]]
-                            else:
-                                for x in carrots([p], z, True, cw)[:-1]:
-                                    keywords += [[x[1], key]]
-            for x in keywords:
-                if not x[1] in htmlpart:
-                    htmlpart.update({x[1]:{"html":[], "keywords":[], "files":[]}})
-                for r in pick["replace"]:
-                    x[0] = x[0].replace(r[0], r[1])
-                htmlpart[x[1]]["keywords"] += [x[0]]
-        else:
-            for r in pick["replace"]:
-                for p in part:
-                    p[0] = p[0].replace(r[0], r[1])
         if pick["expect"]:
             pos = 0
             for y in pick["expect"]:
@@ -1655,6 +1572,12 @@ def page_assets(queue):
                         else:
                             more += [page]
                             timer("Not quite as expected! ", False)
+        if pick["part"]:
+            part = []
+            for z in pick["part"]:
+                part += [[x[1], ""] for x in carrots([[data, ""]], z, True)]
+        else:
+            part = [[data, ""]]
         if not folder[0]:
             if pick["folder"]:
                 for y in pick["folder"]:
@@ -1666,13 +1589,11 @@ def page_assets(queue):
                             for d in nested(db, [z[0], [[z[1], 0, 0, 0]]]):
                                 folder[0] += d[0]
                         elif y[0]["alt"]:
-                            if len(c := carrots(part, z, False, cw)) == 2:
-                                folder[0] += c[-2][1]
-                                part = [[x[0], ""] for x in c]
-                                # part = [["".join(x[0] for x in c), ""]]
+                            folder[0] += [x[1] for x in carrots(part, z, False, cw) if x[1]][0]
+                            # part = [[x[0], ""] for x in c]
+                            # part = [["".join(x[0] for x in c), ""]]
                         else:
-                            if len(c := carrots([[page, ""]], z, False, cw)) == 2:
-                                folder[0] += c[-2][1]
+                            folder[0] += [x[1] for x in carrots([[page, ""]], z, False, cw) if x[1]][0]
             if pick["saveurl"]:
                 htmlassets["page"] = {"url":page, "name":saint(folder[0] + folder[0].rsplit("\\", 2)[-2] + ".URL"), "edited":0}
         if pick["pages"]:
@@ -1691,14 +1612,94 @@ def page_assets(queue):
                                     if pick["checkpoint"]:
                                         print(f"Checkpoint: {px}\n")
                     else:
-                        if len(pages := carrots(part, z, True, cw)) == 2:
-                            for p in pages:
-                                if not p[1] == page and not page + p[1] == page:
-                                    px = p[1] if y[0]["alt"] else page + p[1] 
-                                    more += [px]
-                                    if pick["checkpoint"]:
-                                        print(f"Checkpoint: {px}\n")
-                            part = [[x[0], ""] for x in pages]
+                        for p in [x[1] for x in carrots(part, z, True, cw) if x[1]]:
+                            if not p[1] == page and not page + p[1] == page:
+                                px = p[1] if y[0]["alt"] else page + p[1] 
+                                more += [px]
+                                if pick["checkpoint"]:
+                                    print(f"Checkpoint: {px}\n")
+        if pick["html"]:
+            html = []
+            if pick["key"] and pick["key"][0]:
+                kx = pick["key"][0]
+            else:
+                kx = [0, 0]
+            for z in pick["html"]:
+                z, cw, a = peanut(z)
+                if a:
+                    if not db:
+                        db = opendb(data)
+                    for k in kx[1:]:
+                        if not k:
+                            key = [["0", 0, 0, 0]]
+                        else:
+                            k = peanut(k)[0]
+                            if z[0] == k[0]:
+                                key = [[k[1], 0, 0, 0]]
+                            else:
+                                continue
+                        for d in nested(db, [z[0], [[z[1], 0, 0, 0]] + key]):
+                            html += [[d[0], d[1]]]
+                else:
+                    new_part = []
+                    for p in part:
+                        key = "0"
+                        for k in kx[1:]:
+                            if len(d := carrots([[p[0], ""]], k, False)) == 2:
+                                key = d[0][1]
+                                break
+                        c = carrots([[p[0], ""]], z, False, cw)
+                        html += [[c[0][1], key]]
+                        new_part += [["".join(x[0] for x in c), ""]]
+                    part = new_part
+            for x in html:
+                if not x[1] in htmlpart:
+                    htmlpart.update({x[1]:{"html":[], "keywords":[], "files":[]}})
+                htmlpart[x[1]].update({"html":[[rp(x[0], pick["replace"]), ""]] + htmlpart[x[1]]["html"]})
+            keywords = {}
+            kpos = 0
+            for k in pick["key"][1:]:
+                for z in k[1:]:
+                    z, cw, a = peanut(z)
+                    if a:
+                        if not db:
+                            db = opendb(data)
+                        for k in kx[1:]:
+                            if not k:
+                                key = [["0", 0, 0, 0]]
+                            else:
+                                k = peanut(k)[0]
+                                if z[0] == k[0]:
+                                    key = [[k[1], 0, 0, 0]]
+                                else:
+                                    continue
+                            if not key[0][0] in keywords:
+                                keywords.update({key[0][0]: ["", ""]})
+                            for d in nested(db, [z[0], [[z[1], 0, 0, 0]] + key]):
+                                keywords[d[1]] += [d[0]]
+                    else:
+                        for p in part:
+                            key = "0"
+                            for k in kx[1:]:
+                                if len(d := carrots([[p[0], ""]], k, False)) == 2:
+                                    key = d[0][1]
+                                    break
+                            if not key in keywords:
+                                keywords.update({key: ["", ""]})
+                            if kpos < 2:
+                                if not keywords[key][kpos] and len(x := carrots([p], z, False, cw)) == 2:
+                                    keywords[key][kpos] = x[0][1]
+                            else:
+                                for x in carrots([p], z, True, cw)[:-1]:
+                                    keywords[key] += [x[1]]
+                kpos += 1
+            for x in keywords.keys():
+                if not x in htmlpart:
+                    htmlpart.update({x:{"html":[], "keywords":[], "files":[]}})
+                htmlpart[x]["keywords"] += [rp(y, pick["replace"]) for y in keywords[x]]
+        else:
+            for p in part:
+                p[0] = rp(p[0], pick["replace"])
         filelist = []
         pos = 0
         if pick["file"]:
@@ -1763,13 +1764,14 @@ def scrape(pages):
         if not ready[0]:
             htmlpart = htmlassets["partition"]
             if len(htmlpart) > 1 or htmlpart["0"]["html"]:
-                print("\n Then create " + tcolorg + cd(htmlassets["page"], preview=True)[1] + tcolorx + " with")
+                print("\n Then create " + tcolorg + folder[0] + "gallery.html" + tcolorx + " with")
                 for k in htmlpart.keys():
                     if k == "0" and not htmlpart[k]["files"]:
                         continue
-                    print(tcolor + k + tcolorx)
-                    if htmlpart[k]["keywords"]:
-                        print(tcolorr + ", ".join(f"{kw}" for kw in htmlpart[k]["keywords"]) + tcolorx)
+                    print(k)
+                    if x := htmlpart[k]["keywords"]:
+                        keywords = ", ".join(f"{kw}" for kw in x[2:])
+                        print(tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + tcolorx)
                     for file in htmlpart[k]["files"]:
                         print(tcolorg + file["name"].rsplit("\\")[-1] + tcolorx)
                     if htmlpart[k]["html"]:
@@ -2581,11 +2583,11 @@ def tohtml(dir, htmlassets, orphfiles):
             else:
                 continue
         else:
-            title = part[id]["keywords"][0] if len(part[id]["keywords"]) > 0 and part[id]["keywords"][0] else "No title for " + id
+            title = part[id]["keywords"][0] if part[id]["keywords"][0] else "No title for " + id
             content = ""
         new_container = False
         end_container = False
-        time = part[id]["keywords"][1] if len(part[id]["keywords"]) > 1 else "No timestamp"
+        time = part[id]["keywords"][1] if part[id]["keywords"][1] else "No timestamp"
         keywords = ", ".join(x for x in part[id]["keywords"][2:]) if len(part[id]["keywords"]) > 2 else "None"
         builder += f"""<div class=\"cell\">
 <div class="time" id="{id}" style="float:right;"><p>Part ID: {id}<p>{time}<p>Keywords: {keywords}</div>
@@ -3013,10 +3015,9 @@ def keylistener():
                 print(" GEISTAUGE: Maybe not.")
             else:
                 choice(bg="4c")
-                if not input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "") == f"{batchdir}{sav}":
-                    continue
-                skull()
-                tohtml_g(delete=True)
+                if input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "") == f"{batchdir}{sav}":
+                    skull()
+                    tohtml_g(delete=True)
             ready_input()
         elif el == 4:
             if busy[0]:

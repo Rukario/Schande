@@ -71,7 +71,7 @@ if buildthumbnail:
     Image.MAX_IMAGE_PIXELS = 400000000
     import subprocess
 
-# Geistauge and organize tools
+# Geistauge and sorter tools
 from fnmatch import fnmatch
 from PIL import Image
 
@@ -132,27 +132,31 @@ def skull():
             '--------'
 """)
     choice(bg="4c")
-def quicktutorial():
+def help():
     print(f"""
- {rulefile} is collection of rules that defines how files are downloaded and organized.
+ {rulefile} is collection of rules that defines how files are downloaded and sorted.
 
- - - - - Manager - - - -
- + Rule syntax for while downloading:
- |  "key value for .site"     cookie for a site that requires login.
- |  "http... for http..."     visit page with referer.
+ - - - - Sorter - - - -
+ + Sorting downloads:
  |  "...\\* for http..."       custom dir for downloads, {tmf} if no custom dir specified.
  |  "...*date\\* for http..."  custom dir for downloads, "*date" will become "{date}".
  |  "...\\...*... for http..." and the file are also renamed (prepend/append).
  |  "...*... for http..."     and they go to {tmf} while renamed.
  |
- | Rule syntax for organizing from {tmf}:
- |  "... for ..."             organize matching (commas are forbidden here, write rule per line like usual)
- |  "... !for ..., ..., ..."  organize non-matching (commas for multiple matches or it'll take everything!)
+ | Sorting from {tmf}:
+ |  "... for ..."             sort matching (commas are forbidden here, write rule per line like usual)
+ |  "... !for ..., ..., ..."  sort non-matching (commas for multiple matches or it'll take everything!)
  |
  | First rule in list will take its turn to handle the download/file before else.
- | If {rulefile} tried to organize files to the non-existent folder, they go to {tcd} instead.
- |  It can help ensure that no other rule can organize them any more (first rule = first to organize).
+ | If {rulefile} tried to sort files to the non-existent folder, they go to {tcd} instead.
+ |  It can help ensure that no other rule can sort them any more (first rule = first to sort).
  +  Conveniently used to migrate to another directory where the folder actually exists.
+
+ - - - - Spoofer - - - -
+ + Spoofing a site with:
+ |  "Mozilla/5.0... for http..." visit page with user-agent.
+ |  "key value for .site"     cookie for a site that requires login.
+ +  "http... for http..."     visit page with referer.
 
  - - - - Scraper - - - -
  You need to:
@@ -160,7 +164,7 @@ def quicktutorial():
   > know how to create pattern with asterisks or keys. Pages will be provided without newlines ("\\n") for convenience.
   > keep testing! Pages are full of variables. Develop solid asterisks/keys and flag scraper "ready" to stop previews.
 
- + Rule syntax for scraping (aka pickers):
+ + Available pickers:
  |  "http..."            validates a site to start a scraper, attribute all pickers to this.
  |  "visit"              visit especially for cookies before redirection.
  |  "urlfix ...*... with ...*..." permanent redirector.
@@ -191,27 +195,27 @@ def quicktutorial():
  |  "... > ..."          API/QS-based picker.
  | API/QS (Query String) supported pickers: part, html, key, expect, files, name, pages.
  | Magic key: " > 0 > " to iterate a list, " > * > " to iterate all within, " >> " to load a dictionary from inside QS.
- | During API each file picker must be accompanied by name picker and all HTML-based name/meta pickers must descend.
- |
- | Manipulating asterisk:
+ + During API each file picker must be accompanied by name picker and all HTML-based name/meta pickers must descend.
+
+ + Manipulating asterisk:
  |  > Multiple asterisks to pick the last asterisk better and/or to discard others.
  |  > Arrange name and file pickers if needed to follow their position in page. file before -> name -> file after.
  |  > Arrange html and file pickers whether to download inline file or filelist on conflict of the same file name.
  |  > First with match will be chosen first. This doesn't apply to html and plural pickers such as files, pages.
  |  > Name match closest to the file will be chosen. file before -> name to before -> name to after -> file after.
  |
- | Right-to-left:
- |  > Use caret "^..." to get the right match. Do "^..*^.." or "..*^.." (greedy), don't put caret before asterisk ^*
- |  > The final asterisk of the non-caret will be greedy and chosen. First asterisk if every asterisk has caret.
- |  > Using caret will finish with one chosen match.
- |
- | For difficult asterisks:
- |  "X # letters" (# or #-#) after any picker so the match is expected to be that amount.
- |  "X ends/starts with X" after any picker. "not" for opposition.
- |
- | Protip: replace picker to discard what you don't need before complicating pickers with many asterisks or carets.
  | Customize the chosen one with prepend and append using "X customize with ...*..." after any picker.
  + Folder and title pickers will be auto-assigned with \\ to work as folder unless customized.
+
+ + Right-to-left:
+ |  > Use caret "^..." to get the right match. Do "^..*^.." or "..*^.." (greedy), don't put caret before asterisk ^*
+ |  > The final asterisk of the non-caret will be greedy and chosen. First asterisk if every asterisk has caret.
+ +  > Using caret will finish with one chosen match.
+
+ + For difficult asterisks:
+ |  "X # letters" (# or #-#) after any picker so the match is expected to be that amount.
+ |  "X ends/starts with X" after any picker. "not" for opposition.
+ + Use replace picker to discard what you don't need before complicating pickers with many asterisks or carets.
 
  - - - - Geistauge - - - -
  + Invalid rule in {rulefile} will become Geistauge's pattern exemption, e.g. "path" for:
@@ -266,11 +270,15 @@ t.start()
 
 
 
-def echo(threadn, b=0, f=0, friction=False):
+def echo(threadn, b=0, f=0, c=False, friction=False):
+    if c:
+         c = f"\033[40;38;2;{int(c[:2],16)};{int(c[2:4],16)};{int(c[4:6],16)}m", tcolorx
+    else:
+         c = "", ""
     if not str(threadn).isdigit():
         stdout[0] = ""
         stdout[1] = ""
-        sys.stdout.write("\033[A"*b + f"{threadn:<113}" + "\n"*f + "\r")
+        sys.stdout.write("\033[A"*b + c[0] + f"{threadn:<113}" + c[1] + "\n"*f + "\r")
     elif not echothreadn or threadn == echothreadn[0]:
         if friction:
             stdout[0] = f"{b:<113}\r"
@@ -280,11 +288,8 @@ def echo(threadn, b=0, f=0, friction=False):
             sys.stdout.write(f"{b:<113}\r")
     else:
         return
-
-
-
 def debug(e, b=0, f=1):
-    echo(f"{inspect.getframeinfo(inspect.stack()[1][0]).lineno} {e}", b, f)
+    echo(f"{inspect.getframeinfo(inspect.stack()[1][0]).lineno} {e}", b, f, "cccccc")
 
 
 
@@ -555,7 +560,7 @@ if Mail:
         sys.exit()
     if len(Mail) < 3:
         Mail += [getpass.getpass(prompt=f" {Mail[0]}'s password (automatic if saved as third address): ")]
-        echo("", b=1)
+        echo("", 1)
 else:
     print(" MAIL: NONE")
 if Geistauge:
@@ -690,19 +695,19 @@ def topicker(s, rule):
 
 
 
-# Loading referer, organize, and custom dir rules, pickers, and global file rejection by file types from rulefile
+# Loading referer, sort, and custom dir rules, pickers, and global file rejection by file types from rulefile
 customdir = {}
-organize = {}
-rename = []
+sorter = {}
+md5er = []
 referers = {}
 mozilla = {}
 exempt = []
 mag = []
 med = []
-scraper = {}
-def new_scraper():
+pickers = {}
+def new_picker():
     return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file2":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "checkpoint":False, "savelink":False, "ready":False}
-scraper.update({"void":new_scraper()})
+pickers.update({"void":new_picker()})
 site = "void"
 ticks = []
 for rule in rules:
@@ -716,7 +721,7 @@ for rule in rules:
         ticks += [[int(x) for x in rule[0].split("-")]]*int(rule[1].split("%")[0])
     elif len(rule := rule[0].split(" for ")) == 2:
         if rule[0].startswith("md5"):
-            rename += [rule[1]]
+            md5er += [rule[1]]
         elif rule[0].startswith("Mozilla/5.0"):
             mozilla.update({rule[1]: rule[0]})
         elif rule[1].startswith("http"):
@@ -732,14 +737,14 @@ for rule in rules:
             c.update({'domain': rule[1], 'name': rule[0].split(" ")[0], 'value': rule[0].split(" ")[1]})
             cookie.set_cookie(cookiejar.Cookie(**c))
         else:
-            organize.update({rule[1]: [rule[0], False]})
+            sorter.update({rule[1]: [rule[0], False]})
     elif len(rule := rule[0].split(" !for ")) == 2:
-        organize.update({rule[1]: [rule[0], True]})
+        sorter.update({rule[1]: [rule[0], True]})
     elif rule[0].startswith("http") or rule[0].startswith("file:///"):
         site = rule[0]
-        if not site in scraper:
-            scraper.update({site:new_scraper()})
-    elif topicker(scraper[site], rule):
+        if not site in pickers:
+            pickers.update({site:new_picker()})
+    elif topicker(pickers[site], rule):
         pass
     else:
         exempt += [rule[0]]
@@ -1508,13 +1513,13 @@ def rp(x, p):
 
 
 
-def page_assets(queue):
+def pick_in_page(scraper):
     while True:
         data = ""
         url = ""
-        threadn, page, more, htmlassets = queue.get()
+        threadn, page, more, htmlassets = scraper.get()
         htmlpart = htmlassets["partition"]
-        pick = scraper[[x for x in scraper.keys() if page.startswith(x)][0]]
+        pick = pickers[[x for x in pickers.keys() if page.startswith(x)][0]]
         htmlassets["inlinefirst"] = pick["inlinefirst"]
         pg[0] += 1
         if pick["visit"]:
@@ -1730,12 +1735,12 @@ def page_assets(queue):
                     print(f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, check for bad asterisks in other pickers.{tcolorx}")
                 ready[0] = False
         echothreadn.remove(threadn)
-        queue.task_done()
+        scraper.task_done()
     echothreadn.remove(threadn)
-    queue.task_done()
-queue = Queue()
+    scraper.task_done()
+scraper = Queue()
 for i in range(8):
-    t = Thread(target=page_assets, args=(queue,))
+    t = Thread(target=pick_in_page, args=(scraper,))
     t.daemon = True
     t.start()
 
@@ -1754,9 +1759,9 @@ def scrape(pages):
         for link in pages:
             threadn += 1
             echothreadn.append(threadn)
-            queue.put((threadn, link, more, htmlassets))
+            scraper.put((threadn, link, more, htmlassets))
         try:
-            queue.join()
+            scraper.join()
         except:
             pass
         pages = set(filter(None, more))
@@ -2608,7 +2613,7 @@ def tohtml(dir, htmlassets, orphfiles):
     for id in part.keys():
         if id == "0":
             if "orphfiles" in part[id]:
-                title = "Unorganized"
+                title = "Unsorted"
                 content = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really orphans.\n<p>"
             else:
                 continue
@@ -2902,14 +2907,14 @@ def takeme(file, folder):
 
 
 
-def finish_organize():
+def finish_sort():
     if not os.path.exists(mf):
         choice(bg=True)
-        print(f" {tmf} doesn't exist! Nothing to organize.")
+        print(f" {tmf} doesn't exist! Nothing to sort.")
         return
     for file in next(os.walk(mf))[2]:
-        for ren in rename:
-            if len(c := carrots([[file,""]], ren, False)) == 2 and not c[0][0] and not c[-1][0]:
+        for n in md5er:
+            if len(c := carrots([[file,""]], n, False)) == 2 and not c[0][0] and not c[-1][0]:
                 ondisk = mf + file
                 with open(ondisk, 'rb') as f:
                     s = f.read()
@@ -2923,19 +2928,19 @@ def finish_organize():
                     if choice("d") == 1:
                         os.remove(ondisk)
                 break
-        for name, folder in organize.items():
+        for name, folder in sorter.items():
             if folder[1]:
                 found = False
                 for n in name.split(", "):
-                    if len(carrots([[file, ""]], n, False)) == 2:
+                    if fnmatch(file, fn):
                         found = True
                         break
                 if not found:
                     takeme(file, folder[0])
-            elif len(carrots([[file, ""]], name, False)) == 2:
+            elif fnmatch(file, name):
                 takeme(file, folder[0])
                 break
-    print("Finished organizing!")
+    print("Finished sorting!")
 
 
 
@@ -2981,7 +2986,7 @@ while False:
 def run_input(m):
     if m == "x":
         return
-    elif any(word for word in scraper.keys() if m.startswith(word)):
+    elif any(word for word in pickers.keys() if m.startswith(word)):
         scrape([m])
     elif m.startswith("http") and not m.startswith("http://localhost"):
         if m.endswith("/"):
@@ -3010,7 +3015,7 @@ def run_input(m):
 
 
 def ready_input():
-    sys.stdout.write("Enter (I)nput mode or ready to (O)rganize, (H)elp: ")
+    sys.stdout.write("Enter (I)nput mode or ready to s(O)rt, (H)elp: ")
     sys.stdout.flush()
 
 
@@ -3075,7 +3080,7 @@ def keylistener():
             sys.stdout.flush()
             el = choice("hix")
             if el == 1:
-                quicktutorial()
+                help()
                 ready_input()
             elif el == 2:
                 input_mode[0] = input("Enter valid input, e(X)it: ").rstrip().replace("\"", "")
@@ -3094,7 +3099,7 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            finish_organize()
+            finish_sort()
             ready_input()
         elif el == 8:
             echo("", 1)
@@ -3170,7 +3175,7 @@ for url in textread:
         continue
     elif not url.startswith("http"):
         continue
-    if any(word for word in scraper.keys() if url.startswith(word)):
+    if any(word for word in pickers.keys() if url.startswith(word)):
         imore += [url]
     else:
         name = parse.unquote(url.split("/")[-1])

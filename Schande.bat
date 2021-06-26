@@ -148,7 +148,6 @@ def quicktutorial():
  | Rule syntax for organizing from {tmf}:
  |  "... for ..."             organize matching (commas are forbidden here, write rule per line like usual)
  |  "... !for ..., ..., ..."  organize non-matching (commas for multiple matches or it'll take everything!)
- |  The pattern after for/!for uses unix wildcard, meaning ? matches 1 character, * matches everything.
  |
  | First rule in list will take its turn to handle the download/file before else.
  | If {rulefile} tried to organize files to the non-existent folder, they go to {tcd} instead.
@@ -182,7 +181,7 @@ def quicktutorial():
  |  "meta ...*..."       from url.
  |  "extfix ...*..."     fix name without extension from url (detected by ending mismatch).
  |  "pages ...*..."      pick more pages to scrape in parallel, "relpages" for relative urls.
- |  "saveurl"            save first scraped page url as URL file in same directory where files are downloading.
+ |  "savelink"           save first scraped page link as URL file in same directory where files are downloading.
  |
  | Page picker will make sure all pages are unique to visit, but older pages can cause loophole.
  | Repeat a picker with different pattern for multiple possibilities/actions.
@@ -626,6 +625,9 @@ def topicker(s, rule):
         s["visit"] = True
     elif rule[0].startswith("part "):
         s["part"] += [rule[0].split("part ", 1)[1]]
+    elif rule[0].startswith("replace "):
+        rule = rule[0].split(" ", 1)[1].split(" with ", 1)
+        s["replace"] += [[rule[0], rule[1]]]
     elif rule[0].startswith("html "):
         s["html"] += [rule[0].split("html ", 1)[1]]
         if s["file"] or s["file2"]:
@@ -680,8 +682,8 @@ def topicker(s, rule):
         s["checkpoint"] = True
     elif rule[0].startswith("ready"):
         s["ready"] = True
-    elif rule[0].startswith("saveurl"):
-        s["saveurl"] = True
+    elif rule[0].startswith("savelink"):
+        s["savelink"] = True
     else:
         return
     return True
@@ -699,7 +701,7 @@ mag = []
 med = []
 scraper = {}
 def new_scraper():
-    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file2":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "checkpoint":False, "saveurl":False, "ready":False}
+    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file2":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "checkpoint":False, "savelink":False, "ready":False}
 scraper.update({"void":new_scraper()})
 site = "void"
 ticks = []
@@ -733,13 +735,10 @@ for rule in rules:
             organize.update({rule[1]: [rule[0], False]})
     elif len(rule := rule[0].split(" !for ")) == 2:
         organize.update({rule[1]: [rule[0], True]})
-    elif rule[0].startswith("http"):
+    elif rule[0].startswith("http") or rule[0].startswith("file:///"):
         site = rule[0]
         if not site in scraper:
             scraper.update({site:new_scraper()})
-    elif rule[0].startswith("replace "):
-        rule = rule[0].split(" ", 1)[1].split(" with ", 1)
-        scraper[site]["replace"] += [[rule[0], rule[1]]]
     elif topicker(scraper[site], rule):
         pass
     else:
@@ -835,10 +834,10 @@ def fetch(url, context=None, headers={'User-Agent':'Mozilla/5.0'}, stderr="", dl
 
 
 def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'User-Agent':'Mozilla/5.0', 'Referer':"", 'Origin':""}, headonly=False, stderr="", threadn=0):
-    echourl = f"{url[:87]}{(url[87:] and '█')}"
+    echolink = f"{url[:87]}{(url[87:] and '█')}"
     dl = 0
     if todisk:
-        echo(threadn, f"{threadn:>3} Downloading 0 / 0 MB {echourl}")
+        echo(threadn, f"{threadn:>3} Downloading 0 / 0 MB {echolink}")
         if os.path.exists(todisk + ".part"):
             dl = os.path.getsize(todisk + ".part")
     else:
@@ -869,7 +868,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
                 echo("Filename collision + same filesize, safe to ignore", 0, 1)
                 return 2
         conflict[1] += [total]
-        echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {echourl}""")
+        echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {echolink}""")
         with open(todisk + ".part", 'ab') as f:
             while True:
                 try:
@@ -897,7 +896,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
                 Bytes = len(block)
                 dl += Bytes
                 echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
-                echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {echourl}""", friction=True)
+                echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {echolink}""", friction=True)
                 if seek[0]:
                     resp = fetch(url, context, headers, stderr, dl, threadn)
                     if resp.status == 200 and dl > 0:
@@ -966,7 +965,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
 
 
 
-def echosession(download):
+def echolinks(download):
     while True:
         threadn, html, log, todisk, onserver = download.get()
         conflict = [[], []]
@@ -995,7 +994,7 @@ def echosession(download):
         download.task_done()
 download = Queue()
 for i in range(8):
-    t = Thread(target=echosession, args=(download,))
+    t = Thread(target=echolinks, args=(download,))
     t.daemon = True
     t.start()
 
@@ -1003,9 +1002,9 @@ for i in range(8):
 
 def get_cd(file, makedirs=False, preview=False):
     threadn = 0
-    url = file["url"] if preview else file.pop("url")
+    link = file["link"] if preview else file.pop("link")
     todisk = mf + file["name"]
-    if rule := [v for k, v in customdir.items() if k in url]:
+    if rule := [v for k, v in customdir.items() if k in link]:
         name, ext = os.path.splitext(file["name"])
         name = name.rsplit("/", 1)
         if len(name) == 2:
@@ -1021,9 +1020,9 @@ def get_cd(file, makedirs=False, preview=False):
             if makedirs or [explicate(x) for x in exempt if explicate(x) == os.path.split(todisk)[0] + "/"]:
                 os.makedirs(ondisk)
             else:
-                print(f" Error downloading: {url}")
+                print(f" Error downloading: {link}")
                 error[0] += [todisk]
-                url = ""
+                link = ""
     elif not os.path.exists(mf):
         os.makedirs(mf)
     todisk = todisk.replace("\\", "/")
@@ -1031,7 +1030,7 @@ def get_cd(file, makedirs=False, preview=False):
         if makedirs and not os.path.exists(os.path.split(todisk)[0]):
             os.makedirs(os.path.split(todisk)[0])
         file.update({"name":todisk, "edited":file["edited"]})
-    return [url, todisk, file["edited"]]
+    return [link, todisk, file["edited"]]
 
 
 
@@ -1043,13 +1042,13 @@ def downloadtodisk(htmlassets, makedirs=False):
     for key in htmlpart.keys():
         for file in htmlpart[key]["files"]:
             if not file["name"]:
-                print(f""" I don't have a scraper for {file["url"]}""")
+                print(f""" I don't have a scraper for {file["link"]}""")
             else:
                 filelist += [get_cd(file, makedirs) + [key]]
         for html in htmlpart[key]["html"]:
             if len(html) == 2 and html[1]:
                 if not html[1]["name"]:
-                    print(f""" I don't have a scraper for {html[1]["url"]}""")
+                    print(f""" I don't have a scraper for {html[1]["link"]}""")
                 else:
                     filelisthtml += [get_cd(html[1], makedirs) + [key]]
     if htmlassets["inlinefirst"]:
@@ -1408,7 +1407,7 @@ def carrot_files(threadn, assets, htmlpart, key, na, pick, alt, filelist, after)
                 e, cw, a = peanut(e, [".", ""])
                 if len(ext := carrots([[file, ""]], e, False, cw)) == 2 and not name.endswith(ext := ext[-2][1]):
                     name += ext
-            filelist += [[key, {"url":file, "name":saint(folder[0] + parse.unquote(name)), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
+            filelist += [[key, {"link":file, "name":saint(folder[0] + parse.unquote(name)), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
         file = asset[1]
     return assets, na
 
@@ -1483,7 +1482,7 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, filelist, pos, af
                                 if len(n := carrots([[file[0], ""]], z, False, cwx)) == 2:
                                     m2 += n[-2][1]
                             name = m2 + name
-                        filelist += [[key, {"url":file[0], "name":saint(folder[0] + name), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
+                        filelist += [[key, {"link":file[0], "name":saint(folder[0] + name), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
             else:
                 for p in part:
                     key = "0"
@@ -1604,8 +1603,8 @@ def page_assets(queue):
                             # part = [["".join(x[0] for x in c), ""]]
                         else:
                             folder[0] += [x[1] for x in carrots([[page, ""]], z, False, cw) if x[1]][0]
-            if pick["saveurl"]:
-                htmlassets["page"] = {"url":page, "name":saint(folder[0] + folder[0].rsplit("\\", 2)[-2] + ".URL"), "edited":0}
+            if pick["savelink"]:
+                htmlassets["page"] = {"link":page, "name":saint(folder[0] + folder[0].rsplit("\\", 2)[-2] + ".URL"), "edited":0}
         if pick["pages"]:
             for y in pick["pages"]:
                 for z in y[1:]:
@@ -1752,10 +1751,10 @@ def scrape(pages):
         threadn = 0
         more = []
         visited = set()
-        for url in pages:
+        for link in pages:
             threadn += 1
             echothreadn.append(threadn)
-            queue.put((threadn, url, more, htmlassets))
+            queue.put((threadn, link, more, htmlassets))
         try:
             queue.join()
         except:
@@ -1799,7 +1798,7 @@ def scrape(pages):
         if x := htmlassets["page"]:
             with open(get_cd(x, preview=True)[1], 'w') as f:
                 f.write(f"""[InternetShortcut]
-URL={x["url"]}""")
+URL={x["link"]}""")
     return True
 
 
@@ -2397,24 +2396,45 @@ function hideSources() {
   }
 }
 
-function hideParts(text, display) {
-  var x = document.getElementsByClassName("container");
-  for (var i=0; i < x.length; i++) {
-    if (x[i].textContent.split("\\n")[2].toLowerCase().includes(text.toLowerCase())) {
-      x[i].style.display = display[0];
-    } else {
-      x[i].style.display = display[1];
-    }
-  }
-}
-
-function orphFiles(n) {
+function hideParts(e, t='', a=true) {
+  t = t.toLowerCase();
   var x = document.getElementsByClassName("cell");
+  var c;
+  if (!e){
+    for (var i=0; i < x.length; i++) {
+      x[i].style.display = 'block';
+    }
+    return
+  }
+  e = e.split('.');
+  if (e.length > 1){
+    e[0] = e[1]
+    c = true
+  }
   for (var i=0; i < x.length; i++) {
-    if (x[i].getElementsByClassName('edits').length > 0||n) {
-      x[i].style.display = "block";
+    var m = '';
+    if (c){
+      m = x[i].getElementsByClassName(e[0])
+      if (m.length > 0){
+        m = m[0].textContent;
+      } else {
+        x[i].style.display = 'none';
+        continue
+      }
     } else {
-      x[i].style.display = "none";
+      m = x[i].getElementsByTagName(e[0])
+      if (m.length > 0){
+        m = m[0].textContent;
+      } else {
+        x[i].style.display = 'none';
+        continue
+      }
+    }
+    m = m.toLowerCase().includes(t);
+    if (!a && !m && t || a && m && t) {
+      x[i].style.display = 'none';
+    } else {
+      x[i].style.display = 'block';
     }
   }
 }
@@ -2503,11 +2523,10 @@ h2,p{margin:4px;}
 <button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')">Preview</button>
 <button id="ge" class="next" onclick="previewg(this, 'vs left', 'vs left <', 'vs left >', 'Find Edge')">Original</button>
 <button class="next" onclick="hideSources()">Sources</button>
-<input class="next" type="text" oninput="hideParts(this.value, ['block', 'none']);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Search title">
-<input class="next" type="text" oninput="hideParts(this.value, ['none', 'block']);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Ignore title">
-<button class="next" onclick="orphFiles()">Edits</button>
-<button class="next" onclick="hideParts('', ['block', 'none'])">&times;</button>
-<button class="next" onclick="orphFiles(1)">&times;</button></div>
+<input class="next" type="text" oninput="hideParts('h2', this.value, false);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Search title">
+<input class="next" type="text" oninput="hideParts('h2', this.value);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Ignore title">
+<button class="next" onclick="hideParts('.edits')">Edits</button>
+<button class="next" onclick="hideParts()">&times;</button></div>
 <p>
 {builder}</body>
 <script>
@@ -2525,7 +2544,7 @@ def tohtml(dir, htmlassets, orphfiles):
 
 
     if page := htmlassets["page"]:
-        builder += "<h2>Paysite: <a href=\"" + page["url"] + "\">" + page["name"] + "</a></h2>"
+        builder += "<h2>Paysite: <a href=\"" + page["link"] + "\">" + page["name"] + "</a></h2>"
 
 
 
@@ -2907,13 +2926,13 @@ def finish_organize():
         for name, folder in organize.items():
             if folder[1]:
                 found = False
-                for fn in name.split(", "):
-                    if fnmatch(file, fn):
+                for n in name.split(", "):
+                    if len(carrots([[file, ""]], n, False)) == 2:
                         found = True
                         break
                 if not found:
                     takeme(file, folder[0])
-            elif fnmatch(file, name):
+            elif len(carrots([[file, ""]], name, False)) == 2:
                 takeme(file, folder[0])
                 break
     print("Finished organizing!")
@@ -2969,7 +2988,7 @@ def run_input(m):
             choice(bg=True)
             print(" I don't have a scraper for that!")
         else:
-            downloadtodisk({"page":"", "inlinefirst":True, "partition":{"0":{"html":"", "keywords":[], "files":[{"url":m, "name":saint(parse.unquote(m.split("/")[-1])), "edited":0}]}}})
+            downloadtodisk({"page":"", "inlinefirst":True, "partition":{"0":{"html":"", "keywords":[], "files":[{"link":m, "name":saint(parse.unquote(m.split("/")[-1])), "edited":0}]}}})
     elif m.startswith("file:///") or m.startswith("http://localhost"):
         if not Geistauge:
             choice(bg=True)
@@ -3155,7 +3174,7 @@ for url in textread:
         imore += [url]
     else:
         name = parse.unquote(url.split("/")[-1])
-        htmlassets["partition"]["0"]["files"] += [{"url":url, "name":saint(name), "edited":0}]
+        htmlassets["partition"]["0"]["files"] += [{"link":url, "name":saint(name), "edited":0}]
 
 
 

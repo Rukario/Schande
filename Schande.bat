@@ -3100,9 +3100,9 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            sys.stdout.write("Open (H)elp unless you mean (I)nput mode (HTTP...), e(X)it: ")
+            sys.stdout.write("Open (H)elp unless you mean (I)nput mode for http...: ")
             sys.stdout.flush()
-            el = choice("hix")
+            el = choice("hi")
             if el == 1:
                 help()
                 ready_input()

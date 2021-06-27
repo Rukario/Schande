@@ -42,7 +42,7 @@ textfile = batchname + ".txt"
 archivefile = [".7z", ".rar", ".zip"]
 imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"]
 videofile = [".mkv", ".mp4", ".webm"]
-specialfile = ["gallery.html", "partition.json"]
+specialfile = ["gallery.html", "partition.json", ".URL"]
 
 busy = [False]
 cooldown = [False]
@@ -137,6 +137,7 @@ def help():
  {rulefile} is collection of rules that defines how files are downloaded and sorted.
 
  - - - - Geistauge - - - -
+  Wildcard: None, non-anchored start/end.
  + Arbitrary rule (unless # commented out) in {rulefile} will become Geistauge's pattern exemption, e.g. "path" for:
  |  Z:\\path\\01.png
  |  Z:\\path\\02.png
@@ -144,28 +145,33 @@ def help():
  + (No exemption if at least one similar image doesn't have a pattern.)
 
  - - - - Sorter - - - -
- + Sorting from {tmf}:
- |  "\\..."                    use this directory for future matching.
- |  "!\\..."                   use this directory for future non-matching.
+  Wildcard: UNIX-style wildcard, ? matches 1 character, * matches everything, start/end is anchored until wildcarded.
+ + Wildcard for file names only. Sorting from {tmf}:
+ |  "\\...\\"                   use this directory for future matching. Multiple backslashes for nesting folders.
+ |  "!\\...\\"                  use this directory for future non-matching.
+ |  "\\...\\..." or "!\\...\\..." one-liner and future matching/non-matching.
+ | From now on the arbitrary rule is a file sorting pattern, no longer part of Geistauge pattern exemptions.
  |
- | From now on the arbitrary rule is a file pattern for that directory, no longer part of Geistauge pattern exemptions.
- |
- | First rule in list will take its turn to sort the file, then resort to {tcd} for non-existent directories.
+ | First rule will take its turn to sort the file, then resort to {tcd} for non-existent directories.
  | {tcd} can help ensure that no other rule can sort them any more (first rule = first to sort).
  + {tcd} is used for manual operation to a different directory where the folder actually exists.
 
  - - - - Download directory - - - -
+  Wildcard: Single asterisk only, capture for prepend/append before file extension, non-anchored http ending.
  +  "...\\* for http..."       custom dir for downloads, {tmf} if no custom dir specified.
  |  "...*date\\* for http..."  custom dir for downloads, "*date" will become "{date}".
  |  "...\\...*... for http..." and the file are also renamed (prepend/append).
  +  "...*... for http..."     and they go to {tmf} while renamed.
 
  - - - - Spoofer - - - -
+  Wildcard: None, non-anchored http ending.
  +  "Mozilla/5.0... for http..." visit page with user-agent.
  |  "key value for .site"     cookie for a site that requires login.
  +  "http... for http..."     visit page with referer.
 
  - - - - Scraper - - - -
+  Wildcard: asterisks choose last, carets for right-to-left, hybrid greed median, non-anchored http ending.
+
  You need to:
   > know how to view page source or API.
   > know how to create pattern with asterisks or keys. Pages will be provided without newlines ("\\n") for convenience.
@@ -742,10 +748,18 @@ for rule in rules:
         ticks += [[int(x) for x in rr[0].split("-")]]*int(rr[1].split("%")[0])
     elif rule.startswith("\\"):
         dir = rule.split("\\", 1)[1]
-        sorter.update({dir: [False]})
+        if dir.endswith("\\"):
+            sorter.update({dir: [False]})
+        else:
+            dir = dir.rsplit("\\", 1)
+            sorter.update({dir[0] + "\\": [False, dir[1]]})
     elif rule.startswith("!\\"):
         dir = rule.split("!\\", 1)[1]
-        sorter.update({dir: [True]})
+        if dir.endswith("\\"):
+            sorter.update({dir: [True]})
+        else:
+            dir = dir.rsplit("\\", 1)
+            sorter.update({dir[0] + "\\": [True, dir[1]]})
     elif rule.startswith("http"):
         site = rule
         if not site in pickers:

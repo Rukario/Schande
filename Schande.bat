@@ -136,25 +136,32 @@ def help():
     print(f"""
  {rulefile} is collection of rules that defines how files are downloaded and sorted.
 
+ - - - - Geistauge - - - -
+ + Arbitrary rule (unless # commented out) in {rulefile} will become Geistauge's pattern exemption, e.g. "path" for:
+ |  Z:\\path\\01.png
+ |  Z:\\path\\02.png
+ |
+ + (No exemption if at least one similar image doesn't have a pattern.)
+
  - - - - Sorter - - - -
- + Sorting downloads:
- |  "...\\* for http..."       custom dir for downloads, {tmf} if no custom dir specified.
+ + Sorting from {tmf}:
+ |  "\\..."                    use this directory for future matching.
+ |  "!\\..."                   use this directory for future non-matching.
+ |
+ | From now on the arbitrary rule is a file pattern for that directory, no longer part of Geistauge pattern exemptions.
+ |
+ | First rule in list will take its turn to sort the file, then resort to {tcd} for non-existent directories.
+ | {tcd} can help ensure that no other rule can sort them any more (first rule = first to sort).
+ + {tcd} is used for manual operation to a different directory where the folder actually exists.
+
+ - - - - Download directory - - - -
+ +  "...\\* for http..."       custom dir for downloads, {tmf} if no custom dir specified.
  |  "...*date\\* for http..."  custom dir for downloads, "*date" will become "{date}".
  |  "...\\...*... for http..." and the file are also renamed (prepend/append).
- |  "...*... for http..."     and they go to {tmf} while renamed.
- |
- | Sorting from {tmf}:
- |  "... for ..."             sort matching (commas are forbidden here, write rule per line like usual)
- |  "... !for ..., ..., ..."  sort non-matching (commas for multiple matches or it'll take everything!)
- |
- | First rule in list will take its turn to handle the download/file before else.
- | If {rulefile} tried to sort files to the non-existent folder, they go to {tcd} instead.
- |  It can help ensure that no other rule can sort them any more (first rule = first to sort).
- +  Conveniently used to migrate to another directory where the folder actually exists.
+ +  "...*... for http..."     and they go to {tmf} while renamed.
 
  - - - - Spoofer - - - -
- + Spoofing a site with:
- |  "Mozilla/5.0... for http..." visit page with user-agent.
+ +  "Mozilla/5.0... for http..." visit page with user-agent.
  |  "key value for .site"     cookie for a site that requires login.
  +  "http... for http..."     visit page with referer.
 
@@ -216,26 +223,22 @@ def help():
  |  "X # letters" (# or #-#) after any picker so the match is expected to be that amount.
  |  "X ends/starts with X" after any picker. "not" for opposition.
  + Use replace picker to discard what you don't need before complicating pickers with many asterisks or carets.
-
- - - - - Geistauge - - - -
- + Invalid rule in {rulefile} will become Geistauge's pattern exemption, e.g. "path" for:
- |  Z:\\path\\01.png
- |  Z:\\path\\02.png
- |
- + No exemption if at least one similar image doesn't have a pattern.
 """)
 
 
 
 if not os.path.exists(rulefile):
     open(rulefile, 'w').close()
+if os.path.getsize(rulefile) < 1:
+    help()
+    print(f"Please add a rule in rule file ({rulefile}) and restart CLI to continue.")
+    sys.exit()
 print(f"Reading {rulefile} . . .")
 with open(rulefile, 'r', encoding="utf-8") as f:
     rules = f.read().splitlines()
-    if not rules: rules += "\n"
 def tidy(offset, append):
     if offset == 0:
-        data = append + "\n"*len(settings) + "\n".join(rules)
+        data = append + "\n\n" + "\n".join(rules)
     else:
         data = "\n".join(rules[:offset]) + "\n" + append + "\n" + "\n".join(rules[offset:])
     with open(rulefile, 'wb') as f:
@@ -623,71 +626,71 @@ def at(a, r, alt=True):
 
 
 def topicker(s, rule):
-    if rule[0].startswith("send "):
-        rule = rule[0].split(" ", 2)
+    if rule.startswith("send "):
+        rule = rule.split(" ", 2)
         s["send"] += [[rule[1], rule[2]] if len(rule) == 2 else [rule[1], []]]
-    elif rule[0].startswith("visit"):
+    elif rule.startswith("visit"):
         s["visit"] = True
-    elif rule[0].startswith("part "):
-        s["part"] += [rule[0].split("part ", 1)[1]]
-    elif rule[0].startswith("replace "):
-        rule = rule[0].split(" ", 1)[1].split(" with ", 1)
+    elif rule.startswith("part "):
+        s["part"] += [rule.split("part ", 1)[1]]
+    elif rule.startswith("replace "):
+        rule = rule.split(" ", 1)[1].split(" with ", 1)
         s["replace"] += [[rule[0], rule[1]]]
-    elif rule[0].startswith("html "):
-        s["html"] += [rule[0].split("html ", 1)[1]]
+    elif rule.startswith("html "):
+        s["html"] += [rule.split("html ", 1)[1]]
         if s["file"] or s["file2"]:
             s["inlinefirst"] = False
-    elif rule[0].startswith("key"):
-        at(s["key"], rule[0].split("key", 1)[1])
-    elif rule[0].startswith("folder"):
-        at(s["folder"], rule[0].split("folder", 1)[1], False)
-    elif rule[0].startswith("title"):
-        at(s["folder"], rule[0].split("title", 1)[1])
-    elif rule[0].startswith("expect"):
-        at(s["expect"], rule[0].split("expect", 1)[1])
-    elif rule[0].startswith("unexpect"):
-        at(s["expect"], rule[0].split("unexpect", 1)[1], False)
-    elif rule[0].startswith("dismiss"):
+    elif rule.startswith("key"):
+        at(s["key"], rule.split("key", 1)[1])
+    elif rule.startswith("folder"):
+        at(s["folder"], rule.split("folder", 1)[1], False)
+    elif rule.startswith("title"):
+        at(s["folder"], rule.split("title", 1)[1])
+    elif rule.startswith("expect"):
+        at(s["expect"], rule.split("expect", 1)[1])
+    elif rule.startswith("unexpect"):
+        at(s["expect"], rule.split("unexpect", 1)[1], False)
+    elif rule.startswith("dismiss"):
         s["dismiss"] = True
-    elif rule[0].startswith("message "):
-        s["message"] += [rule[0].split("message ", 1)[1]]
-    elif rule[0].startswith("choose "):
-        s["choose"] += [rule[0].split("choose ", 1)[1]]
-    elif rule[0].startswith("file "):
-        at(s["file2" if s["name"] else "file"], rule[0].split("file", 1)[1])
-    elif rule[0].startswith("relfile "):
-        at(s["file2" if s["name"] else "file"], rule[0].split("relfile", 1)[1], False)
-    elif rule[0].startswith("files "):
-        at(s["file2" if s["name"] else "file"], rule[0].split("files", 1)[1])
+    elif rule.startswith("message "):
+        s["message"] += [rule.split("message ", 1)[1]]
+    elif rule.startswith("choose "):
+        s["choose"] += [rule.split("choose ", 1)[1]]
+    elif rule.startswith("file "):
+        at(s["file2" if s["name"] else "file"], rule.split("file", 1)[1])
+    elif rule.startswith("relfile "):
+        at(s["file2" if s["name"] else "file"], rule.split("relfile", 1)[1], False)
+    elif rule.startswith("files "):
+        at(s["file2" if s["name"] else "file"], rule.split("files", 1)[1])
         s["files"] = True
-    elif rule[0].startswith("relfiles "):
-        at(s["file2" if s["name"] else "file"], rule[0].split("relfiles", 1)[1], False)
+    elif rule.startswith("relfiles "):
+        at(s["file2" if s["name"] else "file"], rule.split("relfiles", 1)[1], False)
         s["files"] = True
-    elif rule[0].startswith("owner "):
-        s["owner"] += [rule[0].split("owner ", 1)[1]]
-    elif rule[0].startswith("name"):
-        at(s["name"], rule[0].split("name", 1)[1])
-    elif rule[0].startswith("meta"):
-        at(s["name"], rule[0].split("meta", 1)[1], False)
-    elif rule[0].startswith("extfix "):
-        s["extfix"] = rule[0].split("extfix ", 1)[1]
-    elif rule[0].startswith("urlfix "):
-        rule = rule[0].split(" ", 1)[1].split(" with ", 1)
+    elif rule.startswith("owner "):
+        s["owner"] += [rule.split("owner ", 1)[1]]
+    elif rule.startswith("name"):
+        at(s["name"], rule.split("name", 1)[1])
+    elif rule.startswith("meta"):
+        at(s["name"], rule.split("meta", 1)[1], False)
+    elif rule.startswith("extfix "):
+        s["extfix"] = rule.split("extfix ", 1)[1]
+    elif rule.startswith("urlfix "):
+        rule = rule.split(" ", 1)[1].split(" with ", 1)
         x = rule[1].split("*", 1)
         s["urlfix"] = [x[0], [rule[0]], x[1]]
-    elif rule[0].startswith("url "):
-        rule = rule[0].split(" ", 1)[1].split(" with ", 1)
+    elif rule.startswith("url "):
+        rule = rule.split(" ", 1)[1].split(" with ", 1)
         x = rule[1].split("*", 1)
         s["url"] = [x[0], [rule[0]], x[1]]
-    elif rule[0].startswith("pages "):
-        at(s["pages"], rule[0].split("pages", 1)[1])
-    elif rule[0].startswith("relpages "):
-        at(s["pages"], rule[0].split("relpages", 1)[1], False)
-    elif rule[0].startswith("checkpoint"):
+    elif rule.startswith("pages "):
+        at(s["pages"], rule.split("pages", 1)[1])
+    elif rule.startswith("relpages "):
+        at(s["pages"], rule.split("relpages", 1)[1], False)
+    elif rule.startswith("checkpoint"):
         s["checkpoint"] = True
-    elif rule[0].startswith("ready"):
+    elif rule.startswith("ready"):
         s["ready"] = True
-    elif rule[0].startswith("savelink"):
+    elif rule.startswith("savelink"):
         s["savelink"] = True
     else:
         return
@@ -709,45 +712,50 @@ def new_picker():
     return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file2":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "checkpoint":False, "savelink":False, "ready":False}
 pickers.update({"void":new_picker()})
 site = "void"
+dir = ""
 ticks = []
 for rule in rules:
     if not rule or rule.startswith("#"):
         continue
+    rr = rule.split(" for ")
+    if len(rr) == 2 and rr[0].startswith("md5"):
+        md5er += [rr[1]]
+    elif len(rr) == 2 and rr[0].startswith("Mozilla/5.0"):
+        mozilla.update({rr[1]: rr[0]})
+    elif len(rr) == 2 and rr[1].startswith("http"):
+        if rr[0].startswith("http"):
+            referers.update({rr[1]: rr[0]})
+        elif not len(explicate(rr[0]).split("*")) == 2:
+            print("\n There is at least one of the bad custom dir rules (no asterisk or too many).")
+            sys.exit()
+        else:
+            customdir.update({rr[1]: rr[0]})
+    elif len(rr) == 2 and rr[1].startswith('.') or len(rr) == 2 and rr[1].startswith('www.'):
+        c = new_cookie()
+        c.update({'domain': rr[1], 'name': rr[0].split(" ")[0], 'value': rr[0].split(" ")[1]})
+        cookie.set_cookie(cookiejar.Cookie(**c))
     elif rule.startswith('.'):
         mag += [rule]
     elif rule.startswith('!.'):
-        med += [rule.replace("!.", ".", 1)]
-    elif len(rule := rule.split(" seconds rarity ")) == 2:
-        ticks += [[int(x) for x in rule[0].split("-")]]*int(rule[1].split("%")[0])
-    elif len(rule := rule[0].split(" for ")) == 2:
-        if rule[0].startswith("md5"):
-            md5er += [rule[1]]
-        elif rule[0].startswith("Mozilla/5.0"):
-            mozilla.update({rule[1]: rule[0]})
-        elif rule[1].startswith("http"):
-            if rule[0].startswith("http"):
-                referers.update({rule[1]: rule[0]})
-            elif not len(explicate(rule[0]).split("*")) == 2:
-                print("\n There is at least one of the bad custom dir rules (no asterisk or too many).")
-                sys.exit()
-            else:
-                customdir.update({rule[1]: rule[0]})
-        elif rule[1].startswith('.') or rule[1].startswith('www.'):
-            c = new_cookie()
-            c.update({'domain': rule[1], 'name': rule[0].split(" ")[0], 'value': rule[0].split(" ")[1]})
-            cookie.set_cookie(cookiejar.Cookie(**c))
-        else:
-            sorter.update({rule[1]: [rule[0], False]})
-    elif len(rule := rule[0].split(" !for ")) == 2:
-        sorter.update({rule[1]: [rule[0], True]})
-    elif rule[0].startswith("http") or rule[0].startswith("file:///"):
-        site = rule[0]
+        med += [rule.split("!", 1)[1]]
+    elif len(rr := rule.split(" seconds rarity ")) == 2:
+        ticks += [[int(x) for x in rr[0].split("-")]]*int(rr[1].split("%")[0])
+    elif rule.startswith("\\"):
+        dir = rule.split("\\", 1)[1]
+        sorter.update({dir: [False]})
+    elif rule.startswith("!\\"):
+        dir = rule.split("!\\", 1)[1]
+        sorter.update({dir: [True]})
+    elif rule.startswith("http"):
+        site = rule
         if not site in pickers:
             pickers.update({site:new_picker()})
     elif topicker(pickers[site], rule):
         pass
+    elif dir:
+        sorter[dir] += [rule]
     else:
-        exempt += [rule[0]]
+        exempt += [rule]
 request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookie)))
 # cookie.save()
 
@@ -2880,38 +2888,12 @@ def delmode(m):
 
 
 
-def takeme(file, folder):
-    if os.path.exists(folder + file):
-        print(f"""I want to (D)elete source file because destination file already exists:
- source:      {mf}{file}
- destination: {folder}{file}""")
-        if choice("d") == 1:
-            os.remove(mf + file)
-        else:
-            time.sleep(1)
-    elif os.path.exists(folder):
-        os.rename(mf + file, folder + file)
-    else:
-        if not os.path.exists(cd):
-            os.makedirs(cd)
-        if not os.path.exists(cd + file):
-            os.rename(mf + file, cd + file)
-        else:
-            print(f"""I want to (D)elete source file because destination file already exists:
- source:      {mf}{file}
- destination: {cd}{file}""")
-            if choice("d") == 1:
-                os.remove(mf + file)
-            else:
-                time.sleep(1)
-
-
-
 def finish_sort():
     if not os.path.exists(mf):
         choice(bg=True)
         print(f" {tmf} doesn't exist! Nothing to sort.")
         return
+    mover = {}
     for file in next(os.walk(mf))[2]:
         for n in md5er:
             if len(c := carrots([[file,""]], n, False)) == 2 and not c[0][0] and not c[-1][0]:
@@ -2928,19 +2910,49 @@ def finish_sort():
                     if choice("d") == 1:
                         os.remove(ondisk)
                 break
-        for name, folder in sorter.items():
-            if folder[1]:
+        for dir in sorter.keys():
+            if sorter[dir][0]:
                 found = False
-                for n in name.split(", "):
-                    if fnmatch(file, fn):
+                for n in sorter[dir][1:]:
+                    if fnmatch(file, n):
                         found = True
                         break
                 if not found:
-                    takeme(file, folder[0])
-            elif fnmatch(file, name):
-                takeme(file, folder[0])
-                break
-    print("Finished sorting!")
+                    print(f"{tcolorb}{batchname}\\ {tcolorr}-> {tcolorg}{dir}{tcolor}{file}{tcolorx}")
+                    mover.update({file:dir})
+                    break
+            else:
+                for n in sorter[dir][1:]:
+                    if fnmatch(file, n):
+                        print(f"{tcolorb}{batchname}\\ {tcolorr}-> {tcolorg}{dir}{tcolor}{file}{tcolorx}")
+                        mover.update({file:dir})
+                        break
+    sys.stdout.write(f" ({tcolorb}From directory {tcolorr}-> {tcolorg}to a more deserving directory{tcolorx}) {tcd} for non-existent directories - (C)ontinue ")
+    sys.stdout.flush()
+    if not choice("c") == 1:
+        kill(0)
+    for file, dir in mover.items():
+        if os.path.exists(dir + file):
+            print(f"""I want to (D)elete source file because destination file already exists:
+     source:      {mf}{file}
+     destination: {dir}{file}""")
+            if not choice("d") == 1:
+                kill(0)
+            os.remove(mf + file)
+        elif os.path.exists(dir):
+            os.rename(mf + file, dir + file)
+        else:
+            if not os.path.exists(cd):
+                os.makedirs(cd)
+            if not os.path.exists(cd + file):
+                os.rename(mf + file, cd + file)
+            else:
+                print(f"""I want to (D)elete source file because destination file already exists:
+     source:      {mf}{file}
+     destination: {cd}{file}""")
+                if not choice("d") == 1:
+                    kill(0)
+                os.remove(mf + file)
 
 
 
@@ -3210,7 +3222,7 @@ else:
     elif imore:
         scrape(imore)
     else:
-        print(f" No urls in {textfile}! Doing so will enable parallel downloading urls and resume the interrupted downloads.")
+        print(f" No urls in {textfile}!")
     busy[0] = False
 
 

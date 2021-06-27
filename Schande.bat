@@ -129,11 +129,12 @@ def help():
 
  - - - - Geistauge - - - -
   Wildcard: None, non-anchored start/end.
- + Arbitrary rule (unless # commented out) in {rulefile} will become Geistauge's pattern exemption, e.g. "path" for:
- |  Z:\\path\\01.png
- |  Z:\\path\\02.png
- |
- + (No exemption if at least one similar image doesn't have a pattern.)
+
+ Geistauge (German translate: ghost eye), your duplicate image finder!
+ > Arbitrary rule (unless # commented out) in {rulefile} will become Geistauge's pattern exemption.
+ > No exemption if at least one similar image doesn't have a pattern.
+ > Once scan is completed, HTML will be used to view similar images,
+   including tools to see the differences not seen by naked eyes. Technically where I come up with the name Geistauge.
 
  - - - - Sorter - - - -
   Wildcard: UNIX-style wildcard, ? matches 1 character, * matches everything, start/end is anchored until wildcarded.
@@ -3030,23 +3031,25 @@ def keylistener():
     while True:
         el = choice("bcdghioqstvx")
         if el == 1:
-            if Browser and HTMLserver:
-                os.system(f"""start "" "{Browser}" "http://localhost:8886/{batchname} 1.html" """)
-            elif Browser:
-                os.system(f"""start "" "{Browser}" "{batchdir}{batchname} 1.html" """)
-                print("""
- Browser key listener (Not here!):
-  > W - Edge detect when previewing an image
-  > A - Geistauge: compare to left when previewing an image
-  > S - Geistauge: bright both when previewing an image
-  > D - Geistauge: compare to right (this) when previewing an image
-  > Shift - Fit image to screen
-
- "Edge detect" and "Geistauge" are canvas features and they require "Access-Control-Allow-Origin: *" (try HTML server)
-""")
-            else:
+            if not Browser:
                 choice(bg=True)
                 print(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""")
+            elif HTMLserver:
+                os.system(f"""start "" "{Browser}" "http://localhost:8886/{batchname} 1.html" """)
+            else:
+                os.system(f"""start "" "{Browser}" "{batchdir}{batchname} 1.html" """)
+            print("""
+ Browser key listener (Not here!):
+  > W - Edge detect
+  > A - Geistauge: compare to left
+  > S - Geistauge: bright both
+  > D - Geistauge: compare to right (this)
+  > Shift - Fit image to screen
+ Enable preview from toolbar then mouse-over an image while holding a key to see effects.
+
+ "Edge detect" and "Geistauge" are canvas features and they require Cross-Origin Resource Sharing (CORS)
+ (Google it but tl;dr: Try HTML server)
+""")
             ready_input()
         elif el == 2:
             c = False

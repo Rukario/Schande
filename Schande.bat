@@ -291,7 +291,7 @@ def echo(threadn, b=0, f=0, c=False, friction=False):
             sys.stdout.write(f"{b:<113}\r")
     else:
         return
-def debug(e, b=0, f=1):
+def debug(e="", b=0, f=1):
     echo(f"{inspect.getframeinfo(inspect.stack()[1][0]).lineno} {e}", b, f, "cccccc")
 
 
@@ -1141,8 +1141,12 @@ def downloadtodisk(htmlassets, makedirs=False):
         if error[0]:
             for x in error[0]:
                 htmlpart.pop(os.path.basename(x).split(".", 1)[0], None)
-        print(f"""{"Nothing new to download." if not newfile else ""}{" There are failed downloads I will try again later." if error[0] else ""}""")
-
+        if not newfile:
+            sys.stdout.write(" Nothing new to download.")
+        if error[0]:
+            sys.stdout.write(" There are failed downloads I will try again later.\n")
+        elif not newfile:
+            sys.stdout.write("\n")
         for dir in htmldirs.keys():
             if not (x := os.path.exists(dir + "gallery.html")) or newfile:
                 orphfiles = []
@@ -1151,6 +1155,7 @@ def downloadtodisk(htmlassets, makedirs=False):
                         orphfiles += [file]
                 tohtml(dir, htmlassets, set(orphfiles).difference([x[1].rsplit("/", 1)[-1] for x in filelist]))
     error[0] = []
+    print()
 
 
 
@@ -2550,6 +2555,7 @@ lazyload();
 
 
 def tohtml(dir, htmlassets, orphfiles):
+    tdir = "\\" + dir.replace("/", "\\")
     builder = ""
     listurls = ""
     htmlpart = htmlassets["partition"]
@@ -2576,9 +2582,12 @@ def tohtml(dir, htmlassets, orphfiles):
 
 
     partfile = dir + "partition.json"
+    gallery_is = "updated"
     if not os.path.exists(partfile):
+        gallery_is = "created"
         with open(partfile, 'w') as f:
             f.write(json.dumps(htmlpart))
+    print(f" File {gallery_is}: {tdir}partition.json")
     with open(partfile, 'r', encoding="utf-8") as f:
         relics = json.loads(f.read())
     orphid = iter(relics.keys())
@@ -2685,6 +2694,7 @@ def tohtml(dir, htmlassets, orphfiles):
         builder += "</div>\n\n"
     with open(dir + "gallery.html", 'wb') as f:
         f.write(bytes(new_html(builder, batchname, listurls), "utf-8"))
+    print(f" File {gallery_is}: {tdir}gallery.html ")
 
 
 
@@ -2927,6 +2937,10 @@ def finish_sort():
                         print(f"{tcolorb}{batchname}\\ {tcolorr}-> {tcolorg}{dir}{tcolor}{file}{tcolorx}")
                         mover.update({file:dir})
                         break
+    if not mover:
+        choice(bg=True)
+        print(f" Nothing to sort! Check and add or update pattern if there are files in {tmf} needed to be sorted.")
+        return
     sys.stdout.write(f" ({tcolorb}From directory {tcolorr}-> {tcolorg}to a more deserving directory{tcolorx}) {tcd} for non-existent directories - (C)ontinue ")
     sys.stdout.flush()
     if not choice("c") == 1:
@@ -2996,9 +3010,7 @@ while False:
 
 
 def run_input(m):
-    if m == "x":
-        return
-    elif any(word for word in pickers.keys() if m.startswith(word)):
+    if any(word for word in pickers.keys() if m.startswith(word)):
         scrape([m])
     elif m.startswith("http") and not m.startswith("http://localhost"):
         if m.endswith("/"):
@@ -3095,17 +3107,20 @@ def keylistener():
                 help()
                 ready_input()
             elif el == 2:
-                input_mode[0] = input("Enter valid input, e(X)it: ").rstrip().replace("\"", "")
+                input_mode[0] = input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "")
                 if not input_mode[0]:
-                    choice(bg=True)
+                    echo("", 1, 0)
+                    echo("", 1, 0)
+                    echo("", 1, 0)
                     ready_input()
         elif el == 6:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            input_mode[0] = input("Enter valid input, e(X)it: ").rstrip().replace("\"", "")
+            input_mode[0] = input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "")
             if not input_mode[0]:
-                choice(bg=True)
+                echo("", 1, 0)
+                echo("", 1, 0)
                 ready_input()
         elif el == 7:
             if busy[0]:

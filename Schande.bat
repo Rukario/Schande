@@ -155,11 +155,6 @@ def help():
  |  "...\\...*... for http..." and the file are also renamed (prepend/append).
  +  "...*... for http..."     and they go to {tmf} while renamed.
 
- - - - - File type rejection - - - -
-  Wildcard: None, non-anchored beginning of file name.
- +  ".ext"  Whitelisted for downloading
- +  "!.ext" Blacklisted from downloading, disabled when whitelist is in effect.
-
  - - - - Spoofer - - - -
   Wildcard: None, non-anchored http ending.
  +  "Mozilla/5.0... for http..." visit page with user-agent.
@@ -710,8 +705,6 @@ md5er = []
 referers = {}
 mozilla = {}
 exempt = []
-mag = []
-med = []
 pickers = {}
 def new_picker():
     return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file2":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "checkpoint":False, "savelink":False, "ready":False}
@@ -739,10 +732,6 @@ for rule in rules:
         c = new_cookie()
         c.update({'domain': rr[1], 'name': rr[0].split(" ")[0], 'value': rr[0].split(" ")[1]})
         cookie.set_cookie(cookiejar.Cookie(**c))
-    elif rule.startswith('.'):
-        mag += [rule]
-    elif rule.startswith('!.'):
-        med += [rule.split("!", 1)[1]]
     elif len(rr := rule.split(" seconds rarity ")) == 2:
         ticks += [[int(x) for x in rr[0].split("-")]]*int(rr[1].split("%")[0])
     elif rule.startswith("\\"):

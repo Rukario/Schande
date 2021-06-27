@@ -2,6 +2,7 @@
 
 import os, sys, getpass, smtplib, ssl, socket, socks, time, zlib, json, inspect, hashlib
 from datetime import datetime
+from fnmatch import fnmatch
 from http import cookiejar
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from queue import Queue
@@ -12,7 +13,6 @@ from codecs import encode, decode
 from random import random
 # from selenium import webdriver
 
-# Local variables
 if len(sys.argv) > 3:
     filelist = list(filter(None, sys.argv[1].split("//")))
     pythondir = sys.argv[2].replace("\\\\", "\\")
@@ -58,22 +58,14 @@ seek = [False]
 sf = [0]
 skiptonext = [False]
 
-# HTML builder
-buildthumbnail = False
-# True if you want to serve pages efficiently. It'll take a while to build new thumbnails from large collection.
+from PIL import Image
+Image.MAX_IMAGE_PIXELS = 400000000
 
-# Local variables for debugging
+# Probably useless settings
 collisionisreal = False
 editisreal = False
-
-if buildthumbnail:
-    from PIL import Image
-    Image.MAX_IMAGE_PIXELS = 400000000
-    import subprocess
-
-# Geistauge and sorter tools
-from fnmatch import fnmatch
-from PIL import Image
+buildthumbnail = False
+# True if you want to serve pages efficiently. It'll take a while to build new thumbnails from large collection.
 
 
 
@@ -163,6 +155,11 @@ def help():
  |  "...\\...*... for http..." and the file are also renamed (prepend/append).
  +  "...*... for http..."     and they go to {tmf} while renamed.
 
+ - - - - File type rejection - - - -
+  Wildcard: None, non-anchored beginning of file name.
+ +  ".ext"  Whitelisted for downloading
+ +  "!.ext" Blacklisted from downloading, disabled when whitelist is in effect.
+
  - - - - Spoofer - - - -
   Wildcard: None, non-anchored http ending.
  +  "Mozilla/5.0... for http..." visit page with user-agent.
@@ -184,7 +181,7 @@ def help():
  |  "url ...*... with ...*... redirector. Original url will be used for statement and scraper loop.
  |  "send X Y"           send data (X) to url (Y) or to current page url (no Y) before accessing page.
  |  "part ...*..."       partitioning the page.
- |  "key ... > ..."      pick identifier and start HTML builder, attribute partition, keywords, and files to this.
+ |  "key ...*..."        pick identifier and start HTML builder, defining each partition their ID.
  |  "html ...*..."       pick article from page/partition for HTML builder. API: pick content for HTML-based pickers.
  |                       HTML-based file pickers will look through articles for inline files too.
  |  "replace ...*... with ...*..." find'n'replace before start picking in page/partition.
@@ -206,7 +203,7 @@ def help():
  | key# for title (key1), timestamp (key2) then keywords (key3 each) for HTML builder.
  |  "...*..."            HTML-based picker.
  |  "... > ..."          API/QS-based picker.
- | API/QS (Query String) supported pickers: part, html, key, expect, files, name, pages.
+ | API/QS (Query String) supported pickers: part, key, html, expect, files, name, pages.
  | Magic key: " > 0 > " to iterate a list, " > * > " to iterate all within, " >> " to load a dictionary from inside QS.
  + During API each file picker must be accompanied by name picker and all HTML-based name/meta pickers must descend.
 
@@ -567,6 +564,8 @@ if Mail:
     else:
         print(" MAIL: Please add your two email addresses (sender/receiver)\n\n TRY AGAIN!")
         sys.exit()
+    if HTMLserver:
+        print(f"{tcolorr} HTML SERVER: Anyone accessing your server can open {rulefile} reading this Mail information.{tcolorx}")
     if len(Mail) < 3:
         Mail += [getpass.getpass(prompt=f" {Mail[0]}'s password (automatic if saved as third address): ")]
         echo("", 1)

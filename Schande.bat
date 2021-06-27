@@ -11,7 +11,6 @@ from threading import Thread
 from urllib import parse, request
 from codecs import encode, decode
 from random import random
-# from selenium import webdriver
 
 if len(sys.argv) > 3:
     filelist = list(filter(None, sys.argv[1].split("//")))
@@ -2988,26 +2987,6 @@ def syntax(html):
             y = tcolorg
         z += [x[0] + y + x[1] + tcolorx]
     return "".join(z)
-
-
-
-# browser = webdriver.Firefox()
-# browser.get('https://www.patreon.com/api/user/9325459')
-while False:
-    if """FOUND""" in browser.page_source:
-        echo("FOUND", 0, 1)
-    else:
-        echo("Nope", 0, 1)
-    for bc in browser.get_cookies():
-        if "httpOnly" in bc: del bc["httpOnly"]
-        if "expiry" in bc: del bc["expiry"]
-        if "sameSite" in bc: del bc["sameSite"]
-        c = new_cookie()
-        c.update(bc)
-        cookie.set_cookie(cookiejar.Cookie(**c))
-    print(cookie)
-    input("Refresh?\r")
-    browser.refresh()
 
 
 

@@ -54,7 +54,8 @@ retryall = [False]
 retries = [0]
 retryx = [False]
 seek = [False]
-personal = [False]
+personal = False
+shuddup = False
 sf = [0]
 skiptonext = [False]
 
@@ -94,14 +95,14 @@ sys.stdout.write(tcolorx + cls)
 
 
 def mainmenu():
-    print("""
+    print(f"""
  - - - - Drag'n'drop / Input - - - -
- + Drag'n'drop and enter folder to add to database.
+ + Drag'n'drop and enter folder to add to Geistauge's database.
  + Drag'n'drop and enter image file to compare with another image, while scanning new folder, or find in database.
 
- - - - - Schande HTML - - - -
+ - - - - {batchname} HTML - - - -
  + Press B to launch HTML in your favorite browser.
- | Press G to re/compile HTML from database (your browser will be used as comparison GUI).
+ | Press G to re/compile HTML from Geistauge's database (your browser will be used as comparison GUI).
  | Press D to delete non-exempted duplicate images immediately with a confirmation.
  +  > One first non-exempt in path alphabetically will be kept if no other duplication are exempted.
 
@@ -131,11 +132,11 @@ def help():
  - - - - Geistauge - - - -
   Wildcard: None, non-anchored start/end.
 
- Geistauge (German translate: ghost eye), your duplicate image finder!
  > Arbitrary rule (unless # commented out) in {rulefile} will become Geistauge's pattern exemption.
  > No exemption if at least one similar image doesn't have a pattern.
- > Once scan is completed, HTML will be used to view similar images,
-   including tools to see the differences not seen by naked eyes. Technically where I come up with the name Geistauge.
+ > Once scan is completed, {batchname} HTML will be used to view similar images,
+   including tools to see the differences not seen by naked eyes. This is part where I come up with the name Geistauge.
+   Geistauge (German translate: ghost eye)
 
  - - - - Sorter - - - -
   Wildcard: UNIX-style wildcard, ? matches 1 character, * matches everything, start/end is anchored until wildcarded.
@@ -563,7 +564,7 @@ if Mail:
     if len(Mail) < 3:
         Mail += [getpass.getpass(prompt=f" {Mail[0]}'s password (automatic if saved as third address): ")]
         echo("", 1)
-    personal[0] = True
+    personal = True
 else:
     print(" MAIL: NONE")
 if Geistauge:
@@ -732,9 +733,11 @@ for rule in rules:
         c = new_cookie()
         c.update({'domain': rr[1], 'name': rr[0].split(" ")[0], 'value': rr[0].split(" ")[1]})
         cookie.set_cookie(cookiejar.Cookie(**c))
-        personal[0] = True
+        personal = True
     elif len(rr := rule.split(" seconds rarity ")) == 2:
         ticks += [[int(x) for x in rr[0].split("-")]]*int(rr[1].split("%")[0])
+    elif rule == "shuddup":
+        shuddup = True
     elif rule.startswith("\\"):
         dir = rule.split("\\", 1)[1]
         if dir.endswith("\\"):
@@ -764,8 +767,10 @@ request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookie))
 
 
 
-if HTMLserver and personal[0]:
-    print(f"\n{tcoloro} HTML SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookie.{tcolorx}")
+if personal and not shuddup:
+    print(f"\n{tcolorr} TO YOURSELF: {rulefile} contains personal information like mail, password, cookie. Edit {rulefile} before sharing!{tcolorx}")
+    if HTMLserver:
+        print(f"{tcoloro} HTML SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookie.{tcolorx}")
 
 
 

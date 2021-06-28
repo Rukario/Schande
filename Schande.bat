@@ -47,16 +47,16 @@ busy = [False]
 cooldown = [False]
 echothreadn = []
 error = [[]]
+newfilen = [0]
 offlineprompt = [False]
 offlinepromptx = [False]
-newfilen = [0]
+personal = False
 retryall = [False]
 retries = [0]
 retryx = [False]
 seek = [False]
-personal = False
-shuddup = False
 sf = [0]
+shuddup = False
 skiptonext = [False]
 
 from PIL import Image
@@ -716,6 +716,9 @@ ticks = []
 for rule in rules:
     if not rule or rule.startswith("#"):
         continue
+
+
+
     rr = rule.split(" for ")
     if len(rr) == 2 and rr[0].startswith("md5"):
         md5er += [rr[1]]
@@ -734,6 +737,9 @@ for rule in rules:
         c.update({'domain': rr[1], 'name': rr[0].split(" ")[0], 'value': rr[0].split(" ")[1]})
         cookie.set_cookie(cookiejar.Cookie(**c))
         personal = True
+
+
+
     elif len(rr := rule.split(" seconds rarity ")) == 2:
         ticks += [[int(x) for x in rr[0].split("-")]]*int(rr[1].split("%")[0])
     elif rule == "shuddup":
@@ -859,6 +865,8 @@ def fetch(url, context=None, headers={'User-Agent':'Mozilla/5.0'}, stderr="", dl
 
 
 
+context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
+request.install_opener(request.build_opener(request.HTTPSHandler(context=context)))
 def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'User-Agent':'Mozilla/5.0', 'Referer':"", 'Origin':""}, headonly=False, stderr="", threadn=0):
     echolink = f"{url[:87]}{(url[87:] and '█')}"
     dl = 0
@@ -1480,11 +1488,11 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, filelist, pos, af
                             continue
                         z, cwf, _ = peanut(z[pos])
                         if f[0] == z[0]:
-                            name += [[z[1], 0, [cwf[0], cwf[1] + "".join(name2)] if name2 else cwf, "there's no name asset found in dictionary for this file."]]
+                            name += [[z[1], 0, [cwf[0], 0, cwf[1] + "".join(name2)] if name2 else cwf, "there's no name asset found in dictionary for this file."]]
                             name2 = []
                         else:
                             name2 += [nested(db, [z[0], [[z[1], 0, cwf, "there's no name asset found in dictionary for this file."]]])[0][0]]
-                    files = nested(db, [f[0], [[c[0], c[1], 0, 0], [f[1], 0, cw, 0]] + name + key])
+                    files = nested(db, [f[0], [[c[0], c[1], 0, 0], [f[1], 0, cw, 0]] + key + name])
                     if c[1]:
                         cf = []
                         for cc in c[1]:
@@ -1496,22 +1504,21 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, filelist, pos, af
                         continue
                     for z in name2:
                         for file in files:
-                            file += [file[1]]
-                            file[1] = z
+                            file += [file[2]]
+                            file[2] = z
                     for file in files:
-                        name = file[1]
-                        key = file[2]
+                        key = file[1]
+                        name = file[2] if len(file) == 3 else ""
                         if e := pick["extfix"]:
                             e, cwx, a = peanut(e, [".", ""])
                             if len(ext := carrots([[file[0], ""]], e, False, cwx)) == 2 and not name.endswith(ext := ext[-2][1]):
                                 name += ext
-                        for m in meta:
-                            m2 = ""
-                            for z in m:
-                                z, cwx, a = peanut(z)
-                                if len(n := carrots([[file[0], ""]], z, False, cwx)) == 2:
-                                    m2 += n[-2][1]
-                            name = m2 + name
+                        m2 = ""
+                        for z in meta:
+                            z, cwx, a = peanut(z[pos-1])
+                            if len(n := carrots([[file[0], ""]], z, False, cwx)) == 2:
+                                m2 += n[-2][1]
+                        name = m2 + name
                         filelist += [[key, {"link":file[0], "name":saint(folder[0] + name), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
             else:
                 for p in part:
@@ -1540,15 +1547,20 @@ def rp(x, p):
 
 def pick_in_page(scraper):
     while True:
+        # nested(dictionary, [branching/linear keys, [[linear keys, choice, customize with, stderr and abandon all linear keys], [linear keys, 0 accept any, 0 no customization, 0 abandon only this]]])
         data = ""
         url = ""
         threadn, page, more, htmlassets = scraper.get()
         htmlpart = htmlassets["partition"]
-        pick = pickers[[x for x in pickers.keys() if page.startswith(x)][0]]
+        get_pick = [x for x in pickers.keys() if page.startswith(x)]
+        if not get_pick:
+            print(f"I don't have a scraper for {page}")
+            break
+        pick = pickers[get_pick[0]]
         htmlassets["inlinefirst"] = pick["inlinefirst"]
         pg[0] += 1
         if pick["visit"]:
-            fetch(page, stderr="Error visiting visit page")
+            fetch(page, stderr="Error visiting the page to visit")
         if x := pick["urlfix"]:
             for y in x[1]:
                 page = x[0] + carrots([[page, ""]], y, False)[-2][1] + x[2]
@@ -1652,8 +1664,8 @@ def pick_in_page(scraper):
                                         print(f"Checkpoint: {px}\n")
                     else:
                         for p in [x[1] for x in carrots(part, z, True, cw) if x[1]]:
-                            if not p[1] == page and not page + p[1] == page:
-                                px = p[1] if y[0]["alt"] else page + p[1] 
+                            if not p == page and not page + p == page:
+                                px = p if y[0]["alt"] else page + p
                                 more += [px]
                                 if pick["checkpoint"]:
                                     print(f"Checkpoint: {px}\n")
@@ -3163,6 +3175,8 @@ def keylistener():
                         else:
                             data = "\n".join([s.rstrip() if s.rstrip() else "" for s in data.replace("	", "    ").splitlines()])
                             print(syntax(data))
+                    else:
+                        print("Error or dead (update cookie or referer if these are required to view)\n")
                 elif m == "x":
                     break
                 else:
@@ -3299,7 +3313,6 @@ exit)
 set pythondir=!pythondir:\=\\!
 
 if exist Lib\site-packages\socks.py (echo.) else (goto install)
-::if exist Lib\site-packages\selenium (echo.) else (goto instal)
 if exist Lib\site-packages\PIL (goto start) else (echo.)
 
 :install
@@ -3307,7 +3320,6 @@ echo  Hold on . . . I need to install the missing packages.
 if exist "Scripts\pip.exe" (echo.) else (color %stopcolor% && echo  PIP.exe doesn't seem to exist . . . Please install Python properly^^! I must exit^^! && pause>nul && exit)
 python -m pip install --upgrade pip
 Scripts\pip.exe install PySocks
-::Scripts\pip.exe install selenium
 Scripts\pip.exe install Pillow
 echo.
 pause

@@ -1168,7 +1168,6 @@ def downloadtodisk(htmlassets, makedirs=False):
                         orphfiles += [file]
                 tohtml(dir, htmlassets, set(orphfiles).difference([x[1].rsplit("/", 1)[-1] for x in filelist]))
     error[0] = []
-    print()
 
 
 
@@ -1635,7 +1634,7 @@ def pick_in_page(scraper):
                         else:
                             folder[0] += [x[1] for x in carrots([[page, ""]], z, False, cw) if x[1]][0]
             if pick["savelink"]:
-                htmlassets["page"] = {"link":page, "name":saint(folder[0] + folder[0].rsplit("\\", 2)[-2] + ".URL"), "edited":0}
+                htmlassets["page"] = {"link":page, "name":saint(folder[0] + folder[0].rsplit("\\", 2)[-2]), "edited":0}
         if pick["pages"]:
             for y in pick["pages"]:
                 for z in y[1:]:
@@ -1827,9 +1826,13 @@ def scrape(pages):
                 kill(0)
         downloadtodisk(htmlassets, makedirs=True)
         if x := htmlassets["page"]:
-            with open(get_cd(x, preview=True)[1], 'w') as f:
-                f.write(f"""[InternetShortcut]
+            xx = get_cd(x, preview=True)[1] + ".URL"
+            if not os.path.exists(xx):
+                txx = "\\" + xx.replace("/", "\\")
+                with open(xx, 'w') as f:
+                    f.write(f"""[InternetShortcut]
 URL={x["link"]}""")
+                print(f" File created: {txx}")
     return True
 
 
@@ -2576,7 +2579,7 @@ def tohtml(dir, htmlassets, orphfiles):
 
 
     if page := htmlassets["page"]:
-        builder += "<h2>Paysite: <a href=\"" + page["link"] + "\">" + page["name"] + "</a></h2>"
+        builder += "<h2>Paysite: <a href=\"" + page["link"] + "\">" + page["name"].rsplit("\\", 1)[1] + "</a></h2>"
 
 
 
@@ -2703,7 +2706,7 @@ def tohtml(dir, htmlassets, orphfiles):
                 listurls += f"""<p># From <a href="#{id}">#{id}</a> :: {title}<br>{links}\n"""
             builder += f"<p>{content}\n"
         else:
-            builder += "<br><div class=\"edits\">Rebuild HTML with higher tier is required to view</div>\n"
+            builder += "<br><div class=\"edits\">Rebuild HTML with a different login/tier may be required to view</div>\n"
         builder += "</div>\n\n"
     with open(dir + "gallery.html", 'wb') as f:
         f.write(bytes(new_html(builder, batchname, listurls), "utf-8"))
@@ -2735,7 +2738,7 @@ def label(m, s, html=False):
 
 def tohtml_g(delete=False):
     start = time.time()
-    print("\n Now compiling duplicates to HTML . . . kill this CLI to cancel.\n")
+    print(f"\n Now compiling duplicates to {batchname} HTML . . . kill this CLI to cancel.\n")
     builder = ""
     counter = 1
     db = opensav(sav).splitlines()
@@ -3028,6 +3031,7 @@ def run_input(m):
     else:
         print("Invalid input or not on disk")
         choice(bg=True)
+    print()
 
 
 

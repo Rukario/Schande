@@ -1414,7 +1414,7 @@ def opendb(data):
 
 
 
-def carrot_files(threadn, assets, htmlpart, key, na, pick, alt, filelist, after):
+def carrot_files(threadn, assets, htmlpart, key, na, pick, alt, folder, filelist, after):
     file = ""
     for asset in assets:
         if after:
@@ -1451,7 +1451,7 @@ def carrot_files(threadn, assets, htmlpart, key, na, pick, alt, filelist, after)
 
 
 
-def pick_files(threadn, data, db, part, htmlpart, pick, pickf, filelist, pos, after):
+def pick_files(threadn, data, db, part, htmlpart, pick, pickf, folder, filelist, pos, after):
     for y in pickf:
         na = True
         for z in y[1:]:
@@ -1527,10 +1527,10 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, filelist, pos, af
                         if k and len(d := carrots([p], k, False)) == 2:
                             key = d[0][1]
                             break
-                    na = carrot_files(threadn, carrots([p], f, pick["files"], cw), htmlpart, key, na, pick, y[0]["alt"], filelist, after)[1]
+                    na = carrot_files(threadn, carrots([p], f, pick["files"], cw), htmlpart, key, na, pick, y[0]["alt"], folder, filelist, after)[1]
                 for k in htmlpart.keys():
                     if x := htmlpart[k]["html"]:
-                        x, na = carrot_files(threadn, carrots(x, f, pick["files"], cw), htmlpart, k, na, pick, y[0]["alt"], filelist, after)
+                        x, na = carrot_files(threadn, carrots(x, f, pick["files"], cw), htmlpart, k, na, pick, y[0]["alt"], folder, filelist, after)
                         htmlpart[k]["html"] = x
             if not pick["files"] and not na:
                 break
@@ -1550,7 +1550,7 @@ def pick_in_page(scraper):
         # nested(dictionary, [branching/linear keys, [[linear keys, choice, customize with, stderr and abandon all linear keys], [linear keys, 0 accept any, 0 no customization, 0 abandon only this]]])
         data = ""
         url = ""
-        threadn, page, more, htmlassets = scraper.get()
+        threadn, folder, page, more, htmlassets = scraper.get()
         htmlpart = htmlassets["partition"]
         get_pick = [x for x in pickers.keys() if page.startswith(x)]
         if not get_pick:
@@ -1754,9 +1754,9 @@ def pick_in_page(scraper):
         filelist = []
         pos = 0
         if pick["file"]:
-            pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file"], filelist, pos, False)
+            pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file"], folder, filelist, pos, False)
         if pick["file2"]:
-            pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file2"], filelist, pos, True)
+            pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file2"], folder, filelist, pos, True)
         if pick["file"] or pick["file2"]:
             for file in filelist:
                 k = file[0]
@@ -1783,12 +1783,11 @@ for i in range(8):
 
 
 
-folder = [""]
 ready = [True]
-def scrape(pages):
+def scrape(page):
     htmlassets = {"page":"", "inlinefirst":True, "partition":{"0":{"html":[], "keywords":[], "files":[]}}}
-    folder[0] = ""
-    pages = iter(pages)
+    folder = [""]
+    pages = iter([page])
     while True:
         threadn = 0
         more = []
@@ -1796,7 +1795,7 @@ def scrape(pages):
         for link in pages:
             threadn += 1
             echothreadn.append(threadn)
-            scraper.put((threadn, link, more, htmlassets))
+            scraper.put((threadn, folder, link, more, htmlassets))
         try:
             scraper.join()
         except:
@@ -3019,7 +3018,7 @@ def syntax(html):
 
 def run_input(m):
     if any(word for word in pickers.keys() if m.startswith(word)):
-        scrape([m])
+        scrape(m)
     elif m.startswith("http") and not m.startswith("http://localhost"):
         if m.endswith("/"):
             choice(bg=True)
@@ -3248,7 +3247,8 @@ else:
     if htmlassets["partition"]["0"]["files"]:
         downloadtodisk(htmlassets)
     elif imore:
-        scrape(imore)
+        for page in imore:
+            scrape(page)
     else:
         print(f" No urls in {textfile}!")
     busy[0] = False

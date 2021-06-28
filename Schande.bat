@@ -54,6 +54,7 @@ retryall = [False]
 retries = [0]
 retryx = [False]
 seek = [False]
+personal = [False]
 sf = [0]
 skiptonext = [False]
 
@@ -559,11 +560,10 @@ if Mail:
     else:
         print(" MAIL: Please add your two email addresses (sender/receiver)\n\n TRY AGAIN!")
         sys.exit()
-    if HTMLserver:
-        print(f"{tcolorr} HTML SERVER: Anyone accessing your server can open {rulefile} reading this Mail information.{tcolorx}")
     if len(Mail) < 3:
         Mail += [getpass.getpass(prompt=f" {Mail[0]}'s password (automatic if saved as third address): ")]
         echo("", 1)
+    personal[0] = True
 else:
     print(" MAIL: NONE")
 if Geistauge:
@@ -732,6 +732,7 @@ for rule in rules:
         c = new_cookie()
         c.update({'domain': rr[1], 'name': rr[0].split(" ")[0], 'value': rr[0].split(" ")[1]})
         cookie.set_cookie(cookiejar.Cookie(**c))
+        personal[0] = True
     elif len(rr := rule.split(" seconds rarity ")) == 2:
         ticks += [[int(x) for x in rr[0].split("-")]]*int(rr[1].split("%")[0])
     elif rule.startswith("\\"):
@@ -760,6 +761,11 @@ for rule in rules:
         exempt += [rule]
 request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookie)))
 # cookie.save()
+
+
+
+if HTMLserver and personal[0]:
+    print(f"\n{tcoloro} HTML SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookie.{tcolorx}")
 
 
 

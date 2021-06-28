@@ -152,3 +152,15 @@ files body > items > 0 > body > images > 0 > originalUrl
 name1 body > items > 0 > body > images > 0 > id
 name2 body > items > 0 > body > images > 0 > extension customize with .*
 meta ^/*^/ customize with *.
+
+https://fantia.jp/fanclubs/
+folder ^/*^/
+pages ^<a rel="next" class="page-link" href="/fanclubs/*^"><i class="fa fa-angle-right"></i></a> customize with https://fantia.jp/fanclubs/*
+pages <a class="link-block" href="*" customize with https://fantia.jp*
+
+https://fantia.jp/posts/
+urlfix https://fantia.jp/posts/* with https://fantia.jp/api/v1/posts/*
+file post > thumb > original
+meta ^/*
+file post > post_contents > 0 > post_content_photos > 0 > url > original
+meta ^/*?

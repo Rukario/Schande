@@ -19,6 +19,7 @@ ipb_pass_hash ... for .exhentai.org
 session_id ... for .patreon.com
 PHPSESSID ... for .pixiv.net
 FANBOXSESSID ... for .fanbox.cc
+_session_id ... for .fantia.jp
 
 __cf_bm ... for .patreon.com
 __cfduid ... for .patreon.com
@@ -166,6 +167,10 @@ pages <a class="link-block" href="*" customize with https://fantia.jp*
 https://fantia.jp/posts/
 urlfix https://fantia.jp/posts/* with https://fantia.jp/api/v1/posts/*
 file post > thumb > original
-meta ^/*
+name post > id customize with *.
+name1
+meta2 ^/*
 file post > post_contents > 0 > post_content_photos > 0 > url > original
-meta ^/*?
+name post > id customize with *.
+name1 post > post_contents > 0 > post_content_photos > 0 > id customize with *.
+meta2 ^/*?

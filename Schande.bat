@@ -291,8 +291,9 @@ def echo(threadn, b=0, f=0, c=False, friction=False):
             sys.stdout.write(f"{b:<113}\r")
     else:
         return
-def debug(e="", b=0, f=1):
-    echo(f"{inspect.getframeinfo(inspect.stack()[1][0]).lineno} {e}", b, f, "cccccc")
+def debug(e="echoed", b=0, f=1):
+    c = inspect.getframeinfo(inspect.stack()[1][0])
+    echo(f"{c.lineno} {c.function}() {e}", b, f, "cccccc")
 
 
 
@@ -616,7 +617,7 @@ def saint(name=False, url=False):
 
 
 def at(a, r, alt=True):
-    n, r = r.split(" ", 1)
+    n, r = r.split(" ", 1) if " " in r else [r, ""]
     n = int(n) if n else 0
     if not a:
         a += [[]]
@@ -1312,7 +1313,8 @@ def linear(d, z):
         if not x[0]:
             continue
         elif x[0] == "0":
-            return dt + ["0"]
+            dt += ["0"]
+            continue
         for y in x[0].split(" > "):
             y = y.split(" >> ")
             if not y[0]:
@@ -1332,9 +1334,12 @@ def linear(d, z):
             else:
                 return
         if x[1] and not any(c for c in x[1] if c == str(dc)):
-            return
+            if x[3]:
+                kill(0, x[3])
+            else:
+                return
         if x[2]:
-            dt += [str(dc.join(x[2]))]
+            dt += [str(dc).join(x[2])]
         else:
             dt += [str(dc)]
     return dt
@@ -1343,7 +1348,7 @@ def linear(d, z):
 
 def branch(d, z):
     ds = []
-    n = 1 if z[0][0] else 0
+    n = True if z[0][0] else False
     for k in z[0][0].split(" > "):
         x = k.split(" >> ")
         if not x[0]:
@@ -1393,7 +1398,7 @@ def peanut(x, cw=[], a=False):
         if not len(cw) == 2:
             kill("There is no asterisk while customizing a pick.")
     x = x[0]
-    if " > " in x:
+    if " > " in x or a:
         x = x.rsplit(" > 0", 1)
         if len(x) == 1:
             x = ["", x[0]]
@@ -1461,19 +1466,22 @@ def tree_files(db, key, f, cw, pick, htmlpart, folder, filelist, pos):
     else:
         c = ["", []]
     meta = []
-    name = []
-    name2 = []
+    linear_name = []
+    off_branch_name = []
     for z in pick["name"]:
         if not z[0]["alt"]:
             meta += [z[1:]]
             continue
-        z, cwf, _ = peanut(z[pos])
+        z, cwf, _ = peanut(z[pos], [], True)
         if f[0] == z[0]:
-            name += [[z[1], 0, [cwf[0], 0, cwf[1] + "".join(name2)] if name2 else cwf, "there's no name asset found in dictionary for this file."]]
-            name2 = []
+            if off_branch_name:
+                cwf = [cwf[0], cwf[1] + "".join(off_branch_name)]
+                off_branch_name = []
+            linear_name += [[z[1], 0, cwf, "there's no name asset found in dictionary for this file."]]
         else:
-            name2 += [tree(db, [z[0], [[z[1], 0, cwf, "there's no name asset found in dictionary for this file."]]])[0][0]]
-    files = tree(db, [f[0], [[c[0], c[1], 0, 0], [f[1], 0, cw, 0]] + key + name])
+            x = tree(db, [z[0], [[z[1], 0, cwf, "there's no name asset found in dictionary for this file."]]])
+            off_branch_name += [x[0][0]] if x else []
+    files = tree(db, [f[0], [[c[0], c[1], 0, 0], [f[1], 0, cw, 0]] + key + linear_name])
     if c[1]:
         cf = []
         for cc in c[1]:
@@ -1483,24 +1491,18 @@ def tree_files(db, key, f, cw, pick, htmlpart, folder, filelist, pos):
         files = [cf]
     if not files or not files[0]:
         return
-    for z in name2:
-        for file in files:
-            file += [file[2]]
-            file[2] = z
     for file in files:
         key = file[1]
-        name = file[2] if len(file) == 3 else ""
+        linear_name = "".join(file[2:] + off_branch_name)
         if e := pick["extfix"]:
             e, cwx, a = peanut(e, [".", ""])
-            if len(ext := carrots([[file[0], ""]], e, False, cwx)) == 2 and not name.endswith(ext := ext[-2][1]):
-                name += ext
-        m2 = ""
+            if len(ext := carrots([[file[0], ""]], e, False, cwx)) == 2 and not linear_name.endswith(ext := ext[-2][1]):
+                linear_name += ext
         for z in meta:
             z, cwx, a = peanut(z[pos-1])
-            if len(n := carrots([[file[0], ""]], z, False, cwx)) == 2:
-                m2 += n[-2][1]
-        name = m2 + name
-        filelist += [[key, {"link":file[0], "name":saint(folder[0] + name), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
+            if len(c := carrots([[file[0], ""]], z, False, cwx)) == 2:
+                linear_name += c[-2][1] # to do: order friendly
+        filelist += [[key, {"link":file[0], "name":saint(folder[0] + linear_name), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
 
 
 

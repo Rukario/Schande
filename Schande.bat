@@ -593,11 +593,11 @@ print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 
 
 
-cookie = cookiejar.MozillaCookieJar("cookies.txt")
+cookies = cookiejar.MozillaCookieJar("cookies.txt")
 if os.path.exists("cookies.txt"):
-    cookie.load()
+    cookies.load()
 def new_cookie():
-    return {'port_specified':False, 'domain_specified':False, 'domain_initial_dot':False, 'path_specified':False, 'version':0, 'port':None, 'path':'/', 'secure':None, 'expires':None, 'comment':None, 'comment_url':None, 'rest':{"HttpOnly": None}, 'rfc2109':False, 'discard':True, 'domain':None, 'name':None, 'value':None}
+    return {'port_specified':False, 'domain_specified':False, 'domain_initial_dot':False, 'path_specified':True, 'version':0, 'port':None, 'path':'/', 'secure':False, 'expires':None, 'comment':None, 'comment_url':None, 'rest':{"HttpOnly": None}, 'rfc2109':False, 'discard':True, 'domain':None, 'name':None, 'value':None}
 
 
 
@@ -732,10 +732,10 @@ for rule in rules:
             sys.exit()
         else:
             customdir.update({rr[1]: rr[0]})
-    elif len(rr) == 2 and rr[1].startswith('.') or len(rr) == 2 and rr[1].startswith('www.'):
+    elif len(rr) == 2 and rr[1].startswith('.'):
         c = new_cookie()
         c.update({'domain': rr[1], 'name': rr[0].split(" ")[0], 'value': rr[0].split(" ")[1]})
-        cookie.set_cookie(cookiejar.Cookie(**c))
+        cookies.set_cookie(cookiejar.Cookie(**c))
         personal = True
 
 
@@ -768,15 +768,13 @@ for rule in rules:
         sorter[dir] += [rule]
     else:
         exempt += [rule]
-request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookie)))
-# cookie.save()
 
 
 
 if personal and not shuddup:
-    print(f"\n{tcolorr} TO YOURSELF: {rulefile} contains personal information like mail, password, cookie. Edit {rulefile} before sharing!{tcolorx}")
+    print(f"\n{tcolorr} TO YOURSELF: {rulefile} contains personal information like mail, password, cookies. Edit {rulefile} before sharing!{tcolorx}")
     if HTMLserver:
-        print(f"{tcoloro} HTML SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookie.{tcolorx}")
+        print(f"{tcoloro} HTML SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookies.{tcolorx}")
 
 
 
@@ -865,8 +863,12 @@ def fetch(url, context=None, headers={'User-Agent':'Mozilla/5.0'}, stderr="", dl
 
 
 
-context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
-request.install_opener(request.build_opener(request.HTTPSHandler(context=context)))
+# context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+# context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
+# request.install_opener(request.build_opener(request.HTTPSHandler(context=context)))
+request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookies)))
+# cookies.save()
+
 def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'User-Agent':'Mozilla/5.0', 'Referer':"", 'Origin':""}, headonly=False, stderr="", threadn=0):
     echolink = f"{url[:87]}{(url[87:] and '█')}"
     dl = 0
@@ -1303,7 +1305,7 @@ def carrots(data, x, any=True, cw=[]):
 
 
 
-def grab(d, z):
+def linear(d, z):
     dt = []
     for x in z[1]:
         dc = d
@@ -1339,7 +1341,7 @@ def grab(d, z):
 
 
 
-def nest(d, z):
+def branch(d, z):
     ds = []
     n = 1 if z[0][0] else 0
     for k in z[0][0].split(" > "):
@@ -1348,7 +1350,7 @@ def nest(d, z):
             continue
         if x[0] == "*":
             for y in d.values():
-                ds += nest(y, [[z[0][0].split("* > ", 1)[1]] + z[0][1:], z[1]])
+                ds += branch(y, [[z[0][0].split("* > ", 1)[1]] + z[0][1:], z[1]])
             return ds
         if x[0] in d:
             try:
@@ -1368,20 +1370,20 @@ def nest(d, z):
         if n:
             dx = []
             for dc in d:
-                if dt := grab(dc, z):
+                if dt := linear(dc, z):
                     dx += [dt]
             if dx:
                 return dx
         else:
-            if dt := grab(d, z):
+            if dt := linear(d, z):
                 return [dt]
     else:
         for x in d:
-            ds += nest(x, [z[0][1:], z[1]])
+            ds += branch(x, [z[0][1:], z[1]])
     return ds
-def nested(d, z):
+def tree(d, z):
     z[0] = z[0].split(" > 0")
-    return nest(d, z)
+    return branch(d, z)
 
 
 
@@ -1451,6 +1453,57 @@ def carrot_files(threadn, assets, htmlpart, key, na, pick, alt, folder, filelist
 
 
 
+def tree_files(db, key, f, cw, pick, htmlpart, folder, filelist, pos):
+    if pick["choose"]:
+        c = pick["choose"][pos-1].rsplit(" = ", 1)
+        c[0] = peanut(c[0])[0][1]
+        c[1] = c[1].split(" > ")
+    else:
+        c = ["", []]
+    meta = []
+    name = []
+    name2 = []
+    for z in pick["name"]:
+        if not z[0]["alt"]:
+            meta += [z[1:]]
+            continue
+        z, cwf, _ = peanut(z[pos])
+        if f[0] == z[0]:
+            name += [[z[1], 0, [cwf[0], 0, cwf[1] + "".join(name2)] if name2 else cwf, "there's no name asset found in dictionary for this file."]]
+            name2 = []
+        else:
+            name2 += [tree(db, [z[0], [[z[1], 0, cwf, "there's no name asset found in dictionary for this file."]]])[0][0]]
+    files = tree(db, [f[0], [[c[0], c[1], 0, 0], [f[1], 0, cw, 0]] + key + name])
+    if c[1]:
+        cf = []
+        for cc in c[1]:
+            if [cx := x[1:] for x in files if x[0] == cc]:
+                cf = cx
+                break
+        files = [cf]
+    if not files or not files[0]:
+        return
+    for z in name2:
+        for file in files:
+            file += [file[2]]
+            file[2] = z
+    for file in files:
+        key = file[1]
+        name = file[2] if len(file) == 3 else ""
+        if e := pick["extfix"]:
+            e, cwx, a = peanut(e, [".", ""])
+            if len(ext := carrots([[file[0], ""]], e, False, cwx)) == 2 and not name.endswith(ext := ext[-2][1]):
+                name += ext
+        m2 = ""
+        for z in meta:
+            z, cwx, a = peanut(z[pos-1])
+            if len(n := carrots([[file[0], ""]], z, False, cwx)) == 2:
+                m2 += n[-2][1]
+        name = m2 + name
+        filelist += [[key, {"link":file[0], "name":saint(folder[0] + name), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
+
+
+
 def pick_files(threadn, data, db, part, htmlpart, pick, pickf, folder, filelist, pos, after):
     for y in pickf:
         na = True
@@ -1473,53 +1526,7 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, folder, filelist,
                             key = [[k[1], 0, 0, 0]]
                         else:
                             continue
-                    if pick["choose"]:
-                        c = pick["choose"][pos-1].rsplit(" = ", 1)
-                        c[0] = peanut(c[0])[0][1]
-                        c[1] = c[1].split(" > ")
-                    else:
-                        c = ["", []]
-                    meta = []
-                    name = []
-                    name2 = []
-                    for z in pick["name"]:
-                        if not z[0]["alt"]:
-                            meta += [z[1:]]
-                            continue
-                        z, cwf, _ = peanut(z[pos])
-                        if f[0] == z[0]:
-                            name += [[z[1], 0, [cwf[0], 0, cwf[1] + "".join(name2)] if name2 else cwf, "there's no name asset found in dictionary for this file."]]
-                            name2 = []
-                        else:
-                            name2 += [nested(db, [z[0], [[z[1], 0, cwf, "there's no name asset found in dictionary for this file."]]])[0][0]]
-                    files = nested(db, [f[0], [[c[0], c[1], 0, 0], [f[1], 0, cw, 0]] + key + name])
-                    if c[1]:
-                        cf = []
-                        for cc in c[1]:
-                            if [cx := x[1:] for x in files if x[0] == cc]:
-                                cf = cx
-                                break
-                        files = [cf]
-                    if not files or not files[0]:
-                        continue
-                    for z in name2:
-                        for file in files:
-                            file += [file[2]]
-                            file[2] = z
-                    for file in files:
-                        key = file[1]
-                        name = file[2] if len(file) == 3 else ""
-                        if e := pick["extfix"]:
-                            e, cwx, a = peanut(e, [".", ""])
-                            if len(ext := carrots([[file[0], ""]], e, False, cwx)) == 2 and not name.endswith(ext := ext[-2][1]):
-                                name += ext
-                        m2 = ""
-                        for z in meta:
-                            z, cwx, a = peanut(z[pos-1])
-                            if len(n := carrots([[file[0], ""]], z, False, cwx)) == 2:
-                                m2 += n[-2][1]
-                        name = m2 + name
-                        filelist += [[key, {"link":file[0], "name":saint(folder[0] + name), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
+                    tree_files(db, key, f, cw, pick, htmlpart, folder, filelist, pos)
             else:
                 for p in part:
                     key = "0"
@@ -1547,7 +1554,7 @@ def rp(x, p):
 
 def pick_in_page(scraper):
     while True:
-        # nested(dictionary, [branching/linear keys, [[linear keys, choice, customize with, stderr and abandon all linear keys], [linear keys, 0 accept any, 0 no customization, 0 abandon only this]]])
+        # tree(dictionary, [branching/linear keys, [[linear keys, choice, customize with, stderr and abandon all linear keys], [linear keys, 0 accept any, 0 no customization, 0 abandon only this]]])
         data = ""
         url = ""
         threadn, folder, page, more, htmlassets = scraper.get()
@@ -1599,7 +1606,7 @@ def pick_in_page(scraper):
                             c[1] = c[1].split(" > ")
                         else:
                             c = [[], []]
-                        result = nested(json.loads(data), [z[0], [[c[0], c[1], 0, 0], [z[1], 0, 0, 0]]])
+                        result = tree(json.loads(data), [z[0], [[c[0], c[1], 0, 0], [z[1], 0, 0, 0]]])
                         if y[0]["alt"] and result:
                             if not pick["dismiss"] and Browser:
                                 os.system(f"""start "" "{Browser}" "{page}" """)
@@ -1637,7 +1644,7 @@ def pick_in_page(scraper):
                         if a:
                             if not db:
                                 db = opendb(data)
-                            for d in nested(db, [z[0], [[z[1], 0, 0, 0]]]):
+                            for d in tree(db, [z[0], [[z[1], 0, 0, 0]]]):
                                 folder[0] += d[0]
                         elif y[0]["alt"]:
                             folder[0] += [x[1] for x in carrots(part, z, False, cw) if x[1]][0]
@@ -1654,7 +1661,7 @@ def pick_in_page(scraper):
                     if a:
                         if not db:
                             db = opendb(data)
-                        pages = nested(db, [z[0], [[z[1], 0, 0, 0]]])
+                        pages = tree(db, [z[0], [[z[1], 0, 0, 0]]])
                         if pages and not pages[0][0] == "None":
                             for p in pages:
                                 if not p[0] == page and not page + p[0] == page:
@@ -1689,7 +1696,7 @@ def pick_in_page(scraper):
                                 key = [[k[1], 0, 0, 0]]
                             else:
                                 continue
-                        for d in nested(db, [z[0], [[z[1], 0, 0, 0]] + key]):
+                        for d in tree(db, [z[0], [[z[1], 0, 0, 0]] + key]):
                             html += [[d[0], d[1]]]
                 else:
                     new_part = []
@@ -1726,7 +1733,7 @@ def pick_in_page(scraper):
                                     continue
                             if not key[0][0] in keywords:
                                 keywords.update({key[0][0]: ["", ""]})
-                            for d in nested(db, [z[0], [[z[1], 0, 0, 0]] + key]):
+                            for d in tree(db, [z[0], [[z[1], 0, 0, 0]] + key]):
                                 keywords[d[1]] += [d[0]]
                     else:
                         for p in part:
@@ -1769,7 +1776,7 @@ def pick_in_page(scraper):
                     x = get_cd(file[1], preview=True)
                     print(tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1] + tcolorx)
                 if not x:
-                    print(f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, check for bad asterisks in other pickers.{tcolorx}")
+                    print(f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference.{tcolorx}")
                 ready[0] = False
         echothreadn.remove(threadn)
         scraper.task_done()
@@ -3079,7 +3086,7 @@ def keylistener():
             ready_input()
         elif el == 2:
             c = False
-            for c in cookie:
+            for c in cookies:
                 echo(str(c), 1, 2)
             if not c:
                 echo("No cookies!", 1, 1)
@@ -3166,7 +3173,7 @@ def keylistener():
                             z = m[1].rsplit(" > 0", 1)
                             if len(z) == 1:
                                 z = ["", z[0]]
-                            if x := nested(opendb(data), [z[0], [[z[1], 0, 0, 0]]]):
+                            if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0]]]):
                                 for y in x:
                                     print(y[0])
                             else:

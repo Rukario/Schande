@@ -1475,7 +1475,7 @@ def tree_files(db, key, f, cw, pick, htmlpart, folder, filelist, pos):
         z, cwf, _ = peanut(z[pos], [], True)
         if f[0] == z[0]:
             if off_branch_name:
-                cwf = [cwf[0], cwf[1] + "".join(off_branch_name)]
+                cwf = [cwf[0] + "".join(off_branch_name), cwf[1]]
                 off_branch_name = []
             linear_name += [[z[1], 0, cwf, "there's no name asset found in dictionary for this file."]]
         else:

@@ -1310,8 +1310,8 @@ def linear(d, z):
         dc = d
         if not x[0]:
             continue
-        elif x[0] == "0":
-            dt += ["0"]
+        elif x[0] == "0" or isinstance(x[0], int):
+            dt += [x[0]]
             continue
         for y in x[0].split(" > "):
             y = y.split(" >> ")
@@ -1469,6 +1469,7 @@ def tree_files(db, key, f, cw, pick, htmlpart, folder, filelist, pos):
     for z in pick["name"]:
         if not z[0]["alt"]:
             meta += [z[1:]]
+            linear_name += [[1]]
             continue
         z, cwf, _ = peanut(z[pos], [], True)
         if f[0] == z[0]:
@@ -1491,16 +1492,17 @@ def tree_files(db, key, f, cw, pick, htmlpart, folder, filelist, pos):
         return
     for file in files:
         key = file[1]
-        linear_name = "".join(file[2:] + off_branch_name)
+        m = []
+        for z in meta:
+            z, cwx, _ = peanut(z[pos-1])
+            if len(c := carrots([[file[0], ""]], z, False, cwx)) == 2:
+                m += [c[-2][1]]
+        name = "".join([x if not x == 1 else m.pop(0) for x in file[2:]] + off_branch_name)
         if e := pick["extfix"]:
             e, cwx, a = peanut(e, [".", ""])
-            if len(ext := carrots([[file[0], ""]], e, False, cwx)) == 2 and not linear_name.endswith(ext := ext[-2][1]):
-                linear_name += ext
-        for z in meta:
-            z, cwx, a = peanut(z[pos-1])
-            if len(c := carrots([[file[0], ""]], z, False, cwx)) == 2:
-                linear_name += c[-2][1] # to do: order friendly
-        filelist += [[key, {"link":file[0], "name":saint(folder[0] + linear_name), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
+            if len(ext := carrots([[file[0], ""]], e, False, cwx)) == 2 and not name.endswith(ext := ext[-2][1]):
+                name += ext
+        filelist += [[key, {"link":file[0], "name":saint(folder[0] + name), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
 
 
 
@@ -1519,7 +1521,7 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, folder, filelist,
                     db = opendb(data)
                 for k in kx[1:]:
                     if not k:
-                        key = [["0", 0, 0, 0]]
+                        key = [["0"]]
                     else:
                         k = peanut(k)[0]
                         if f[0] == k[0]:

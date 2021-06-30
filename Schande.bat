@@ -172,35 +172,46 @@ def help():
   > keep testing! Pages are full of variables. Develop solid asterisks/keys and flag scraper "ready" to stop previews.
 
  + Available pickers:
- |  "http..."            validates a site to start a scraper, attribute all pickers to this.
- |  "visit"              visit especially for cookies before redirection.
- |  "urlfix ...*... with ...*..." permanent redirector.
- |  "url ...*... with ...*... redirector. Original url will be used for statement and scraper loop.
- |  "send X Y"           send data (X) to url (Y) or to current page url (no Y) before accessing page.
- |  "part ...*..."       partitioning the page.
- |  "key ...*..."        pick identifier and start HTML builder, defining each partition their ID.
- |  "html ...*..."       pick article from page/partition for HTML builder. API: pick content for HTML-based pickers.
- |                       HTML-based file pickers will look through articles for inline files too.
- |  "replace ...*... with ...*..." find'n'replace before start picking in page/partition.
- |  "title ...*..."      pick and use as folder from first scraped page.
- |  "folder ...*..."     from url.
- |  "choose .. > .. = X" choose file by a match in another key. "X > X" for multiple possibilities in priority order.
- |  "expect ...*..."     put scraper into loop, exit when a pattern is found in page. "unexpect" for opposition.
- |  "message ..."        customize alert message. Leave blank to exit loop without alerting.
- |  "file(s) ...*..."    pick first or all files to download, "relfile(s)" for relative urls.
- |  "name ...*..."       pick name for each file downloading. There's no file on disk without a filename!
- |  "meta ...*..."       from url.
- |  "extfix ...*..."     fix name without extension from url (detected by ending mismatch).
- |  "pages ...*..."      pick more pages to scrape in parallel, "relpages" for relative urls.
- |  "savelink"           save first scraped page link as URL file in same directory where files are downloading.
+ |  "http..."         validates a site to start a scraper, attribute all pickers to this.
  |
- | Page picker will make sure all pages are unique to visit, but older pages can cause loophole.
+ | Networking
+ |  "visit"           visit especially for cookies before redirection.
+ |  "urlfix ..*.. with ..*.." permanent redirector.
+ |  "url ..*.. with ..*.. redirector. Original url will be used for statement and scraper loop.
+ |  "send X Y"        send data (X) to url (Y) or to current page url (no Y) before accessing page.
+ |
+ | Alert
+ |  "expect ...*..."  put scraper into loop, exit when a pattern is found in page. "unexpect" for opposition.
+ |    API: "un/expect .. > .. = X", "X > X" for multiple possibilities.
+ |  "message ..."     customize alert message. Leave blank to exit loop without alerting.
+ |
+ | Get files
+ |  "title ...*..."   pick and use as folder from first scraped page.
+ |  "folder ...*..."  from url.
+ |  "choose .. > .. = X" choose file by a match in another key. "X > X" for multiple possibilities in preference order.
+ |  "file(s) ...*..." pick first or all files to download, "relfile(s)" for relative urls.
+ |  "name ...*..."    pick name for each file downloading. There's no file on disk without a filename!
+ |  "meta ...*..."    from url.
+ |  "extfix ...*..."  fix name without extension from url (detected by ending mismatch).
+ |
+ | HTML builder
+ |  "part ...*..."    partitioning the page.
+ |  "key ...*..."     pick identifier, defining each partition their ID.
+ |  "html ...*..."    pick article from page/partition for HTML builder.
+ |    API: pick content for HTML-based pickers. HTML-based file pickers will look through articles for inline files too.
+ |
+ | Miscellaneous
+ |  "replace ..*.. with ..*.." find'n'replace before start picking in page/partition.
+ |  "pages ...*..."   pick more pages to scrape in parallel, "relpages" for relative urls.
+ |    Page picker will make sure all pages are unique to visit, but older pages can cause loophole.
+ |  "savelink"        save first scraped page link as URL file in same directory where files are downloading.
+ |
  | Repeat a picker with different pattern for multiple possibilities/actions.
  | folder#, title#, name#, meta# to assemble assets together sequentially.
  | key# for title (key1), timestamp (key2) then keywords (key3 each) for HTML builder.
- |  "...*..."            HTML-based picker.
- |  "... > ..."          API/QS-based picker.
- | API/QS (Query String) supported pickers: part, key, html, expect, files, name, pages.
+ |  "...*..."         HTML-based picker.
+ |  "... > ..."       API/QS-based picker.
+ | API/QS (Query String) supported pickers: key, html, expect, files, name, pages.
  | Magic key: " > 0 > " to iterate a list, " > * > " to iterate all within, " >> " to load a dictionary from inside QS.
  + During API each file picker must be accompanied by name picker and all HTML-based name/meta pickers must descend.
 
@@ -1158,7 +1169,7 @@ def downloadtodisk(fromhtml, makedirs=False):
     download.join()
     title(status() + batchfile)
 
-    if len(htmlpart.keys()) > 1:
+    if len(htmlpart) > 1 or htmlpart["0"]["html"]:
         newfile = False if lastfilen == newfilen[0] else True
         if error[0]:
             for x in error[0]:
@@ -1602,13 +1613,8 @@ def pick_in_page(scraper):
                     z, cw, a = peanut(z)
                     if a:
                         pos += 1
-                        if pick["choose"]:
-                            c = pick["choose"][pos-1].rsplit(" = ", 1)
-                            c[0] = peanut(c[0])[0][1]
-                            c[1] = c[1].split(" > ")
-                        else:
-                            c = [[], []]
-                        result = tree(json.loads(data), [z[0], [[c[0], c[1], 0, 0], [z[1], 0, 0, 0]]])
+                        c = z[1].rsplit(" = ", 1)
+                        result = tree(json.loads(data), [z[0], [[c[0], c[1].split(" > "), 0, 0]]])
                         if y[0]["alt"] and result:
                             if not pick["dismiss"] and Browser:
                                 os.system(f"""start "" "{Browser}" "{page}" """)

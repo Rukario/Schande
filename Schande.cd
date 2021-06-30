@@ -174,3 +174,7 @@ file post > post_contents > 0 > post_content_photos > 0 > url > original
 name post > id customize with *.
 name1 post > post_contents > 0 > post_content_photos > 0 > id customize with *.
 meta2 ^/*?
+key post > id
+key1 post > title
+key2 post > converted_at
+html post > comment

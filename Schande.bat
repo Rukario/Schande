@@ -2684,7 +2684,7 @@ def tohtml(dir, fromhtml, orphfiles):
             content = ""
         new_container = False
         end_container = False
-        time = part[id]["keywords"][1] if part[id]["keywords"][1] else "No timestamp"
+        time = part[id]["keywords"][1] if len(part[id]["keywords"]) > 1 and part[id]["keywords"][1] else "No timestamp"
         keywords = ", ".join(x for x in part[id]["keywords"][2:]) if len(part[id]["keywords"]) > 2 else "None"
         builder += f"""<div class=\"cell\">
 <div class="time" id="{id}" style="float:right;"><p>Part ID: {id} ꍯ {time}<p>Keywords: {keywords}</div>

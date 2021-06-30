@@ -391,7 +391,7 @@ def echoMBs(threadn, Bytes, ff):
     s = time.time()
     if echofriction[0] < int(s*eps):
         echofriction[0] = int(s*eps)
-        stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {FAVORITE} {''.join(fx[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
+        stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {batchname} {''.join(fx[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
     else:
         echofriction[0] = int(s*eps)
     if Bstime[0] < int(s):
@@ -814,7 +814,6 @@ def retry(stderr):
     while True:
         if not offlineprompt[0]:
             offlineprompt[0] = True
-            # raise
             if stderr:
                 if offlinepromptx[0]:
                     e = f"{retries[0]} retries (Q)uit trying "
@@ -823,7 +822,7 @@ def retry(stderr):
                     else:
                         echo(e)
                 else:
-                    title(status() + FAVORITE)
+                    title(status() + batchname)
                     print(f"{stderr} (R)etry? (A)lways (N)ext")
                     el = choice("ran", True)
                     if el == 1:
@@ -836,7 +835,7 @@ def retry(stderr):
             else:
                 echo(f"{retries[0]} retries (S)kip one, wait it out, or press X to quit trying . . . ")
             time.sleep(0.5)
-            title(status() + FAVORITE)
+            title(status() + batchname)
             retries[0] += 1
             offlineprompt[0] = False
             return True
@@ -1071,11 +1070,10 @@ def get_cd(file, makedirs=False, preview=False):
 
 
 
-FAVORITE = batchfile
-def downloadtodisk(htmlassets, makedirs=False):
+def downloadtodisk(fromhtml, makedirs=False):
     filelist = []
     filelisthtml = []
-    htmlpart = htmlassets["partition"]
+    htmlpart = fromhtml["partition"]
     for key in htmlpart.keys():
         for file in htmlpart[key]["files"]:
             if not file["name"]:
@@ -1088,7 +1086,7 @@ def downloadtodisk(htmlassets, makedirs=False):
                     print(f""" I don't have a scraper for {html[1]["link"]}""")
                 else:
                     filelisthtml += [get_cd(html[1], makedirs) + [key]]
-    if htmlassets["inlinefirst"]:
+    if fromhtml["inlinefirst"]:
         filelist = filelisthtml + filelist
     else:
         filelist += filelisthtml
@@ -1177,7 +1175,7 @@ def downloadtodisk(htmlassets, makedirs=False):
                 for file in next(os.walk(dir))[2]:
                     if not file.endswith(tuple(specialfile)):
                         orphfiles += [file]
-                tohtml(dir, htmlassets, set(orphfiles).difference([x[1].rsplit("/", 1)[-1] for x in filelist]))
+                tohtml(dir, fromhtml, set(orphfiles).difference([x[1].rsplit("/", 1)[-1] for x in filelist]))
     error[0] = []
 
 
@@ -1559,14 +1557,14 @@ def pick_in_page(scraper):
         # tree(dictionary, [branching/linear keys, [[linear keys, choice, customize with, stderr and abandon all linear keys], [linear keys, 0 accept any, 0 no customization, 0 abandon only this]]])
         data = ""
         url = ""
-        threadn, folder, page, more, htmlassets = scraper.get()
-        htmlpart = htmlassets["partition"]
+        threadn, folder, page, more, fromhtml = scraper.get()
+        htmlpart = fromhtml["partition"]
         get_pick = [x for x in pickers.keys() if page.startswith(x)]
         if not get_pick:
             print(f"I don't have a scraper for {page}")
             break
         pick = pickers[get_pick[0]]
-        htmlassets["inlinefirst"] = pick["inlinefirst"]
+        fromhtml["inlinefirst"] = pick["inlinefirst"]
         pg[0] += 1
         if pick["visit"]:
             fetch(page, stderr="Error visiting the page to visit")
@@ -1655,7 +1653,7 @@ def pick_in_page(scraper):
                         else:
                             folder[0] += [x[1] for x in carrots([[page, ""]], z, False, cw) if x[1]][0]
             if pick["savelink"]:
-                htmlassets["page"] = {"link":page, "name":saint(folder[0] + folder[0].rsplit("\\", 2)[-2]), "edited":0}
+                fromhtml["page"] = {"link":page, "name":saint(folder[0] + folder[0].rsplit("\\", 2)[-2]), "edited":0}
         if pick["pages"]:
             for y in pick["pages"]:
                 for z in y[1:]:
@@ -1717,7 +1715,7 @@ def pick_in_page(scraper):
                     htmlpart.update({x[1]:{"html":[], "keywords":[], "files":[]}})
                 htmlpart[x[1]].update({"html":[[rp(x[0], pick["replace"]), ""]] + htmlpart[x[1]]["html"]})
             keywords = {}
-            kpos = 0
+            pos = 0
             for k in pick["key"][1:]:
                 for z in k[1:]:
                     z, cw, a = peanut(z)
@@ -1746,13 +1744,13 @@ def pick_in_page(scraper):
                                     break
                             if not key in keywords:
                                 keywords.update({key: ["", ""]})
-                            if kpos < 2:
-                                if not keywords[key][kpos] and len(x := carrots([p], z, False, cw)) == 2:
-                                    keywords[key][kpos] = x[0][1]
+                            if pos < 2:
+                                if not keywords[key][pos] and len(x := carrots([p], z, False, cw)) == 2:
+                                    keywords[key][pos] = x[0][1]
                             else:
                                 for x in carrots([p], z, True, cw)[:-1]:
                                     keywords[key] += [x[1]]
-                kpos += 1
+                pos += 1
             for x in keywords.keys():
                 if not x in htmlpart:
                     htmlpart.update({x:{"html":[], "keywords":[], "files":[]}})
@@ -1794,7 +1792,7 @@ for i in range(8):
 
 ready = [True]
 def scrape(page):
-    htmlassets = {"page":"", "inlinefirst":True, "partition":{"0":{"html":[], "keywords":[], "files":[]}}}
+    fromhtml = new_part()
     folder = [""]
     pages = iter([page])
     while True:
@@ -1804,7 +1802,7 @@ def scrape(page):
         for link in pages:
             threadn += 1
             echothreadn.append(threadn)
-            scraper.put((threadn, folder, link, more, htmlassets))
+            scraper.put((threadn, folder, link, more, fromhtml))
         try:
             scraper.join()
         except:
@@ -1819,9 +1817,9 @@ def scrape(page):
         pages = iter(pages)
     title(status() + batchfile)
 
-    if htmlassets["partition"]:
+    if fromhtml["partition"]:
         if not ready[0]:
-            htmlpart = htmlassets["partition"]
+            htmlpart = fromhtml["partition"]
             if len(htmlpart) > 1 or htmlpart["0"]["html"]:
                 print("\n Then create " + tcolorg + folder[0] + "gallery.html" + tcolorx + " with")
                 for k in htmlpart.keys():
@@ -1844,8 +1842,8 @@ def scrape(page):
             sys.stdout.flush()
             if not choice("c") == 1:
                 kill(0)
-        downloadtodisk(htmlassets, makedirs=True)
-        if x := htmlassets["page"]:
+        downloadtodisk(fromhtml, makedirs=True)
+        if x := fromhtml["page"]:
             xx = get_cd(x, preview=True)[1] + ".URL"
             if not os.path.exists(xx):
                 txx = "\\" + xx.replace("/", "\\")
@@ -2590,15 +2588,15 @@ lazyload();
 
 
 
-def tohtml(dir, htmlassets, orphfiles):
+def tohtml(dir, fromhtml, orphfiles):
     tdir = "\\" + dir.replace("/", "\\")
     builder = ""
     listurls = ""
-    htmlpart = htmlassets["partition"]
+    htmlpart = fromhtml["partition"]
 
 
 
-    if page := htmlassets["page"]:
+    if page := fromhtml["page"]:
         builder += "<h2>Paysite: <a href=\"" + page["link"] + "\">" + page["name"].rsplit("\\", 1)[1] + "</a></h2>"
 
 
@@ -2611,9 +2609,9 @@ def tohtml(dir, htmlassets, orphfiles):
             if not file["name"] in seen and not seen.add(file["name"]):
                 files += [file["name"].rsplit("/", 1)[-1]]
         htmlpart[key]["files"] = files
-        for asset in htmlpart[key]["html"]:
-            if len(asset) == 2 and asset[1]:
-                asset[1]["name"] = asset[1]["name"].rsplit("/", 1)[-1]
+        for array in htmlpart[key]["html"]:
+            if len(array) == 2 and array[1]:
+                array[1]["name"] = array[1]["name"].rsplit("/", 1)[-1]
 
 
 
@@ -2697,25 +2695,25 @@ def tohtml(dir, htmlassets, orphfiles):
                 builder += container(file, 1)
             builder += "<p>orphaned file(s)</p>\n</div>\n"
         if html := part[id]["html"]:
-            for asset in html:
-                if len(asset) == 2:
+            for array in html:
+                if len(array) == 2:
                     if new_container:
                         content += "<div class=\"carbon\">\n"
                         end_container = True
                         new_container = False
-                    if asset[1]:
-                        content += f"""{asset[0]}{container(asset[1], 1)}"""
+                    if array[1]:
+                        content += f"""{array[0]}{container(array[1], 1)}"""
                     else:
-                        content += asset[0]
+                        content += array[0]
                 elif end_container:
                     if new_container:
                         content += "<div class=\"carbon\">\n"
                         new_container = False
                     else:
                         new_container = True
-                    content += asset[0] + "</div><p>"
+                    content += array[0] + "</div><p>"
                 else:
-                    content += asset[0]
+                    content += array[0]
                     new_container = True
             if "<a href=\"" in content:
                 urls = content.split("<a href=\"")
@@ -3210,24 +3208,29 @@ print("""
 
 
 
+def new_part():
+    return {"page":"", "inlinefirst":True, "partition":{"0":{"html":[], "keywords":[], "files":[]}}}
+
+
+
 # Loading filelist from detected urls in textfile
 if not os.path.exists(textfile):
     open(textfile, 'w').close()
 print(f"Reading {textfile} . . .")
 with open(textfile, 'r', encoding="utf-8") as f:
     textread = f.read().splitlines()
-htmlassets = {"page":"", "inlinefirst":True, "partition":{"0":{"html":[], "keywords":[], "files":[]}}}
-imore = []
+pages = []
+fromhtml = new_part()
 for url in textread:
     if not url or url.startswith("#"):
         continue
     elif not url.startswith("http"):
         continue
     if any(word for word in pickers.keys() if url.startswith(word)):
-        imore += [url]
+        pages += [url]
     else:
         name = parse.unquote(url.split("/")[-1])
-        htmlassets["partition"]["0"]["files"] += [{"link":url, "name":saint(name), "edited":0}]
+        fromhtml["partition"]["0"]["files"].update([{"link":url, "name":saint(name), "edited":0}])
 
 
 
@@ -3253,10 +3256,10 @@ if filelist:
     busy[0] = False
 else:
     busy[0] = True
-    if htmlassets["partition"]["0"]["files"]:
-        downloadtodisk(htmlassets)
-    elif imore:
-        for page in imore:
+    if fromhtml["partition"]["0"]["files"]:
+        downloadtodisk(fromhtml)
+    elif pages:
+        for page in pages:
             scrape(page)
     else:
         print(f" No urls in {textfile}!")

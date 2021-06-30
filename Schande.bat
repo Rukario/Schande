@@ -609,10 +609,10 @@ def saint(name=False, url=False):
     if url:
         url = list(parse.urlsplit(url))
         url2 = url[2].rsplit("/", 1)
-        url[2] = url2[0] + "/" + parse.quote(url2[1])
+        url[2] = url2[0] + "/" + parse.quote(url2[1], safe="%")
         return parse.urlunsplit(url)
     else:
-        return "".join(i for i in name.replace("/", "\\") if i not in "\":*?<>|")[:200]
+        return "".join(i for i in parse.unquote(name).replace("/", "\\") if i not in "\":*?<>|")[:200]
 
 
 

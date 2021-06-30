@@ -1739,10 +1739,13 @@ def pick_in_page(scraper):
                                     key = [[k[1], 0, 0, 0]]
                                 else:
                                     continue
-                            if not key[0][0] in keywords:
-                                keywords.update({key[0][0]: ["", ""]})
                             for d in tree(db, [z[0], [[z[1], 0, 0, 0]] + key]):
-                                keywords[d[1]] += [d[0]]
+                                if not d[1] in keywords:
+                                    keywords.update({d[1]: ["", ""]})
+                                if pos < 2:
+                                    keywords[d[1]][pos] = d[0]
+                                else:
+                                    keywords[d[1]] += [d[0]]
                     else:
                         for p in part:
                             key = "0"

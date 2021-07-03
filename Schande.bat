@@ -339,17 +339,17 @@ def alert(m, s, d=False):
 
 
 
-def kill(threadn, echo=None, r=None, view=None):
-    if not echo:
+def kill(threadn, e=None, r=None, view=None):
+    if not e:
         print(threadn)
     elif r:
         print(f"""
- {echo}
+ {e}
  Please update or remove cookie from "{r}" setting in {rulefile} then restart CLI.""")
     else:
-        print(f"""Thread {threadn} was killed {"by" if "(" in echo else "because"} {echo} {"(V)iew" if view else ""}""")
+        print(f"""Thread {threadn} was killed {"by" if "(" in e else "because"} {e} {"(V)iew" if view else ""}""")
     if view and choice("v") == 1:
-        print(view)
+        echo(view, 1, 1)
     sys.exit()
 
 
@@ -651,7 +651,7 @@ def topicker(s, rule):
         s["replace"] += [[rule[0], rule[1]]]
     elif rule.startswith("html "):
         s["html"] += [rule.split("html ", 1)[1]]
-        if s["file"] or s["file2"]:
+        if s["file"] or s["file_after"]:
             s["inlinefirst"] = False
     elif rule.startswith("key"):
         at(s["key"], rule.split("key", 1)[1])
@@ -670,14 +670,14 @@ def topicker(s, rule):
     elif rule.startswith("choose "):
         s["choose"] += [rule.split("choose ", 1)[1]]
     elif rule.startswith("file "):
-        at(s["file2" if s["name"] else "file"], rule.split("file", 1)[1])
+        at(s["file_after" if s["name"] else "file"], rule.split("file", 1)[1])
     elif rule.startswith("relfile "):
-        at(s["file2" if s["name"] else "file"], rule.split("relfile", 1)[1], False)
+        at(s["file_after" if s["name"] else "file"], rule.split("relfile", 1)[1], False)
     elif rule.startswith("files "):
-        at(s["file2" if s["name"] else "file"], rule.split("files", 1)[1])
+        at(s["file_after" if s["name"] else "file"], rule.split("files", 1)[1])
         s["files"] = True
     elif rule.startswith("relfiles "):
-        at(s["file2" if s["name"] else "file"], rule.split("relfiles", 1)[1], False)
+        at(s["file_after" if s["name"] else "file"], rule.split("relfiles", 1)[1], False)
         s["files"] = True
     elif rule.startswith("owner "):
         s["owner"] += [rule.split("owner ", 1)[1]]
@@ -720,7 +720,7 @@ mozilla = {}
 exempt = []
 pickers = {}
 def new_picker():
-    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file2":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "checkpoint":False, "savelink":False, "ready":False}
 pickers.update({"void":new_picker()})
 site = "void"
 dir = ""
@@ -1451,6 +1451,7 @@ def carrot_files(html, htmlpart, key, na, pick, alt, folder, filelist, inline=Fa
                         if len(n := carrots([[v, ""]], z, True, cw)) >= 2:
                             name += n[-2 if after else 0][1]
                             na = False
+                        array[0] = "".join(x[0] for x in n)
                     else:
                         v = url
                         if len(n := carrots([[v, ""]], z, False, cw)) == 2:
@@ -1735,21 +1736,12 @@ def pick_in_page(scraper):
                 if not k in htmlpart:
                     htmlpart.update({k:{"html":[], "keywords":[], "files":[]}})
 
-                na = True
-                for y in pick["file"]:
+                for y in pick["file_after"]:
                     for z in y[1:]:
                         f, cw, a = peanut(z)
                         if a:
                             continue
-                        h, na = carrot_files(carrots(h, f, pick["files"], cw), htmlpart, k, na, pick, y[0]["alt"], folder, filelist, True)
-
-                na = True
-                for y in pick["file2"]:
-                    for z in y[1:]:
-                        f, cw, a = peanut(z)
-                        if a:
-                            continue
-                        h, na = carrot_files(carrots(h, f, pick["files"], cw), htmlpart, k, na, pick, y[0]["alt"], folder, filelist, True, True)
+                        h = carrot_files(carrots(h, f, pick["files"], cw), htmlpart, k, True, pick, y[0]["alt"], folder, filelist, True, True)[0]
 
                 htmlpart[k].update({"html":h + htmlpart[k]["html"]})
             keywords = {}
@@ -1802,9 +1794,9 @@ def pick_in_page(scraper):
         pos = 0
         if pick["file"]:
             pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file"], folder, filelist, pos, False)
-        if pick["file2"]:
-            pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file2"], folder, filelist, pos, True)
-        if pick["file"] or pick["file2"]:
+        if pick["file_after"]:
+            pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file_after"], folder, filelist, pos, True)
+        if pick["file"] or pick["file_after"]:
             for file in filelist:
                 k = file[0]
                 if not k in htmlpart:

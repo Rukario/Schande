@@ -198,7 +198,9 @@ def help():
  |  "part ...*..."    partitioning the page.
  |  "key ...*..."     pick identifier, defining each partition their ID.
  |  "html ...*..."    pick article from page/partition for HTML builder.
- |    API: pick content for HTML-based pickers. HTML-based file pickers will look through articles for inline files too.
+ |    API: pick content for HTML-based pickers.
+ |    HTML-based file and name pickers will look through for inline files and clean up articles.
+ |  "icon ...*..."    pick an icon. Incremental "icon#" to pick more icons up to #th.
  |
  | Miscellaneous
  |  "replace ..*.. with ..*.." find'n'replace before start picking in page/partition.
@@ -649,10 +651,12 @@ def topicker(s, rule):
     elif rule.startswith("replace "):
         rule = rule.split(" ", 1)[1].split(" with ", 1)
         s["replace"] += [[rule[0], rule[1]]]
-    elif rule.startswith("html "):
-        s["html"] += [rule.split("html ", 1)[1]]
+    elif rule.startswith("html"):
+        s["html"] += [] if rule == "html" else [rule.split("html ", 1)[1]]
         if s["file"] or s["file_after"]:
             s["inlinefirst"] = False
+    elif rule.startswith("icon"):
+        at(s["icon"], rule.split("icon", 1)[1])
     elif rule.startswith("key"):
         at(s["key"], rule.split("key", 1)[1])
     elif rule.startswith("folder"):
@@ -720,7 +724,7 @@ mozilla = {}
 exempt = []
 pickers = {}
 def new_picker():
-    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "icon":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "checkpoint":False, "savelink":False, "ready":False}
 pickers.update({"void":new_picker()})
 site = "void"
 dir = ""
@@ -1791,6 +1795,25 @@ def pick_in_page(scraper):
         else:
             for p in part:
                 p[0] = rp(p[0], pick["replace"])
+        if pick["icon"]:
+            pos = 0
+            for x in pick["icon"]:
+                if len(fromhtml["icons"]) < pos + 1:
+                    for z in x[1:]:
+                        z, _, a = peanut(z)
+                        if a:
+                            if not db:
+                                db = opendb(data)
+                            url = tree(db, [z[0], [[z[1], 0, 0, 0]]])[0][0]
+                            ext = ""
+                            for x in imagefile:
+                                if x in url:
+                                    ext = x
+                            fromhtml["icons"] += [{"link":url, "name":f"""icon{pos if pos else ""}{ext}""", "edited":0}]
+                        else:
+                            if len(c := carrots(part, z, False, [])) == 2:
+                                fromhtml["icons"] += [c[0][1]]
+                pos += 1
         pos = 0
         if pick["file"]:
             pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file"], folder, filelist, pos, False)
@@ -2629,6 +2652,12 @@ def tohtml(dir, fromhtml, orphfiles):
 
 
 
+    for icon in fromhtml["icons"]:
+        todisk = dir + icon["name"]
+        if not os.path.exists(todisk):
+            if not get(icon["link"], todisk):
+                echo(f""" Error downloading: {icon["link"]}""", 0, 1)
+        builder += f"""<img src="{icon["name"]}" height="100px">\n"""
     if page := fromhtml["page"]:
         builder += "<h2>Paysite: <a href=\"" + page["link"] + "\">" + page["name"].rsplit("\\", 1)[1] + "</a></h2>"
 
@@ -3242,7 +3271,7 @@ print("""
 
 
 def new_part():
-    return {"page":"", "inlinefirst":True, "partition":{"0":{"html":[], "keywords":[], "files":[]}}}
+    return {"page":"", "inlinefirst":True, "icons":[], "partition":{"0":{"html":[], "keywords":[], "files":[]}}}
 
 
 

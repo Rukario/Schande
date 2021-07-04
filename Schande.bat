@@ -657,6 +657,8 @@ def topicker(s, rule):
             s["inlinefirst"] = False
     elif rule.startswith("icon"):
         at(s["icon"], rule.split("icon", 1)[1])
+    elif rule.startswith("links"):
+        at(s["links"], rule.split("links", 1)[1])
     elif rule.startswith("key"):
         at(s["key"], rule.split("key", 1)[1])
     elif rule.startswith("folder"):
@@ -723,8 +725,9 @@ referers = {}
 mozilla = {}
 exempt = []
 pickers = {}
+# Developer note: Need to implement a way to not let API-based pickers define file and file_after names for HTML-based file pickers.
 def new_picker():
-    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "icon":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "checkpoint":False, "savelink":False, "ready":False}
 pickers.update({"void":new_picker()})
 site = "void"
 dir = ""
@@ -1434,48 +1437,49 @@ def opendb(data):
 
 
 
-def carrot_files(html, htmlpart, key, na, pick, alt, folder, filelist, inline=False, after=False):
+def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
     url = ""
+    name_err = True
     for array in html:
-        file = ''
+        if not array[0]:
+            continue
+        file = ""
         if after:
             url = array[1]
         if url:
-            if not alt:
+            if not is_abs:
                 url = page + url
             name = ""
             for x in pick["name"]:
-                na = True
+                name_err = True
                 for z in x[1:]:
                     z, cw, a = peanut(z)
                     if a:
                         continue
+                    elif not z:
+                        name_err = False
                     elif x[0]["alt"]:
                         v = array[0]
                         if len(n := carrots([[v, ""]], z, True, cw)) >= 2:
                             name += n[-2 if after else 0][1]
-                            na = False
+                            name_err = False
                         array[0] = "".join(x[0] for x in n)
                     else:
                         v = url
                         if len(n := carrots([[v, ""]], z, False, cw)) == 2:
                             name += n[-2][1]
-                            na = False
-                if na:
+                            name_err = False
+                if name_err:
                     kill(0, f"""there's no match for name asset: {x[1:]} in""", view=v)
             if e := pick["extfix"]:
                 e, cw, a = peanut(e, [".", ""])
                 if len(ext := carrots([[url, ""]], e, False, cw)) == 2 and not name.endswith(ext := ext[-2][1]):
                     name += ext
-            file = {"link":url, "name":saint(folder[0] + parse.unquote(name)), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}
             url = array[1]
-            if inline:
-                array[1] = file
-            else:
-                filelist += [[key, file]]
+            array[1] = {"link":url, "name":saint(folder[0] + parse.unquote(name)), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}
         else:
             url = array[1]
-    return html, na
+    return html, name_err
 
 
 
@@ -1536,7 +1540,7 @@ def tree_files(db, out_key, key, f, cw, pick, htmlpart, folder, filelist, pos):
 
 def pick_files(threadn, data, db, part, htmlpart, pick, pickf, folder, filelist, pos, after):
     for y in pickf:
-        na = True
+        name_err = True
         for z in y[1:]:
             f, cw, a = peanut(z)
             if pick["key"] and pick["key"][0]:
@@ -1558,16 +1562,17 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, folder, filelist,
                             continue
                     out_key = x[0][0] if k[0][1] and (x := tree(db, [k[0][0], [[k[0][1], 0, 0, 0]]])) else 0
                     tree_files(db, out_key, key, f, cw, pick, htmlpart, folder, filelist, pos)
-            else:
-                if not db:
-                    for p in part:
-                        key = "0"
-                        for k in keys[1:]:
-                            if len(d := carrots([p], k[1], False)) == 2:
-                                key = d[0][1]
-                                break
-                        na = carrot_files(carrots([p], f, pick["files"], cw), htmlpart, key, na, pick, y[0]["alt"], folder, filelist, False, after)[1]
-            if not pick["files"] and not na:
+            elif not db:
+                for p in part:
+                    key = "0"
+                    for k in keys[1:]:
+                        if len(d := carrots([p], k[1], False)) == 2:
+                            key = d[0][1]
+                            break
+                    html, name_err = carrot_files(carrots([p], f, pick["files"], cw), htmlpart, key, pick, y[0]["alt"], folder, after)
+                    for h in html:
+                        filelist += [[key, h[1]]]
+            if not pick["files"] and not name_err:
                 break
     return pos
 
@@ -1699,9 +1704,9 @@ def pick_in_page(scraper):
                                 more += [px]
                                 if pick["checkpoint"]:
                                     print(f"Checkpoint: {px}\n")
-        filelist = []
+        filelist_html = []
         if pick["html"]:
-            html = []
+            k_html = []
             if pick["key"] and pick["key"][0]:
                 kx = pick["key"][0]
             else:
@@ -1721,7 +1726,7 @@ def pick_in_page(scraper):
                             else:
                                 continue
                         for d in tree(db, [z[0], [[z[1], 0, 0, 0]] + key]):
-                            html += [[d[0], d[1]]]
+                            k_html += [[d[1], [[rp(d[0], pick["replace"]), ""]]]]
                 else:
                     new_part = []
                     for p in part:
@@ -1731,23 +1736,24 @@ def pick_in_page(scraper):
                                 key = d[0][1]
                                 break
                         c = carrots([[p[0], ""]], z, False, cw)
-                        html += [[c[0][1], key]]
+                        k_html += [[key, [[rp(c[0][1], pick["replace"]), ""]]]]
                         new_part += [["".join(x[0] for x in c), ""]]
                     part = new_part
-            for x in html:
-                k = x[1]
-                h = [[rp(x[0], pick["replace"]), ""]]
+            for k, html in k_html:
                 if not k in htmlpart:
                     htmlpart.update({k:{"html":[], "keywords":[], "files":[]}})
-
                 for y in pick["file_after"]:
                     for z in y[1:]:
                         f, cw, a = peanut(z)
                         if a:
                             continue
-                        h = carrot_files(carrots(h, f, pick["files"], cw), htmlpart, k, True, pick, y[0]["alt"], folder, filelist, True, True)[0]
-
-                htmlpart[k].update({"html":h + htmlpart[k]["html"]})
+                        html = carrot_files(carrots(html, f, pick["files"], cw), htmlpart, k, pick, y[0]["alt"], folder, True)[0]
+                        new_html = []
+                        for h in html:
+                            new_html += [[h[0], ""], ["", h[1]]] if h[1] else [h]
+                            if not ready: filelist_html += [h[1]] if h[1] else []
+                        html = new_html
+                htmlpart[k].update({"html":html + htmlpart[k]["html"]})
             keywords = {}
             pos = 0
             for k in pick["key"][1:]:
@@ -1815,6 +1821,7 @@ def pick_in_page(scraper):
                                 fromhtml["icons"] += [c[0][1]]
                 pos += 1
         pos = 0
+        filelist = []
         if pick["file"]:
             pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file"], folder, filelist, pos, False)
         if pick["file_after"]:
@@ -1829,6 +1836,9 @@ def pick_in_page(scraper):
                 x = ""
                 for file in filelist:
                     x = get_cd(file[1], preview=True)
+                    echo(tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1] + tcolorx, 0, 1)
+                for file in filelist_html:
+                    x = get_cd(file, preview=True)
                     echo(tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1] + tcolorx, 0, 1)
                 if not x:
                     echo(f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference.{tcolorx}", 0, 1)
@@ -1886,12 +1896,12 @@ def scrape(page):
                         print(tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + tcolorx)
                     for file in htmlpart[k]["files"]:
                         print(tcolorg + file["name"].rsplit("\\")[-1] + tcolorx)
-                    if htmlpart[k]["html"]:
-                        for html in htmlpart[k]["html"]:
-                            if html[0]:
-                                print(tcoloro + html[0] + " ", end="")
-                                if html[1]:
-                                    print(tcolorg + html[1]["name"].rsplit("\\")[-1] + " ", end="")
+                    if html := htmlpart[k]["html"]:
+                        for h in html:
+                            if h[0]:
+                                print(tcoloro + h[0] + " ", end="")
+                            if h[1]:
+                                print(tcolorg + h[1]["name"].rsplit("\\")[-1] + " ", end="")
                         print(tcolorx)
             sys.stdout.write(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """)
             sys.stdout.flush()
@@ -2613,6 +2623,8 @@ img{vertical-align:top;}
 .carbon, .time, .cell, .mySlides, .files, .edits{padding:8px; margin:6px; word-wrap:break-word;}
 .mySlides{padding-right:32px;}
 .closebtn{position:absolute; top:15px; right:15px;}
+.carbon, .files, .edits{float:left; margin-right:12px;}
+.cell{overflow:auto;}
 h2,p{margin:4px;}
 </style>
 <body>

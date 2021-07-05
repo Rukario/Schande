@@ -1095,21 +1095,22 @@ def get_cd(file, makedirs=False, preview=False):
             folder = ""
             name = name[0]
         prepend, append = explicate(rule[0]).split("*")
-        todisk = f"""{folder}{prepend}{name}{append}{ext}""" # "\\" in file["name"] can work like folder after prepend
-        ondisk = os.path.split(todisk)[0]
-        if not preview and not os.path.exists(ondisk):
-            if makedirs or [explicate(x) for x in exempt if explicate(x) == os.path.split(todisk)[0] + "/"]:
-                os.makedirs(ondisk)
+        todisk = f"{folder}{prepend}{name}{append}{ext}".replace("\\", "/") # "\\" in file["name"] can work like folder after prepend
+        dir = todisk.rsplit("/", 1)[0] + "/"
+        if not preview and not os.path.exists(dir):
+            if makedirs or [explicate(x) for x in exempt if explicate(x) == dir]:
+                os.makedirs(dir)
             else:
                 print(f" Error downloading: {link}")
                 error[0] += [todisk]
                 link = ""
-    elif not os.path.exists(mf):
+    elif not preview and not os.path.exists(mf):
         os.makedirs(mf)
-    todisk = todisk.replace("\\", "/")
+        todisk = todisk.replace("\\", "/")
+        dir = todisk.rsplit("/", 1)[0] + "/"
     if not preview:
-        if makedirs and not os.path.exists(os.path.split(todisk)[0]):
-            os.makedirs(os.path.split(todisk)[0])
+        if makedirs and not os.path.exists(dir):
+            os.makedirs(dir)
         file.update({"name":todisk, "edited":file["edited"]})
     return [link, todisk, file["edited"]]
 
@@ -1839,10 +1840,10 @@ def pick_in_page(scraper):
                 x = ""
                 for file in filelist:
                     x = get_cd(file[1], preview=True)
-                    echo(tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1] + tcolorx, 0, 1)
+                    echo(tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + tcolorx, 0, 1)
                 for file in filelist_html:
                     x = get_cd(file, preview=True)
-                    echo(tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1] + tcolorx, 0, 1)
+                    echo(tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + tcolorx, 0, 1)
                 if not x:
                     echo(f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference.{tcolorx}", 0, 1)
                 ready[0] = False

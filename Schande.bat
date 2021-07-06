@@ -341,7 +341,7 @@ def alert(m, s, d=False):
 
 
 
-def kill(threadn, e=None, r=None, view=None):
+def kill(threadn, e=None, r=None):
     if not e:
         print(threadn)
     elif r:
@@ -350,8 +350,6 @@ def kill(threadn, e=None, r=None, view=None):
  Please update or remove cookie from "{r}" setting in {rulefile} then restart CLI.""")
     else:
         print(f"""Thread {threadn} was killed {"by" if "(" in e else "because"} {e} {"(V)iew" if view else ""}""")
-    if view and choice("v") == 1:
-        echo(view, 1, 1)
     sys.exit()
 
 
@@ -1233,11 +1231,12 @@ def met(p, n):
 
 
 
-def carrot(array, z, new, n):
+def carrot(array, z, new, n, preserve=False):
+    preservation_move = False
     a = ""
     aa = ""
     p = ""
-    new_array = [array[0], array[1]]
+    update_array = [array[0], array[1]]
     ii = False
     cc = False
     carrot_saver = []
@@ -1253,20 +1252,21 @@ def carrot(array, z, new, n):
             z[0] = ""
             cc = True
         if len(z) == 2 and not z[0] and not z[1]:
-            if met(new_array[0], n):
+            if met(update_array[0], n):
                 array[0] = ""
-                new += [["", new_array[0]]]
+                new += [[update_array[0] if preserve else "", update_array[0]]]
             return
         elif len(z) == 2 and not z[0]:
-            y = ["", new_array[0]]
+            y = ["", update_array[0]]
+            preservation_move = False
         elif not z[0]:
-            y = [new_array[0], ""]
-        elif not len(y := new_array[0].split(z[0], 1)) == 2:
+            y = [update_array[0], ""]
+        elif not len(y := update_array[0].split(z[0], 1)) == 2:
             return
         if len(z) == 2 and not z[1]:
             if met(y[1], n):
-                array[0] = ""
-                new += [[y[0], y[1]]]
+                array[0] = y[1] if preserve else ""
+                new += [[y[0] + z[0] if preserve else y[0], y[1]]]
             return
         if carrot_saver:
             carrot_saver.reverse()
@@ -1286,8 +1286,9 @@ def carrot(array, z, new, n):
             y[0] = c[0] if pc else c[1]
             ac = True
             carrot_saver = []
+            preservation_move = False
         if len(z) == 2:
-            new_array[0] = y[1]
+            update_array[0] = y[1]
             aa += y[0] + z[0]
             if not ii:
                 ii = True, y[0]
@@ -1298,20 +1299,23 @@ def carrot(array, z, new, n):
                 y[0] = ""
             if not met(p, n):
                 p = ""
-                new_array[0] = y[1]
+                update_array[0] = y[1]
                 a = aa + y[0] + z[0]
+            elif preserve:
+                update_array[0] = y[1] if preservation_move else z[0] + y[1]
+                a = aa + y[0] + z[0] if preservation_move else aa + y[0]
             else:
-                new_array[0] = y[1]
+                update_array[0] = y[1]
                 a = ii[1] if ii else y[0]
             if n[0]:
                 p = n[0][0] + p + n[0][1]
             new += [[a, p]]
-            return True, new_array
+            return True, update_array
 
 
 
-def carrots(data, x, any=True, cw=[]):
-    new_array = []
+def carrots(arrays, x, cw=[], any=True, last=False):
+    update_array = []
     n = [cw] + [""]*5
     if len(x := x.rsplit(" not ends with ", 1)) == 2:
         n[1] = x[1]
@@ -1336,17 +1340,17 @@ def carrots(data, x, any=True, cw=[]):
                 n[5] = [int(z[0]), int(z[0])]
                 x = y[0]
     new = []
-    for array in data:
+    for array in arrays:
         while True:
-            new_array = carrot(array, x, new, n)
-            if not new_array:
+            update_array = carrot(array, x, new, n, last)
+            if not update_array:
                 break
-            array = new_array[1]
-            if not any:
+            array = update_array[1]
+            if not last and not any:
                 break
         new += [array]
-    data = new
-    return data
+    arrays = new
+    return arrays
 
 
 
@@ -1430,6 +1434,9 @@ def branch(d, z):
         for x in d:
             ds += branch(x, [z[0][1:], z[1]])
     return ds
+
+
+
 def tree(d, z):
     z[0] = z[0].split(" > 0")
     return branch(d, z)
@@ -1472,20 +1479,19 @@ def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
                         name_err = False
                     elif x[0]["alt"]:
                         v = array[0]
-                        if len(n := carrots([[v, ""]], z, True, cw)) >= 2:
-                            name += n[-2 if after else 0][1]
+                        if len(n := carrots([[v, ""]], z, cw, False, after)) == 2:
+                            name += n[0][1]
                             name_err = False
-                        # article cleaner, could implement better
                         array[0] = "".join(x[0] for x in n)
                     else:
                         v = url
-                        if len(n := carrots([[v, ""]], z, False, cw)) == 2:
+                        if len(n := carrots([[v, ""]], z, cw, False)) == 2:
                             name += n[-2][1]
                             name_err = False
                 if name_err:
-                    kill(0, f"""there's no match for name asset: {x[1:]} in""", view=v)
+                    kill(0, f"there's no match for name asset: {x[1:]} in {v}")
             if e := pick["extfix"]:
-                if len(ext := carrots([[url, ""]], e, False, [".", ""])) == 2 and not name.endswith(ext := ext[-2][1]):
+                if len(ext := carrots([[url, ""]], e, [".", ""], False)) == 2 and not name.endswith(ext := ext[-2][1]):
                     name += ext
             if after:
                 url = array[1]
@@ -1540,11 +1546,11 @@ def tree_files(db, out_key, key, f, cw, pick, htmlpart, folder, filelist, pos):
         f_key = out_key if out_key else file[1]
         m = []
         for x, cwf in meta:
-            if len(c := carrots([[file[0], ""]], x, False, cwf)) == 2:
+            if len(c := carrots([[file[0], ""]], x, cwf, False)) == 2:
                 m += [c[-2][1]]
         name = "".join([x if not x == 1 else m.pop(0) if m else "" for x in file[2:]] + off_branch_name)
         if e := pick["extfix"]:
-            if len(ext := carrots([[file[0], ""]], e, False, [".", ""])) == 2 and not name.endswith(ext := ext[-2][1]):
+            if len(ext := carrots([[file[0], ""]], e, [".", ""], False)) == 2 and not name.endswith(ext := ext[-2][1]):
                 name += ext
         filelist += [[f_key, {"link":file[0], "name":saint(folder[0] + name), "edited":htmlpart[f_key]["keywords"][1] if f_key in htmlpart and len(htmlpart[f_key]["keywords"]) > 1 else "0"}]]
 
@@ -1576,10 +1582,10 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, folder, filelist,
                 for p in part:
                     key = "0"
                     for k in keys[1:]:
-                        if len(d := carrots([p], k[1], False)) == 2:
+                        if len(d := carrots([p], k[1], [], False)) == 2:
                             key = d[0][1]
                             break
-                    html, name_err = carrot_files(carrots([p], z, pick["files"], cw), htmlpart, key, pick, y[0]["alt"], folder, after)
+                    html, name_err = carrot_files(carrots([p], z, cw, pick["files"]), htmlpart, key, pick, y[0]["alt"], folder, after)
                     for h in html:
                         if not h[1]:
                             continue
@@ -1592,7 +1598,7 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, folder, filelist,
 
 def rp(x, p):
     for r in p:
-        x = "".join(y[0] + y[1] for y in carrots([[x, ""]], r[0], True, r[1].split("*", 1)))
+        x = "".join(y[0] + y[1] for y in carrots([[x, ""]], r[0], r[1].split("*", 1)))
     return x
 
 
@@ -1615,12 +1621,12 @@ def pick_in_page(scraper):
             fetch(page, stderr="Error visiting the page to visit")
         if x := pick["urlfix"]:
             for y in x[1]:
-                page = x[0] + carrots([[page, ""]], y, False)[-2][1] + x[2]
+                page = x[0] + carrots([[page, ""]], y, [], False)[-2][1] + x[2]
         if not pick["ready"]:
             echo(f" Visiting {page}", 0, 1)
         if x := pick["url"]:
             for y in x[1]:
-                url = x[0] + carrots([[page, ""]], y, False)[-2][1] + x[2]
+                url = x[0] + carrots([[page, ""]], y, [], False)[-2][1] + x[2]
         referer = x[0] if (x := [v for k, v in referers.items() if page.startswith(k)]) else ""
         ua = x[0] if (x := [v for k, v in mozilla.items() if page.startswith(k)]) else 'Mozilla/5.0'
         if pick["send"]:
@@ -1672,7 +1678,7 @@ def pick_in_page(scraper):
         if pick["part"]:
             part = []
             for z in pick["part"]:
-                part += [[x[1], ""] for x in carrots([[data, ""]], z, True)]
+                part += [[x[1], ""] for x in carrots([[data, ""]], z)]
         else:
             part = [[data, ""]]
         if not folder[0]:
@@ -1685,11 +1691,11 @@ def pick_in_page(scraper):
                             for d in tree(db, [z[0], [[z[1], 0, 0, 0]]]):
                                 folder[0] += d[0]
                         elif y[0]["alt"]:
-                            folder[0] += [x[1] for x in carrots(part, z, False, cw) if x[1]][0]
+                            folder[0] += [x[1] for x in carrots(part, z, cw, False) if x[1]][0]
                             # part = [[x[0], ""] for x in c]
                             # part = [["".join(x[0] for x in c), ""]]
                         else:
-                            folder[0] += [x[1] for x in carrots([[page, ""]], z, False, cw) if x[1]][0]
+                            folder[0] += [x[1] for x in carrots([[page, ""]], z, cw, False) if x[1]][0]
             if pick["savelink"]:
                 fromhtml["page"] = {"link":page, "name":saint(folder[0] + folder[0].rsplit("\\", 2)[-2]), "edited":0}
         if pick["pages"]:
@@ -1707,7 +1713,7 @@ def pick_in_page(scraper):
                                     if pick["checkpoint"]:
                                         print(f"Checkpoint: {px}\n")
                     else:
-                        for p in [x[1] for x in carrots(part, z, True, cw) if x[1]]:
+                        for p in [x[1] for x in carrots(part, z, cw) if x[1]]:
                             if not p == page and not page + p == page:
                                 px = p if y[0]["alt"] else page + p
                                 more += [px]
@@ -1739,10 +1745,10 @@ def pick_in_page(scraper):
                     for p in part:
                         key = "0"
                         for k in kx[1:]:
-                            if len(d := carrots([[p[0], ""]], k[1], False)) == 2:
+                            if len(d := carrots([[p[0], ""]], k[1], [], False)) == 2:
                                 key = d[0][1]
                                 break
-                        c = carrots([[p[0], ""]], z, False, cw)
+                        c = carrots([[p[0], ""]], z, cw, False)
                         k_html += [[key, [[rp(c[0][1], pick["replace"]), ""]]]]
                         new_part += [["".join(x[0] for x in c), ""]]
                     part = new_part
@@ -1753,7 +1759,7 @@ def pick_in_page(scraper):
                     for z, cw, a in y[1:]:
                         if a:
                             continue
-                        html = carrot_files(carrots(html, z, pick["files"], cw), htmlpart, k, pick, y[0]["alt"], folder, True)[0]
+                        html = carrot_files(carrots(html, z, cw, pick["files"]), htmlpart, k, pick, y[0]["alt"], folder, True)[0]
                         new_html = []
                         for h in html:
                             new_html += [[h[0], ""], ["", h[1]]] if h[1] else [h]
@@ -1787,16 +1793,16 @@ def pick_in_page(scraper):
                         for p in part:
                             key = "0"
                             for k in kx[1:]:
-                                if len(d := carrots([[p[0], ""]], k[1], False)) == 2:
+                                if len(d := carrots([[p[0], ""]], k[1], [], False)) == 2:
                                     key = d[0][1]
                                     break
                             if not key in keywords:
                                 keywords.update({key: ["", ""]})
                             if pos < 2:
-                                if not keywords[key][pos] and len(x := carrots([p], z, False, cw)) == 2:
+                                if not keywords[key][pos] and len(x := carrots([p], z, cw, False)) == 2:
                                     keywords[key][pos] = x[0][1]
                             else:
-                                for x in carrots([p], z, True, cw)[:-1]:
+                                for x in carrots([p], z, cw)[:-1]:
                                     keywords[key] += [x[1]]
                 pos += 1
             for z in keywords.keys():
@@ -1821,7 +1827,7 @@ def pick_in_page(scraper):
                                     ext = x
                             fromhtml["icons"] += [{"link":url, "name":f"""icon{pos if pos else ""}{ext}""", "edited":0}]
                         else:
-                            if len(c := carrots(part, z, False, [])) == 2:
+                            if len(c := carrots(part, z, [], False)) == 2:
                                 fromhtml["icons"] += [c[0][1]]
                 pos += 1
         pos = 0
@@ -1837,15 +1843,17 @@ def pick_in_page(scraper):
                     htmlpart.update({k:{"html":[], "keywords":[], "files":[]}})
                 htmlpart[k].update({"files":[file[1]] + htmlpart[k]["files"]})
             if not pick["ready"]:
+                stdout = ""
                 x = ""
                 for file in filelist:
                     x = get_cd(file[1], preview=True)
-                    echo(tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + tcolorx, 0, 1)
+                    stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + tcolorx + "\n"
                 for file in filelist_html:
                     x = get_cd(file, preview=True)
-                    echo(tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + tcolorx, 0, 1)
+                    stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + tcolorx + "\n"
                 if not x:
-                    echo(f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference.{tcolorx}", 0, 1)
+                    stdout += f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference.{tcolorx}" + "\n"
+                echo(stdout)
                 ready[0] = False
         echothreadn.remove(threadn)
         scraper.task_done()
@@ -1875,6 +1883,7 @@ def scrape(page):
         try:
             scraper.join()
         except:
+            debug("Excepted")
             pass
         pages = set(filter(None, more))
         for page in pages:
@@ -1890,23 +1899,24 @@ def scrape(page):
         if not ready[0]:
             htmlpart = fromhtml["partition"]
             if len(htmlpart) > 1 or htmlpart["0"]["html"]:
-                print("\n Then create " + tcolorg + folder[0] + "gallery.html" + tcolorx + " with")
+                stdout = "\n Then create " + tcolorg + folder[0] + "gallery.html" + tcolorx + " with\n"
                 for k in htmlpart.keys():
                     if k == "0" and not htmlpart[k]["files"]:
                         continue
-                    print(k)
+                    stdout += k + "\n"
                     if x := htmlpart[k]["keywords"]:
                         keywords = ", ".join(f"{kw}" for kw in x[2:])
-                        print(tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + tcolorx)
+                        stdout += tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + tcolorx + "\n"
                     for file in htmlpart[k]["files"]:
-                        print(tcolorg + file["name"].rsplit("\\")[-1] + tcolorx)
+                        stdout += tcolorg + file["name"].rsplit("\\")[-1] + tcolorx + "\n"
                     if html := htmlpart[k]["html"]:
                         for h in html:
                             if h[0]:
-                                print(tcoloro + h[0] + " ", end="")
+                                stdout += tcoloro + h[0] + " "
                             if h[1]:
-                                print(tcolorg + h[1]["name"].rsplit("\\")[-1] + " ", end="")
-                        print(tcolorx)
+                                stdout += tcolorg + h[1]["name"].rsplit("\\")[-1] + " "
+                        stdout += tcolorx + "\n"
+                echo(stdout)
             sys.stdout.write(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """)
             sys.stdout.flush()
             if not choice("c") == 1:
@@ -3018,7 +3028,7 @@ def finish_sort():
     mover = {}
     for file in next(os.walk(mf))[2]:
         for n in md5er:
-            if len(c := carrots([[file,""]], n, False)) == 2 and not c[0][0] and not c[-1][0]:
+            if len(c := carrots([[file,""]], n, [], False)) == 2 and not c[0][0] and not c[-1][0]:
                 ondisk = mf + file
                 with open(ondisk, 'rb') as f:
                     s = f.read()
@@ -3085,8 +3095,8 @@ def finish_sort():
 def syntax(html):
     a = [[html,""]]
     for z in ["http://", "https://", "/"]:
-        a = carrots(a, f"'{z}*' not starts with >", True, ["'" + z, "'"])
-        a = carrots(a, f"\"{z}*\" not starts with >", True, ["\"" + z, "\""])
+        a = carrots(a, f"'{z}*' not starts with >", ["'" + z, "'"])
+        a = carrots(a, f"\"{z}*\" not starts with >", ["\"" + z, "\""])
     z = []
     for x in a:
         y = tcolor

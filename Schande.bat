@@ -1479,9 +1479,10 @@ def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
                         name_err = False
                     elif x[0]["alt"]:
                         v = array[0]
-                        if len(n := carrots([[v, ""]], z, cw, False, after)) == 2:
-                            name += n[0][1]
+                        if len(n := carrots([[v, ""]], z, cw, True)) >= 2:
+                            name += n[-2 if after else 0][1]
                             name_err = False
+                        # Could be better, trying to make carrots(last=after) return last match with updated arrays.
                         array[0] = "".join(x[0] for x in n)
                     else:
                         v = url

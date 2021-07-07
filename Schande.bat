@@ -42,7 +42,7 @@ textfile = batchname + ".txt"
 archivefile = [".7z", ".rar", ".zip"]
 imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"]
 videofile = [".mkv", ".mp4", ".webm"]
-specialfile = ["gallery.html", "partition.json", ".URL"]
+specialfile = ["gallery.html", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
 
 busy = [False]
 cooldown = [False]
@@ -1231,7 +1231,7 @@ def downloadtodisk(fromhtml, makedirs=False):
             if not (x := os.path.exists(dir + "gallery.html")) or newfile:
                 orphfiles = []
                 for file in next(os.walk(dir))[2]:
-                    if not file.endswith(tuple(specialfile)):
+                    if not file.endswith(tuple(specialfile)) and not file.startswith("icon"):
                         orphfiles += [file]
                 tohtml(dir, fromhtml, set(orphfiles).difference([x[1].rsplit("/", 1)[-1] for x in filelist]))
     error[0] = []
@@ -1559,7 +1559,7 @@ def tree_files(db, out_key, key, f, cw, pick, htmlpart, folder, filelist, pos):
         f_key = out_key if out_key else file[1]
         m = []
         for x, cwf in meta:
-            if len(c := carrots([[file[0], ""]], x, cwf, False)) == 2:
+            if len(c := carrots([[file[0], ""]], x, cwf, False)) == 2 and c[-2][1]:
                 m += [c[-2][1]]
         name = "".join([x if not x == 1 else m.pop(0) if m else "" for x in file[2:]] + off_branch_name)
         if e := pick["extfix"]:
@@ -1666,7 +1666,7 @@ def pick_in_page(scraper):
                 print(f" Error visiting {page}")
                 break
             data = data.read()
-        if not data and (data := get(url if url else page, utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, stderr="Error or dead (update cookie or referer if these are required to view)", threadn=threadn)) and not data.isdigit():
+        if not data and (data := get(url if url else page, utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, stderr="Update cookie or referer if these are required to view", threadn=threadn)) and not data.isdigit():
             data = data.replace("\n ", "").replace("\n", "")
         elif not data:
             print(f" Error visiting {page}")
@@ -1852,10 +1852,15 @@ def pick_in_page(scraper):
                             for x in imagefile:
                                 if x in url:
                                     ext = x
-                            fromhtml["icons"] += [{"link":url, "name":f"""icon{pos if pos else ""}{ext}""", "edited":0}]
+                            fromhtml["icons"] += [{"link":url, "name":f"""icon{" " + str(pos) if pos else ""}{ext}""", "edited":0}]
                         else:
                             if len(c := carrots(part, z, [], False)) == 2:
-                                fromhtml["icons"] += [c[0][1]]
+                                url = c[0][1]
+                                ext = ""
+                                for x in imagefile:
+                                    if x in url:
+                                        ext = x
+                                fromhtml["icons"] += [{"link":url, "name":f"""icon{" " + str(pos) if pos else ""}{ext}""", "edited":0}]
                 pos += 1
         pos = 0
         filelist = []
@@ -2759,7 +2764,7 @@ def tohtml(dir, fromhtml, orphfiles):
 
 
     for file in orphfiles:
-        if file.endswith(tuple(specialfile)):
+        if file.endswith(tuple(specialfile)) or file.startswith("icon"):
             continue
         id = file.split(".", 1)[0]
         if not id in part.keys():
@@ -2776,6 +2781,7 @@ def tohtml(dir, fromhtml, orphfiles):
 
 
     for id in part.keys():
+        keywords = part[id]["keywords"]
         if id == "0":
             if "orphfiles" in part[id]:
                 title = "Unsorted"
@@ -2783,12 +2789,12 @@ def tohtml(dir, fromhtml, orphfiles):
             else:
                 continue
         else:
-            title = part[id]["keywords"][0] if part[id]["keywords"][0] else "No title for " + id
+            title = keywords[0] if len(keywords) > 0 and keywords[0] else "No title for " + id
             content = ""
         new_container = False
         end_container = False
-        time = part[id]["keywords"][1] if len(part[id]["keywords"]) > 1 and part[id]["keywords"][1] else "No timestamp"
-        keywords = ", ".join(x for x in part[id]["keywords"][2:]) if len(part[id]["keywords"]) > 2 else "None"
+        time = keywords[1] if len(keywords) > 1 and keywords[1] else "No timestamp"
+        keywords = ", ".join(x for x in keywords[2:]) if len(keywords) > 2 else "None"
         builder += f"""<div class=\"cell\">
 <div class="time" id="{id}" style="float:right;"><p>Part ID: {id} ꍯ {time}<p>Keywords: {keywords}</div>
 <h2>{title}</h2>"""

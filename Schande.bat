@@ -210,6 +210,7 @@ def help():
  |  "savelink"        save first scraped page link as URL file in same directory where files are downloading.
  |
  | Repeat a picker with different pattern for multiple possibilities/actions.
+ |    Note: name picker will not respect file position made by different file picker.
  | folder#, title#, name#, meta# to assemble assets together sequentially.
  | key# for title (key1), timestamp (key2) then keywords (key3 each) for HTML builder.
  |  "...*..."         HTML-based picker.

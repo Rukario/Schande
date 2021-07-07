@@ -3142,12 +3142,14 @@ def read_input(m):
         return
     if any(word for word in pickers.keys() if m.startswith(word)):
         run_input[0] = m
+        return True
     elif m.startswith("http") and not m.startswith("http://localhost"):
         if m.endswith("/"):
             choice(bg=True)
             print(" I don't have a scraper for that!")
         else:
             run_input[1] = m
+        return True
     elif m.startswith("file:///") or m.startswith("http://localhost"):
         if not Geistauge:
             choice(bg=True)
@@ -3392,7 +3394,7 @@ while True:
         ready_input()
     if run_input[1]:
         busy[0] = True
-        downloadtodisk({"page":"", "inlinefirst":True, "partition":{"0":{"html":"", "keywords":[], "files":[{"link":run_input[0], "name":saint(parse.unquote(run_input[0].split("/")[-1])), "edited":0}]}}})
+        downloadtodisk({"page":"", "inlinefirst":True, "partition":{"0":{"html":"", "keywords":[], "files":[{"link":run_input[1], "name":saint(parse.unquote(run_input[1].split("/")[-1])), "edited":0}]}}})
         run_input[1] = ""
         busy[0] = False
         ready_input()

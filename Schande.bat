@@ -2956,7 +2956,7 @@ def compare(m):
         hash = ph(m)
     except:
         print(" Featuring image is corrupted.")
-        sys.exit()
+        return
     s = input("Drag'n'drop and enter another image to compare, more folder to scan, or empty to find in database: ").rstrip().strip('\"')
     start = time.time()
     if not s:
@@ -2990,7 +2990,7 @@ def compare(m):
             hash2 = ph(s)
         except:
             print(" Reference image is corrupted.")
-            sys.exit()
+            return
         if hash == hash2:
             m = whsm(m)
             print(f"\n Featuring: {m[0]} x {m[1]}\n Reference: {label(m, whsm(s))}")
@@ -3136,15 +3136,18 @@ def syntax(html):
 
 
 
-def run_input(m):
+run_input = ["", ""]
+def read_input(m):
+    if not m:
+        return
     if any(word for word in pickers.keys() if m.startswith(word)):
-        scrape(m)
+        run_input[0] = m
     elif m.startswith("http") and not m.startswith("http://localhost"):
         if m.endswith("/"):
             choice(bg=True)
             print(" I don't have a scraper for that!")
         else:
-            downloadtodisk({"page":"", "inlinefirst":True, "partition":{"0":{"html":"", "keywords":[], "files":[{"link":m, "name":saint(parse.unquote(m.split("/")[-1])), "edited":0}]}}})
+            run_input[1] = m
     elif m.startswith("file:///") or m.startswith("http://localhost"):
         if not Geistauge:
             choice(bg=True)
@@ -3162,7 +3165,8 @@ def run_input(m):
     else:
         print("Invalid input or not on disk")
         choice(bg=True)
-    print()
+    ready_input()
+    return True
 
 
 
@@ -3172,7 +3176,6 @@ def ready_input():
 
 
 
-input_mode = [""]
 def keylistener():
     while True:
         el = choice("bcdghioqstvx")
@@ -3237,8 +3240,7 @@ def keylistener():
                 help()
                 ready_input()
             elif el == 2:
-                input_mode[0] = input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "")
-                if not input_mode[0]:
+                if not read_input(input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "")):
                     echo("", 1, 0)
                     echo("", 1, 0)
                     echo("", 1, 0)
@@ -3247,8 +3249,7 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            input_mode[0] = input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "")
-            if not input_mode[0]:
+            if not read_input(input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "")):
                 echo("", 1, 0)
                 echo("", 1, 0)
                 ready_input()
@@ -3383,10 +3384,16 @@ else:
 mainmenu()
 ready_input()
 while True:
-    if input_mode[0]:
+    if run_input[0]:
         busy[0] = True
-        run_input(input_mode[0])
-        input_mode[0] = ""
+        scrape(run_input[0])
+        run_input[0] = ""
+        busy[0] = False
+        ready_input()
+    if run_input[1]:
+        busy[0] = True
+        downloadtodisk({"page":"", "inlinefirst":True, "partition":{"0":{"html":"", "keywords":[], "files":[{"link":run_input[0], "name":saint(parse.unquote(run_input[0].split("/")[-1])), "edited":0}]}}})
+        run_input[1] = ""
         busy[0] = False
         ready_input()
     time.sleep(0.1)

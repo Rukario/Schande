@@ -1446,6 +1446,7 @@ def branch(d, z):
 
 
 def tree(d, z):
+    # tree(dictionary, [branching/linear keys, [[linear keys, choice, customize with, stderr and kill], [linear keys, 0 accept any, 0 no customization, 0 continue without]]])
     z[0] = z[0].split(" > 0")
     return branch(d, z)
 
@@ -1620,7 +1621,6 @@ def rp(x, p):
 
 def pick_in_page(scraper):
     while True:
-        # tree(dictionary, [branching/linear keys, [[linear keys, choice, customize with, stderr and kill], [linear keys, 0 accept any, 0 no customization, 0 continue without]]])
         data = ""
         url = ""
         threadn, folder, page, more, fromhtml = scraper.get()
@@ -1667,49 +1667,42 @@ def pick_in_page(scraper):
                 break
             data = data.read()
         if not data and (data := get(url if url else page, utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, stderr="Update cookie or referer if these are required to view", threadn=threadn)) and not data.isdigit():
-            data = data.replace("\n ", "").replace("\n", "")
-        elif not data:
+            pass
+        else:
             print(f" Error visiting {page}")
             break
         title(batchfile + monitor())
-        db = ""
-        if pick["expect"]:
-            pos = 0
-            for y in pick["expect"]:
-                for z, cw, a in y[1:]:
-                    if a:
-                        pos += 1
-                        c = z[1].rsplit(" = ", 1)
-                        result = tree(json.loads(data), [z[0], [[c[0], c[1].split(" > "), 0, 0]]])
-                        if y[0]["alt"] and result:
-                            if not pick["dismiss"] and Browser:
-                                os.system(f"""start "" "{Browser}" "{page}" """)
-                            alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "As expected", pick["dismiss"])
-                        elif not y[0]["alt"] and not result:
-                            if not pick["dismiss"] and Browser:
-                                os.system(f"""start "" "{Browser}" "{page}" """)
-                            alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "Not any longer", pick["dismiss"])
-                        else:
-                            more += [page]
-                            timer("Not quite as expected! ", False)
-                    else:
-                        if y[0]["alt"] and z in part[0][0]:
-                            if not pick["dismiss"] and Browser:
-                                os.system(f"""start "" "{Browser}" "{page}" """)
-                            alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "As expected", pick["dismiss"])
-                        elif not y[0]["alt"] and not z in part[0][0]:
-                            if not pick["dismiss"] and Browser:
-                                os.system(f"""start "" "{Browser}" "{page}" """)
-                            alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "Not any longer", pick["dismiss"])
-                        else:
-                            more += [page]
-                            timer("Not quite as expected! ", False)
+        data = data.replace("\n ", "").replace("\n", "")
         if pick["part"]:
             part = []
             for z in pick["part"]:
                 part += [[x[1], ""] for x in carrots([[data, ""]], z)]
         else:
             part = [[data, ""]]
+        db = ""
+        if pick["expect"]:
+            pos = 0
+            for y in pick["expect"]:
+                for z, cw, a in y[1:]:
+                    if a:
+                        if not db:
+                            db = opendb(data)
+                        pos += 1
+                        c = z[1].rsplit(" = ", 1)
+                        result = tree(db, [z[0], [[c[0], c[1].split(" > "), 0, 0]]])
+                    else:
+                        result = True if z in part[0][0] else False
+                    if y[0]["alt"] and result:
+                        if not pick["dismiss"] and Browser:
+                            os.system(f"""start "" "{Browser}" "{page}" """)
+                        alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "As expected", pick["dismiss"])
+                    elif not y[0]["alt"] and not result:
+                        if not pick["dismiss"] and Browser:
+                            os.system(f"""start "" "{Browser}" "{page}" """)
+                        alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "Not any longer", pick["dismiss"])
+                    else:
+                        more += [page]
+                        timer("Not quite as expected! ", False)
         if not folder[0]:
             if pick["folder"]:
                 for y in pick["folder"]:

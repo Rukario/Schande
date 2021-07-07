@@ -9,6 +9,7 @@ from queue import Queue
 from socketserver import ThreadingMixIn
 from threading import Thread
 from urllib import parse, request
+from urllib.error import HTTPError
 from codecs import encode, decode
 from random import random
 
@@ -349,7 +350,7 @@ def kill(threadn, e=None, r=None):
  {e}
  Please update or remove cookie from "{r}" setting in {rulefile} then restart CLI.""")
     else:
-        print(f"""Thread {threadn} was killed {"by" if "(" in e else "because"} {e} {"(V)iew" if view else ""}""")
+        print(f"""Thread {threadn} was killed {"by" if "(" in e else "because"} {e}""")
     sys.exit()
 
 
@@ -642,7 +643,7 @@ def peanut(z, cw=[], a=False):
 
 
 
-def at(p, r, alt=True, cw=[], key=False):
+def at(p, r, cw=[], alt=0, key=False):
     n, r = r.split(" ", 1) if " " in r else [r, ""]
     n = int(n) if n else 0
     if not p:
@@ -684,13 +685,13 @@ def topicker(s, rule):
     elif rule.startswith("key"):
         at(s["key"], rule.split("key", 1)[1], key=True)
     elif rule.startswith("folder"):
-        at(s["folder"], rule.split("folder", 1)[1], False, ["", "\\"])
+        at(s["folder"], rule.split("folder", 1)[1], ["", "\\"])
     elif rule.startswith("title"):
-        at(s["folder"], rule.split("title", 1)[1], True, ["", "\\"])
+        at(s["folder"], rule.split("title", 1)[1], ["", "\\"], 1)
     elif rule.startswith("expect"):
-        at(s["expect"], rule.split("expect", 1)[1])
+        at(s["expect"], rule.split("expect", 1)[1], [], 1)
     elif rule.startswith("unexpect"):
-        at(s["expect"], rule.split("unexpect", 1)[1], False)
+        at(s["expect"], rule.split("unexpect", 1)[1])
     elif rule.startswith("dismiss"):
         s["dismiss"] = True
     elif rule.startswith("message "):
@@ -701,35 +702,35 @@ def topicker(s, rule):
         c[1] = c[1].split(" > ")
         s["choose"] += [c]
     elif rule.startswith("file "):
-        at(s["file_after" if s["name"] else "file"], rule.split("file", 1)[1])
+        at(s["file_after" if s["name"] else "file"], rule.split("file", 1)[1], [], 1)
     elif rule.startswith("relfile "):
-        at(s["file_after" if s["name"] else "file"], rule.split("relfile", 1)[1], False)
+        at(s["file_after" if s["name"] else "file"], rule.split("relfile", 1)[1])
     elif rule.startswith("files "):
-        at(s["file_after" if s["name"] else "file"], rule.split("files", 1)[1])
+        at(s["file_after" if s["name"] else "file"], rule.split("files", 1)[1], [], 1)
         s["files"] = True
     elif rule.startswith("relfiles "):
-        at(s["file_after" if s["name"] else "file"], rule.split("relfiles", 1)[1], False)
+        at(s["file_after" if s["name"] else "file"], rule.split("relfiles", 1)[1])
         s["files"] = True
     elif rule.startswith("owner "):
         s["owner"] += [rule.split("owner ", 1)[1]]
     elif rule.startswith("name"):
-        at(s["name"], rule.split("name", 1)[1], True, ["", ""])
+        at(s["name"], rule.split("name", 1)[1], ["", ""], 1)
     elif rule.startswith("meta"):
-        at(s["name"], rule.split("meta", 1)[1], False, ["", ""])
+        at(s["name"], rule.split("meta", 1)[1], ["", ""])
     elif rule.startswith("extfix "):
         s["extfix"] = rule.split("extfix ", 1)[1]
     elif rule.startswith("urlfix "):
         rule = rule.split(" ", 1)[1].split(" with ", 1)
         x = rule[1].split("*", 1)
-        s["urlfix"] = [x[0], [rule[0]], x[1]]
+        s["urlfix"] += [x[0], [rule[0]], x[1]]
     elif rule.startswith("url "):
         rule = rule.split(" ", 1)[1].split(" with ", 1)
         x = rule[1].split("*", 1)
         s["url"] = [x[0], [rule[0]], x[1]]
     elif rule.startswith("pages "):
-        at(s["pages"], rule.split("pages", 1)[1])
+        at(s["pages"], rule.split("pages", 1)[1], [], 1)
     elif rule.startswith("relpages "):
-        at(s["pages"], rule.split("relpages", 1)[1], False)
+        at(s["pages"], rule.split("relpages", 1)[1])
     elif rule.startswith("checkpoint"):
         s["checkpoint"] = True
     elif rule.startswith("ready"):
@@ -895,14 +896,14 @@ def fetch(url, context=None, headers={'User-Agent':'Mozilla/5.0'}, stderr="", dl
             headers.update({'Range':f'bytes={dl}-', 'Accept':"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"})
             resp = request.urlopen(request.Request(saint(url=url), headers=headers, data=data), context=context)
             break
-        except:
+        except HTTPError as e:
             if stderr or retryx[0] and not skiptonext[0]:
-                if not retry(stderr):
-                    return
+                if not retry(f"{stderr} ({e.code} {e.reason})"):
+                    return 0, e.code
             else:
                 skiptonext[0] = False
-                return
-    return resp
+                return 0, e.code
+    return resp, 0
 
 
 
@@ -921,8 +922,9 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
             dl = os.path.getsize(todisk + ".part")
     else:
         echo(threadn, "0 MB")
-    if not (resp := fetch(url, context, headers, stderr, dl, threadn)):
-        return
+    resp, err = fetch(url, context, headers, stderr, dl, threadn)
+    if not resp:
+        return err
     total = resp.headers['Content-length']
     if total:
         total = dl + int(total)
@@ -955,19 +957,25 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
                     if not block:
                         if not total or dl == total:
                             break
-                        if not retry(stderr) or not (resp := fetch(url, context, headers, stderr, dl, threadn)):
-                            return
+                        if not retry(stderr):
+                            return err
+                        resp, err = fetch(url, context, headers, stderr, dl, threadn)
+                        if not resp:
+                            return err
                         if resp.status == 200 and dl > 0:
                             kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                         continue
                 except KeyboardInterrupt:
-                    resp = fetch(url, context, headers, stderr, dl, threadn)
+                    resp, err = fetch(url, context, headers, stderr, dl, threadn)
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                     continue
                 except:
-                    if not retry(stderr) or not (resp := fetch(url, context, headers, stderr, dl, threadn)):
-                        return
+                    if not retry(stderr):
+                        return err
+                    resp, err = fetch(url, context, headers, stderr, dl, threadn)
+                    if not resp:
+                        return err
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                     continue
@@ -977,7 +985,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
                 echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
                 echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {echolink}""", friction=True)
                 if seek[0]:
-                    resp = fetch(url, context, headers, stderr, dl, threadn)
+                    resp, err = fetch(url, context, headers, stderr, dl, threadn)
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                     seek[0] = False
@@ -1011,21 +1019,27 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
                                     return
                         else:
                             return data
-                    if not retry(stderr) or not (resp := fetch(url, context, headers, stderr, dl, threadn)):
-                        return
+                    if not retry(stderr):
+                        return err
+                    resp, err = fetch(url, context, headers, stderr, dl, threadn)
+                    if not resp:
+                        return err
                     if resp.status == 200:
                         data = b''
                         dl = 0
                     continue
             except KeyboardInterrupt:
-                resp = fetch(url, context, headers, stderr, dl, threadn)
+                resp, err = fetch(url, context, headers, stderr, dl, threadn)
                 if resp.status == 200:
                     data = b''
                     dl = 0
                 continue
             except:
-                if not retry(stderr) or not (resp := fetch(url, context, headers, stderr, dl, threadn)):
-                    return
+                if not retry(stderr):
+                    return err
+                resp, err = fetch(url, context, headers, stderr, dl, threadn)
+                if not resp:
+                    return err
                 if resp.status == 200:
                     data = b''
                     dl = 0
@@ -1036,7 +1050,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
             echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
             echo(threadn, f"{int(dl/1048576)} MB", friction=True)
             if seek[0]:
-                resp = fetch(url, context, headers, stderr, dl, threadn)
+                resp, err = fetch(url, context, headers, stderr, dl, threadn)
                 if resp.status == 200:
                     data = b''
                     dl = 0
@@ -1061,14 +1075,13 @@ def echolinks(download):
                 conflict[0] += [todisk]
             if os.path.exists(todisk):
                 echo(f"{threadn:>3} Already downloaded: {todisk}", 0, 1)
-            elif el := get(url, todisk=todisk, conflict=conflict, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, threadn=threadn):
-                if el == 1:
-                    newfilen[0] += 1
-                    html.append("<a href=\"" + todisk.replace("#", "%23") + "\"><img src=\"" + todisk.replace("#", "%23") + "\" height=200px></a>")
+            elif (err := get(url, todisk=todisk, conflict=conflict, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, threadn=threadn)) == 1:
+                newfilen[0] += 1
+                html.append("<a href=\"" + todisk.replace("#", "%23") + "\"><img src=\"" + todisk.replace("#", "%23") + "\" height=200px></a>")
             else:
                 error[0] += [todisk]
-                echo(f"{threadn:>3} Error downloading: {url}", 0, 1)
-                log.append(f"&gt; Error downloading: {url}")
+                echo(f"{threadn:>3} Error downloading ({err}): {url}", 0, 1)
+                log.append(f"&gt; Error downloading ({err}): {url}")
         echothreadn.remove(threadn)
         download.task_done()
 download = Queue()
@@ -1099,7 +1112,7 @@ def get_cd(file, makedirs=False, preview=False):
             if makedirs or [explicate(x) for x in exempt if explicate(x) == dir]:
                 os.makedirs(dir)
             else:
-                print(f" Error downloading: {link}")
+                print(f" Error downloading (dir): {link}")
                 error[0] += [todisk]
                 link = ""
     elif not preview and not os.path.exists(mf):
@@ -1231,8 +1244,7 @@ def met(p, n):
 
 
 
-def carrot(array, z, new, n, preserve=False):
-    preservation_move = False
+def carrot(array, z, new, n):
     a = ""
     aa = ""
     p = ""
@@ -1244,7 +1256,7 @@ def carrot(array, z, new, n, preserve=False):
     pc = False
     while True:
         ac = False
-        z = z[-1].split("*", 1)
+        z = z[1].split("*", 1)
         if z[0].startswith("^"):
             carrot_saver += [z[0].split("^", 1)[1]]
             if len(z) == 2:
@@ -1254,19 +1266,18 @@ def carrot(array, z, new, n, preserve=False):
         if len(z) == 2 and not z[0] and not z[1]:
             if met(update_array[0], n):
                 array[0] = ""
-                new += [[update_array[0] if preserve else "", update_array[0]]]
+                new += [["", update_array[0]]]
             return
         elif len(z) == 2 and not z[0]:
             y = ["", update_array[0]]
-            preservation_move = False
         elif not z[0]:
             y = [update_array[0], ""]
         elif not len(y := update_array[0].split(z[0], 1)) == 2:
             return
         if len(z) == 2 and not z[1]:
             if met(y[1], n):
-                array[0] = y[1] if preserve else ""
-                new += [[y[0] + z[0] if preserve else y[0], y[1]]]
+                array[0] = ""
+                new += [[y[0], y[1]]]
             return
         if carrot_saver:
             carrot_saver.reverse()
@@ -1286,7 +1297,6 @@ def carrot(array, z, new, n, preserve=False):
             y[0] = c[0] if pc else c[1]
             ac = True
             carrot_saver = []
-            preservation_move = False
         if len(z) == 2:
             update_array[0] = y[1]
             aa += y[0] + z[0]
@@ -1301,9 +1311,6 @@ def carrot(array, z, new, n, preserve=False):
                 p = ""
                 update_array[0] = y[1]
                 a = aa + y[0] + z[0]
-            elif preserve:
-                update_array[0] = y[1] if preservation_move else z[0] + y[1]
-                a = aa + y[0] + z[0] if preservation_move else aa + y[0]
             else:
                 update_array[0] = y[1]
                 a = ii[1] if ii else y[0]
@@ -1314,7 +1321,7 @@ def carrot(array, z, new, n, preserve=False):
 
 
 
-def carrots(arrays, x, cw=[], any=True, last=False):
+def carrots(arrays, x, cw=[], any=True):
     update_array = []
     n = [cw] + [""]*5
     if len(x := x.rsplit(" not ends with ", 1)) == 2:
@@ -1342,11 +1349,11 @@ def carrots(arrays, x, cw=[], any=True, last=False):
     new = []
     for array in arrays:
         while True:
-            update_array = carrot(array, x, new, n, last)
+            update_array = carrot(array, x, new, n)
             if not update_array:
                 break
             array = update_array[1]
-            if not last and not any:
+            if not any:
                 break
         new += [array]
     arrays = new
@@ -1460,10 +1467,12 @@ def opendb(data):
 def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
     url = ""
     name_err = True
+    update_html = []
     for array in html:
-        file = ""
+        update_array = [array[0], array[1]]
         if after:
-            if not array[0]:
+            if not update_array[0]:
+                update_html += [update_array]
                 continue
             url = array[1]
         if url:
@@ -1478,29 +1487,31 @@ def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
                     elif not z:
                         name_err = False
                     elif x[0]["alt"]:
-                        v = array[0]
-                        if len(n := carrots([[v, ""]], z, cw, True)) >= 2:
+                        v = update_array[0]
+                        if len(n := carrots([[v, ""]], z, cw)) >= 2:
                             name += n[-2 if after else 0][1]
                             name_err = False
-                        # Could be better, trying to make carrots(last=after) return last match with updated arrays.
-                        array[0] = "".join(x[0] for x in n)
+                            break
+                            # Could be better, trying to make carrots(last=after) return last match with updated arrays.
+                            update_array[0] = n[0][0] + n[1][0]
                     else:
                         v = url
                         if len(n := carrots([[v, ""]], z, cw, False)) == 2:
                             name += n[-2][1]
                             name_err = False
+                            break
                 if name_err:
-                    kill(0, f"there's no match for name asset: {x[1:]} in {v}")
+                    kill(0, f"There's no name asset found in HTML for this file.")
             if e := pick["extfix"]:
                 if len(ext := carrots([[url, ""]], e, [".", ""], False)) == 2 and not name.endswith(ext := ext[-2][1]):
                     name += ext
             if after:
                 url = array[1]
-            array[1] = {"link":url, "name":saint(folder[0] + parse.unquote(name)), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}
+            update_html += [[update_array[0], {"link":url, "name":saint(folder[0] + parse.unquote(name)), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
         else:
-            url = array[1]
-            array[1] = ""
-    return html, name_err
+            update_html += [[update_array[0], '']]
+        url = array[1]
+    return update_html, name_err
 
 
 
@@ -1512,7 +1523,7 @@ def tree_files(db, out_key, key, f, cw, pick, htmlpart, folder, filelist, pos):
     meta = []
     linear_name = []
     off_branch_name = []
-    stderr = "there's no name asset found in dictionary for this file."
+    stderr = "There's no name asset found in dictionary for this file."
     for z in pick["name"]:
         if not z[0]["alt"]:
             for m, cwf, a in z[1:]:
@@ -1583,6 +1594,8 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, folder, filelist,
                 for p in part:
                     key = "0"
                     for k in keys[1:]:
+                        if not k:
+                            continue
                         if len(d := carrots([p], k[1], [], False)) == 2:
                             key = d[0][1]
                             break
@@ -1621,13 +1634,27 @@ def pick_in_page(scraper):
         if pick["visit"]:
             fetch(page, stderr="Error visiting the page to visit")
         if x := pick["urlfix"]:
+            redir = ""
             for y in x[1]:
-                page = x[0] + carrots([[page, ""]], y, [], False)[-2][1] + x[2]
+                if len(c := carrots([[page, ""]], y, [], False)) == 2:
+                    redir = x[0] + c[-2][1] + x[2]
+                    break
+            if not redir:
+                print(f" Error fixing url for permanent redirection from {page}")
+                break
+            page = redir
         if not pick["ready"]:
             echo(f" Visiting {page}", 0, 1)
         if x := pick["url"]:
+            redir = ""
             for y in x[1]:
-                url = x[0] + carrots([[page, ""]], y, [], False)[-2][1] + x[2]
+                if len(c := carrots([[page, ""]], y, [], False)) == 2:
+                    redir = x[0] + c[-2][1] + x[2]
+                    break
+            if not redir:
+                print(f" Error creating a redirected url for {page}")
+                break
+            url = redir
         referer = x[0] if (x := [v for k, v in referers.items() if page.startswith(k)]) else ""
         ua = x[0] if (x := [v for k, v in mozilla.items() if page.startswith(k)]) else 'Mozilla/5.0'
         if pick["send"]:
@@ -1638,7 +1665,7 @@ def pick_in_page(scraper):
                 print(f" Error visiting {page}")
                 break
             data = data.read()
-        if not data and (data := get(url if url else page, utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, stderr="Error or dead (update cookie or referer if these are required to view)", threadn=threadn)):
+        if not data and (data := get(url if url else page, utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, stderr="Error or dead (update cookie or referer if these are required to view)", threadn=threadn)) and not data.isdigit():
             data = data.replace("\n ", "").replace("\n", "")
         elif not data:
             print(f" Error visiting {page}")
@@ -1693,8 +1720,6 @@ def pick_in_page(scraper):
                                 folder[0] += d[0]
                         elif y[0]["alt"]:
                             folder[0] += [x[1] for x in carrots(part, z, cw, False) if x[1]][0]
-                            # part = [[x[0], ""] for x in c]
-                            # part = [["".join(x[0] for x in c), ""]]
                         else:
                             folder[0] += [x[1] for x in carrots([[page, ""]], z, cw, False) if x[1]][0]
             if pick["savelink"]:
@@ -1763,7 +1788,7 @@ def pick_in_page(scraper):
                         html = carrot_files(carrots(html, z, cw, pick["files"]), htmlpart, k, pick, y[0]["alt"], folder, True)[0]
                         new_html = []
                         for h in html:
-                            new_html += [[h[0], ""], ["", h[1]]] if h[1] else [h]
+                            new_html += [[h[0], ""], ["", h[1]]] if h[1] else [h] # Overkill?
                             if not ready: filelist_html += [h[1]] if h[1] else []
                         html = new_html
                 htmlpart[k].update({"html":html + htmlpart[k]["html"]})
@@ -1884,7 +1909,6 @@ def scrape(page):
         try:
             scraper.join()
         except:
-            debug("Excepted")
             pass
         pages = set(filter(None, more))
         for page in pages:
@@ -1913,9 +1937,9 @@ def scrape(page):
                     if html := htmlpart[k]["html"]:
                         for h in html:
                             if h[0]:
-                                stdout += tcoloro + h[0] + " "
+                                stdout += tcoloro + h[0]
                             if h[1]:
-                                stdout += tcolorg + h[1]["name"].rsplit("\\")[-1] + " "
+                                stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
                         stdout += tcolorx + "\n"
                 echo(stdout)
             sys.stdout.write(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """)
@@ -2682,8 +2706,8 @@ def tohtml(dir, fromhtml, orphfiles):
     for icon in fromhtml["icons"]:
         todisk = dir + icon["name"]
         if not os.path.exists(todisk):
-            if not get(icon["link"], todisk):
-                echo(f""" Error downloading: {icon["link"]}""", 0, 1)
+            if not (err := get(icon["link"], todisk)) == 1:
+                echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
         builder += f"""<img src="{icon["name"]}" height="100px">\n"""
     if page := fromhtml["page"]:
         builder += "<h2>Paysite: <a href=\"" + page["link"] + "\">" + page["name"].rsplit("\\", 1)[1] + "</a></h2>"
@@ -3257,7 +3281,7 @@ def keylistener():
                     ua = x[0] if (x := [v for k, v in mozilla.items() if m.startswith(k)]) else 'Mozilla/5.0'
                     m = m.split(" ", 1)
                     data = get(m[0], utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer})
-                    if data:
+                    if not data.isdigit():
                         if len(m) == 2:
                             z = m[1].rsplit(" > 0", 1)
                             if len(z) == 1:

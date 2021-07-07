@@ -198,6 +198,7 @@ def help():
  | HTML builder
  |  "part ...*..."    partitioning the page.
  |  "key ...*..."     pick identifier, defining each partition their ID.
+ |    key# for title (key1), timestamp (key2) then keywords (key3 each).
  |  "html ...*..."    pick article from page/partition for HTML builder.
  |    API: pick content for HTML-based pickers.
  |    HTML-based file and name pickers will look through for inline files and clean up articles.
@@ -207,27 +208,29 @@ def help():
  |  "replace ..*.. with ..*.." find'n'replace before start picking in page/partition.
  |  "pages ...*..."   pick more pages to scrape in parallel, "relpages" for relative urls.
  |    Page picker will make sure all pages are unique to visit, but older pages can cause loophole.
- |  "savelink"        save first scraped page link as URL file in same directory where files are downloading.
- |
- | Repeat a picker with different pattern for multiple possibilities/actions.
- |    Note: name picker will not respect file position made by different file picker.
- | folder#, title#, name#, meta# to assemble assets together sequentially.
- | key# for title (key1), timestamp (key2) then keywords (key3 each) for HTML builder.
- |  "...*..."         HTML-based picker.
- |  "... > ..."       API/QS-based picker.
- | API/QS (Query String) supported pickers: key, html, expect, files, name, pages.
- | Magic key: " > 0 > " to iterate a list, " > * > " to iterate all within, " >> " to load a dictionary from inside QS.
- + During API each file picker must be accompanied by name picker and all HTML-based name/meta pickers must descend.
+ +  "savelink"        save first scraped page link as URL file in same directory where files are downloading.
 
- + Manipulating asterisk:
+ + Manipulating picker:
+ |  > Repeat a picker with different pattern for multiple possibilities/actions.
+ |  > folder#, title#, name#, meta# to assemble assets together sequentially.
+ |
+ |  "...*..."         HTML-based picker.
+ |  "... > ..."       API-based picker.
+ |  " > 0 > " to iterate a list, " > * > " to iterate all within, " >> " to load dictionary from QS (Query String).
+ |
+ | API supported pickers: key, html, expect, files, name, pages.
+ | During API each file picker must be accompanied by name picker and all HTML-based name/meta pickers must descend.
+ |
+ | Customize the chosen one with prepend and append using "X customize with ...*..." after any picker.
+ + Folder and title pickers will be auto-assigned with \\ to work as folder unless customized.
+
+ + Manipulating asterisk/position:
  |  > Multiple asterisks to pick the last asterisk better and/or to discard others.
  |  > Arrange name and file pickers if needed to follow their position in page. file before -> name -> file after.
  |  > Arrange html and file pickers whether to download inline file or filelist on conflict of the same file name.
  |  > First with match will be chosen first. This doesn't apply to html and plural pickers such as files, pages.
  |  > Name match closest to the file will be chosen. file before -> name to before -> name to after -> file after.
- |
- | Customize the chosen one with prepend and append using "X customize with ...*..." after any picker.
- + Folder and title pickers will be auto-assigned with \\ to work as folder unless customized.
+ + Note: HTML-based name picker (esp. if repeated) will not respect file position made by a different file picker.
 
  + Right-to-left:
  |  > Use caret "^..." to get the right match. Do "^..*^.." or "..*^.." (greedy), don't put caret before asterisk ^*

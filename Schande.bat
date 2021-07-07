@@ -346,15 +346,11 @@ def alert(m, s, d=False):
 
 
 
-def kill(threadn, e=None, r=None):
+def kill(threadn, e=None):
     if not e:
-        print(threadn)
-    elif r:
-        print(f"""
- {e}
- Please update or remove cookie from "{r}" setting in {rulefile} then restart CLI.""")
+        echo(f"{tcolorr}{threadn}{tcolorx}", 0, 1)
     else:
-        print(f"""Thread {threadn} was killed {"by" if "(" in e else "because"} {e}""")
+        echo(f"""{tcolorr}Thread {threadn} was killed {"by" if "(" in e else "because"} {e}{tcolorx}""", 0, 1)
     sys.exit()
 
 
@@ -636,7 +632,7 @@ def peanut(z, cw=[], a=False):
     if len(z := z.rsplit(" customize with ", 1)) == 2:
         cw = z[1].rsplit("*", 1)
         if not len(cw) == 2:
-            kill("There is no asterisk while customizing a pick.")
+            kill(0, "there is no asterisk while customizing a pick.")
     z = z[0]
     if " > " in z or a:
         z = z.rsplit(" > 0", 1)
@@ -658,7 +654,7 @@ def at(p, r, cw=[], alt=0, key=False):
         if len(d := r.split(" << ", 1)) == 2:
             r = [peanut(d[0], a=True)[0]] + peanut(d[1])
             if r[0][0]:
-                kill("Can't have > 0 > before <<")
+                kill(0, f"{rulefile} can't have > 0 > before <<")
         else:
             r = [[0, 0]] + peanut(r)
     else:
@@ -1506,7 +1502,7 @@ def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
                             name_err = False
                             break
                 if name_err:
-                    kill(0, f"There's no name asset found in HTML for this file.")
+                    kill(0, "there's no name asset found in HTML for this file.")
             if e := pick["extfix"]:
                 if len(ext := carrots([[url, ""]], e, [".", ""], False)) == 2 and not name.endswith(ext := ext[-2][1]):
                     name += ext
@@ -1528,7 +1524,7 @@ def tree_files(db, out_key, key, f, cw, pick, htmlpart, folder, filelist, pos):
     meta = []
     linear_name = []
     off_branch_name = []
-    stderr = "There's no name asset found in dictionary for this file."
+    stderr = "there's no name asset found in dictionary for this file."
     for z in pick["name"]:
         if not z[0]["alt"]:
             for m, cwf, a in z[1:]:
@@ -1709,16 +1705,28 @@ def pick_in_page(scraper):
         if not folder[0]:
             if pick["folder"]:
                 for y in pick["folder"]:
+                    name_err = True
                     for z, cw, a in y[1:]:
                         if a:
                             if not db:
                                 db = opendb(data)
                             for d in tree(db, [z[0], [[z[1], 0, 0, 0]]]):
                                 folder[0] += d[0]
+                                name_err = False
                         elif y[0]["alt"]:
-                            folder[0] += [x[1] for x in carrots(part, z, cw, False) if x[1]][0]
+                            if x := [x[1] for x in carrots(part, z, cw, False) if x[1]]:
+                                folder[0] += x[0]
+                                name_err = False
+                                break
                         else:
-                            folder[0] += [x[1] for x in carrots([[page, ""]], z, cw, False) if x[1]][0]
+                            if len(x := carrots([[page, ""]], z, cw, False)) == 2:
+                                folder[0] += x[0][1]
+                                name_err = False
+                                break
+                    if name_err:
+                        kill(0, "there's no suitable name asset for folder creation. Check folder pickers and try again.")
+                if name_err:
+                    break
             if pick["savelink"]:
                 fromhtml["page"] = {"link":page, "name":saint(folder[0] + folder[0].rsplit("\\", 2)[-2]), "edited":0}
         if pick["pages"]:
@@ -2664,14 +2672,13 @@ img{vertical-align:top;}
 .closebtn{position:absolute; top:15px; right:15px;}
 .carbon, .files, .edits{float:left; margin-right:12px;}
 .cell{overflow:auto;}
-h2,p{margin:4px;}
+h2,p{margin:4px; white-space:pre-wrap;}
 </style>
 <body>
 <div style="display:block; height:20px;"></div><div class="container" style="display:none;">
 <button class="closebtn" onclick="this.parentElement.style.display='none'">&times;</button>""" + f"""<div class="mySlides">{listurls}</div>
 <img id="expandedImg">
 </div>
-<p>
 <div style="display:block; height:10px;"></div><div style="background:#0c0c0c; height:20px; border-radius: 0 0 12px 0; position:fixed; padding:6px; top:0px; z-index:1;">
 <button class="next" onclick="currentDiv(1)">Links in this HTML</button>
 <button class="next" onclick="resizeImg('{imgsize}px')">1x</button>
@@ -2685,7 +2692,6 @@ h2,p{margin:4px;}
 <input class="next" type="text" oninput="hideParts('h2', this.value);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Ignore title">
 <button class="next" onclick="hideParts('.edits')">Edits</button>
 <button class="next" onclick="hideParts()">&times;</button></div>
-<p>
 {builder}</body>
 <script>
 lazyload();
@@ -3168,6 +3174,7 @@ def read_input(m):
     else:
         print("Invalid input or not on disk")
         choice(bg=True)
+    print()
     ready_input()
     return True
 
@@ -3392,12 +3399,14 @@ while True:
         scrape(run_input[0])
         run_input[0] = ""
         busy[0] = False
+        print()
         ready_input()
     if run_input[1]:
         busy[0] = True
         downloadtodisk({"page":"", "inlinefirst":True, "partition":{"0":{"html":"", "keywords":[], "files":[{"link":run_input[1], "name":saint(parse.unquote(run_input[1].split("/")[-1])), "edited":0}]}}})
         run_input[1] = ""
         busy[0] = False
+        print()
         ready_input()
     time.sleep(0.1)
 

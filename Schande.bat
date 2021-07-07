@@ -1256,7 +1256,7 @@ def carrot(array, z, new, n):
     pc = False
     while True:
         ac = False
-        z = z[1].split("*", 1)
+        z = z[-1].split("*", 1)
         if z[0].startswith("^"):
             carrot_saver += [z[0].split("^", 1)[1]]
             if len(z) == 2:
@@ -1492,7 +1492,7 @@ def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
                             name += n[-2 if after else 0][1]
                             name_err = False
                             break
-                            # Could be better, trying to make carrots(last=after) return last match with updated arrays.
+                            # Could be better
                             update_array[0] = n[0][0] + n[1][0]
                     else:
                         v = url

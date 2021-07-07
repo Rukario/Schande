@@ -30,10 +30,15 @@ __cfduid ... for .patreon.com
 Pixiv Merge\* - Pixiv for https://i.pximg.net
 Paysite\Fanbox\* for https://api.fanbox.cc
 Paysite\Fanbox\* for https://downloads.fanbox.cc
-Paysite\Fanbox\* for https://www.fanbox.cc/
+Paysite\Fanbox\* for https://www.fanbox.cc
 Paysite\Fantia\* for https://fantia.jp/
 Paysite\Fantia\* for https://c.fantia.jp/
 Paysite\Fantia\* for https://cc.fantia.jp/
+Paysite\Patreon\* for https://c10.patreonusercontent.com
+Paysite\Patreon\* for https://www.patreon.com
+Dropbox\* for https://dl.dropbox.com
+Dropbox\* for https://www.dropbox.com
+Dropbox\* for https://dl.dropboxusercontent.com
 R-18 *date\* for https://i.4cdn.org/b/
 R-18 *date\* for https://is2.4chan.org/b/
 R-18 *date\* for https://thebarchive.com/data/b/
@@ -41,7 +46,6 @@ R-18 *date\* for https://i.redd.it/
 R-18 *date\
 Update me\* for https://
 Update me\* for http://
-md5 for IMG_* 8-9 letters
 
 
 
@@ -79,7 +83,7 @@ name player_response >> videoDetails > title customize with * (audio)
 choose player_response >> captions > playerCaptionsTracklistRenderer > captionTracks > 0 > name > simpleText = English > English - CC (English)
 file player_response >> captions > playerCaptionsTracklistRenderer > captionTracks > 0 > baseUrl customize with *&fmt=vtt
 name player_response >> videoDetails > title customize with *.vtt
-extfix &mime=*%2F*&
+meta1 &mime=*%2F*& customize with .*
 
 https://boards.4chan.org/b/thread/
 part <div class="postContainer *<div class="postInfoM mobile" id="pim*"> *</div></div>
@@ -96,12 +100,13 @@ name1 File: <a href="*" target="_blank">*</a>
 files <a class="fileThumb" href="//*" customize with https://*
 
 https://thebarchive.com/b/thread/
-folder ^/* 9-10 letters
+urlfix ^/thread/*^/ with https://thebarchive.com/b/thread/*/
+urlfix ^/thread/* with https://thebarchive.com/b/thread/*/
+folder ^/*^/ 9-10 letters
 files <a class="post_file_filename" href="*"
 files </a> </span> <a href="*"
 meta ^/*^. customize with *.
-name1 class="post_file_filename" rel="tooltip" title="*"
-name1 target="_blank">*<
+name1 download="*"
 
 https://u18chan.com/board/u18chan/
 replace ' class='PostLink'*onmouseout='HidePostPreviewBubble();'*> with *'
@@ -175,12 +180,15 @@ urlfix https://fantia.jp/posts/* with https://fantia.jp/api/v1/posts/*
 file post > thumb > original
 name post > id customize with *.
 name1
-meta2 ^/*
 file post > post_contents > 0 > post_content_photos > 0 > url > original
 name post > id customize with *.
 name1 post > post_contents > 0 > post_content_photos > 0 > id customize with *.
 meta2 ^/*?
+meta2 ^/*
 key post > id
+key post > id << post > post_contents > 0 > id
+key post > id << post > post_contents > 0 > post_content_photos > 0 > id
 key1 post > title
 key2 post > converted_at
+html
 html post > comment

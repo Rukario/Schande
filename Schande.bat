@@ -2082,46 +2082,44 @@ def ren(filename, append):
 
 
 
-def container(ondisk, depth=0, check=True):
-    filename = ondisk.rsplit("/", 1)[-1]
-    relfile = ondisk.split("/", depth)[-1]
-    if filename.lower().endswith(tuple(videofile)):
-        data = f"""<div class="frame"><video height="200" autoplay><source src="{relfile.replace("#", "%23")}"></video><div class="sources">{filename}</div></div>\n"""
-    elif filename.lower().endswith(tuple(imagefile)):
-        if buildthumbnail and not "/Thumbnails/" in relfile:
-            thumb = "/Thumbnails/".join(ren(relfile, "_small").rsplit("/", 1))
-            if not os.path.exists(mainfolder + thumb):
+def container(dir, ondisk):
+    if ondisk.lower().endswith(tuple(videofile)):
+        data = f"""<div class="frame"><video height="200" autoplay><source src="{ondisk.replace("#", "%23")}"></video><div class="sources">{ondisk}</div></div>\n"""
+    elif ondisk.lower().endswith(tuple(imagefile)):
+        if buildthumbnail:
+            thumb = "Thumbnails/" + ren(ondisk, "_small")[1]
+            if not os.path.exists(dir + thumb):
                 try:
-                    img = Image.open(ondisk)
+                    img = Image.open(dir + ondisk)
                     w, h = img.size
                     if h > 200:
-                        img.resize((int(w*(200/h)), 200), Image.ANTIALIAS).save(mainfolder + thumb, subsampling=0, quality=100)
+                        img.resize((int(w*(200/h)), 200), Image.ANTIALIAS).save(dir + thumb, subsampling=0, quality=100)
                     else:
-                        img.save(mainfolder + thumb)
+                        img.save(dir + thumb)
                 except:
                     pass
         else:
-            thumb = relfile
-        data = f"""<div class="frame"><a class="fileThumb" href="{relfile.replace("#", "%23")}"><img class="lazy" data-src="{thumb.replace("#", "%23")}"></a><div class="sources">{filename}</div></div>\n"""
-    elif os.path.exists(ondisk):
-        data = f"""<a href=\"{relfile.replace("#", "%23")}"><div class="aqua" style="height:174px; width:126px;">{filename}</div></a>\n"""
-        if os.path.exists(ondisk.rsplit(".", 1)[0] + "/"):
-            data += f"""<a href="{relfile.rsplit(".", 1)[0].replace("#", "%23")}"><div class="aqua" style="height:174px;"><i class="aqua" style="border-width:0 3px 3px 0; padding:3px; -webkit-transform: rotate(-45deg); margin-top:82px;"></i></div></a>\n"""
+            thumb = ondisk
+        data = f"""<div class="frame"><a class="fileThumb" href="{ondisk.replace("#", "%23")}"><img class="lazy" data-src="{thumb.replace("#", "%23")}"></a><div class="sources">{ondisk}</div></div>\n"""
+    elif os.path.exists(dir + ondisk):
+        data = f"""<a href=\"{ondisk.replace("#", "%23")}"><div class="aqua" style="height:174px; width:126px;">{ondisk}</div></a>\n"""
+        if os.path.exists(dir + ondisk.rsplit(".", 1)[0] + "/"):
+            data += f"""<a href="{ondisk.rsplit(".", 1)[0].replace("#", "%23")}"><div class="aqua" style="height:174px;"><i class="aqua" style="border-width:0 3px 3px 0; padding:3px; -webkit-transform: rotate(-45deg); margin-top:82px;"></i></div></a>\n"""
     else:
-        data = f"""<a href=\"{relfile.replace("#", "%23")}"><div style="display:inline-block; vertical-align:top; border:1px solid #b2b2b2; border-top:1px solid #4c4c4c; border-left:1px solid #4c4c4c; padding:12px; height:174px; width:126px; word-wrap: break-word;">☠️</div></a>\n"""
+        data = f"""<a href=\"{ondisk.replace("#", "%23")}"><div style="display:inline-block; vertical-align:top; border:1px solid #b2b2b2; border-top:1px solid #4c4c4c; border-left:1px solid #4c4c4c; padding:12px; height:174px; width:126px; word-wrap: break-word;">☠️</div></a>\n"""
     return data
 
 
 
-def container_c(file, label):
+def container_c(ondisk, label):
     if HTMLserver:
-        if os.path.exists(batchdir + file.replace(batchdir, "")):
-            file = file.replace(batchdir, "").replace("#", "%23").replace("\\", "/")
+        if os.path.exists(batchdir + ondisk.replace(batchdir, "")):
+            ondisk = ondisk.replace(batchdir, "").replace("#", "%23").replace("\\", "/")
         else:
             return f"""<div class="frame"><div class="edits">Rebuild HTML with<br />{batchfile} in another<br />dir is required to view</div>{label}</div> """
     else:
-        file = "file:///" + file.replace("#", "%23")
-    return f"""<div class="frame"><a class="fileThumb" href="{file}"><img class="lazy" data-src="{file}"></a><br />{label}</div>
+        ondisk = "file:///" + ondisk.replace("#", "%23")
+    return f"""<div class="frame"><a class="fileThumb" href="{ondisk}"><img class="lazy" data-src="{ondisk}"></a><br />{label}</div>
 """
 
 
@@ -2800,19 +2798,19 @@ def tohtml(dir, fromhtml, orphfiles):
 <h2>{title}</h2>"""
         # if file := part[id]["file"]:
         #     builder += "<div class=\"carbon\">\n"
-        #     builder += container(file["name"], 1)
+        #     builder += container(dir, file["name"])
         #     builder += "</div>\n"
         # files = [x for x in part[id]["files"] if not file or not file == x]
         files = [x for x in part[id]["files"]]
         if files:
             builder += "<div class=\"files\">\n"
             for file in files:
-                builder += container(file, 1)
+                builder += container(dir, file)
             builder += "</div>\n"
         if "orphfiles" in part[id]:
             builder += "<div class=\"edits\">\n"
             for file in part[id]["orphfiles"]:
-                builder += container(file, 1)
+                builder += container(dir, file)
             builder += "<p>orphaned file(s)</p>\n</div>\n"
         if html := part[id]["html"]:
             for array in html:
@@ -2822,7 +2820,7 @@ def tohtml(dir, fromhtml, orphfiles):
                         end_container = True
                         new_container = False
                     if array[1]:
-                        content += f"""{array[0]}{container(array[1]["name"], 1)}"""
+                        content += f"""{array[0]}{container(dir, array[1]["name"])}"""
                     else:
                         content += array[0]
                 elif end_container:

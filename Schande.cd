@@ -82,8 +82,9 @@ file player_response >> streamingData > adaptiveFormats > 0 > url
 name player_response >> videoDetails > title customize with * (audio)
 choose player_response >> captions > playerCaptionsTracklistRenderer > captionTracks > 0 > name > simpleText = English > English - CC (English)
 file player_response >> captions > playerCaptionsTracklistRenderer > captionTracks > 0 > baseUrl customize with *&fmt=vtt
-name player_response >> videoDetails > title customize with *.vtt
+name player_response >> videoDetails > title
 meta1 &mime=*%2F*& customize with .*
+meta1 ^&fmt=* customize with .*
 
 https://boards.4chan.org/b/thread/
 part <div class="postContainer *<div class="postInfoM mobile" id="pim*"> *</div></div>

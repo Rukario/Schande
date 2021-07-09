@@ -165,11 +165,22 @@ https://www.fanbox.cc/@
 pages /fanbox/public/images/creator/*/cover/ customize with https://api.fanbox.cc/post.listCreator?userId=*&limit=10
 
 https://api.fanbox.cc/
-pages body > nextUrl
+key body > items > 0 > id
+key1 body > items > 0 > title
+key2 body > items > 0 > updatedDatetime
+html body > items > 0 > body > text
+html body > items > 0 > body > blocks > 0 > text customize with <p>*
+key body > items > 0 > id << body > items > 0 > body > blocks > 0 > type
+files body > items > 0 > body > imageMap > * > originalUrl
+name1 body > items > 0 > body > imageMap > * > id
+name2 body > items > 0 > body > imageMap > * > extension customize with .*
+key body > items > 0 > id << body > items > 0 > body > imageMap > * > id
 files body > items > 0 > body > images > 0 > originalUrl
 name1 body > items > 0 > body > images > 0 > id
 name2 body > items > 0 > body > images > 0 > extension customize with .*
+key body > items > 0 > id << body > items > 0 > body > images > 0 > id
 meta ^/*^/ customize with *.
+pages body > nextUrl
 
 https://fantia.jp/fanclubs/
 folder ^/*^/

@@ -653,8 +653,6 @@ def at(p, r, cw=[], alt=0, key=False):
     if key:
         if len(d := r.split(" << ", 1)) == 2:
             r = [peanut(d[0], a=True)[0]] + peanut(d[1])
-            if r[0][0]:
-                kill(0, f"{rulefile} can't have > 0 > before <<")
         else:
             r = [[0, 0]] + peanut(r)
     else:
@@ -675,7 +673,7 @@ def topicker(s, rule):
         rule = rule.split(" ", 1)[1].split(" with ", 1)
         s["replace"] += [[rule[0], rule[1]]]
     elif rule.startswith("html"):
-        s["html"] += [] if rule == "html" else [peanut(rule.split("html ", 1)[1])]
+        s["html"] += [["", [], False]] if rule == "html" else [peanut(rule.split("html ", 1)[1])]
         if s["file"] or s["file_after"]:
             s["inlinefirst"] = False
     elif rule.startswith("icon"):
@@ -1403,14 +1401,13 @@ def linear(d, z):
 
 def branch(d, z):
     ds = []
-    n = True if z[0][0] else False
     for k in z[0][0].split(" > "):
         x = k.split(" >> ")
         if not x[0]:
             continue
         if x[0] == "*":
             for y in d.values():
-                ds += branch(y, [[z[0][0].split("* > ", 1)[1]] + z[0][1:], z[1]])
+                ds += branch(y, [[z[0][0].split("* > ", 1)[1]] + z[0][1:]] + z[1:])
             return ds
         if x[0] in d:
             try:
@@ -1427,19 +1424,24 @@ def branch(d, z):
         else:
             return ds
     if len(z[0]) == 1:
-        if n:
+        if z[0][0]:
             dx = []
             for dc in d:
                 if dt := linear(dc, z):
-                    dx += [dt]
-            if dx:
-                return dx
+                    if len(z) > 2:
+                        dx += [dt + b for b in branch(dc, [z[2].split(" > 0")] + z[3:])]
+                    else:
+                        dx += [dt]
+            return dx
         else:
             if dt := linear(d, z):
-                return [dt]
+                if len(z) > 2:
+                    return [dt + b for b in branch(d, [z[2].split(" > 0")] + z[3:])]
+                else:
+                    return [dt]
     else:
         for x in d:
-            ds += branch(x, [z[0][1:], z[1]])
+            ds += branch(x, [z[0][1:]] + z[1:])
     return ds
 
 
@@ -1516,7 +1518,22 @@ def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
 
 
 
-def tree_files(db, out_key, key, f, cw, pick, htmlpart, folder, filelist, pos):
+def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
+    master_key = ["", [["0"]]]
+    file = f[0]
+    if not k:
+        key = [["0"]]
+    else:
+        key = [[k[1][1], 0, 0, 0]]
+        if k[0][0]:
+            if len(z := k[1][0].split(k[0][0] + " > 0", 1)) == 2:
+                file = z[1]
+                master_key = [k[0][0], [[k[0][1], 0, 0, 0]]]
+        elif k[0][1]:
+            master_key = ["", [[k[0][1], 0, 0, 0]]]
+
+
+
     if pick["choose"]:
         c = pick["choose"][pos-1]
     else:
@@ -1545,27 +1562,27 @@ def tree_files(db, out_key, key, f, cw, pick, htmlpart, folder, filelist, pos):
         else:
             x = tree(db, [z[0], [[z[1], 0, cwf, stderr]]])
             off_branch_name += [x[0][0]] if x else []
-    files = tree(db, [f[0], [[c[0], c[1], 0, 0], [f[1], 0, cw, 0]] + key + linear_name])
+    files = tree(db, master_key + [file, key + [[c[0], c[1], 0, 0], [f[1], 0, cw, 0]] + linear_name])
     if c[1]:
         cf = []
         for cc in c[1]:
-            if [cx := x[1:] for x in files if x[0] == cc]:
+            if [cx := x[1:] for x in files if x[2] == cc]:
                 cf = cx
                 break
         files = [cf]
     if not files or not files[0]:
         return
     for file in files:
-        f_key = out_key if out_key else file[1]
+        f_key = file[1 if file[0] == "0" else 0]
         m = []
         for x, cwf in meta:
-            if len(c := carrots([[file[0], ""]], x, cwf, False)) == 2 and c[-2][1]:
+            if len(c := carrots([[file[2], ""]], x, cwf, False)) == 2 and c[-2][1]:
                 m += [c[-2][1]]
-        name = "".join([x if not x == 1 else m.pop(0) if m else "" for x in file[2:]] + off_branch_name)
+        name = "".join([x if not x == 1 else m.pop(0) if m else "" for x in file[3:]] + off_branch_name)
         if e := pick["extfix"]:
-            if len(ext := carrots([[file[0], ""]], e, [".", ""], False)) == 2 and not name.endswith(ext := ext[-2][1]):
+            if len(ext := carrots([[file[2], ""]], e, [".", ""], False)) == 2 and not name.endswith(ext := ext[-2][1]):
                 name += ext
-        filelist += [[f_key, {"link":file[0], "name":saint(folder[0] + name), "edited":htmlpart[f_key]["keywords"][1] if f_key in htmlpart and len(htmlpart[f_key]["keywords"]) > 1 else "0"}]]
+        filelist += [[f_key, {"link":file[2], "name":saint(folder[0] + name), "edited":htmlpart[f_key]["keywords"][1] if f_key in htmlpart and len(htmlpart[f_key]["keywords"]) > 1 else "0"}]]
 
 
 
@@ -1582,15 +1599,9 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, folder, filelist,
                 if not db:
                     db = opendb(data)
                 for k in keys[1:]:
-                    if not k:
-                        key = [["0"]]
-                    else:
-                        if z[0] == k[1][0]:
-                            key = [[k[1][1], 0, 0, 0]]
-                        else:
-                            continue
-                    out_key = x[0][0] if k and k[0][1] and (x := tree(db, ["", [[k[0][1], 0, 0, 0]]])) else 0
-                    tree_files(db, out_key, key, z, cw, pick, htmlpart, folder, filelist, pos)
+                    if k and not z[0] == k[1][0]:
+                        continue
+                    tree_files(db, k, z, cw, pick, htmlpart, folder, filelist, pos)
             elif not db:
                 for p in part:
                     key = "0"
@@ -1752,12 +1763,16 @@ def pick_in_page(scraper):
                                     print(f"Checkpoint: {px}\n")
         filelist_html = []
         if pick["html"]:
+            empty = False
             k_html = []
             if pick["key"] and pick["key"][0]:
                 kx = pick["key"][0]
             else:
                 kx = [0, 0]
             for z, cw, a in pick["html"]:
+                if not z:
+                    empty = True
+                    continue
                 if a:
                     if not db:
                         db = opendb(data)
@@ -1786,17 +1801,20 @@ def pick_in_page(scraper):
             for k, html in k_html:
                 if not k in htmlpart:
                     htmlpart.update({k:{"html":[], "keywords":[], "files":[]}})
-                for y in pick["file_after"]:
-                    for z, cw, a in y[1:]:
-                        if a:
-                            continue
-                        html = carrot_files(carrots(html, z, cw, pick["files"]), htmlpart, k, pick, y[0]["alt"], folder, True)[0]
-                        new_html = []
-                        for h in html:
-                            new_html += [[h[0], ""], ["", h[1]]] if h[1] else [h] # Overkill?
-                            if not ready: filelist_html += [h[1]] if h[1] else []
-                        html = new_html
-                htmlpart[k].update({"html":html + htmlpart[k]["html"]})
+                after = False
+                for x in [pick["file"], pick["file_after"]]:
+                    for y in x:
+                        for z, cw, a in y[1:]:
+                            if a:
+                                continue
+                            html = carrot_files(carrots(html, z, cw, pick["files"]), htmlpart, k, pick, y[0]["alt"], folder, after)[0]
+                            new_html = []
+                            for h in html:
+                                new_html += [[h[0], ""], ["", h[1]]] if h[1] else [h] # Overkill?
+                                if not ready: filelist_html += [h[1]] if h[1] else []
+                            html = new_html
+                    after = True
+                htmlpart[k]["html"] += [[""]] + html if empty else html
             keywords = {}
             pos = 0
             for y in pick["key"][1:]:
@@ -1941,7 +1959,7 @@ def scrape(page):
                     stdout += k + "\n"
                     if x := htmlpart[k]["keywords"]:
                         keywords = ", ".join(f"{kw}" for kw in x[2:])
-                        stdout += tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + tcolorx + "\n"
+                        stdout += tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 and x[1] else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + tcolorx + "\n"
                     for file in htmlpart[k]["files"]:
                         stdout += tcolorg + file["name"].rsplit("\\")[-1] + tcolorx + "\n"
                     if html := htmlpart[k]["html"]:
@@ -2643,10 +2661,9 @@ a{color:#dc8 /*efdfa8*/;}
 a:visited{color:#cccccc;}
 .aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
 .aquatext{color:#22cccc}
-.carbon, .time{background-color:#10100c; border:3px solid #6a6a66; border-radius:12px;}
+.carbon, .files, .time{background-color:#10100c; border:3px solid #6a6a66; border-radius:12px;}
 .time{color:#ccc; font-size:90%;}
-.cell, .files, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
-.files{background-color:#112230 /*07300f*/; border:3px solid #367 /*192*/; border-radius:12px;}
+.cell, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
 .edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45;}
 .previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
 .next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
@@ -2697,6 +2714,17 @@ h2,p{margin:4px; white-space:pre-wrap;}
 lazyload();
 </script>
 </html>"""
+
+
+
+def hyperlink(html):
+    links = html.replace("http://", "https://").split("https://")
+    html = links[0]
+    for link in links[1:]:
+        link = link.split(tuple([x for x in " <\"'\n"]), 1)[0]
+        url = "https://" + link[0]
+        html += f"""<a href="{url}">{url}</a>{link[1]}"""
+    return html
 
 
 
@@ -2798,11 +2826,6 @@ def tohtml(dir, fromhtml, orphfiles):
         builder += f"""<div class=\"cell\">
 <div class="time" id="{id}" style="float:right;"><p>Part ID: {id} ꍯ {time}<p>Keywords: {keywords}</div>
 <h2>{title}</h2>"""
-        # if file := part[id]["file"]:
-        #     builder += "<div class=\"carbon\">\n"
-        #     builder += container(dir, file["name"])
-        #     builder += "</div>\n"
-        # files = [x for x in part[id]["files"] if not file or not file == x]
         files = [x for x in part[id]["files"]]
         if files:
             builder += "<div class=\"files\">\n"
@@ -2812,6 +2835,7 @@ def tohtml(dir, fromhtml, orphfiles):
         if "orphfiles" in part[id]:
             builder += "<div class=\"edits\">\n"
             for file in part[id]["orphfiles"]:
+                # os.rename(dir + file, dir + "Orphaned files/" + file)
                 builder += container(dir, file)
             builder += "<p>orphaned file(s)</p>\n</div>\n"
         if html := part[id]["html"]:

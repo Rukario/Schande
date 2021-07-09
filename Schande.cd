@@ -177,24 +177,28 @@ pages <a class="link-block" href="*" customize with https://fantia.jp*
 
 https://fantia.jp/posts/
 urlfix https://fantia.jp/posts/* with https://fantia.jp/api/v1/posts/*
+
+key post > id
 files post > thumb > original
 name post > id customize with *.
 name1
-files post > post_contents > 0 > post_content_photos > 0 > url > original
-name post > id customize with *.
-name1 post > post_contents > 0 > post_content_photos > 0 > id customize with *.
+key1 post > title
+key2 post > converted_at
+html post > comment
+
+key post > post_contents > 0 > id
 files post > post_contents > 0 > download_uri customize with https://fantia.jp/*
 name post > id customize with *.
 name1 post > post_contents > 0 > filename
+# key1 post > post_contents > 0 > title
+
+key post > post_contents > 0 > id << post > post_contents > 0 > post_content_photos > 0 > id
+files post > post_contents > 0 > post_content_photos > 0 > url > original
+name post > id customize with *.
+name1 post > post_contents > 0 > post_content_photos > 0 > id customize with *.
+
 meta2 ^/*?
 meta2 ^/* ends with .png
 meta2 ^/* ends with .jpg
 meta2 ^/* ends with .jpeg
 meta2 ^/* ends with .gif
-key post > id
-key post > id << post > post_contents > 0 > id
-key post > id << post > post_contents > 0 > post_content_photos > 0 > id
-key1 post > title
-key2 post > converted_at
-html
-html post > comment

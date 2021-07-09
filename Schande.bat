@@ -216,7 +216,7 @@ def help():
  |
  |  "...*..."         HTML-based picker.
  |  "... > ..."       API-based picker.
- |  " > 0 > " to iterate a list, " > * > " to iterate all within, " >> " to load dictionary from QS (Query String).
+ |  " > 0 > " (or asterisk) to iterate a list or dictionary values, " >> " to load dictionary from QS (Query String).
  |  "key Y << X"      prefers master key.
  |
  | API supported pickers: key, html, expect, files, name, pages.
@@ -636,7 +636,7 @@ def peanut(z, cw=[], a=False):
             kill(0, "there is no asterisk while customizing a pick.")
     z = z[0]
     if " > " in z or a:
-        z = z.rsplit(" > 0", 1)
+        z = z.replace("*", "0").rsplit(" > 0", 1)
         if len(z) == 1:
             z = ["", z[0]]
         a = True
@@ -1406,10 +1406,6 @@ def branch(d, z):
         x = k.split(" >> ")
         if not x[0]:
             continue
-        if x[0] == "*":
-            for y in d.values():
-                ds += branch(y, [[z[0][0].split("* > ", 1)[1]] + z[0][1:]] + z[1:])
-            return ds
         if x[0] in d:
             try:
                 d = d[x[0]]
@@ -1427,11 +1423,16 @@ def branch(d, z):
     if len(z[0]) == 1:
         if z[0][0]:
             dx = []
-            for dc in d:
-                if dt := linear(dc, z):
-                    if len(z) > 2:
-                        dx += [dt + b for b in branch(dc, [z[2].split(" > 0")] + z[3:])]
-                    else:
+            if isinstance(d, list):
+                for dc in d:
+                    if dt := linear(dc, z):
+                        if len(z) > 2:
+                            dx += [dt + b for b in branch(dc, [z[2].split(" > 0")] + z[3:])]
+                        else:
+                            dx += [dt]
+            else:
+                for x in d.values():
+                    if dt := linear(x, z):
                         dx += [dt]
             return dx
         else:
@@ -1770,23 +1771,31 @@ def pick_in_page(scraper):
                 kx = pick["key"][0]
             else:
                 kx = [0, 0]
-            for z, cw, a in pick["html"]:
-                if not z:
+            for h, cw, a in pick["html"]:
+                if not h:
                     empty = True
                     continue
                 if a:
                     if not db:
                         db = opendb(data)
                     for k in kx[1:]:
+                        master_key = ["", [["0"]]]
                         if not k:
-                            key = [["0", 0, 0, 0]]
+                            key = [["0"]]
                         else:
-                            if z[0] == k[1][0]:
+                            html =  h[0]
+                            if html == k[1][0]:
                                 key = [[k[1][1], 0, 0, 0]]
                             else:
                                 continue
-                        for d in tree(db, [z[0], [[z[1], 0, 0, 0]] + key]):
-                            k_html += [[d[1], [[rp(d[0], pick["replace"]), ""]]]]
+                            if k[0][0]:
+                                if len(z := k[1][0].split(k[0][0] + " > 0", 1)) == 2:
+                                    html = z[1]
+                                    master_key = [k[0][0], [[k[0][1], 0, 0, 0]]]
+                            elif k[0][1]:
+                                master_key = ["", [[k[0][1], 0, 0, 0]]]
+                        for html in tree(db, master_key + [html, key + [[h[1], 0, cw, 0]]]):
+                            k_html += [[html[1 if html[0] == "0" else 0], [[rp(html[2], pick["replace"]), ""]]]]
                 else:
                     new_part = []
                     for p in part:
@@ -1795,7 +1804,7 @@ def pick_in_page(scraper):
                             if len(d := carrots([[p[0], ""]], k[1], [], False)) == 2:
                                 key = d[0][1]
                                 break
-                        c = carrots([[p[0], ""]], z, cw, False)
+                        c = carrots([[p[0], ""]], h, cw, False)
                         k_html += [[key, [[rp(c[0][1], pick["replace"]), ""]]]]
                         new_part += [["".join(x[0] for x in c), ""]]
                     part = new_part
@@ -3319,7 +3328,7 @@ def keylistener():
                     data = get(m[0], utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer})
                     if not data.isdigit():
                         if len(m) == 2:
-                            z = m[1].rsplit(" > 0", 1)
+                            z = m[1].replace("*", "0").rsplit(" > 0", 1)
                             if len(z) == 1:
                                 z = ["", z[0]]
                             if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0]]]):

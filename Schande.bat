@@ -217,6 +217,7 @@ def help():
  |  "...*..."         HTML-based picker.
  |  "... > ..."       API-based picker.
  |  " > 0 > " to iterate a list, " > * > " to iterate all within, " >> " to load dictionary from QS (Query String).
+ |  "key Y << X"      prefers master key.
  |
  | API supported pickers: key, html, expect, files, name, pages.
  | During API each file picker must be accompanied by name picker and all HTML-based name/meta pickers must descend.

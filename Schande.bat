@@ -1547,8 +1547,8 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
             for m, cwf, a in z[1:]:
                 if off_branch_name:
                     cwf = ["".join(off_branch_name) + cwf[0], cwf[1]]
-                    off_branch_name = []
                 meta += [[m, cwf]]
+            off_branch_name = []
             linear_name += [[1]]
             continue
         z, cwf, a = z[pos]
@@ -1566,7 +1566,7 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
     if c[1]:
         cf = []
         for cc in c[1]:
-            if [cx := x[1:] for x in files if x[2] == cc]:
+            if [cx := x[:2] + x[3:] for x in files if x[2] == cc]:
                 cf = cx
                 break
         files = [cf]

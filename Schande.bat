@@ -735,7 +735,7 @@ def topicker(s, rule):
     elif rule.startswith("ready"):
         s["ready"] = True
     elif rule.startswith("savelink"):
-        s["savelink"] = True
+        s["savelink"] = "savelink" if rule == "savelink" else rule.split("savelink ", 1)[1]
     else:
         return
     return True
@@ -1232,6 +1232,15 @@ def downloadtodisk(fromhtml, makedirs=False):
                     if not file.endswith(tuple(specialfile)) and not file.startswith("icon"):
                         orphfiles += [file]
                 tohtml(dir, fromhtml, set(orphfiles).difference([x[1].rsplit("/", 1)[-1] for x in filelist]))
+    for dir in htmldirs.keys():
+        if x := fromhtml["page"]:
+            file = dir + x["name"] + ".URL"
+            if not os.path.exists(file):
+                with open(file, 'w') as f:
+                    f.write(f"""[InternetShortcut]
+URL={x["link"]}""")
+                x = "\\" + file.replace("/", "\\")
+                print(f" File created: {x}")
     error[0] = []
 
 
@@ -1742,8 +1751,8 @@ def pick_in_page(scraper):
                         kill(0, "there's no suitable name asset for folder creation. Check folder pickers and try again.")
                 if name_err:
                     break
-            if pick["savelink"]:
-                fromhtml["page"] = {"link":page, "name":saint(folder[0] + folder[0].rsplit("\\", 2)[-2]), "edited":0}
+            if x := pick["savelink"]:
+                fromhtml["page"] = {"link":page, "name":saint(x), "edited":0}
         if pick["pages"]:
             for y in pick["pages"]:
                 for z, cw, a in y[1:]:
@@ -1965,6 +1974,10 @@ def scrape(page):
             htmlpart = fromhtml["partition"]
             if len(htmlpart) > 1 or htmlpart["0"]["html"]:
                 stdout = "\n Then create " + tcolorg + folder[0] + "gallery.html" + tcolorx + " with\n"
+                if x := fromhtml["icons"]:
+                    stdout += f"""{tcolorg}█{"█ █".join([i["name"] for i in x])}█{tcolorx}\n"""
+                if x := fromhtml["page"]:
+                    stdout += f"""{tcoloro}<h2><a href="{x["link"]}">{x["name"]}</a></h2>{tcolorx}\n"""
                 for k in htmlpart.keys():
                     if k == "0" and not htmlpart[k]["files"]:
                         continue
@@ -1987,14 +2000,6 @@ def scrape(page):
             if not choice("c") == 1:
                 kill(0)
         downloadtodisk(fromhtml, makedirs=True)
-        if x := fromhtml["page"]:
-            xx = get_cd(x, preview=True)[1] + ".URL"
-            if not os.path.exists(xx):
-                txx = "\\" + xx.replace("/", "\\")
-                with open(xx, 'w') as f:
-                    f.write(f"""[InternetShortcut]
-URL={x["link"]}""")
-                print(f" File created: {txx}")
     return True
 
 
@@ -2755,8 +2760,8 @@ def tohtml(dir, fromhtml, orphfiles):
             if not (err := get(icon["link"], todisk)) == 1:
                 echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
         builder += f"""<img src="{icon["name"]}" height="100px">\n"""
-    if page := fromhtml["page"]:
-        builder += "<h2>Paysite: <a href=\"" + page["link"] + "\">" + page["name"].rsplit("\\", 1)[1] + "</a></h2>"
+    if x := fromhtml["page"]:
+        builder += f"""<h2><a href="{x["link"]}">{x["name"]}</a></h2>"""
 
 
 
@@ -3390,7 +3395,7 @@ for url in textread:
         pages += [url]
     else:
         name = parse.unquote(url.split("/")[-1])
-        fromhtml["partition"]["0"]["files"].update([{"link":url, "name":saint(name), "edited":0}])
+        fromhtml["partition"]["0"]["files"] += [{"link":url, "name":saint(name), "edited":0}]
 
 
 

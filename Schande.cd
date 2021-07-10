@@ -123,7 +123,7 @@ title ^<span class="Subject">*^</span><span class="UserName">*^href="javascript:
 folder1 ^/* customize with [* U-18Chan]\
 files <div class="FileDetails">File: <a href="*"
 name target="_blank"><u>*</u>
-savelink
+savelink U-18Chan topic
 
 https://www.patreon.com/api/user/
 icon included > 0 > attributes > avatar_photo_url
@@ -153,7 +153,7 @@ https://www.patreon.com/
 title /patreon-media/p/user/*/
 pages /patreon-media/p/campaign/*/ customize with https://www.patreon.com/api/posts?include=attachments%2Cimages.null%2Caudio.null&fields[post]=content%2Ccurrent_user_can_view%2Cedited_at%2Cembed%2Cpost_file%2Cpost_type%2Ctitle&fields[media]=download_url%2Cfile_name%2Cowner_id&sort=-published_at&filter[campaign_id]=*
 pages "creator_id": *} customize with https://www.patreon.com/api/user/*
-savelink
+savelink Patreon
 
 https://www.pixiv.net/en/artworks/
 urlfix https://www.pixiv.net/en/artworks/* with https://www.pixiv.net/ajax/illust/*/pages?lang=en
@@ -163,6 +163,7 @@ meta ^/*
 
 https://www.fanbox.cc/@
 pages /fanbox/public/images/creator/*/cover/ customize with https://api.fanbox.cc/post.listCreator?userId=*&limit=10
+savelink FANBOX
 
 https://api.fanbox.cc/
 key body > items > 0 > id
@@ -186,6 +187,7 @@ https://fantia.jp/fanclubs/
 folder ^/*^/
 pages ^<a rel="next" class="page-link" href="/fanclubs/*^"><i class="fa fa-angle-right"></i></a> customize with https://fantia.jp/fanclubs/*
 pages <a class="link-block" href="*" customize with https://fantia.jp*
+savelink Fantia
 
 https://fantia.jp/posts/
 urlfix https://fantia.jp/posts/* with https://fantia.jp/api/v1/posts/*

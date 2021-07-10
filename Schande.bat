@@ -1022,6 +1022,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
                                     if choice("sd") == 1:
                                         with open(todisk, 'wb') as f:
                                             f.write(data);
+                                        echo(f"{threadn:>3} Download completed: {url}", 0, 1)
                                     return
                         else:
                             return data
@@ -3366,20 +3367,21 @@ def keylistener():
                         savepage[0] = {m[0]:data}
                     else:
                         data = savepage[0][m[0]]
-                    if not data.isdigit():
-                        if len(m) == 2:
-                            z = m[1].replace("*", "0")
-                            z = z.rsplit(" > 0", 1) if " > 0" in z else ["0", z.split("0", 1)[1]] if z.startswith("0") else ["", z]
-                            if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0]]]):
-                                for y in x:
-                                    print(y[0])
+                    if data:
+                        if not isinstance(data, int):
+                            if len(m) == 2:
+                                z = m[1].replace("*", "0")
+                                z = z.rsplit(" > 0", 1) if " > 0" in z else ["0", z.split("0", 1)[1]] if z.startswith("0") else ["", z]
+                                if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0]]]):
+                                    for y in x:
+                                        print(y[0])
+                                else:
+                                    print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}")
                             else:
-                                print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}")
+                                data = "\n".join([s.rstrip() if s.rstrip() else "" for s in data.replace("	", "    ").splitlines()])
+                                print(syntax(data))
                         else:
-                            data = "\n".join([s.rstrip() if s.rstrip() else "" for s in data.replace("	", "    ").splitlines()])
-                            print(syntax(data))
-                    else:
-                        print("Error or dead (update cookie or referer if these are required to view)\n")
+                            print("Error or dead (update cookie or referer if these are required to view)\n")
                 elif m == "x":
                     break
                 else:

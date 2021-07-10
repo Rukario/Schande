@@ -1,6 +1,4 @@
 # Schande
-DIY scraper, download and organize
-
 Any good OS with Python 3 installed will work.
 
 Follow one for your system:

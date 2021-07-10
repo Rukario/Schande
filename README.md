@@ -13,7 +13,7 @@
 ```
 Any good OS with Python 3 installed will work.
 
-Follow one for your system:
+1. Follow one for your system:
  > Windows: Change the file extension back to .bat if it's in something else, then double click on it and read the CLI message.
 
  > MacOS (Terminal):
@@ -32,4 +32,8 @@ pip install --user Pillow
 some command like "python -x" to this file but dunno myself, you linux guys can figure it out.
 ```
 
-Schande.bat on first run will create a new file: Schande.cd, open it in your favorite text editor and add a rule there (to establish your capabilities to open and edit it), refer to the premade Schande.cd for inspiration.
+2. Schande.bat on first run will create a new file: Schande.cd, open it in your favorite text editor and add a rule there (to establish your capabilities to open and edit it), refer to the premade Schande.cd for inspiration.
+
+3A. Paranoids: (H)elp, (V)iew page source
+
+3B. Braves: (I)nput

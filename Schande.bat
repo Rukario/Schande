@@ -1416,6 +1416,8 @@ def branch(d, z):
     ds = []
     for k in z[0][0].split(" > "):
         if k == "0":
+            if not z[1][0][0]:
+                print(f"{tcolorr}Can't have 0 for last.{tcolorx}")
             z[0][0] = z[0][0].split("0", 1)[1]
             dx = []
             for dc in d:
@@ -3236,6 +3238,7 @@ def ready_input():
 
 
 
+savepage = [{}]
 def keylistener():
     while True:
         el = choice("bcdghioqstvx")
@@ -3341,12 +3344,15 @@ def keylistener():
                     referer = x[0] if (x := [v for k, v in referers.items() if m.startswith(k)]) else ""
                     ua = x[0] if (x := [v for k, v in mozilla.items() if m.startswith(k)]) else 'Mozilla/5.0'
                     m = m.split(" ", 1)
-                    data = get(m[0], utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer})
+                    if not m[0] in savepage[0]:
+                        data = get(m[0], utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer})
+                        savepage[0] = {m[0]:data}
+                    else:
+                        data = savepage[0][m[0]]
                     if not data.isdigit():
                         if len(m) == 2:
-                            z = m[1].replace("*", "0").rsplit(" > 0", 1)
-                            if len(z) == 1:
-                                z = ["", z[0]]
+                            z = m[1].replace("*", "0")
+                            z = z.rsplit(" > 0", 1) if " > 0" in z else ["0", z.split("0", 1)[1]] if z.startswith("0") else ["", z]
                             if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0]]]):
                                 for y in x:
                                     print(y[0])

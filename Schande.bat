@@ -636,9 +636,8 @@ def peanut(z, cw=[], a=False):
             kill(0, "there is no asterisk while customizing a pick.")
     z = z[0]
     if " > " in z or a:
-        z = z.replace("*", "0").rsplit(" > 0", 1)
-        if len(z) == 1:
-            z = ["", z[0]]
+        z = z.replace("*", "0")
+        z = z.rsplit(" > 0", 1) if " > 0" in z else ["0", z.split("0", 1)[1]] if z.startswith("0") else ["", z]
         a = True
     return [z, cw, a]
 
@@ -719,10 +718,14 @@ def topicker(s, rule):
     elif rule.startswith("extfix "):
         s["extfix"] = rule.split("extfix ", 1)[1]
     elif rule.startswith("urlfix "):
+        if not " with " in rule:
+            kill("""urlfix picker is broken, there need to be "with"!""")
         rule = rule.split(" ", 1)[1].split(" with ", 1)
         x = rule[1].split("*", 1)
         s["urlfix"] += [x[0], [rule[0]], x[1]]
     elif rule.startswith("url "):
+        if not " with " in rule:
+            kill("""url picker is broken, there need to be "with"!""")
         rule = rule.split(" ", 1)[1].split(" with ", 1)
         x = rule[1].split("*", 1)
         s["url"] = [x[0], [rule[0]], x[1]]
@@ -1412,6 +1415,12 @@ def linear(d, z):
 def branch(d, z):
     ds = []
     for k in z[0][0].split(" > "):
+        if k == "0":
+            z[0][0] = z[0][0].split("0", 1)[1]
+            dx = []
+            for dc in d:
+                dx += branch(dc, z)
+            return dx
         x = k.split(" >> ")
         if not x[0]:
             continue

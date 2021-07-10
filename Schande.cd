@@ -169,7 +169,7 @@ key body > items > 0 > id
 key1 body > items > 0 > title
 key2 body > items > 0 > updatedDatetime
 html body > items > 0 > body > text
-html body > items > 0 > body > blocks > 0 > text customize with <p>*
+html1 body > items > 0 > body > blocks > 0 > text
 key body > items > 0 > id << body > items > 0 > body > blocks > 0 > type
 files body > items > 0 > body > imageMap > * > originalUrl
 name1 body > items > 0 > body > imageMap > * > id

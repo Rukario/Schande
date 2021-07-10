@@ -674,7 +674,7 @@ def topicker(s, rule):
         rule = rule.split(" ", 1)[1].split(" with ", 1)
         s["replace"] += [[rule[0], rule[1]]]
     elif rule.startswith("html"):
-        s["html"] += [["", [], False]] if rule == "html" else [peanut(rule.split("html ", 1)[1])]
+        at(s["html"], rule.split("html", 1)[1])
         if s["file"] or s["file_after"]:
             s["inlinefirst"] = False
     elif rule.startswith("icon"):
@@ -1422,6 +1422,8 @@ def branch(d, z):
             return ds
     if len(z[0]) == 1:
         if z[0][0]:
+            if not z[1][0][0]:
+                print(f"{tcolorr}Can't have > 0 for last.{tcolorx}")
             dx = []
             if isinstance(d, list):
                 for dc in d:
@@ -1765,49 +1767,49 @@ def pick_in_page(scraper):
                                     print(f"Checkpoint: {px}\n")
         filelist_html = []
         if pick["html"]:
-            empty = False
             k_html = []
             if pick["key"] and pick["key"][0]:
                 kx = pick["key"][0]
             else:
                 kx = [0, 0]
-            for h, cw, a in pick["html"]:
-                if not h:
-                    empty = True
-                    continue
-                if a:
-                    if not db:
-                        db = opendb(data)
-                    for k in kx[1:]:
-                        master_key = ["", [["0"]]]
-                        if not k:
-                            key = [["0"]]
-                        else:
-                            html =  h[0]
-                            if html == k[1][0]:
-                                key = [[k[1][1], 0, 0, 0]]
-                            else:
-                                continue
-                            if k[0][0]:
-                                if len(z := k[1][0].split(k[0][0] + " > 0", 1)) == 2:
-                                    html = z[1]
-                                    master_key = [k[0][0], [[k[0][1], 0, 0, 0]]]
-                            elif k[0][1]:
-                                master_key = ["", [[k[0][1], 0, 0, 0]]]
-                        for html in tree(db, master_key + [html, key + [[h[1], 0, cw, 0]]]):
-                            k_html += [[html[1 if html[0] == "0" else 0], [[rp(html[2], pick["replace"]), ""]]]]
-                else:
-                    new_part = []
-                    for p in part:
-                        key = "0"
+            pos = 0
+            for y in pick["html"]:
+                for z, cw, a in y[1:]:
+                    if a:
+                        if not db:
+                            db = opendb(data)
                         for k in kx[1:]:
-                            if len(d := carrots([[p[0], ""]], k[1], [], False)) == 2:
-                                key = d[0][1]
-                                break
-                        c = carrots([[p[0], ""]], h, cw, False)
-                        k_html += [[key, [[rp(c[0][1], pick["replace"]), ""]]]]
-                        new_part += [["".join(x[0] for x in c), ""]]
-                    part = new_part
+                            master_key = ["", [["0"]]]
+                            if not k:
+                                key = [["0"]]
+                            else:
+                                html =  z[0]
+                                if html == k[1][0]:
+                                    key = [[k[1][1], 0, 0, 0]]
+                                else:
+                                    continue
+                                if k[0][0]:
+                                    if len(x := k[1][0].split(k[0][0] + " > 0", 1)) == 2:
+                                        html = x[1]
+                                        master_key = [k[0][0], [[k[0][1], 0, 0, 0]]]
+                                elif k[0][1]:
+                                    master_key = ["", [[k[0][1], 0, 0, 0]]]
+                            for html in tree(db, master_key + [html, key + [[z[1], 0, cw, 0]]]):
+                                html[2] = rp(html[2] + "\n" if pos > 0 else html[2], pick["replace"])
+                                k_html += [[html[1 if html[0] == "0" else 0], [[html[2], ""]]]]
+                    else:
+                        new_part = []
+                        for p in part:
+                            key = "0"
+                            for k in kx[1:]:
+                                if len(d := carrots([[p[0], ""]], k[1], [], False)) == 2:
+                                    key = d[0][1]
+                                    break
+                            c = carrots([[p[0], ""]], z, cw, False)
+                            k_html += [[key, [[rp(c[0][1], pick["replace"]), ""]]]]
+                            new_part += [["".join(x[0] for x in c), ""]]
+                        part = new_part
+                pos += 1
             for k, html in k_html:
                 if not k in htmlpart:
                     htmlpart.update({k:{"html":[], "keywords":[], "files":[]}})
@@ -1824,7 +1826,7 @@ def pick_in_page(scraper):
                                 if not ready: filelist_html += [h[1]] if h[1] else []
                             html = new_html
                     after = True
-                htmlpart[k]["html"] += [[""]] + html if empty else html
+                htmlpart[k]["html"] += html
             keywords = {}
             pos = 0
             for y in pick["key"][1:]:

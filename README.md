@@ -31,3 +31,5 @@ pip install --user PySocks
 pip install --user Pillow
 some command like "python -x" to this file but dunno myself, you linux guys can figure it out.
 ```
+
+Schande.bat on first run will create a new file: Schande.cd, open it in your favorite text editor and add a rule there (to establish your capabilities to open and edit it), refer to the premade Schande.cd for inspiration.

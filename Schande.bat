@@ -208,6 +208,8 @@ def help():
  |  "replace ..*.. with ..*.." find'n'replace before start picking in page/partition.
  |  "pages ...*..."   pick more pages to scrape in parallel, "relpages" for relative urls.
  |    Page picker will make sure all pages are unique to visit, but older pages can cause loophole.
+ |  "paginate *.. ..*.. ..* X Y Z" split url in three parts then create/restore X and Z then +/-Y to paginate.
+ |    Repeat this picker with different pattern to pick another location of this url to change.
  +  "savelink"        save first scraped page link as URL file in same directory where files are downloading.
 
  + Manipulating picker:
@@ -733,6 +735,8 @@ def topicker(s, rule):
         at(s["pages"], rule.split("pages", 1)[1], [], 1)
     elif rule.startswith("relpages "):
         at(s["pages"], rule.split("relpages", 1)[1])
+    elif rule.startswith("paginate "):
+        s["paginate"] += [rule.split("paginate ", 1)[1].split(" ")]
     elif rule.startswith("checkpoint"):
         s["checkpoint"] = True
     elif rule.startswith("ready"):
@@ -755,7 +759,7 @@ exempt = []
 pickers = {}
 # Developer note: Need to implement a way to not let API-based pickers define file and file_after names for HTML-based file pickers.
 def new_picker():
-    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
 pickers.update({"void":new_picker()})
 site = "void"
 dir = ""
@@ -1677,7 +1681,8 @@ def pick_in_page(scraper):
             if not redir:
                 print(f" Error fixing url for permanent redirection from {page}")
                 break
-            page = redir
+            more += [redir]
+            break
         if not pick["ready"]:
             echo(f" Visiting {page}", 0, 1)
         if x := pick["url"]:
@@ -1704,6 +1709,8 @@ def pick_in_page(scraper):
             pass
         else:
             print(f" Error visiting {page}")
+            break
+        if len(data) < 4:
             break
         title(batchfile + monitor())
         data = data.replace("\n ", "").replace("\n", "")
@@ -1785,6 +1792,16 @@ def pick_in_page(scraper):
                                 more += [px]
                                 if pick["checkpoint"]:
                                     print(f"Checkpoint: {px}\n")
+        if pick["paginate"]:
+            new = page
+            for p in pick["paginate"]:
+                a = carrots([[new, ""]], p[0])[0][1]
+                b = p[3 if len(p) == 6 else 2]
+                x = int(carrots([[new, ""]], p[1])[0][1]) + int(p[-2 if len(p) == 6 else -1])
+                y = p[-1] if len(p) == 6 else ""
+                z = carrots([[new, ""]], p[2])[0][1] if len(p) == 6 else ""
+                new = f"{a}{b}{x}{y}{z}"
+            more += [new]
         filelist_html = []
         if pick["html"]:
             k_html = []

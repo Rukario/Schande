@@ -150,7 +150,8 @@ extfix /1.*?token-time=
 pages links > next
 
 https://www.patreon.com/
-title /patreon-media/p/user/*/
+title /patreon-media/p/user/*/ customize with *
+folder1 ^/*^/ customize with  *\
 pages /patreon-media/p/campaign/*/ customize with https://www.patreon.com/api/posts?include=attachments%2Cimages.null%2Caudio.null&fields[post]=content%2Ccurrent_user_can_view%2Cedited_at%2Cembed%2Cpost_file%2Cpost_type%2Ctitle&fields[media]=download_url%2Cfile_name%2Cowner_id&sort=-published_at&filter[campaign_id]=*
 pages "creator_id": *} customize with https://www.patreon.com/api/user/*
 savelink Patreon

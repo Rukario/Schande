@@ -1,4 +1,16 @@
 # Schande
+```
+              ______
+           .-"______"-.
+          / |https://| \
+         |' |x HT*ML | '|
+    /\   | )|x A>P>I |( |
+  _ \/   |/ |________| \|
+ \_\/    (_ \   ^^   / _)   .-==/~\
+---,---,---|-|HHHHHH|-|---,\'-' {{~}
+           \          /     '-==\}/
+            '--------'
+```
 Any good OS with Python 3 installed will work.
 
 Follow one for your system:

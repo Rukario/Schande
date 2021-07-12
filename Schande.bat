@@ -49,8 +49,9 @@ cooldown = [False]
 echothreadn = []
 error = [[]]
 newfilen = [0]
-offlineprompt = [False]
-offlinepromptx = [False]
+retryall_else = [False]
+retryall_prompt = [False]
+continue_prompt = [False]
 personal = False
 retryall = [False]
 retries = [0]
@@ -344,7 +345,8 @@ def alert(m, s, d=False):
     title("! " + batchfile + monitor())
     send(s, m, d)
     if not d:
-        print("(C)ontinue")
+        sys.stdout.write("(C)ontinue")
+        sys.stdout.flush()
         choice("c", bg="2e")
 
 
@@ -631,15 +633,54 @@ def saint(name=False, url=False):
 
 
 
-def peanut(z, cw=[], a=False):
+def met(p, n):
+    if n[0] and p.endswith(n[0]) or n[1] and not p.endswith(n[1]) or n[2] and p.startswith(n[2]) or n[3] and not p.startswith(n[3]) or n[4] and not n[4][0] <= len(p) <= n[4][1]:
+        return
+    return True
+
+
+
+def conditions(x):
+    n = [""]*5
+    if len(x := x.rsplit(" not ends with ", 1)) == 2:
+        n[0] = x[1]
+    x = x[0]
+    if len(x := x.rsplit(" ends with ", 1)) == 2:
+        n[1] = x[1]
+    x = x[0]
+    if len(x := x.rsplit(" not starts with ", 1)) == 2:
+        n[2] = x[1]
+    x = x[0]
+    if len(x := x.rsplit(" starts with ", 1)) == 2:
+        n[3] = x[1]
+    x = x[0]
+    if len(y := x.rsplit(" letters", 1)) == 2:
+        y = y[0].rsplit(" ", 1)
+        if len(z := y[1].split("-", 1)) == 2:
+            if z[0].isdigit() and z[1].isdigit():
+                n[4] = [int(z[0]), int(z[1])]
+                x = y[0]
+        else:
+            if z[0].isdigit():
+                n[4] = [int(z[0]), int(z[0])]
+                x = y[0]
+    return [x, n]
+
+
+
+def peanut(z, cw, a):
     if len(z := z.rsplit(" customize with ", 1)) == 2:
         cw = z[1].rsplit("*", 1)
         if not len(cw) == 2:
-            kill(0, "there is no asterisk while customizing a pick.")
+            cw += [""]            
     z = z[0]
     if " > " in z or a:
         z = z.replace("*", "0")
-        z = z.rsplit(" > 0", 1) if " > 0" in z else ["0", z.split("0", 1)[1]] if z.startswith("0") else ["", z]
+        if " > 0" in z:
+            z = z.rsplit(" > 0", 1)
+            z += conditions(z.pop(1))
+        else:
+            z = ["0"] + conditions(z.split("0", 1)[1]) if z.startswith("0") else [""] + conditions(z)
         a = True
     return [z, cw, a]
 
@@ -654,11 +695,11 @@ def at(p, r, cw=[], alt=0, key=False):
         p += [[] for _ in range(n-len(p)+1)]
     if key:
         if len(d := r.split(" << ", 1)) == 2:
-            r = [peanut(d[0], a=True)[0]] + peanut(d[1])
+            r = [peanut(d[0], [], True)[0]] + peanut(d[1], [], False)
         else:
-            r = [[0, 0]] + peanut(r)
+            r = [[0, 0]] + peanut(r, [], False)
     else:
-        r = peanut(r, cw)
+        r = peanut(r, cw, False)
     p[n] += [r] if p[n] else [{"alt":alt}, r]
 
 
@@ -698,7 +739,7 @@ def topicker(s, rule):
         s["message"] += [rule.split("message ", 1)[1]]
     elif rule.startswith("choose "):
         c = rule.split("choose ", 1)[1].rsplit(" = ", 1)
-        c[0] = peanut(c[0])[0][1]
+        c[0] = peanut(c[0], [], False)[0][1]
         c[1] = c[1].split(" > ")
         s["choose"] += [c]
     elif rule.startswith("file "):
@@ -862,10 +903,10 @@ def retry(stderr):
     # Warning: urllib has slight memory leak
     retryall[0] = False
     while True:
-        if not offlineprompt[0]:
-            offlineprompt[0] = True
+        if not retryall_else[0]:
+            retryall_else[0] = True
             if stderr:
-                if offlinepromptx[0]:
+                if retryall_prompt[0]:
                     e = f"{retries[0]} retries (Q)uit trying "
                     if cooldown[0]:
                         timer(e)
@@ -874,20 +915,19 @@ def retry(stderr):
                 else:
                     title(status() + batchname)
                     print(f"{stderr} (R)etry? (A)lways (N)ext")
-                    el = choice("ran", True)
-                    if el == 1:
-                        retryall[0] = True
-                    elif el == 2:
-                        offlinepromptx[0] = True
-                    elif el == 3:
-                        offlineprompt[0] = False
-                        return
+                    while True:
+                        if retryall[0] or retryall_prompt[0]:
+                            break
+                        if retryall_else[0]:
+                            retryall_else[0] = False
+                            return
+                        time.sleep(0.1)
             else:
                 echo(f"{retries[0]} retries (S)kip one, wait it out, or press X to quit trying . . . ")
             time.sleep(0.5)
             title(status() + batchname)
             retries[0] += 1
-            offlineprompt[0] = False
+            retryall_else[0] = False
             return True
         elif retryall[0]:
             return True
@@ -905,10 +945,10 @@ def fetch(url, context=None, headers={'User-Agent':'Mozilla/5.0'}, stderr="", dl
         except HTTPError as e:
             if stderr or retryx[0] and not skiptonext[0]:
                 if not retry(f"{stderr} ({e.code} {e.reason})"):
-                    return 0, e.code
+                    return 0, str(e.code)
             else:
                 skiptonext[0] = False
-                return 0, e.code
+                return 0, str(e.code)
     return resp, 0
 
 
@@ -1253,14 +1293,7 @@ URL={x["link"]}""")
 
 
 
-def met(p, n):
-    if n[1] and p.endswith(n[1]) or n[2] and not p.endswith(n[2]) or n[3] and p.startswith(n[3]) or n[4] and not p.startswith(n[4]) or n[5] and not n[5][0] <= len(p) <= n[5][1]:
-        return
-    return True
-
-
-
-def carrot(array, z, new, n):
+def carrot(array, z, cw, new, my_conditions):
     a = ""
     aa = ""
     p = ""
@@ -1268,11 +1301,17 @@ def carrot(array, z, new, n):
     ii = False
     cc = False
     carrot_saver = []
+    if not "*" in z:
+        if z in update_array[0]:
+            if met(update_array[0], my_conditions):
+                array[0] = ""
+                new += [["", cw[0] + cw[1]]]
+        return
     z = [0, z]
     pc = False
     while True:
         ac = False
-        z = z[-1].split("*", 1)
+        z = z[1].split("*", 1)
         if z[0].startswith("^"):
             carrot_saver += [z[0].split("^", 1)[1]]
             if len(z) == 2:
@@ -1280,7 +1319,7 @@ def carrot(array, z, new, n):
             z[0] = ""
             cc = True
         if len(z) == 2 and not z[0] and not z[1]:
-            if met(update_array[0], n):
+            if met(update_array[0], my_conditions):
                 array[0] = ""
                 new += [["", update_array[0]]]
             return
@@ -1291,7 +1330,7 @@ def carrot(array, z, new, n):
         elif not len(y := update_array[0].split(z[0], 1)) == 2:
             return
         if len(z) == 2 and not z[1]:
-            if met(y[1], n):
+            if met(y[1], my_conditions):
                 array[0] = ""
                 new += [[y[0], y[1]]]
             return
@@ -1323,15 +1362,15 @@ def carrot(array, z, new, n):
             p = y[0]
             if ac:
                 y[0] = ""
-            if not met(p, n):
+            if not met(p, my_conditions):
                 p = ""
                 update_array[0] = y[1]
                 a = aa + y[0] + z[0]
             else:
                 update_array[0] = y[1]
                 a = ii[1] if ii else y[0]
-            if n[0]:
-                p = n[0][0] + p + n[0][1]
+            if cw:
+                p = cw[0] + p + cw[1]
             new += [[a, p]]
             return True, update_array
 
@@ -1339,33 +1378,11 @@ def carrot(array, z, new, n):
 
 def carrots(arrays, x, cw=[], any=True):
     update_array = []
-    n = [cw] + [""]*5
-    if len(x := x.rsplit(" not ends with ", 1)) == 2:
-        n[1] = x[1]
-    x = x[0]
-    if len(x := x.rsplit(" ends with ", 1)) == 2:
-        n[2] = x[1]
-    x = x[0]
-    if len(x := x.rsplit(" not starts with ", 1)) == 2:
-        n[3] = x[1]
-    x = x[0]
-    if len(x := x.rsplit(" starts with ", 1)) == 2:
-        n[4] = x[1]
-    x = x[0]
-    if len(y := x.rsplit(" letters", 1)) == 2:
-        y = y[0].rsplit(" ", 1)
-        if len(z := y[1].split("-", 1)) == 2:
-            if z[0].isdigit() and z[1].isdigit():
-                n[5] = [int(z[0]), int(z[1])]
-                x = y[0]
-        else:
-            if z[0].isdigit():
-                n[5] = [int(z[0]), int(z[0])]
-                x = y[0]
+    x, my_conditions = conditions(x)
     new = []
     for array in arrays:
         while True:
-            update_array = carrot(array, x, new, n)
+            update_array = carrot(array, x, cw, new, my_conditions)
             if not update_array:
                 break
             array = update_array[1]
@@ -1400,19 +1417,20 @@ def linear(d, z):
                     dc = json.loads(dc)
                     if dc and y[1] in dc:
                         dc = dc[y[1]]
-            elif x[3]:
-                kill(0, x[3])
+            elif x[4]:
+                kill(0, x[4])
             else:
                 return
-        if x[1] and not any(c for c in x[1] if c == str(dc)):
-            if x[3]:
-                kill(0, x[3])
+        dc = str(dc)
+        if x[1] and not any(c for c in x[1] if c == dc) or x[2] and not met(dc, x[2]):
+            if x[4]:
+                kill(0, x[4])
             else:
                 return
-        if x[2]:
-            dt += [str(dc).join(x[2])]
+        if x[3]:
+            dt += [dc.join(x[3])]
         else:
-            dt += [str(dc)]
+            dt += [dc]
     return dt
 
 
@@ -1469,6 +1487,7 @@ def branch(d, z):
                 else:
                     return [dt]
     else:
+        debug()
         for x in d:
             ds += branch(x, [z[0][1:]] + z[1:])
     return ds
@@ -1476,7 +1495,7 @@ def branch(d, z):
 
 
 def tree(d, z):
-    # tree(dictionary, [branching/linear keys, [[linear keys, choice, customize with, stderr and kill], [linear keys, 0 accept any, 0 no customization, 0 continue without]]])
+    # tree(dictionary, [branching keys, [[linear keys, conditions, customize with, stderr and kill], [linear keys, 0 accept any, 0 no customization, 0 continue without]]])
     z[0] = z[0].split(" > 0")
     return branch(d, z)
 
@@ -1553,13 +1572,13 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
     if not k:
         key = [["0"]]
     else:
-        key = [[k[1][1], 0, 0, 0]]
+        key = [[k[1][1], 0, 0, 0, 0]]
         if k[0][0]:
             if len(z := k[1][0].split(k[0][0] + " > 0", 1)) == 2:
                 file = z[1]
-                master_key = [k[0][0], [[k[0][1], 0, 0, 0]]]
+                master_key = [k[0][0], [[k[0][1], 0, 0, 0, 0]]]
         elif k[0][1]:
-            master_key = ["", [[k[0][1], 0, 0, 0]]]
+            master_key = ["", [[k[0][1], 0, 0, 0, 0]]]
 
 
 
@@ -1587,11 +1606,11 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
             if off_branch_name:
                 cwf = [cwf[0] + "".join(off_branch_name), cwf[1]]
                 off_branch_name = []
-            linear_name += [[z[1], 0, cwf, stderr]]
+            linear_name += [[z[1], 0, 0, cwf, stderr]]
         else:
-            x = tree(db, [z[0], [[z[1], 0, cwf, stderr]]])
+            x = tree(db, [z[0], [[z[1], 0, 0, cwf, stderr]]])
             off_branch_name += [x[0][0]] if x else []
-    files = tree(db, master_key + [file, key + [[c[0], c[1], 0, 0], [f[1], 0, cw, 0]] + linear_name])
+    files = tree(db, master_key + [file, key + [[c[0], c[1], 0, 0, 0], [f[1], 0, f[2], cw, 0]] + linear_name])
     if c[1]:
         cf = []
         for cc in c[1]:
@@ -1673,19 +1692,6 @@ def pick_in_page(scraper):
         pg[0] += 1
         if pick["visit"]:
             fetch(page, stderr="Error visiting the page to visit")
-        if x := pick["urlfix"]:
-            redir = ""
-            for y in x[1]:
-                if len(c := carrots([[page, ""]], y, [], False)) == 2:
-                    redir = x[0] + c[-2][1] + x[2]
-                    break
-            if not redir:
-                print(f" Error fixing url for permanent redirection from {page}")
-                break
-            more += [redir]
-            break
-        if not pick["ready"]:
-            echo(f" Visiting {page}", 0, 1)
         if x := pick["url"]:
             redir = ""
             for y in x[1]:
@@ -1696,6 +1702,18 @@ def pick_in_page(scraper):
                 print(f" Error creating a redirected url for {page}")
                 break
             url = redir
+        if x := pick["urlfix"]:
+            redir = ""
+            for y in x[1]:
+                if len(c := carrots([[page, ""]], y, [], False)) == 2:
+                    redir = x[0] + c[-2][1] + x[2]
+                    break
+            if not redir:
+                print(f" Error fixing url for permanent redirection from {page}")
+                break
+            page = redir
+        if not pick["ready"]:
+            echo(f" Visiting {page}", 0, 1)
         referer = x[0] if (x := [v for k, v in referers.items() if page.startswith(k)]) else ""
         ua = x[0] if (x := [v for k, v in mozilla.items() if page.startswith(k)]) else 'Mozilla/5.0'
         if pick["send"]:
@@ -1731,7 +1749,7 @@ def pick_in_page(scraper):
                             db = opendb(data)
                         pos += 1
                         c = z[1].rsplit(" = ", 1)
-                        result = tree(db, [z[0], [[c[0], c[1].split(" > "), 0, 0]]])
+                        result = tree(db, [z[0], [[c[0], c[1].split(" > "), 0, 0, 0]]])
                     else:
                         result = True if z in part[0][0] else False
                     if y[0]["alt"] and result:
@@ -1753,7 +1771,7 @@ def pick_in_page(scraper):
                         if a:
                             if not db:
                                 db = opendb(data)
-                            for d in tree(db, [z[0], [[z[1], 0, 0, 0]]]):
+                            for d in tree(db, [z[0], [[z[1], 0, 0, 0, 0]]]):
                                 folder[0] += d[0]
                                 name_err = False
                         elif y[0]["alt"]:
@@ -1778,7 +1796,7 @@ def pick_in_page(scraper):
                     if a:
                         if not db:
                             db = opendb(data)
-                        pages = tree(db, [z[0], [[z[1], 0, 0, 0]]])
+                        pages = tree(db, [z[0], [[z[1], 0, 0, 0, 0]]])
                         if pages and not pages[0][0] == "None":
                             for p in pages:
                                 if not p[0] == page and not page + p[0] == page:
@@ -1823,16 +1841,16 @@ def pick_in_page(scraper):
                             else:
                                 html =  z[0]
                                 if html == k[1][0]:
-                                    key = [[k[1][1], 0, 0, 0]]
+                                    key = [[k[1][1], 0, 0, 0, 0]]
                                 else:
                                     continue
                                 if k[0][0]:
                                     if len(x := k[1][0].split(k[0][0] + " > 0", 1)) == 2:
                                         html = x[1]
-                                        master_key = [k[0][0], [[k[0][1], 0, 0, 0]]]
+                                        master_key = [k[0][0], [[k[0][1], 0, 0, 0, 0]]]
                                 elif k[0][1]:
-                                    master_key = ["", [[k[0][1], 0, 0, 0]]]
-                            for html in tree(db, master_key + [html, key + [[z[1], 0, cw, 0]]]):
+                                    master_key = ["", [[k[0][1], 0, 0, 0, 0]]]
+                            for html in tree(db, master_key + [html, key + [[z[1], 0, 0, cw, 0]]]):
                                 html[2] = rp(html[2] + "\n" if pos > 0 else html[2], pick["replace"])
                                 k_html += [[html[1 if html[0] == "0" else 0], [[html[2], ""]]]]
                     else:
@@ -1875,13 +1893,13 @@ def pick_in_page(scraper):
                             db = opendb(data)
                         for k in kx[1:]:
                             if not k:
-                                key = [["0", 0, 0, 0]]
+                                key = [["0", 0, 0, 0, 0]]
                             else:
                                 if z[0] == k[1][0]:
-                                    key = [[k[1][1], 0, 0, 0]]
+                                    key = [[k[1][1], 0, 0, 0, 0]]
                                 else:
                                     continue
-                            for d in tree(db, [z[0], [[z[1], 0, 0, 0]] + key]):
+                            for d in tree(db, [z[0], [[z[1], 0, 0, 0, 0]] + key]):
                                 if not d[1] in keywords:
                                     keywords.update({d[1]: ["", ""]})
                                 if pos < 2:
@@ -1919,7 +1937,7 @@ def pick_in_page(scraper):
                         if a:
                             if not db:
                                 db = opendb(data)
-                            url = tree(db, [z[0], [[z[1], 0, 0, 0]]])[0][0]
+                            url = tree(db, [z[0], [[z[1], 0, 0, 0, 0]]])[0][0]
                             ext = ""
                             for x in imagefile:
                                 if x in url:
@@ -1972,30 +1990,30 @@ for i in range(8):
 
 
 ready = [True]
-def scrape(page):
+def scrape(pages):
     fromhtml = new_part()
-    folder = [""]
-    pages = iter([page])
+    folder = [""] # developer note: working on it....
+    pages = iter(pages)
     while True:
         threadn = 0
-        more = []
+        more_pages = []
         visited = set()
         for link in pages:
             threadn += 1
             echothreadn.append(threadn)
-            scraper.put((threadn, folder, link, more, fromhtml))
+            scraper.put((threadn, folder, link, more_pages, fromhtml))
         try:
             scraper.join()
         except:
             pass
-        pages = set(filter(None, more))
-        for page in pages:
+        more_pages = set(filter(None, more_pages))
+        for page in more_pages:
             if page in visited and not visited.add(page):
                 print(f"{tcolorr}Already visited {page} loophole warning{tcolorx}")
-                # pages.remove(page)
-        if not pages:
+                # more_pages.remove(page)
+        if not more_pages:
             break
-        pages = iter(pages)
+        pages = iter(more_pages)
     title(status() + batchfile)
 
     if fromhtml["partition"]:
@@ -2026,8 +2044,11 @@ def scrape(page):
                 echo(stdout)
             sys.stdout.write(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """)
             sys.stdout.flush()
-            if not choice("c") == 1:
-                kill(0)
+            while True:
+                if continue_prompt[0]:
+                    continue_prompt[0] = False
+                    break
+                time.sleep(0.1)
         downloadtodisk(fromhtml, makedirs=True)
     return True
 
@@ -3250,6 +3271,46 @@ def read_input(m):
 
 
 
+def source_view():
+    if busy[0]:
+        echo("Please wait for another operation to finish", 1, 1)
+        return
+    while True:
+        m = input("Enter URL to view source, append URL with key > s > to read it as dictionary, enter nothing to exit: ").rstrip()
+        if m.startswith("http"):
+            referer = x[0] if (x := [v for k, v in referers.items() if m.startswith(k)]) else ""
+            ua = x[0] if (x := [v for k, v in mozilla.items() if m.startswith(k)]) else 'Mozilla/5.0'
+            m = m.split(" ", 1)
+            if not m[0] in savepage[0]:
+                data = get(m[0], utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer})
+                savepage[0] = {m[0]:data}
+            else:
+                data = savepage[0][m[0]]
+            if not data.isdigit():
+                if len(m) == 2:
+                    z = m[1].replace("*", "0")
+                    z = z.rsplit(" > 0", 1) if " > 0" in z else ["0", z.split("0", 1)[1]] if z.startswith("0") else ["", z]
+                    if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0, 0]]]):
+                        for y in x:
+                            print(y[0])
+                    else:
+                        print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}\n")
+                else:
+                    data = "\n".join([s.rstrip() if s.rstrip() else "" for s in data.replace("	", "    ").splitlines()])
+                    print(syntax(data))
+                    print()
+            else:
+                print("Error or dead (update cookie or referer if these are required to view)\n")
+        elif not m:
+            echo("", 1)
+            echo("", 1)
+            break
+        else:
+            choice(bg=True)
+    ready_input()
+
+
+
 def ready_input():
     sys.stdout.write("Enter (I)nput mode or ready to s(O)rt, (H)elp: ")
     sys.stdout.flush()
@@ -3259,8 +3320,11 @@ def ready_input():
 savepage = [{}]
 def keylistener():
     while True:
-        el = choice("bcdghioqstvx")
+        el = choice("abcdghiknoqrstvx")
         if el == 1:
+            echo("", 1)
+            retryallx[0] = True
+        elif el == 2:
             if not Browser:
                 choice(bg=True)
                 print(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""")
@@ -3281,13 +3345,10 @@ def keylistener():
  (Google it but tl;dr: Try HTML server)
 """)
             ready_input()
-        elif el == 2:
-            c = False
-            for c in cookies:
-                echo(str(c), 1, 2)
-            if not c:
-                echo("No cookies!", 1, 1)
         elif el == 3:
+            echo("", 1)
+            continue_prompt[0] = True
+        elif el == 4:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
@@ -3300,7 +3361,7 @@ def keylistener():
                     skull()
                     tohtml_g(delete=True)
             ready_input()
-        elif el == 4:
+        elif el == 5:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
@@ -3310,23 +3371,25 @@ def keylistener():
             else:
                 tohtml_g()
             ready_input()
-        elif el == 5:
+        elif el == 6:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            sys.stdout.write("Open (H)elp unless you mean (I)nput mode for http...: ")
+            sys.stdout.write("Open (H)elp unless you mean (I)nput mode for (HTTP...): ")
             sys.stdout.flush()
-            el = choice("hi")
+            el = choice("hvi")
             if el == 1:
                 help()
                 ready_input()
             elif el == 2:
+                source_view()
+            elif el == 3:
                 if not read_input(input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "")):
                     echo("", 1, 0)
                     echo("", 1, 0)
                     echo("", 1, 0)
                     ready_input()
-        elif el == 6:
+        elif el == 7:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
@@ -3334,63 +3397,42 @@ def keylistener():
                 echo("", 1, 0)
                 echo("", 1, 0)
                 ready_input()
-        elif el == 7:
+        elif el == 8:
+            c = False
+            for c in cookies:
+                echo(str(c), 1, 2)
+            if not c:
+                echo("No cookies!", 1, 1)
+        elif el == 9:
+            echo("", 1)
+            retryall_else[0] = True
+        elif el == 10:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             finish_sort()
             ready_input()
-        elif el == 8:
+        elif el == 11:
             echo("", 1)
             skiptonext[0] = True
-        elif el == 9:
+        elif el == 12:
             echo("", 1)
-            offlinepromptx[0] = False
-        elif el == 10:
+            retryall_prompt[0] = False
+        elif el == 13:
+            echo("", 1)
+            retryall[0] = True
+        elif el == 14:
             if ticks:
                 echo(f"""COOLDOWN {"DISABLED" if cooldown[0] else "ENABLED"}""", 1, 1)
             else:
                 echo(f"""Timer not enabled, please add "#-# seconds rarity 100%" in {rulefile}, add another timer to manipulate rarity.""", 1, 1)
             cooldown[0] = False if cooldown[0] else True
-        elif el == 11:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            while True:
-                m = input("Enter URL to view source, append URL with key > s > to read it as dictionary, e(X)it: ").rstrip()
-                if m.startswith("http"):
-                    referer = x[0] if (x := [v for k, v in referers.items() if m.startswith(k)]) else ""
-                    ua = x[0] if (x := [v for k, v in mozilla.items() if m.startswith(k)]) else 'Mozilla/5.0'
-                    m = m.split(" ", 1)
-                    if not m[0] in savepage[0]:
-                        data = get(m[0], utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer})
-                        savepage[0] = {m[0]:data}
-                    else:
-                        data = savepage[0][m[0]]
-                    if data:
-                        if not isinstance(data, int):
-                            if len(m) == 2:
-                                z = m[1].replace("*", "0")
-                                z = z.rsplit(" > 0", 1) if " > 0" in z else ["0", z.split("0", 1)[1]] if z.startswith("0") else ["", z]
-                                if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0]]]):
-                                    for y in x:
-                                        print(y[0])
-                                else:
-                                    print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}")
-                            else:
-                                data = "\n".join([s.rstrip() if s.rstrip() else "" for s in data.replace("	", "    ").splitlines()])
-                                print(syntax(data))
-                        else:
-                            print("Error or dead (update cookie or referer if these are required to view)\n")
-                elif m == "x":
-                    break
-                else:
-                    choice(bg=True)
-            ready_input()
-        elif el == 12:
+        elif el == 15:
+            source_view()
+        elif el == 16:
             echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
             retryx[0] = False if retryx[0] else True
-            offlinepromptx[0] = True
+            retryall_prompt[0] = True
         else:
             seek[0] = True
 t = Thread(target=keylistener)
@@ -3401,7 +3443,7 @@ print("""
   > Press X to enable or disable indefinite retry on error downloading files (for this session).
   > Press S to skip next error once during downloading files.
   > Press T to enable or disable cooldown during errors (reduce server strain).
-  > Press C to view cookies.
+  > Press K to view cookies.
   > Press Ctrl + C to break and reconnect of the ongoing downloads or to end timer instantly.
 """)
 
@@ -3419,17 +3461,24 @@ print(f"Reading {textfile} . . .")
 with open(textfile, 'r', encoding="utf-8") as f:
     textread = f.read().splitlines()
 pages = []
+book = []
 fromhtml = new_part()
-for url in textread:
-    if not url or url.startswith("#"):
+for line in textread:
+    if not line or line.startswith("#"):
         continue
-    elif not url.startswith("http"):
+    elif line == "then":
+        book += [pages]
+        pages = []
+    elif line == "end":
+        break
+    elif not line.startswith("http"):
         continue
-    if any(word for word in pickers.keys() if url.startswith(word)):
-        pages += [url]
+    if any(word for word in pickers.keys() if line.startswith(word)):
+        pages += [line]
     else:
-        name = parse.unquote(url.split("/")[-1])
-        fromhtml["partition"]["0"]["files"] += [{"link":url, "name":saint(name), "edited":0}]
+        name = parse.unquote(line.split("/")[-1])
+        fromhtml["partition"]["0"]["files"] += [{"link":line, "name":saint(name), "edited":0}]
+book += [pages]
 
 
 
@@ -3457,9 +3506,14 @@ else:
     busy[0] = True
     if fromhtml["partition"]["0"]["files"]:
         downloadtodisk(fromhtml)
-    elif pages:
-        for page in pages:
-            scrape(page)
+    elif book:
+        resume = False
+        for pages in book:
+            if resume:
+                print("\n Resuming next lines from {textfile}")
+            else:
+                resume = True
+            scrape(pages)
     else:
         print(f" No urls in {textfile}!")
     busy[0] = False
@@ -3471,7 +3525,7 @@ ready_input()
 while True:
     if run_input[0]:
         busy[0] = True
-        scrape(run_input[0])
+        scrape([run_input[0]])
         run_input[0] = ""
         busy[0] = False
         print()

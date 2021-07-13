@@ -242,8 +242,8 @@ def help():
  +  > Using caret will finish with one chosen match.
 
  + For difficult asterisks:
- |  "X # letters" (# or #-#) after any picker so the match is expected to be that amount.
- |  "X ends/starts with X" after any picker. "not" for opposition.
+ |  "X # letters" (# or #-#) after any picker (before "customize with") so the match is expected to be that amount.
+ |  "X ends/starts with X" after any picker (before "customize with"). "not" for opposition.
  + Use replace picker to discard what you don't need before complicating pickers with many asterisks or carets.
 """)
 
@@ -1558,7 +1558,7 @@ def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
                     name += ext
             if after:
                 url = array[1]
-            update_html += [[update_array[0], {"link":url, "name":saint(folder[0] + parse.unquote(name)), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
+            update_html += [[update_array[0], {"link":url, "name":saint(folder + parse.unquote(name)), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
         else:
             update_html += [[update_array[0], '']]
         url = array[1]
@@ -1630,7 +1630,7 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
         if e := pick["extfix"]:
             if len(ext := carrots([[file[2], ""]], e, [".", ""], False)) == 2 and not name.endswith(ext := ext[-2][1]):
                 name += ext
-        filelist += [[f_key, {"link":file[2], "name":saint(folder[0] + name), "edited":htmlpart[f_key]["keywords"][1] if f_key in htmlpart and len(htmlpart[f_key]["keywords"]) > 1 else "0"}]]
+        filelist += [[f_key, {"link":file[2], "name":saint(folder + name), "edited":htmlpart[f_key]["keywords"][1] if f_key in htmlpart and len(htmlpart[f_key]["keywords"]) > 1 else "0"}]]
 
 
 
@@ -1681,14 +1681,9 @@ def pick_in_page(scraper):
     while True:
         data = ""
         url = ""
-        threadn, folder, page, more, fromhtml = scraper.get()
+        threadn, pick, start, page, more_pages, fromhtml = scraper.get()
         htmlpart = fromhtml["partition"]
-        get_pick = [x for x in pickers.keys() if page.startswith(x)]
-        if not get_pick:
-            print(f"I don't have a scraper for {page}")
-            break
-        pick = pickers[get_pick[0]]
-        fromhtml["inlinefirst"] = pick["inlinefirst"]
+        folder = fromhtml["folder"]
         pg[0] += 1
         if pick["visit"]:
             fetch(page, stderr="Error visiting the page to visit")
@@ -1761,9 +1756,9 @@ def pick_in_page(scraper):
                             os.system(f"""start "" "{Browser}" "{page}" """)
                         alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "Not any longer", pick["dismiss"])
                     else:
-                        more += [page]
+                        more_pages += [[start, page]]
                         timer("Not quite as expected! ", False)
-        if not folder[0]:
+        if not folder:
             if pick["folder"]:
                 for y in pick["folder"]:
                     name_err = True
@@ -1772,22 +1767,23 @@ def pick_in_page(scraper):
                             if not db:
                                 db = opendb(data)
                             for d in tree(db, [z[0], [[z[1], 0, 0, 0, 0]]]):
-                                folder[0] += d[0]
+                                folder += d[0]
                                 name_err = False
                         elif y[0]["alt"]:
                             if x := [x[1] for x in carrots(part, z, cw, False) if x[1]]:
-                                folder[0] += x[0]
+                                folder += x[0]
                                 name_err = False
                                 break
                         else:
                             if len(x := carrots([[page, ""]], z, cw, False)) == 2:
-                                folder[0] += x[0][1]
+                                folder += x[0][1]
                                 name_err = False
                                 break
                     if name_err:
                         kill(0, "there's no suitable name asset for folder creation. Check folder pickers and try again.")
                 if name_err:
                     break
+            fromhtml["folder"] = folder
             if x := pick["savelink"]:
                 fromhtml["page"] = {"link":page, "name":saint(x), "edited":0}
         if pick["pages"]:
@@ -1801,14 +1797,14 @@ def pick_in_page(scraper):
                             for p in pages:
                                 if not p[0] == page and not page + p[0] == page:
                                     px = p[0] if y[0]["alt"] else page + p[0]
-                                    more += [px]
+                                    more_pages += [[start, px]]
                                     if pick["checkpoint"]:
                                         print(f"Checkpoint: {px}\n")
                     else:
                         for p in [x[1] for x in carrots(part, z, cw) if x[1]]:
                             if not p == page and not page + p == page:
                                 px = p if y[0]["alt"] else page + p
-                                more += [px]
+                                more_pages += [[start, px]]
                                 if pick["checkpoint"]:
                                     print(f"Checkpoint: {px}\n")
         if pick["paginate"]:
@@ -1820,7 +1816,7 @@ def pick_in_page(scraper):
                 y = p[-1] if len(p) == 6 else ""
                 z = carrots([[new, ""]], p[2])[0][1] if len(p) == 6 else ""
                 new = f"{a}{b}{x}{y}{z}"
-            more += [new]
+            more_pages += [[start, new]]
         filelist_html = []
         if pick["html"]:
             k_html = []
@@ -1868,7 +1864,7 @@ def pick_in_page(scraper):
                 pos += 1
             for k, html in k_html:
                 if not k in htmlpart:
-                    htmlpart.update({k:{"html":[], "keywords":[], "files":[]}})
+                    htmlpart.update(new_p(k))
                 after = False
                 for x in [pick["file"], pick["file_after"]]:
                     for y in x:
@@ -1879,7 +1875,7 @@ def pick_in_page(scraper):
                             new_html = []
                             for h in html:
                                 new_html += [[h[0], ""], ["", h[1]]] if h[1] else [h] # Overkill?
-                                if not ready: filelist_html += [h[1]] if h[1] else []
+                                if not pick["ready"]: filelist_html += [h[1]] if h[1] else []
                             html = new_html
                     after = True
                 htmlpart[k]["html"] += html
@@ -1924,7 +1920,7 @@ def pick_in_page(scraper):
                 pos += 1
             for z in keywords.keys():
                 if not z in htmlpart:
-                    htmlpart.update({z:{"html":[], "keywords":[], "files":[]}})
+                    htmlpart.update(new_p(z))
                 htmlpart[z]["keywords"] += [rp(y, pick["replace"]) for y in keywords[z]]
         else:
             for p in part:
@@ -1962,7 +1958,7 @@ def pick_in_page(scraper):
             for file in filelist:
                 k = file[0]
                 if not k in htmlpart:
-                    htmlpart.update({k:{"html":[], "keywords":[], "files":[]}})
+                    htmlpart.update(new_p(k))
                 htmlpart[k].update({"files":[file[1]] + htmlpart[k]["files"]})
             if not pick["ready"]:
                 stdout = ""
@@ -1976,7 +1972,7 @@ def pick_in_page(scraper):
                 if not x:
                     stdout += f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference.{tcolorx}" + "\n"
                 echo(stdout)
-                ready[0] = False
+                fromhtml["ready"] = False
         echothreadn.remove(threadn)
         scraper.task_done()
     echothreadn.remove(threadn)
@@ -1989,67 +1985,84 @@ for i in range(8):
 
 
 
-ready = [True]
-def scrape(pages):
-    fromhtml = new_part()
-    folder = [""] # developer note: working on it....
-    pages = iter(pages)
+def new_p(z):
+    return {z:{"html":[], "keywords":[], "files":[]}}
+
+def new_part():
+    return {"ready":True, "page":"", "folder":"", "icons":[], "inlinefirst":True, "partition":new_p("0")}
+
+
+
+def scrape(startpages):
+    shelf = {}
+    threadn = 0
+    pages = [["", x] for x in startpages]
+    visited = set()
     while True:
-        threadn = 0
         more_pages = []
-        visited = set()
-        for link in pages:
+        for start, page in pages:
             threadn += 1
             echothreadn.append(threadn)
-            scraper.put((threadn, folder, link, more_pages, fromhtml))
-        try:
-            scraper.join()
-        except:
-            pass
-        more_pages = set(filter(None, more_pages))
-        for page in more_pages:
+            get_pick = [x for x in pickers.keys() if page.startswith(x)]
+            if not get_pick:
+                print(f"I don't have a scraper for {page}")
+                break
+            pick = pickers[get_pick[0]]
+            if not start:
+                start = page
+                shelf.update({start: new_part()})
+                fromhtml = shelf[start]
+                fromhtml["inlinefirst"] = pick["inlinefirst"]
+            else:
+                fromhtml = shelf[start]
+                fromhtml["partition"]
+            scraper.put((threadn, pick, start, page, more_pages, fromhtml))
+        scraper.join()
+        more_pages = [list(x) for x in set(tuple(x) for x in more_pages)]
+        for start, page in more_pages:
             if page in visited and not visited.add(page):
                 print(f"{tcolorr}Already visited {page} loophole warning{tcolorx}")
                 # more_pages.remove(page)
         if not more_pages:
             break
-        pages = iter(more_pages)
+        pages = more_pages
     title(status() + batchfile)
 
-    if fromhtml["partition"]:
-        if not ready[0]:
-            htmlpart = fromhtml["partition"]
-            if len(htmlpart) > 1 or htmlpart["0"]["html"]:
-                stdout = "\n Then create " + tcolorg + folder[0] + "gallery.html" + tcolorx + " with\n"
-                if x := fromhtml["icons"]:
-                    stdout += f"""{tcolorg}█{"█ █".join([i["name"] for i in x])}█{tcolorx}\n"""
-                if x := fromhtml["page"]:
-                    stdout += f"""{tcoloro}<h2><a href="{x["link"]}">{x["name"]}</a></h2>{tcolorx}\n"""
-                for k in htmlpart.keys():
-                    if k == "0" and not htmlpart[k]["files"]:
-                        continue
-                    stdout += k + "\n"
-                    if x := htmlpart[k]["keywords"]:
-                        keywords = ", ".join(f"{kw}" for kw in x[2:])
-                        stdout += tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 and x[1] else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + tcolorx + "\n"
-                    for file in htmlpart[k]["files"]:
-                        stdout += tcolorg + file["name"].rsplit("\\")[-1] + tcolorx + "\n"
-                    if html := htmlpart[k]["html"]:
-                        for h in html:
-                            if h[0]:
-                                stdout += tcoloro + h[0]
-                            if h[1]:
-                                stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
-                        stdout += tcolorx + "\n"
-                echo(stdout)
-            sys.stdout.write(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """)
-            sys.stdout.flush()
-            while True:
-                if continue_prompt[0]:
-                    continue_prompt[0] = False
-                    break
-                time.sleep(0.1)
-        downloadtodisk(fromhtml, makedirs=True)
+    for p in shelf.keys():
+        if shelf[p]["partition"]:
+            if not shelf[p]["ready"]:
+                htmlpart = shelf[p]["partition"]
+                if len(htmlpart) > 1 or htmlpart["0"]["html"]:
+                    stdout = "\n Then create " + tcolorg + shelf[p]["folder"] + "gallery.html" + tcolorx + " with\n"
+                    if x := shelf[p]["icons"]:
+                        stdout += f"""{tcolorg}█{"█ █".join([i["name"] for i in x])}█{tcolorx}\n"""
+                    if x := shelf[p]["page"]:
+                        stdout += f"""{tcoloro}<h2><a href="{x["link"]}">{x["name"]}</a></h2>{tcolorx}\n"""
+                    for k in htmlpart.keys():
+                        if k == "0" and not htmlpart[k]["files"]:
+                            continue
+                        stdout += k + "\n"
+                        if x := htmlpart[k]["keywords"]:
+                            keywords = ", ".join(f"{kw}" for kw in x[2:])
+                            stdout += tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 and x[1] else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + tcolorx + "\n"
+                        for file in htmlpart[k]["files"]:
+                            stdout += tcolorg + file["name"].rsplit("\\")[-1] + tcolorx + "\n"
+                        if html := htmlpart[k]["html"]:
+                            for h in html:
+                                if h[0]:
+                                    stdout += tcoloro + h[0]
+                                if h[1]:
+                                    stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
+                            stdout += tcolorx + "\n"
+                    echo(stdout)
+                sys.stdout.write(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """)
+                sys.stdout.flush()
+                while True:
+                    if continue_prompt[0]:
+                        continue_prompt[0] = False
+                        break
+                    time.sleep(0.1)
+            downloadtodisk(shelf[p], makedirs=True)
     return True
 
 
@@ -3449,11 +3462,6 @@ print("""
 
 
 
-def new_part():
-    return {"page":"", "inlinefirst":True, "icons":[], "partition":{"0":{"html":[], "keywords":[], "files":[]}}}
-
-
-
 # Loading filelist from detected urls in textfile
 if not os.path.exists(textfile):
     open(textfile, 'w').close()
@@ -3461,14 +3469,15 @@ print(f"Reading {textfile} . . .")
 with open(textfile, 'r', encoding="utf-8") as f:
     textread = f.read().splitlines()
 pages = []
-book = []
+nextpages = []
 fromhtml = new_part()
 for line in textread:
     if not line or line.startswith("#"):
         continue
     elif line == "then":
-        book += [pages]
+        nextpages += [pages]
         pages = []
+        continue
     elif line == "end":
         break
     elif not line.startswith("http"):
@@ -3478,7 +3487,7 @@ for line in textread:
     else:
         name = parse.unquote(line.split("/")[-1])
         fromhtml["partition"]["0"]["files"] += [{"link":line, "name":saint(name), "edited":0}]
-book += [pages]
+nextpages += [pages]
 
 
 
@@ -3506,11 +3515,11 @@ else:
     busy[0] = True
     if fromhtml["partition"]["0"]["files"]:
         downloadtodisk(fromhtml)
-    elif book:
+    elif nextpages:
         resume = False
-        for pages in book:
+        for pages in nextpages:
             if resume:
-                print("\n Resuming next lines from {textfile}")
+                print(f"\n Resuming next lines from {textfile}")
             else:
                 resume = True
             scrape(pages)

@@ -708,8 +708,13 @@ def at(s, r, cw=[], alt=0, key=False, name=False):
 
 
 
+def new_picker():
+    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
+
+
+
 file_pos = ["file"]
-def topicker(s, rule):
+def picker(s, rule):
     if rule.startswith("send "):
         rule = rule.split(" ", 2)
         s["send"] += [[rule[1], rule[2]] if len(rule) == 2 else [rule[1], []]]
@@ -802,10 +807,7 @@ md5er = []
 referers = {}
 mozilla = {}
 exempt = []
-pickers = {}
-def new_picker():
-    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
-pickers.update({"void":new_picker()})
+pickers = {"void":new_picker()}
 site = "void"
 dir = ""
 ticks = []
@@ -859,7 +861,7 @@ for rule in rules:
         if not site in pickers:
             pickers.update({site:new_picker()})
         file_pos[0] = "file"
-    elif topicker(pickers[site], rule):
+    elif picker(pickers[site], rule):
         pass
     elif dir:
         sorter[dir] += [rule]
@@ -871,7 +873,7 @@ for rule in rules:
 if personal and not shuddup:
     print(f"\n{tcolorr} TO YOURSELF: {rulefile} contains personal information like mail, password, cookies. Edit {rulefile} before sharing!{tcolorx}")
     if HTMLserver:
-        print(f"{tcoloro} HTML SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookies.{tcolorx}")
+        print(f"{tcoloro} HTML SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookies{tcolorx}")
 
 
 
@@ -1221,7 +1223,10 @@ def downloadtodisk(fromhtml, makedirs=False):
     if len(filelist) == 1:
         echothreadn.append(0)
         download.put((0, [], [], filelist[0][1], [filelist[0][0]]))
-        download.join()
+        try:
+            download.join()
+        except KeyboardInterrupt:
+            pass
         return
     queued = {}
 
@@ -1266,7 +1271,10 @@ def downloadtodisk(fromhtml, makedirs=False):
         threadn += 1
         echothreadn.append(threadn)
         download.put((threadn, html, log, ondisk, onserver))
-    download.join()
+    try:
+        download.join()
+    except KeyboardInterrupt:
+        pass
     title(status() + batchfile)
 
     if len(htmlpart) > 1 or htmlpart["0"]["html"]:
@@ -2032,7 +2040,10 @@ def scrape(startpages):
                 fromhtml = shelf[start]
                 fromhtml["partition"].update({threadn:new_p("0")})
             scraper.put((threadn, pick, start, page, more_pages, fromhtml))
-        scraper.join()
+        try:
+            scraper.join()
+        except KeyboardInterrupt:
+            pass # Ctrl + C
         seen = set()
         more_pages = [x for x in more_pages if not x[1] in seen and not seen.add(x[1])]
         for start, page in more_pages:
@@ -3585,7 +3596,12 @@ while True:
         busy[0] = False
         print()
         ready_input()
-    time.sleep(0.1)
+    try:
+        time.sleep(0.1)
+    except KeyboardInterrupt:
+        echo("Ctrl + C")
+        skull()
+        ready_input()
 
 
 

@@ -210,6 +210,7 @@ def help():
  |  "replace ..*.. with ..*.." find'n'replace before start picking in page/partition.
  |  "pages ...*..."   pick more pages to scrape in parallel, "relpages" for relative urls.
  |    Page picker will make sure all pages are unique to visit, but older pages can cause loophole.
+ |    Mostly FIFO aware (for HTML builder), using too many of it can cause FIFO (esp. arrangement) issue, it depends.
  |  "paginate *.. ..*.. ..* X Y Z" split url in three parts then create/restore X and Z then +/-Y to paginate.
  |    Repeat this picker with different pattern to pick another location of this url to change.
  +  "savelink"        save first scraped page link as URL file in same directory where files are downloading.

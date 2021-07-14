@@ -1542,19 +1542,17 @@ def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
                 for z, cw, a in x[1:]:
                     if a:
                         continue
-                    elif not z:
+                    if not z:
                         name_err = False
                     elif x[0]["alt"]:
-                        v = update_array[0]
-                        if len(n := carrots([[v, ""]], z, cw)) >= 2:
+                        if len(n := carrots([[update_array[0], ""]], z, cw)) >= 2:
                             name += n[-2 if after else 0][1]
                             name_err = False
-                            break
-                            # Could be better
+                            # Developer note: Could be better
                             update_array[0] = n[0][0] + n[1][0]
+                            break
                     else:
-                        v = url
-                        if len(n := carrots([[v, ""]], z, cw, False)) == 2:
+                        if len(n := carrots([[url, ""]], z, cw, False)) == 2:
                             name += n[-2][1]
                             name_err = False
                             break

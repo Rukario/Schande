@@ -8,11 +8,14 @@ Proxy = socks5://
 
 
 - - - - Spoofer - - - -
-Mozilla/5.0 for https://
-Mozilla/5.0 for http://
+Mozilla/5.0 for http
+4-8 seconds rarity 75%
+12-24 seconds rarity 23%
+# 64-128 seconds rarity 2%
 
-http://www.pixiv.net for https://i.pximg.net
+https://www.pixiv.net/ for https://i.pximg.net
 https://www.fanbox.cc for https://api.fanbox.cc
+https://thebarchive.com/ for https://thebarchive.com/
 
 ipb_member_id ... for .exhentai.org
 ipb_pass_hash ... for .exhentai.org
@@ -22,7 +25,6 @@ FANBOXSESSID ... for .fanbox.cc
 _session_id ... for .fantia.jp
 
 __cf_bm ... for .patreon.com
-__cfduid ... for .patreon.com
 
 
 
@@ -42,18 +44,12 @@ Dropbox\* for https://dl.dropboxusercontent.com
 R-18 *date\* for https://i.4cdn.org/b/
 R-18 *date\* for https://is2.4chan.org/b/
 R-18 *date\* for https://thebarchive.com/data/b/
-R-18 *date\* for https://i.redd.it/
 R-18 *date\
-Update me\* for https://
-Update me\* for http://
+Update me\* for http
 
 
 
 - - - - Scraper - - - -
-4-8 seconds rarity 75%
-12-24 seconds rarity 23%
-# 64-128 seconds rarity 2%
-
 http://192.168.1.239:8886/
 relpages <li><a href="*">*</a></li> ends with /
 relfiles <li><a href="*">*</a></li> not ends with /
@@ -108,6 +104,7 @@ files <a class="post_file_filename" href="*"
 files </a> </span> <a href="*"
 meta ^/*^. customize with *.
 name1 download="*"
+savelink
 
 https://u18chan.com/board/u18chan/
 replace ' class='PostLink'*onmouseout='HidePostPreviewBubble();'*> with *'
@@ -148,6 +145,11 @@ name1 <img data-media-id="*"
 files  src="https://c10*"> customize with https://c10*
 extfix /1.*?token-time=
 pages links > next
+name1
+files <a href="*" rel="nofollow noopener" target="_blank">https://dl.dropbox.com*</a> customize with https://dl.dropbox.com*
+files <a href="*" rel="nofollow noopener" target="_blank">https://www.dropbox.com*</a> customize with https://dl.dropbox.com*
+files <a href="https://dl.dropbox.com*</a> customize with https://dl.dropbox.com*
+meta ^/*^?dl=0
 
 https://www.patreon.com/
 title /patreon-media/p/user/*/ customize with *
@@ -163,6 +165,7 @@ files "original":"*"
 meta ^/*
 
 https://www.fanbox.cc/@
+title /fanbox/public/images/creator/*/cover/
 pages /fanbox/public/images/creator/*/cover/ customize with https://api.fanbox.cc/post.listCreator?userId=*&limit=10
 savelink FANBOX
 
@@ -170,8 +173,8 @@ https://api.fanbox.cc/
 key body > items > 0 > id
 key1 body > items > 0 > title
 key2 body > items > 0 > updatedDatetime
-html body > items > 0 > body > text
-html1 body > items > 0 > body > blocks > 0 > text
+html4 body > items > 0 > body > text
+html5 body > items > 0 > body > blocks > 0 > text
 key body > items > 0 > id << body > items > 0 > body > blocks > 0 > type
 files body > items > 0 > body > imageMap > * > originalUrl
 name1 body > items > 0 > body > imageMap > * > id
@@ -186,26 +189,26 @@ pages body > nextUrl
 
 https://fantia.jp/fanclubs/
 folder ^/*^/
-pages ^<a rel="next" class="page-link" href="/fanclubs/*^"><i class="fa fa-angle-right"></i></a> customize with https://fantia.jp/fanclubs/*
 pages <a class="link-block" href="*" customize with https://fantia.jp*
+pages ^<a rel="next" class="page-link" href="/fanclubs/*^"><i class="fa fa-angle-right"></i></a> customize with https://fantia.jp/fanclubs/*
 savelink Fantia
 
 https://fantia.jp/posts/
 urlfix https://fantia.jp/posts/* with https://fantia.jp/api/v1/posts/*
-
 key post > id
+key1 post > title
+key2 post > converted_at
+html4 post > comment
 files post > thumb > original
 name post > id customize with *.
 name1
-key1 post > title
-key2 post > converted_at
-html post > comment
 
 key post > post_contents > 0 > id
+key1 post > post_contents > 0 > title
+html4 post > post_contents > 0 > comment
 files post > post_contents > 0 > download_uri customize with https://fantia.jp/*
 name post > id customize with *.
 name1 post > post_contents > 0 > filename
-# key1 post > post_contents > 0 > title
 
 key post > post_contents > 0 > id << post > post_contents > 0 > post_content_photos > 0 > id
 files post > post_contents > 0 > post_content_photos > 0 > url > original

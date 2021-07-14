@@ -2657,6 +2657,13 @@ function resizeImg(n) {
   }
 }
 
+function resizeCell(n) {
+  var x = document.getElementsByClassName("cell");
+  for (var i=0; i < x.length; i++) {
+    x[i].style.width = n;
+  }
+}
+
 function hideSources() {
   var x = document.getElementsByClassName("sources");
   for (var i=0; i < x.length; i++) {
@@ -2674,7 +2681,7 @@ function hideParts(e, t='', a=true) {
   var c;
   if (!e){
     for (var i=0; i < x.length; i++) {
-      x[i].style.display = 'block';
+      x[i].style.display = 'inline-block';
     }
     return
   }
@@ -2706,7 +2713,7 @@ function hideParts(e, t='', a=true) {
     if (!a && !m && t || a && m && t) {
       x[i].style.display = 'none';
     } else {
-      x[i].style.display = 'block';
+      x[i].style.display = 'inline-block';
     }
   }
 }
@@ -2778,7 +2785,7 @@ img{vertical-align:top;}
 .mySlides{padding-right:32px;}
 .closebtn{position:absolute; top:15px; right:15px;}
 .carbon, .files, .edits{float:left; margin-right:12px;}
-.cell{overflow:auto;}
+.cell{overflow:auto; width:calc(100% - 20px); display:inline-block; vertical-align:text-top;}
 h2,p{margin:4px; white-space:pre-wrap;}
 </style>
 <body>
@@ -2792,6 +2799,10 @@ h2,p{margin:4px; white-space:pre-wrap;}
 <button class="next" onclick="resizeImg('{imgsize*2}px')">2x</button>
 <button class="next" onclick="resizeImg('{imgsize*4}px')">4x</button>
 <button class="next" onclick="resizeImg('auto')">1:1</button>
+<button class="next" onclick="resizeCell('calc(100% - 20px)')">&nbsp;.&nbsp;</button>
+<button class="next" onclick="resizeCell('calc(50% - 32px)')">. .</button>
+<button class="next" onclick="resizeCell('calc(33% - 28px)')">...</button>
+<button class="next" onclick="resizeCell('calc(25% - 34px)')">....</button>
 <button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')">Preview</button>
 <button id="ge" class="next" onclick="previewg(this, 'vs left', 'vs left <', 'vs left >', 'Find Edge')">Original</button>
 <button class="next" onclick="hideSources()">Sources</button>

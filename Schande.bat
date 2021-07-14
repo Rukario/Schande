@@ -1376,8 +1376,8 @@ def carrot(array, z, cw, new, my_conditions):
             else:
                 update_array[0] = y[1]
                 a = ii[1] if ii else y[0]
-            if cw:
-                p = cw[0] + p + cw[1]
+                if cw:
+                    p = cw[0] + p + cw[1]
             new += [[a, p]]
             return True, update_array
 

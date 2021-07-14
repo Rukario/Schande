@@ -1503,7 +1503,7 @@ def branch(d, z):
 
 
 def tree(d, z):
-    # tree(dictionary, [branching keys, [[linear keys, conditions, customize with, stderr and kill], [linear keys, 0 accept any, 0 no customization, 0 continue without]]])
+    # tree(dictionary, [branching keys, [[linear keys, choose, conditions, customize with, stderr and kill], [linear keys, 0 accept any, 0 no conditions, 0 no customization, 0 continue without]]])
     z[0] = z[0].split(" > 0")
     return branch(d, z)
 
@@ -1688,7 +1688,7 @@ def pick_in_page(scraper):
         data = ""
         url = ""
         threadn, pick, start, page, more_pages, fromhtml = scraper.get()
-        htmlpart = fromhtml["partition"]
+        htmlpart = fromhtml["partition"][threadn]
         folder = fromhtml["folder"]
         pg[0] += 1
         if pick["visit"]:
@@ -1998,8 +1998,9 @@ for i in range(8):
 def new_p(z):
     return {z:{"html":[], "keywords":[], "files":[]}}
 
-def new_part():
-    return {"ready":True, "page":"", "folder":"", "icons":[], "inlinefirst":True, "partition":new_p("0")}
+def new_part(threadn=0):
+    new = {threadn:new_p("0")} if threadn else new_p("0")
+    return {"ready":True, "page":"", "folder":"", "icons":[], "inlinefirst":True, "partition":new}
 
 
 
@@ -2020,15 +2021,16 @@ def scrape(startpages):
             pick = pickers[get_pick[0]]
             if not start:
                 start = page
-                shelf.update({start: new_part()})
+                shelf.update({start: new_part(threadn)})
                 fromhtml = shelf[start]
                 fromhtml["inlinefirst"] = pick["inlinefirst"]
             else:
                 fromhtml = shelf[start]
-                fromhtml["partition"]
+                fromhtml["partition"].update({threadn:new_p("0")})
             scraper.put((threadn, pick, start, page, more_pages, fromhtml))
         scraper.join()
-        more_pages = [list(x) for x in set(tuple(x) for x in more_pages)]
+        seen = set()
+        more_pages = [x for x in more_pages if not x[1] in seen and not seen.add(x[1])]
         for start, page in more_pages:
             if page in visited and not visited.add(page):
                 print(f"{tcolorr}Already visited {page} loophole warning{tcolorx}")
@@ -2040,6 +2042,12 @@ def scrape(startpages):
 
     for p in shelf.keys():
         if shelf[p]["partition"]:
+            sort_part = {}
+            threadn = list(shelf[p]["partition"].keys())
+            threadn.sort()
+            for t in threadn:
+                sort_part.update(shelf[p]["partition"][t])
+            shelf[p]["partition"] = sort_part
             if not shelf[p]["ready"]:
                 htmlpart = shelf[p]["partition"]
                 if len(htmlpart) > 1 or htmlpart["0"]["html"]:
@@ -2922,14 +2930,14 @@ def tohtml(dir, fromhtml, orphfiles):
             else:
                 continue
         else:
-            title = keywords[0] if len(keywords) > 0 and keywords[0] else "No title for " + id
+            title = keywords[0] if len(keywords) > 0 and keywords[0] else f"""<p style="color:#666;">ꍯ Part {id} ꍯ"""
             content = ""
         new_container = False
         end_container = False
         time = keywords[1] if len(keywords) > 1 and keywords[1] else "No timestamp"
         keywords = ", ".join(x for x in keywords[2:]) if len(keywords) > 2 else "None"
         builder += f"""<div class=\"cell\">
-<div class="time" id="{id}" style="float:right;"><p>Part ID: {id} ꍯ {time}<p>Keywords: {keywords}</div>
+<div class="time" id="{id}" style="float:right;"><p>Part {id} ꍯ {time}<p>Keywords: {keywords}</div>
 <h2>{title}</h2>"""
         files = [x for x in part[id]["files"]]
         if files:

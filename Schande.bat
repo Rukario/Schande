@@ -1496,9 +1496,12 @@ def branch(d, z):
                 else:
                     return [dt]
     else:
-        debug()
-        for x in d:
-            ds += branch(x, [z[0][1:]] + z[1:])
+        if isinstance(d, list):
+            for x in d:
+                ds += branch(x, [z[0][1:]] + z[1:])
+        else:
+            for x in d.values():
+                ds += branch(x, [z[0][1:]] + z[1:])
     return ds
 
 
@@ -1751,7 +1754,7 @@ def pick_in_page(scraper):
                             db = opendb(data)
                         pos += 1
                         c = z[1].rsplit(" = ", 1)
-                        result = tree(db, [z[0], [[c[0], c[1].split(" > "), 0, 0, 0]]])
+                        result = tree(db, [z[0], [[c[0], c[1].split(" > "), 0, 0, 0, 0]]])
                     else:
                         result = True if z in part[0][0] else False
                     if y[0]["alt"] and result:

@@ -802,7 +802,6 @@ referers = {}
 mozilla = {}
 exempt = []
 pickers = {}
-# Developer note: Need to implement a way to not let API-based pickers define file and file_after names for HTML-based file pickers.
 def new_picker():
     return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
 pickers.update({"void":new_picker()})
@@ -1161,7 +1160,7 @@ def get_cd(file, makedirs=False, preview=False):
         todisk = f"{folder}{prepend}{name}{append}{ext}".replace("\\", "/") # "\\" in file["name"] can work like folder after prepend
         dir = todisk.rsplit("/", 1)[0] + "/"
         if not preview and not os.path.exists(dir):
-            if makedirs or [explicate(x) for x in exempt if explicate(x) == dir]:
+            if makedirs or [explicate(x) for x in exempt if explicate(x) == dir.replace("/", "\\")]:
                 os.makedirs(dir)
             else:
                 print(f" Error downloading (dir): {link}")
@@ -1188,13 +1187,15 @@ def downloadtodisk(fromhtml, makedirs=False):
             if not file["name"]:
                 print(f""" I don't have a scraper for {file["link"]}""")
             else:
-                filelist += [get_cd(file, makedirs) + [key]]
+                if (x := get_cd(file, makedirs) + [key])[0]:
+                    filelist += [x]
         for html in htmlpart[key]["html"]:
             if len(html) == 2 and html[1]:
                 if not html[1]["name"]:
                     print(f""" I don't have a scraper for {html[1]["link"]}""")
                 else:
-                    filelisthtml += [get_cd(html[1], makedirs) + [key]]
+                    if (x := get_cd(html[1], makedirs) + [key])[0]:
+                        filelisthtml += [x]
     if fromhtml["inlinefirst"]:
         filelist = filelisthtml + filelist
     else:
@@ -1209,7 +1210,7 @@ def downloadtodisk(fromhtml, makedirs=False):
             else:
                 done += [d]
             print(f"  {d}")
-        print("\n Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs (developer note: currently unimplemented).")
+        print("\n Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs.")
 
     if not filelist:
         print("Filelist is empty!")
@@ -3554,7 +3555,9 @@ while True:
         ready_input()
     if run_input[1]:
         busy[0] = True
-        downloadtodisk({"page":"", "inlinefirst":True, "partition":{"0":{"html":"", "keywords":[], "files":[{"link":run_input[1], "name":saint(parse.unquote(run_input[1].split("/")[-1])), "edited":0}]}}})
+        x = new_part()
+        x["partition"]["0"]["files"] = [{"link":run_input[1], "name":saint(parse.unquote(run_input[1].split("/")[-1])), "edited":0}]
+        downloadtodisk(x)
         run_input[1] = ""
         busy[0] = False
         print()

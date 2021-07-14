@@ -203,6 +203,7 @@ def help():
  |  "html ...*..."    pick article from page/partition for HTML builder.
  |    API: pick content for HTML-based pickers.
  |    HTML-based file and name pickers will look through for inline files and clean up articles.
+ |    html# for insert mode: newline (html1), inline non-inline files from filelist (+2, unimplemented), hyperlink (+4).
  |  "icon ...*..."    pick an icon. Incremental "icon#" to pick more icons up to #th.
  |
  | Miscellaneous
@@ -686,13 +687,9 @@ def peanut(z, cw, a):
 
 
 
-def at(p, r, cw=[], alt=0, key=False):
+def at(s, r, cw=[], alt=0, key=False, name=False):
     n, r = r.split(" ", 1) if " " in r else [r, ""]
     n = int(n) if n else 0
-    if not p:
-        p += [[]]
-    if n:
-        p += [[] for _ in range(n-len(p)+1)]
     if key:
         if len(d := r.split(" << ", 1)) == 2:
             r = [peanut(d[0], [], True)[0]] + peanut(d[1], [], False)
@@ -700,10 +697,17 @@ def at(p, r, cw=[], alt=0, key=False):
             r = [[0, 0]] + peanut(r, [], False)
     else:
         r = peanut(r, cw, False)
-    p[n] += [r] if p[n] else [{"alt":alt}, r]
+    if not s:
+        s += [[]]
+    if n:
+        s += [[] for _ in range(n-len(s)+1)]
+    s[n] += [r] if s[n] else [{"alt":alt}, r]
+    if name and r[0] and not r[2]:
+        file_pos[0] = "file_after"
 
 
 
+file_pos = ["file"]
 def topicker(s, rule):
     if rule.startswith("send "):
         rule = rule.split(" ", 2)
@@ -743,19 +747,19 @@ def topicker(s, rule):
         c[1] = c[1].split(" > ")
         s["choose"] += [c]
     elif rule.startswith("file "):
-        at(s["file_after" if s["name"] else "file"], rule.split("file", 1)[1], [], 1)
+        at(s[file_pos[0]], rule.split("file", 1)[1], [], 1)
     elif rule.startswith("relfile "):
-        at(s["file_after" if s["name"] else "file"], rule.split("relfile", 1)[1])
+        at(s[file_pos[0]], rule.split("relfile", 1)[1])
     elif rule.startswith("files "):
-        at(s["file_after" if s["name"] else "file"], rule.split("files", 1)[1], [], 1)
+        at(s[file_pos[0]], rule.split("files", 1)[1], [], 1)
         s["files"] = True
     elif rule.startswith("relfiles "):
-        at(s["file_after" if s["name"] else "file"], rule.split("relfiles", 1)[1])
+        at(s[file_pos[0]], rule.split("relfiles", 1)[1])
         s["files"] = True
     elif rule.startswith("owner "):
         s["owner"] += [rule.split("owner ", 1)[1]]
     elif rule.startswith("name"):
-        at(s["name"], rule.split("name", 1)[1], ["", ""], 1)
+        at(s["name"], rule.split("name", 1)[1], ["", ""], 1, name=True)
     elif rule.startswith("meta"):
         at(s["name"], rule.split("meta", 1)[1], ["", ""])
     elif rule.startswith("extfix "):
@@ -854,6 +858,7 @@ for rule in rules:
         site = rule
         if not site in pickers:
             pickers.update({site:new_picker()})
+        file_pos[0] = "file"
     elif topicker(pickers[site], rule):
         pass
     elif dir:
@@ -1421,6 +1426,8 @@ def linear(d, z):
                 kill(0, x[4])
             else:
                 return
+        if not dc:
+            return
         dc = str(dc)
         if x[1] and not any(c for c in x[1] if c == dc) or x[2] and not met(dc, x[2]):
             if x[4]:
@@ -1847,7 +1854,11 @@ def pick_in_page(scraper):
                                 elif k[0][1]:
                                     master_key = ["", [[k[0][1], 0, 0, 0, 0]]]
                             for html in tree(db, master_key + [html, key + [[z[1], 0, 0, cw, 0]]]):
-                                html[2] = rp(html[2] + "\n" if pos > 0 else html[2], pick["replace"])
+                                if pos == 1 or pos == 5:
+                                    html[2] = html[2] + "\n"
+                                if pos > 3:
+                                    html[2] = hyperlink(html[2])
+                                html[2] = rp(html[2], pick["replace"])
                                 k_html += [[html[1 if html[0] == "0" else 0], [[html[2], ""]]]]
                     else:
                         new_part = []
@@ -2801,7 +2812,11 @@ def hyperlink(html):
     links = html.replace("http://", "https://").split("https://")
     html = links[0]
     for link in links[1:]:
-        link = link.split(tuple([x for x in " <\"'\n"]), 1)[0]
+        link = [link, ""]
+        for x in "<\"'\n":
+            if len(y := link[0].split(x, 1)) == 2:
+                link[0] = y[0]
+                link[1] = y[1] + x + link[1]
         url = "https://" + link[0]
         html += f"""<a href="{url}">{url}</a>{link[1]}"""
     return html

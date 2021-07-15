@@ -2504,6 +2504,7 @@ var co = "position:fixed; right:0; top:0; z-index:1; pointer-events:none;"
 var cf = co + "max-height: 100vh; max-width: 100vw;";
 var cs = co
 var fit = false;
+var slideIndex = 1;
 function swap(e) {
   var t = e.target;
   if(e.which == 83 && !geistauge) {
@@ -2741,18 +2742,12 @@ function hideParts(e, t='', a=true) {
   }
 }
 
-var links = document.getElementsByTagName('a');
-for(var i=0; i<links.length; i++)
-{links[i].target = "_blank";}
-
-var slideIndex = 1;
-showDivs(slideIndex);
-
-function plusDivs(n)
-{showDivs(slideIndex += n);}
-
-function currentDiv(n)
-{showDivs(slideIndex = n);}
+window.onload = () => {
+  var links = document.getElementsByTagName('a');
+  for(var i=0; i<links.length; i++) {
+    links[i].target = "_blank";
+  }
+}
 
 function lazyload() {
   var lazyloadImages;
@@ -2817,7 +2812,7 @@ h2,p{margin:4px; white-space:pre-wrap;}
 <img id="expandedImg">
 </div>
 <div style="display:block; height:10px;"></div><div style="background:#0c0c0c; height:20px; border-radius: 0 0 12px 0; position:fixed; padding:6px; top:0px; z-index:1;">
-<button class="next" onclick="currentDiv(1)">Links in this HTML</button>
+<button class="next" onclick="showDivs(slideIndex = 1)">Links in this HTML</button>
 <button class="next" onclick="resizeImg('{imgsize}px')">1x</button>
 <button class="next" onclick="resizeImg('{imgsize*2}px')">2x</button>
 <button class="next" onclick="resizeImg('{imgsize*4}px')">4x</button>
@@ -2843,16 +2838,16 @@ lazyload();
 
 def hyperlink(html):
     links = html.replace("http://", "https://").split("https://")
-    html = links[0]
+    new_html = links[0]
     for link in links[1:]:
         link = [link, ""]
         for x in "<\"'\n":
             if len(y := link[0].split(x, 1)) == 2:
                 link[0] = y[0]
-                link[1] = y[1] + x + link[1]
+                link[1] = x + y[1] + link[1]
         url = "https://" + link[0]
-        html += f"""<a href="{url}">{url}</a>{link[1]}"""
-    return html
+        new_html += f"""<a href="{url}">{url}</a>{link[1]}"""
+    return new_html
 
 
 

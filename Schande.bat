@@ -1423,11 +1423,7 @@ def linear(d, z):
             if not y[0]:
                 continue
             if dc and y[0] in dc:
-                try:
-                    dc = dc[y[0]]
-                except:
-                    print(f"{tcolorr}Try again with >> {y[0]} instead of > {y[0]}{tcolorx}")
-                    return
+                dc = dc[y[0]]
                 if len(y) == 2:
                     dc = json.loads(dc)
                     if dc and y[1] in dc:
@@ -1455,23 +1451,20 @@ def linear(d, z):
 def branch(d, z):
     ds = []
     for k in z[0][0].split(" > "):
-        if k == "0":
-            if not z[1][0][0]:
-                print(f"{tcolorr}Can't have 0 for last.{tcolorx}")
-            z[0][0] = z[0][0].split("0", 1)[1]
-            dx = []
-            for dc in d:
-                dx += branch(dc, z)
-            return dx
         x = k.split(" >> ")
         if not x[0]:
-            continue
-        if x[0] in d:
-            try:
-                d = d[x[0]]
-            except:
-                print(f"{tcolorr}Try again with >> {x[0]} instead of > {x[0]}{tcolorx}")
-                return
+            if len(z[0]) >= 2:
+                if isinstance(d, list):
+                    for x in d:
+                        ds += branch(x, [z[0][1:]] + z[1:])
+                elif isinstance(d, dict):
+                    for x in d.values():
+                        ds += branch(x, [z[0][1:]] + z[1:])
+                return ds
+            else:
+                continue
+        elif x[0] in d:
+            d = d[x[0]]
             if len(x) == 2:
                 d = json.loads(d)
                 if x[1] in d:
@@ -1480,19 +1473,20 @@ def branch(d, z):
                     return ds
         else:
             return ds
+    t = type(d).__name__
     if len(z[0]) == 1:
+        if not t == "list" and not t == "dict":
+            return ds
         if z[0][0]:
-            if not z[1][0][0]:
-                print(f"{tcolorr}Can't have > 0 for last.{tcolorx}")
             dx = []
-            if isinstance(d, list):
+            if t == "list":
                 for dc in d:
                     if dt := linear(dc, z):
                         if len(z) > 2:
-                            dx += [dt + b for b in branch(dc, [z[2].split(" > 0")] + z[3:])]
+                            dx += [dt + b for b in branch(dc, [splitos(z[2])] + z[3:])]
                         else:
                             dx += [dt]
-            else:
+            elif t == "dict":
                 for x in d.values():
                     if dt := linear(x, z):
                         dx += [dt]
@@ -1500,23 +1494,31 @@ def branch(d, z):
         else:
             if dt := linear(d, z):
                 if len(z) > 2:
-                    return [dt + b for b in branch(d, [z[2].split(" > 0")] + z[3:])]
+                    return [dt + b for b in branch(d, [splitos(z[2])] + z[3:])]
                 else:
                     return [dt]
     else:
-        if isinstance(d, list):
+        if t == "list":
             for x in d:
                 ds += branch(x, [z[0][1:]] + z[1:])
-        else:
+        elif t == "dict":
             for x in d.values():
                 ds += branch(x, [z[0][1:]] + z[1:])
     return ds
 
 
 
+def splitos(z):
+    z = z.split(" > 0")
+    return z[0].split("0", 1) + z[1:]
+
 def tree(d, z):
     # tree(dictionary, [branching keys, [[linear keys, choose, conditions, customize with, stderr and kill], [linear keys, 0 accept any, 0 no conditions, 0 no customization, 0 continue without]]])
-    z[0] = z[0].split(" > 0")
+    for x in z[1::2]:
+        if not x[0][0]:
+            print(f"{tcolorr} Can't have > 0 for last.{tcolorx}")
+    z[0] = splitos(z[0])
+    if len(z[0]) >= 2 and not z[0][-1]: z[0] += [""]
     return branch(d, z)
 
 

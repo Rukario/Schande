@@ -1612,10 +1612,11 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
     stderr = "there's no name asset found in dictionary for this file."
     for z in pick["name"]:
         if not z[0]["alt"]:
+            meta += [[]]
             for m, cwf, a in z[1:]:
                 if off_branch_name:
                     cwf = ["".join(off_branch_name) + cwf[0], cwf[1]]
-                meta += [[m, cwf]]
+                meta[-1] += [[m, cwf]]
             off_branch_name = []
             linear_name += [[1]]
             continue
@@ -1643,9 +1644,11 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
     for file in files:
         f_key = file[1 if file[0] == "0" else 0]
         m = []
-        for x, cwf in meta:
-            if len(c := carrots([[file[2], ""]], x, cwf, False)) == 2 and c[-2][1]:
-                m += [c[-2][1]]
+        for x in meta:
+            for y, cwf in x:
+                if len(c := carrots([[file[2], ""]], y, cwf, False)) == 2 and c[-2][1]:
+                    m += [c[-2][1]]
+                    break
         name = "".join([x if not x == 1 else m.pop(0) if m else "" for x in file[3:]] + off_branch_name)
         if e := pick["extfix"]:
             if len(ext := carrots([[file[2], ""]], e, [".", ""], False)) == 2 and not name.endswith(ext := ext[-2][1]):

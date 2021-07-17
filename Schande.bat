@@ -228,6 +228,7 @@ def help():
  | During API each file picker must be accompanied by name picker and all HTML-based name/meta pickers must descend.
  |
  | Customize the chosen one with prepend and append using "X customize with ...*..." after any picker.
+ | Customize along with "*id" (extra asterisk) to insert key as name, only usable during using key picker, else "0".
  + Folder and title pickers will be auto-assigned with \\ to work as folder unless customized.
 
  + Manipulating asterisk/position:
@@ -621,8 +622,8 @@ def new_cookie():
 
 
 
-def explicate(rule):
-    return rule.replace("*date", date).replace("/", "\\")
+def ast(rule, key="0"):
+    return rule.replace("*date", date).replace("*id", key).replace("/", "\\")
 
 def saint(name=False, url=False):
     if url:
@@ -674,7 +675,7 @@ def peanut(z, cw, a):
     if len(z := z.rsplit(" customize with ", 1)) == 2:
         cw = z[1].rsplit("*", 1)
         if not len(cw) == 2:
-            cw += [""]            
+            cw += [""]
     z = z[0]
     if " > " in z or a:
         z = z.replace("*", "0")
@@ -825,7 +826,7 @@ for rule in rules:
     elif len(rr) == 2 and rr[1].startswith("http"):
         if rr[0].startswith("http"):
             referers.update({rr[1]: rr[0]})
-        elif not len(explicate(rr[0]).split("*")) == 2:
+        elif not len(ast(rr[0]).split("*")) == 2:
             print("\n There is at least one of the bad custom dir rules (no asterisk or too many).")
             sys.exit()
         else:
@@ -1159,11 +1160,11 @@ def get_cd(file, makedirs=False, preview=False):
         else:
             folder = ""
             name = name[0]
-        prepend, append = explicate(rule[0]).split("*")
+        prepend, append = ast(rule[0]).split("*")
         todisk = f"{folder}{prepend}{name}{append}{ext}".replace("\\", "/") # "\\" in file["name"] can work like folder after prepend
         dir = todisk.rsplit("/", 1)[0] + "/"
         if not preview and not os.path.exists(dir):
-            if makedirs or [explicate(x) for x in exempt if explicate(x) == dir.replace("/", "\\")]:
+            if makedirs or [ast(x) for x in exempt if ast(x) == dir.replace("/", "\\")]:
                 os.makedirs(dir)
             else:
                 print(f" Error downloading (dir): {link}")
@@ -1555,6 +1556,7 @@ def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
             for x in pick["name"]:
                 name_err = True
                 for z, cw, a in x[1:]:
+                    cw = ast(f"{cw[0]}*{cw[1]}", key).rsplit("*", 1)
                     if a:
                         continue
                     if not z:
@@ -1992,13 +1994,13 @@ def pick_in_page(scraper):
                 x = ""
                 for file in filelist:
                     x = get_cd(file[1], preview=True)
-                    stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + tcolorx + "\n"
+                    stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + "\n"
                 for file in filelist_html:
                     x = get_cd(file, preview=True)
-                    stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + tcolorx + "\n"
+                    stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + "\n"
                 if not x:
-                    stdout += f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference.{tcolorx}" + "\n"
-                echo(stdout)
+                    stdout += f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference." + "\n"
+                echo(stdout + tcolorx)
                 fromhtml["ready"] = False
         echothreadn.remove(threadn)
         scraper.task_done()
@@ -2071,30 +2073,29 @@ def scrape(startpages):
             if not shelf[p]["ready"]:
                 htmlpart = shelf[p]["partition"]
                 if len(htmlpart) > 1 or htmlpart["0"]["html"]:
-                    stdout = "\n Then create " + tcolorg + shelf[p]["folder"] + "gallery.html" + tcolorx + " with\n"
+                    stdout = f"\n Then create " + tcolorg + shelf[p]["folder"] + "gallery.html" + tcolorx + " with\n"
                     if x := shelf[p]["icons"]:
-                        stdout += f"""{tcolorg}█{"█ █".join([i["name"] for i in x])}█{tcolorx}\n"""
+                        stdout += f"""{tcolorg}█{"█ █".join([i["name"] for i in x])}█\n"""
                     if x := shelf[p]["page"]:
-                        stdout += f"""{tcoloro}<h2><a href="{x["link"]}">{x["name"]}</a></h2>{tcolorx}\n"""
+                        stdout += f"""{tcoloro}<h2><a href="{x["link"]}">{x["name"]}</a></h2>\n"""
                     for k in htmlpart.keys():
                         if k == "0" and not htmlpart[k]["files"]:
                             continue
-                        stdout += k + "\n"
+                        stdout += tcolorx + k + tcolor + "\n"
                         if x := htmlpart[k]["keywords"]:
                             keywords = ", ".join(f"{kw}" for kw in x[2:])
-                            stdout += tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 and x[1] else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + tcolorx + "\n"
+                            stdout += tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 and x[1] else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + "\n"
                         for file in htmlpart[k]["files"]:
-                            stdout += tcolorg + file["name"].rsplit("\\")[-1] + tcolorx + "\n"
+                            stdout += tcolorg + file["name"].rsplit("\\")[-1] + "\n"
                         if html := htmlpart[k]["html"]:
                             for h in html:
                                 if h[0]:
                                     stdout += tcoloro + h[0]
                                 if h[1]:
                                     stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
-                            stdout += tcolorx + "\n"
-                    echo(stdout)
-                sys.stdout.write(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """)
-                sys.stdout.flush()
+                            stdout += "\n"
+                    echo(stdout + tcolorx)
+                echo(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """, 0, 1)
                 while True:
                     if continue_prompt[0]:
                         continue_prompt[0] = False

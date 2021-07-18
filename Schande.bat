@@ -809,6 +809,7 @@ customdir = {}
 sorter = {}
 md5er = []
 referers = {}
+hydras = {}
 mozilla = {}
 exempt = []
 pickers = {"void":new_picker()}
@@ -829,11 +830,13 @@ for rule in rules:
     elif len(rr) == 2 and rr[1].startswith("http"):
         if rr[0].startswith("http"):
             referers.update({rr[1]: rr[0]})
-        elif not len(ast(rr[0]).split("*")) == 2:
+        elif len(r := ast(rr[0]).split("*")) == 2:
+            customdir.update({rr[1]: r})
+        elif len(r := rr[0].split(" ")) == 2:
+            hydras.update({rr[1]: r})
+        else:
             print("\n There is at least one of the bad custom dir rules (no asterisk or too many).")
             sys.exit()
-        else:
-            customdir.update({rr[1]: rr[0]})
     elif len(rr) == 2 and rr[1].startswith('.'):
         c = new_cookie()
         c.update({'domain': rr[1], 'name': rr[0].split(" ")[0], 'value': rr[0].split(" ")[1]})
@@ -842,8 +845,8 @@ for rule in rules:
 
 
 
-    elif len(rr := rule.split(" seconds rarity ")) == 2:
-        ticks += [[int(x) for x in rr[0].split("-")]]*int(rr[1].split("%")[0])
+    elif len(sr := rule.split(" seconds rarity ")) == 2:
+        ticks += [[int(x) for x in sr[0].split("-")]]*int(sr[1].split("%")[0])
     elif rule == "shuddup":
         shuddup = True
     elif rule.startswith("\\"):
@@ -1126,6 +1129,8 @@ def echolinks(download):
             url = onserver[n]
             referer = x[0] if (x := [v for k, v in referers.items() if url.startswith(k)]) else ""
             ua = x[0] if (x := [v for k, v in mozilla.items() if url.startswith(k)]) else 'Mozilla/5.0'
+            headers = {x[0][0]:x[0][1]} if (x := [v for k, v in hydras.items() if url.startswith(k)]) else {}
+            headers.update({'User-Agent':ua, 'Referer':referer, 'Origin':referer})
             if n:
                 if not conflict[0]:
                     conflict[0] += [todisk]
@@ -1133,7 +1138,7 @@ def echolinks(download):
                 conflict[0] += [todisk]
             if os.path.exists(todisk):
                 echo(f"{threadn:>3} Already downloaded: {todisk}", 0, 1)
-            elif (err := get(url, todisk=todisk, conflict=conflict, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, threadn=threadn)) == 1:
+            elif (err := get(url, todisk=todisk, conflict=conflict, headers=headers, threadn=threadn)) == 1:
                 newfilen[0] += 1
                 html.append("<a href=\"" + todisk.replace("#", "%23") + "\"><img src=\"" + todisk.replace("#", "%23") + "\" height=200px></a>")
             else:
@@ -1743,6 +1748,8 @@ def pick_in_page(scraper):
             echo(f" Visiting {page}", 0, 1)
         referer = x[0] if (x := [v for k, v in referers.items() if page.startswith(k)]) else ""
         ua = x[0] if (x := [v for k, v in mozilla.items() if page.startswith(k)]) else 'Mozilla/5.0'
+        headers = {x[0][0]:x[0][1]} if (x := [v for k, v in hydras.items() if page.startswith(k)]) else {}
+        headers.update({'User-Agent':ua, 'Referer':referer, 'Origin':referer})
         if pick["send"]:
             for x in pick["send"]:
                 post = x[1] if x[1] else url
@@ -1751,7 +1758,7 @@ def pick_in_page(scraper):
                 print(f" Error visiting {page}")
                 break
             data = data.read()
-        if not data and (data := get(url if url else page, utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer}, stderr="Update cookie or referer if these are required to view", threadn=threadn)) and not data.isdigit():
+        if not data and (data := get(url if url else page, utf8=True, headers=headers, stderr="Update cookie or referer if these are required to view", threadn=threadn)) and not data.isdigit():
             pass
         else:
             print(f" Error visiting {page}")
@@ -3354,9 +3361,11 @@ def source_view():
         if m.startswith("http"):
             referer = x[0] if (x := [v for k, v in referers.items() if m.startswith(k)]) else ""
             ua = x[0] if (x := [v for k, v in mozilla.items() if m.startswith(k)]) else 'Mozilla/5.0'
+            headers = {x[0][0]:x[0][1]} if (x := [v for k, v in hydras.items() if m.startswith(k)]) else {}
+            headers.update({'User-Agent':ua, 'Referer':referer, 'Origin':referer})
             m = m.split(" ", 1)
             if not m[0] in savepage[0]:
-                data = get(m[0], utf8=True, headers={'User-Agent':ua, 'Referer':referer, 'Origin':referer})
+                data = get(m[0], utf8=True, headers=headers)
                 savepage[0] = {m[0]:data}
             else:
                 data = savepage[0][m[0]]

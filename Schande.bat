@@ -1168,7 +1168,7 @@ def get_cd(file, makedirs=False, preview=False):
         else:
             folder = ""
             name = name[0]
-        prepend, append = ast(rule[0]).split("*")
+        prepend, append = rule[0]
         todisk = f"{folder}{prepend}{name}{append}{ext}".replace("\\", "/") # "\\" in file["name"] can work like folder after prepend
         dir = todisk.rsplit("/", 1)[0] + "/"
         if not preview and not os.path.exists(dir):

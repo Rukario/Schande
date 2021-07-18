@@ -1811,7 +1811,9 @@ def pick_in_page(scraper):
                         kill(0, "there's no suitable name asset for folder creation. Check folder pickers and try again.")
                 if name_err:
                     break
-            fromhtml["folder"] = folder
+                fromhtml["folder"] = folder
+                echo("", 0, 1)
+                echo(f"Folder assets assembled! From now on the downloaded files will go to this directory: {tcolorg}\\{folder}{tcolorx}*\nAdditional folders are made by custom dir rules in {rulefile}.", 0, 2)
             if x := pick["savelink"]:
                 fromhtml["page"] = {"link":page, "name":saint(x), "edited":0}
         if pick["pages"]:

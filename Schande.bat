@@ -1526,7 +1526,7 @@ def tree(d, z):
         if not x[0][0]:
             print(f"{tcolorr} Can't have > 0 for last.{tcolorx}")
     z[0] = splitos(z[0])
-    if len(z[0]) >= 2 and not z[0][-1]: z[0] += [""]
+    # if len(z[0]) >= 2 and not z[0][-1]: z[0] += [""]
     return branch(d, z)
 
 

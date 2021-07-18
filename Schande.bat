@@ -1153,7 +1153,7 @@ for i in range(8):
 def get_cd(file, makedirs=False, preview=False):
     threadn = 0
     link = file["link"] if preview else file.pop("link")
-    todisk = mf + file["name"]
+    todisk = mf + file["name"].replace("\\", "/")
     if rule := [v for k, v in customdir.items() if k in link]:
         name, ext = os.path.splitext(file["name"])
         name = name.rsplit("/", 1)
@@ -1173,10 +1173,10 @@ def get_cd(file, makedirs=False, preview=False):
                 print(f" Error downloading (dir): {link}")
                 error[0] += [todisk]
                 link = ""
-    elif not preview and not os.path.exists(mf):
-        os.makedirs(mf)
-        todisk = todisk.replace("\\", "/")
+    elif not preview:
         dir = todisk.rsplit("/", 1)[0] + "/"
+        if not os.path.exists(mf):
+            os.makedirs(mf)
     if not preview:
         if makedirs and not os.path.exists(dir):
             os.makedirs(dir)
@@ -1220,7 +1220,11 @@ def downloadtodisk(fromhtml, makedirs=False):
         print("\n Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs.")
 
     if not filelist:
-        print("Filelist is empty!")
+        if len(htmlpart) > 1 or htmlpart["0"]["html"]:
+            tohtml(get_cd({"link":fromhtml["page"], "name":fromhtml["folder"], "edited":0}, makedirs)[1], fromhtml, [])
+        else:
+            print("Filelist is empty!")
+        error[0] = []
         return
     html = []
     log = []
@@ -2008,7 +2012,8 @@ def pick_in_page(scraper):
                 if not x:
                     stdout += f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference." + "\n"
                 echo(stdout + tcolorx)
-                fromhtml["ready"] = False
+        if not pick["ready"]:
+            fromhtml["ready"] = False
         echothreadn.remove(threadn)
         scraper.task_done()
     echothreadn.remove(threadn)

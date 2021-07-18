@@ -211,7 +211,7 @@ def help():
  |  "pages ...*..."   pick more pages to scrape in parallel, "relpages" for relative urls.
  |    Page picker will make sure all pages are unique to visit, but older pages can cause loophole.
  |    Mostly FIFO aware (for HTML builder), using too many of it can cause FIFO (esp. arrangement) issue, it depends.
- |  "paginate *.. ..*.. ..* X Y Z" split url in three parts then create/restore X and Z then +/-Y to paginate.
+ |  "paginate *.. ..*.. ..* with X Y Z" split url in three parts then create/restore X and Z then +/-Y to paginate.
  |    Repeat this picker with different pattern to pick another location of this url to change.
  +  "savelink"        save first scraped page link as URL file in same directory where files are downloading.
 
@@ -774,13 +774,13 @@ def picker(s, rule):
     elif rule.startswith("urlfix "):
         if not " with " in rule:
             kill("""urlfix picker is broken, there need to be "with"!""")
-        rule = rule.split(" ", 1)[1].split(" with ", 1)
+        rule = rule.split("urlfix ", 1)[1].split(" with ", 1)
         x = rule[1].split("*", 1)
         s["urlfix"] += [x[0], [rule[0]], x[1]]
     elif rule.startswith("url "):
         if not " with " in rule:
             kill("""url picker is broken, there need to be "with"!""")
-        rule = rule.split(" ", 1)[1].split(" with ", 1)
+        rule = rule.split("url ", 1)[1].split(" with ", 1)
         x = rule[1].split("*", 1)
         s["url"] = [x[0], [rule[0]], x[1]]
     elif rule.startswith("pages "):
@@ -788,7 +788,10 @@ def picker(s, rule):
     elif rule.startswith("relpages "):
         at(s["pages"], rule.split("relpages", 1)[1])
     elif rule.startswith("paginate "):
-        s["paginate"] += [rule.split("paginate ", 1)[1].split(" ")]
+        if not " with " in rule:
+            kill("""paginate picker is broken, there need to be "with"!""")
+        x = rule.split("paginate ", 1)[1].split(" with ", 1)
+        s["paginate"] += [[x[0].split(" "), x[1].split(" ")]]
     elif rule.startswith("checkpoint"):
         s["checkpoint"] = True
     elif rule.startswith("ready"):
@@ -1834,13 +1837,15 @@ def pick_in_page(scraper):
                                     print(f"Checkpoint: {px}\n")
         if pick["paginate"]:
             new = page
-            for p in pick["paginate"]:
-                a = carrots([[new, ""]], p[0])[0][1]
-                b = p[3 if len(p) == 6 else 2]
-                x = int(carrots([[new, ""]], p[1])[0][1]) + int(p[-2 if len(p) == 6 else -1])
-                y = p[-1] if len(p) == 6 else ""
-                z = carrots([[new, ""]], p[2])[0][1] if len(p) == 6 else ""
-                new = f"{a}{b}{x}{y}{z}"
+            for y in pick["paginate"]:
+                l = carrots([[new, ""]], y[0][0])[0][1] if len(y[0]) > 1 else ""
+                l_fix = y[1][0]
+                x = carrots([[new, ""]], y[0][1 if len(y[0]) > 1 else 0])[0][1]
+                if p := int(y[1][1]):
+                    x = int(x) + int(p)
+                r_fix = y[1][2] if len(y[1]) == 3 else ""
+                r = carrots([[new, ""]], y[0][2])[0][1] if len(y[0]) == 3 else ""
+                new = f"{l}{l_fix}{x}{r_fix}{r}"
             more_pages += [[start, new]]
         filelist_html = []
         if pick["html"]:

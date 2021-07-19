@@ -2826,7 +2826,7 @@ a:visited{color:#cccccc;}
 .aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
 .aquatext{color:#22cccc}
 .carbon, .files, .time{background-color:#10100c; border:3px solid #6a6a66; border-radius:12px;}
-.time{color:#ccc; font-size:90%;}
+.time{white-space:pre-wrap; color:#ccc; font-size:90%; line-height:1.6;}
 .cell, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
 .edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45;}
 .previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
@@ -2849,11 +2849,12 @@ img{vertical-align:top;}
 .aqua{display:inline-block; vertical-align:top; padding:12px; word-wrap:break-word;}
 .carbon, .time, .files, .edits{display:inline-block; vertical-align:top;}
 .carbon, .time, .cell, .mySlides, .files, .edits{padding:8px; margin:6px; word-wrap:break-word;}
-.mySlides{padding-right:32px;}
+.mySlides{white-space:pre-wrap; padding-right:32px;}
 .closebtn{position:absolute; top:15px; right:15px;}
 .carbon, .files, .edits{margin-right:12px;}
 .cell{overflow:auto; width:calc(100% - 20px); display:inline-block; vertical-align:text-top;}
-h2,p{margin:4px; white-space:pre-wrap;}
+h2{margin:4px;}
+.postMessage{white-space:pre-wrap;}
 </style>
 <body>
 <div style="display:block; height:20px;"></div><div class="container" style="display:none;">
@@ -2985,11 +2986,11 @@ def tohtml(dir, fromhtml, orphfiles):
         if id == "0":
             if "orphfiles" in part[id]:
                 title = "Unsorted"
-                content = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really orphans.\n<p>"
+                content = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really orphans.\n"
             else:
                 continue
         else:
-            title = keywords[0] if keywords and keywords[0] else f"""<p style="color:#666;">ꍯ Part {id} ꍯ"""
+            title = f"<h2>{keywords[0]}</h2>" if keywords and keywords[0] else f"""<h2 style="color:#666;">ꍯ Part {id} ꍯ</h2>"""
             content = ""
         new_container = False
         end_container = False
@@ -2997,8 +2998,8 @@ def tohtml(dir, fromhtml, orphfiles):
         if len(keywords) > 1:
             time = keywords[1] if keywords[1] else "No timestamp"
             keywords = ", ".join(x for x in keywords[2:]) if len(keywords) > 2 else "None"
-            builder += f"""<div class="time" id="{id}" style="float:right;"><p>Part {id} ꍯ {time}<p>Keywords: {keywords}</div>\n"""
-        builder += f"<h2>{title}</h2>"
+            builder += f"""<div class="time" id="{id}" style="float:right;">Part {id} ꍯ {time}\nKeywords: {keywords}</div>\n"""
+        builder += title
         files = [x for x in part[id]["files"]]
         if files:
             builder += "<div class=\"files\">\n"
@@ -3010,8 +3011,9 @@ def tohtml(dir, fromhtml, orphfiles):
             for file in part[id]["orphfiles"]:
                 # os.rename(dir + file, dir + "Orphaned files/" + file)
                 builder += container(dir, file)
-            builder += "<p>orphaned file(s)</p>\n</div>\n"
+            builder += "<br><br>orphaned file(s)\n</div>\n"
         if html := part[id]["html"]:
+            builder += """<div class="postMessage">"""
             for array in html:
                 if len(array) == 2:
                     if new_container:
@@ -3028,7 +3030,7 @@ def tohtml(dir, fromhtml, orphfiles):
                         new_container = False
                     else:
                         new_container = True
-                    content += array[0] + "</div><p>"
+                    content += array[0] + "</div>"
                 else:
                     content += array[0]
                     new_container = True
@@ -3038,10 +3040,10 @@ def tohtml(dir, fromhtml, orphfiles):
                 for link in urls[1:]:
                     link = link.split("\"", 1)[0]
                     links += f"""<a href="{link}">{link}</a><br>"""
-                listurls += f"""<p># From <a href="#{id}">#{id}</a> :: {title}<br>{links}\n"""
-            builder += f"<p>{content}\n"
-        else:
-            builder += "<br><div class=\"edits\">Rebuild HTML with a different login/tier may be required to view</div>\n"
+                listurls += f"""# From <a href="#{id}">#{id}</a> :: {title}<br>{links}\n"""
+            builder += f"{content}</div>\n"
+        elif not files:
+            builder += "<div class=\"edits\">Rebuild HTML with a different login/tier may be required to view</div>\n"
         builder += "</div>\n\n"
     with open(dir + "gallery.html", 'wb') as f:
         f.write(bytes(new_html(builder, batchname, listurls), "utf-8"))

@@ -199,7 +199,7 @@ def help():
  | Partition
  |  "part ...*..."    partitioning the page.
  |  "key ...*..."     pick identifier, defining each partition their ID, for HTML builder and/or *id name customization.
- |    key# for title (key1), timestamp (key2) then keywords (key3 each).
+ |    key# for title (key1), timestamp (key2) then keywords (key3 each). Without key2+ to go stampless.
  |
  | HTML builder
  |  "html ...*..."    pick article from page/partition for HTML builder.
@@ -1966,11 +1966,13 @@ def pick_in_page(scraper):
                                     continue
                             for d in tree(db, [z[0], [[z[1], 0, 0, 0, 0]] + key]):
                                 if not d[1] in keywords:
-                                    keywords.update({d[1]: ["", ""]})
-                                if pos < 2:
-                                    keywords[d[1]][pos] = d[0]
+                                    keywords.update({d[1]: [""]})
+                                if pos == 0:
+                                    keywords[d[1]][0] = d[0]
                                 else:
-                                    keywords[d[1]] += [d[0]]
+                                    if len(ks := keywords[d[1]]) == 1 and not pos == 1:
+                                        ks += [""]
+                                    ks += [d[0]]
                     else:
                         for p in part:
                             key = "0"
@@ -2987,15 +2989,16 @@ def tohtml(dir, fromhtml, orphfiles):
             else:
                 continue
         else:
-            title = keywords[0] if len(keywords) > 0 and keywords[0] else f"""<p style="color:#666;">ꍯ Part {id} ꍯ"""
+            title = keywords[0] if keywords and keywords[0] else f"""<p style="color:#666;">ꍯ Part {id} ꍯ"""
             content = ""
         new_container = False
         end_container = False
-        time = keywords[1] if len(keywords) > 1 and keywords[1] else "No timestamp"
-        keywords = ", ".join(x for x in keywords[2:]) if len(keywords) > 2 else "None"
-        builder += f"""<div class=\"cell\">
-<div class="time" id="{id}" style="float:right;"><p>Part {id} ꍯ {time}<p>Keywords: {keywords}</div>
-<h2>{title}</h2>"""
+        builder += """<div class="cell">\n"""
+        if len(keywords) > 1:
+            time = keywords[1] if keywords[1] else "No timestamp"
+            keywords = ", ".join(x for x in keywords[2:]) if len(keywords) > 2 else "None"
+            builder += f"""<div class="time" id="{id}" style="float:right;"><p>Part {id} ꍯ {time}<p>Keywords: {keywords}</div>\n"""
+        builder += f"<h2>{title}</h2>"
         files = [x for x in part[id]["files"]]
         if files:
             builder += "<div class=\"files\">\n"

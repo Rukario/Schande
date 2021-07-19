@@ -211,7 +211,7 @@ def help():
  |  "pages ...*..."   pick more pages to scrape in parallel, "relpages" for relative urls.
  |    Page picker will make sure all pages are unique to visit, but older pages can cause loophole.
  |    Mostly FIFO aware (for HTML builder), using too many of it can cause FIFO (esp. arrangement) issue, it depends.
- |  "paginate *.. ..*.. ..* with X Y Z" split url in three parts then create/restore X and Z then +/-Y to paginate.
+ |  "paginate *. * .* with X(Y)Z" split url into three parts then update/restore X and Z, paginate Y with +/- or key.
  |    Repeat this picker with different pattern to pick another location of this url to change.
  +  "savelink"        save first scraped page link as URL file in same directory where files are downloading.
 
@@ -771,12 +771,15 @@ def picker(s, rule):
         at(s["name"], rule.split("meta", 1)[1], ["", ""])
     elif rule.startswith("extfix "):
         s["extfix"] = rule.split("extfix ", 1)[1]
-    elif rule.startswith("urlfix "):
-        if not " with " in rule:
+    elif rule.startswith("urlfix"):
+        if rule == "urlfix":
+            s["urlfix"] += [[]]
+        elif not " with " in rule:
             kill("""urlfix picker is broken, there need to be "with"!""")
-        rule = rule.split("urlfix ", 1)[1].split(" with ", 1)
-        x = rule[1].split("*", 1)
-        s["urlfix"] += [x[0], [rule[0]], x[1]]
+        else:
+            rule = rule.split("urlfix ", 1)[1].split(" with ", 1)
+            x = rule[1].split("*", 1)
+            s["urlfix"] += [[x[0], rule[0], x[1]]]
     elif rule.startswith("url "):
         if not " with " in rule:
             kill("""url picker is broken, there need to be "with"!""")
@@ -791,7 +794,14 @@ def picker(s, rule):
         if not " with " in rule:
             kill("""paginate picker is broken, there need to be "with"!""")
         x = rule.split("paginate ", 1)[1].split(" with ", 1)
-        s["paginate"] += [[x[0].split(" "), x[1].split(" ")]]
+        y = x[1].replace("(", ")")
+        if len(z := y.split(")")) == 3:
+            pass
+        elif len(z := y.split("*")) == 2:
+            z.insert(1, "")
+        else:
+            kill("""paginate picker is broken, there need to be a pair of parentheses or an asterisk!""")
+        s["paginate"] += [[x[0].split(" "), z]]
     elif rule.startswith("checkpoint"):
         s["checkpoint"] = True
     elif rule.startswith("ready"):
@@ -1736,9 +1746,12 @@ def pick_in_page(scraper):
             url = redir
         if x := pick["urlfix"]:
             redir = ""
-            for y in x[1]:
-                if len(c := carrots([[page, ""]], y, [], False)) == 2:
-                    redir = x[0] + c[-2][1] + x[2]
+            for y in x:
+                if not y:
+                    redir = page
+                    break
+                if len(c := carrots([[page, ""]], y[1], [], False)) == 2:
+                    redir = y[0] + c[-2][1] + y[2]
                     break
             if not redir:
                 print(f" Error fixing url for permanent redirection from {page}")
@@ -1854,9 +1867,15 @@ def pick_in_page(scraper):
                 l = carrots([[new, ""]], y[0][0])[0][1] if len(y[0]) > 1 else ""
                 l_fix = y[1][0]
                 x = carrots([[new, ""]], y[0][1 if len(y[0]) > 1 else 0])[0][1]
-                if p := int(y[1][1]):
+                if (p := y[1][1])[1:].isdigit():
                     x = int(x) + int(p)
-                r_fix = y[1][2] if len(y[1]) == 3 else ""
+                elif y[1][1]:
+                    p, _, a = peanut(y[1][1], [], False)
+                    if a:
+                        if not db:
+                            db = opendb(data)
+                        x = tree(db, [p[0], [[p[1], 0, 0, 0, 0]]])[-1][0]
+                r_fix = y[1][2]
                 r = carrots([[new, ""]], y[0][2])[0][1] if len(y[0]) == 3 else ""
                 new = f"{l}{l_fix}{x}{r_fix}{r}"
             more_pages += [[start, new]]

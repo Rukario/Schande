@@ -1618,7 +1618,7 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
     else:
         key = [[k[1][1], 0, 0, 0, 0]]
         if k[0][0]:
-            if len(z := k[1][0].split(k[0][0] + " > 0", 1)) == 2:
+            if len(z := k[1][0].split(k[0][0] if k[0][0].startswith("0") else k[0][0] + " > 0", 1)) == 2:
                 file = z[1]
                 master_key = [k[0][0], [[k[0][1], 0, 0, 0, 0]]]
         elif k[0][1]:

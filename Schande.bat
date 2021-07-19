@@ -1903,7 +1903,7 @@ def pick_in_page(scraper):
                                 else:
                                     continue
                                 if k[0][0]:
-                                    if len(x := k[1][0].split(k[0][0] + " > 0", 1)) == 2:
+                                    if len(x := k[1][0].split(k[0][0] if k[0][0].startswith("0") else k[0][0] + " > 0", 1)) == 2:
                                         html = x[1]
                                         master_key = [k[0][0], [[k[0][1], 0, 0, 0, 0]]]
                                 elif k[0][1]:

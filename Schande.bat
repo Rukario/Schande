@@ -196,10 +196,12 @@ def help():
  |  "meta ...*..."    from url.
  |  "extfix ...*..."  fix name without extension from url (detected by ending mismatch).
  |
- | HTML builder
+ | Partition
  |  "part ...*..."    partitioning the page.
- |  "key ...*..."     pick identifier, defining each partition their ID.
+ |  "key ...*..."     pick identifier, defining each partition their ID, for HTML builder and/or *id name customization.
  |    key# for title (key1), timestamp (key2) then keywords (key3 each).
+ |
+ | HTML builder
  |  "html ...*..."    pick article from page/partition for HTML builder.
  |    API: pick content for HTML-based pickers.
  |    HTML-based file and name pickers will look through for inline files and clean up articles.
@@ -1235,7 +1237,7 @@ def downloadtodisk(fromhtml, makedirs=False):
         print("\n Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs.")
 
     if not filelist:
-        if len(htmlpart) > 1 or htmlpart["0"]["html"]:
+        if fromhtml["makehtml"]:
             tohtml(get_cd({"link":fromhtml["page"], "name":fromhtml["folder"], "edited":0}, makedirs)[1], fromhtml, [])
         else:
             print("Filelist is empty!")
@@ -1881,6 +1883,7 @@ def pick_in_page(scraper):
             more_pages += [[start, new]]
         filelist_html = []
         if pick["html"]:
+            fromhtml["makehtml"] = True
             k_html = []
             if pick["key"] and pick["key"][0]:
                 kx = pick["key"][0]
@@ -2057,7 +2060,7 @@ def new_p(z):
 
 def new_part(threadn=0):
     new = {threadn:new_p("0")} if threadn else new_p("0")
-    return {"ready":True, "page":"", "folder":"", "icons":[], "inlinefirst":True, "partition":new}
+    return {"ready":True, "page":"", "folder":"", "makehtml":False, "icons":[], "inlinefirst":True, "partition":new}
 
 
 
@@ -2110,7 +2113,7 @@ def scrape(startpages):
             shelf[p]["partition"] = sort_part
             if not shelf[p]["ready"]:
                 htmlpart = shelf[p]["partition"]
-                if len(htmlpart) > 1 or htmlpart["0"]["html"]:
+                if shelf[p]["makehtml"]:
                     stdout = f"\n Then create " + tcolorg + shelf[p]["folder"] + "gallery.html" + tcolorx + " with\n"
                     if x := shelf[p]["icons"]:
                         stdout += f"""{tcolorg}█{"█ █".join([i["name"] for i in x])}█\n"""

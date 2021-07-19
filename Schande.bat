@@ -2851,7 +2851,7 @@ img{vertical-align:top;}
 .carbon, .time, .cell, .mySlides, .files, .edits{padding:8px; margin:6px; word-wrap:break-word;}
 .mySlides{padding-right:32px;}
 .closebtn{position:absolute; top:15px; right:15px;}
-.carbon, .files, .edits{float:left; margin-right:12px;}
+.carbon, .files, .edits{margin-right:12px;}
 .cell{overflow:auto; width:calc(100% - 20px); display:inline-block; vertical-align:text-top;}
 h2,p{margin:4px; white-space:pre-wrap;}
 </style>

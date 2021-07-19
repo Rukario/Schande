@@ -16,6 +16,7 @@ Mozilla/5.0 for http
 https://www.pixiv.net/ for https://i.pximg.net
 https://www.fanbox.cc for https://api.fanbox.cc
 https://thebarchive.com/ for https://thebarchive.com/
+Authorization ... for https://discord.com
 
 ipb_member_id ... for .exhentai.org
 ipb_pass_hash ... for .exhentai.org
@@ -220,3 +221,16 @@ meta2 ^/* ends with .png
 meta2 ^/* ends with .jpg
 meta2 ^/* ends with .jpeg
 meta2 ^/* ends with .gif
+
+https://discord.com/
+urlfix https://discord.com/channels/*/* with https://discord.com/api/v9/channels/*/messages?limit=50
+urlfix
+folder ^/*^/messages
+key 0 > id
+key 0 > id << 0 > attachments > 0 > id
+key2 0 > timestamp
+html 0 > content
+files 0 > attachments > 0 > url
+name 0 > attachments > 0 > id customize with *.
+name1 0 > attachments > 0 > filename
+paginate *^messages? * ^limit=* with messages?before=(0 > id)&limit=

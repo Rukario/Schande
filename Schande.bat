@@ -46,14 +46,15 @@ specialfile = ["gallery.html", "partition.json", ".URL"] # icon.png and icon #.p
 
 busy = [False]
 cooldown = [False]
+continue_prompt = [False]
 echothreadn = []
 error = [[]]
 newfilen = [0]
+retryall = [False]
 retryall_else = [False]
 retryall_prompt = [False]
-continue_prompt = [False]
+retryall_always = [False]
 personal = False
-retryall = [False]
 retries = [0]
 retryx = [False]
 seek = [False]
@@ -929,22 +930,25 @@ def retry(stderr):
     # Warning: urllib has slight memory leak
     retryall[0] = False
     while True:
-        if not retryall_else[0]:
-            retryall_else[0] = True
+        if not retryall_prompt[0]:
+            retryall_prompt[0] = True
             if stderr:
-                if retryall_prompt[0]:
+                if retryall_always[0]:
                     e = f"{retries[0]} retries (Q)uit trying "
                     if cooldown[0]:
                         timer(e)
                     else:
                         echo(e)
+                    retryall[0] = True
                 else:
                     title(status() + batchname)
                     print(f"{stderr} (R)etry? (A)lways (N)ext")
                     while True:
-                        if retryall[0] or retryall_prompt[0]:
+                        if retryall[0] or retryall_always[0]:
+                            retryall_prompt[0] = False
                             break
                         if retryall_else[0]:
+                            retryall_prompt[0] = False
                             retryall_else[0] = False
                             return
                         time.sleep(0.1)
@@ -953,9 +957,10 @@ def retry(stderr):
             time.sleep(0.5)
             title(status() + batchname)
             retries[0] += 1
-            retryall_else[0] = False
+            retryall_prompt[0] = False
             return True
         elif retryall[0]:
+            debug()
             return True
         time.sleep(0.5)
 
@@ -3433,7 +3438,7 @@ def keylistener():
         el = choice("abcdghiknoqrstvx")
         if el == 1:
             echo("", 1)
-            retryallx[0] = True
+            retryall_always[0] = True
         elif el == 2:
             if not Browser:
                 choice(bg=True)
@@ -3524,13 +3529,13 @@ def keylistener():
             ready_input()
         elif el == 11:
             echo("", 1)
-            skiptonext[0] = True
+            retryall_always[0] = False
         elif el == 12:
             echo("", 1)
-            retryall_prompt[0] = False
+            retryall[0] = True
         elif el == 13:
             echo("", 1)
-            retryall[0] = True
+            skiptonext[0] = True
         elif el == 14:
             if ticks:
                 echo(f"""COOLDOWN {"DISABLED" if cooldown[0] else "ENABLED"}""", 1, 1)
@@ -3542,7 +3547,7 @@ def keylistener():
         elif el == 16:
             echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
             retryx[0] = False if retryx[0] else True
-            retryall_prompt[0] = True
+            retryall_always[0] = True
         else:
             seek[0] = True
 t = Thread(target=keylistener)

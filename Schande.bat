@@ -302,14 +302,10 @@ t.start()
 
 
 def echo(threadn, b=0, f=0, c=False, friction=False):
-    if c:
-         c = f"\033[40;38;2;{int(c[:2],16)};{int(c[2:4],16)};{int(c[4:6],16)}m", tcolorx
-    else:
-         c = "", ""
     if not str(threadn).isdigit():
         stdout[0] = ""
         stdout[1] = ""
-        sys.stdout.write("\033[A"*b + c[0] + f"{threadn:<113}" + c[1] + "\n"*f + "\r")
+        sys.stdout.write("\033[A"*b + f"{threadn:<113}" + "\n"*f + "\r")
     elif not echothreadn or threadn == echothreadn[0]:
         if friction:
             stdout[0] = f"{b:<113}\r"
@@ -319,9 +315,6 @@ def echo(threadn, b=0, f=0, c=False, friction=False):
             sys.stdout.write(f"{b:<113}\r")
     else:
         return
-def debug(e="echoed", b=0, f=1):
-    c = inspect.getframeinfo(inspect.stack()[1][0])
-    echo(f"{c.lineno} {c.function}() {e}", b, f, "cccccc")
 
 
 
@@ -363,6 +356,19 @@ def kill(threadn, e=None):
     else:
         echo(f"""{tcolorr}Thread {threadn} was killed {"by" if "(" in e else "because"} {e}{tcolorx}""", 0, 1)
     sys.exit()
+
+
+
+def tcolorz(c):
+    if not len(c) == 6:
+        kill("Bad color code")
+    return f"\033[40;38;2;{int(c[:2],16)};{int(c[2:4],16)};{int(c[4:6],16)}m"
+
+
+
+def debug(e="echoed", b=0, f=1):
+    c = inspect.getframeinfo(inspect.stack()[1][0])
+    echo(f"""{tcolorz("cccccc")}{c.lineno} {c.function}() {e}{tcolorx}""", b, f)
 
 
 
@@ -3328,7 +3334,19 @@ def finish_sort():
 
 
 
-def syntax(html):
+def syntax(html, api=False):
+    if api:
+        x = html.split("{")
+        html = [tcolorz("ffffff") + x[0]]
+        c = 0xffffff
+        for y in x[1:]:
+            c -= 0x224400
+            y = y.split("}")
+            html += ["{" + tcolorz(str(hex(c if c > 0 else 0x111111)[2:])) + y[0]]
+            for z in y[1:]:
+                c += 0x224400
+                html += [tcolorz(str(hex(c if c > 0 else 0x111111)[2:])) + "}" + z]
+        return ''.join(html + [tcolorx])
     a = [[html,""]]
     for z in ["http://", "https://", "/"]:
         a = carrots(a, f"'{z}*' not starts with >", ["'" + z, "'"])
@@ -3407,7 +3425,7 @@ def source_view():
                     z = z.rsplit(" > 0", 1) if " > 0" in z else ["0", z.split("0", 1)[1]] if z.startswith("0") else ["", z]
                     if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0, 0]]]):
                         for y in x:
-                            print(y[0])
+                            print(syntax(y[0], True))
                     else:
                         print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}\n")
                 else:

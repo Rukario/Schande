@@ -167,10 +167,10 @@ meta ^/*
 
 https://www.fanbox.cc/@
 title /fanbox/public/images/creator/*/cover/
-pages /fanbox/public/images/creator/*/cover/ customize with https://api.fanbox.cc/post.listCreator?userId=*&limit=10
+pages /fanbox/public/images/creator/*/cover/ customize with https://api.fanbox.cc/post.listCreator?userId=*&limit=300
 savelink FANBOX
 
-https://api.fanbox.cc/
+https://api.fanbox.cc/post.listCreator
 key body > items > 0 > id
 key1 body > items > 0 > title
 key2 body > items > 0 > updatedDatetime

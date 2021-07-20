@@ -1781,7 +1781,7 @@ def pick_in_page(scraper):
         if len(data) < 4:
             break
         title(batchfile + monitor())
-        data = data.replace("\n ", "").replace("\n", "")
+        data = ''.join([x.strip() for x in data.splitlines()])
         if pick["part"]:
             part = []
             for z in pick["part"]:
@@ -3406,7 +3406,7 @@ def source_view():
                     else:
                         print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}\n")
                 else:
-                    data = "\n".join([s.rstrip() if s.rstrip() else "" for s in data.replace("	", "    ").splitlines()])
+                    data = ''.join([s.strip() if s.strip() else "" for s in data.splitlines()])
                     print(syntax(data))
                     print()
             else:

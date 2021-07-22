@@ -873,17 +873,27 @@ for rule in rules:
     elif rule.startswith("\\"):
         dir = rule.split("\\", 1)[1]
         if dir.endswith("\\"):
+            if dir in sorter:
+                print(f"{tcoloro} SORTER: \\{dir} must be announced only once.{tcolorx}")
             sorter.update({dir: [False]})
         else:
             dir = dir.rsplit("\\", 1)
-            sorter.update({dir[0] + "\\": [False, dir[1]]})
+            dir[0] += "\\"
+            if dir[0] in sorter:
+                print(f"{tcoloro} SORTER: \\{dir[0]} must be announced only once.{tcolorx}")
+            sorter.update({dir[0]: [False, dir[1]]})
     elif rule.startswith("!\\"):
         dir = rule.split("!\\", 1)[1]
         if dir.endswith("\\"):
+            if dir in sorter:
+                print(f"{tcoloro} SORTER: \\{dir} must be announced only once.{tcolorx}")
             sorter.update({dir: [True]})
         else:
             dir = dir.rsplit("\\", 1)
-            sorter.update({dir[0] + "\\": [True, dir[1]]})
+            dir[0] += "\\"
+            if dir[0] in sorter:
+                print(f"{tcoloro} SORTER: \\{dir[0]} must be announced only once.{tcolorx}")
+            sorter.update({dir[0]: [True, dir[1]]})
     elif rule.startswith("http"):
         site = rule
         if not site in pickers:

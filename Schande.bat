@@ -10,7 +10,6 @@ from socketserver import ThreadingMixIn
 from threading import Thread
 from urllib import parse, request
 from urllib.error import HTTPError
-from codecs import encode, decode
 from random import random
 
 if len(sys.argv) > 3:
@@ -45,8 +44,8 @@ videofile = [".mkv", ".mp4", ".webm"]
 specialfile = ["gallery.html", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
 
 busy = [False]
-cooldown = [False]
 continue_prompt = [False]
+cooldown = [False]
 echothreadn = []
 error = [[]]
 newfilen = [0]
@@ -114,6 +113,9 @@ def mainmenu():
  | Enter http(s):// to download file. Press V for page source viewing.
  + Enter valid site to start a scraper.
 """)
+def ready_input():
+    sys.stdout.write("Enter (I)nput mode or ready to s(O)rt, (L)oad filelist from textfile, (H)elp: ")
+    sys.stdout.flush()
 def skull():
     print("""
               ______
@@ -301,7 +303,7 @@ t.start()
 
 
 
-def echo(threadn, b=0, f=0, c=False, friction=False):
+def echo(threadn, b=0, f=0, friction=False):
     if not str(threadn).isdigit():
         stdout[0] = ""
         stdout[1] = ""
@@ -966,13 +968,11 @@ def retry(stderr):
             retryall_prompt[0] = False
             return True
         elif retryall[0]:
-            debug()
             return True
         time.sleep(0.5)
 
 
 
-#, "Accept-Encoding":"gzip, deflate, br", "DNT":1, "Upgrade-Insecure-Requests":1
 def fetch(url, context=None, headers={'User-Agent':'Mozilla/5.0'}, stderr="", dl=0, threadn=0, data=None):
     while True:
         try:
@@ -1179,7 +1179,6 @@ for i in range(8):
 
 
 def get_cd(file, makedirs=False, preview=False):
-    threadn = 0
     link = file["link"] if preview else file.pop("link")
     todisk = mf + file["name"].replace("\\", "/")
     if rule := [v for k, v in customdir.items() if k in link]:
@@ -3365,7 +3364,7 @@ def syntax(html, api=False):
 
 
 
-run_input = ["", ""]
+run_input = ["", "", False]
 def read_input(m):
     if not m:
         return
@@ -3399,6 +3398,47 @@ def read_input(m):
     print()
     ready_input()
     return True
+
+
+
+def readfile():
+    if not os.path.exists(textfile):
+        open(textfile, 'w').close()
+    print(f"Reading {textfile} . . .")
+    with open(textfile, 'r', encoding="utf-8") as f:
+        textread = f.read().splitlines()
+    pages = []
+    nextpages = []
+    fromhtml = new_part()
+    for line in textread:
+        if not line or line.startswith("#"):
+            continue
+        elif line == "then":
+            nextpages += [pages]
+            pages = []
+            continue
+        elif line == "end":
+            break
+        elif not line.startswith("http"):
+            continue
+        if any(word for word in pickers.keys() if line.startswith(word)):
+            pages += [line]
+        else:
+            name = parse.unquote(line.split("/")[-1])
+            fromhtml["partition"]["0"]["files"] += [{"link":line, "name":saint(name), "edited":0}]
+    nextpages += [pages]
+    if fromhtml["partition"]["0"]["files"]:
+        downloadtodisk(fromhtml)
+    elif nextpages:
+        resume = False
+        for pages in nextpages:
+            if resume:
+                print(f"\n Resuming next lines from {textfile}")
+            else:
+                resume = True
+            scrape(pages)
+    else:
+        print(f" No urls in {textfile}!")
 
 
 
@@ -3444,16 +3484,10 @@ def source_view():
 
 
 
-def ready_input():
-    sys.stdout.write("Enter (I)nput mode or ready to s(O)rt, (H)elp: ")
-    sys.stdout.flush()
-
-
-
 savepage = [{}]
 def keylistener():
     while True:
-        el = choice("abcdghiknoqrstvx")
+        el = choice("abcdghiklnoqrstvx")
         if el == 1:
             echo("", 1)
             retryall_always[0] = True
@@ -3537,32 +3571,37 @@ def keylistener():
             if not c:
                 echo("No cookies!", 1, 1)
         elif el == 9:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            run_input[2] = True
+        elif el == 10:
             echo("", 1)
             retryall_else[0] = True
-        elif el == 10:
+        elif el == 11:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             finish_sort()
             ready_input()
-        elif el == 11:
-            echo("", 1)
-            retryall_always[0] = False
         elif el == 12:
             echo("", 1)
-            retryall[0] = True
+            retryall_always[0] = False
         elif el == 13:
             echo("", 1)
-            skiptonext[0] = True
+            retryall[0] = True
         elif el == 14:
+            echo("", 1)
+            skiptonext[0] = True
+        elif el == 15:
             if ticks:
                 echo(f"""COOLDOWN {"DISABLED" if cooldown[0] else "ENABLED"}""", 1, 1)
             else:
                 echo(f"""Timer not enabled, please add "#-# seconds rarity 100%" in {rulefile}, add another timer to manipulate rarity.""", 1, 1)
             cooldown[0] = False if cooldown[0] else True
-        elif el == 15:
-            source_view()
         elif el == 16:
+            source_view()
+        elif el == 17:
             echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
             retryx[0] = False if retryx[0] else True
             retryall_always[0] = True
@@ -3582,37 +3621,8 @@ print("""
 
 
 
-# Loading filelist from detected urls in textfile
-if not os.path.exists(textfile):
-    open(textfile, 'w').close()
-print(f"Reading {textfile} . . .")
-with open(textfile, 'r', encoding="utf-8") as f:
-    textread = f.read().splitlines()
-pages = []
-nextpages = []
-fromhtml = new_part()
-for line in textread:
-    if not line or line.startswith("#"):
-        continue
-    elif line == "then":
-        nextpages += [pages]
-        pages = []
-        continue
-    elif line == "end":
-        break
-    elif not line.startswith("http"):
-        continue
-    if any(word for word in pickers.keys() if line.startswith(word)):
-        pages += [line]
-    else:
-        name = parse.unquote(line.split("/")[-1])
-        fromhtml["partition"]["0"]["files"] += [{"link":line, "name":saint(name), "edited":0}]
-nextpages += [pages]
-
-
-
+busy[0] = True
 if filelist:
-    busy[0] = True
     m = filelist[0]
     if len(filelist) > 1:
         print(f"""
@@ -3630,22 +3640,7 @@ if filelist:
         todb(m)
     else:
         compare(m)
-    busy[0] = False
-else:
-    busy[0] = True
-    if fromhtml["partition"]["0"]["files"]:
-        downloadtodisk(fromhtml)
-    elif nextpages:
-        resume = False
-        for pages in nextpages:
-            if resume:
-                print(f"\n Resuming next lines from {textfile}")
-            else:
-                resume = True
-            scrape(pages)
-    else:
-        print(f" No urls in {textfile}!")
-    busy[0] = False
+busy[0] = False
 
 
 
@@ -3668,6 +3663,11 @@ while True:
         busy[0] = False
         print()
         ready_input()
+    if run_input[2]:
+        readfile()
+        run_input[2] = False
+        print()
+        ready_input()
     try:
         time.sleep(0.1)
     except KeyboardInterrupt:
@@ -3681,8 +3681,8 @@ while True:
 ::MacOS - Install Python 3 then open Terminal and enter:
 open /Applications/Python\ 3.9/Install\ Certificates.command
 sudo python3 -m pip install --upgrade pip
-sudo python3 -m pip install PySocks
 sudo python3 -m pip install Pillow
+sudo python3 -m pip install PySocks
 python3 -x /drag/n/drop/the/batchfile
 
 :loaded
@@ -3707,10 +3707,13 @@ if not [%1]==[] goto loop
 
 set pythondir=%userprofile%\AppData\Local\Programs\Python\
 chcp 65001>nul
-if exist "!txtfilex!" for /f "delims=" %%i in ('findstr /b /i "Python = " "!txtfilex!"') do set string=%%i&& set pythondir=!string:~9!&&goto check
+if exist "!txtfilex!" for /f "delims=" %%i in ('findstr /b /i "Python = " "!txtfilex!"') do set string=%%i&& set string=!string:~9!&&goto check
 :check
 chcp 437>nul
+if not "!string!"=="" (set pythondir=!string!)
 set x=Python 3.9
+set cute=!x:.=!
+set cute=!cute: =!
 set pythondirx=!pythondir!!x: 3.=3!
 if exist "!pythondirx!\python.exe" (cd /d "!pythondirx!" && color %color%) else (color %stopcolor%
 echo.
@@ -3721,15 +3724,15 @@ pause%>nul
 exit)
 set pythondir=!pythondir:\=\\!
 
-if exist Lib\site-packages\socks.py (echo.) else (goto install)
-if exist Lib\site-packages\PIL (goto start) else (echo.)
+if exist Lib\site-packages\PIL (goto start) else (goto install)
+if exist Lib\site-packages\socks.py (echo.) else (echo.)
 
 :install
 echo  Hold on . . . I need to install the missing packages.
 if exist "Scripts\pip.exe" (echo.) else (color %stopcolor% && echo  PIP.exe doesn't seem to exist . . . Please install Python properly^^! I must exit^^! && pause>nul && exit)
 python -m pip install --upgrade pip
-Scripts\pip.exe install PySocks
 Scripts\pip.exe install Pillow
+Scripts\pip.exe install PySocks
 echo.
 pause
 

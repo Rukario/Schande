@@ -912,6 +912,7 @@ if personal and not shuddup:
     print(f"\n{tcolorr} TO YOURSELF: {rulefile} contains personal information like mail, password, cookies. Edit {rulefile} before sharing!{tcolorx}")
     if HTMLserver:
         print(f"{tcoloro} HTML SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookies{tcolorx}")
+    print(f""" Add "shuddup" to {rulefile} to dismiss this message.""")
 
 
 
@@ -3626,8 +3627,7 @@ print("""
   > Press S to skip next error once during downloading files.
   > Press T to enable or disable cooldown during errors (reduce server strain).
   > Press K to view cookies.
-  > Press Ctrl + C to break and reconnect of the ongoing downloads or to end timer instantly.
-""")
+  > Press Ctrl + C to break and reconnect of the ongoing downloads or to end timer instantly.""")
 
 
 

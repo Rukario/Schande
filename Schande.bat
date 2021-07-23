@@ -46,6 +46,7 @@ specialfile = ["gallery.html", "partition.json", ".URL"] # icon.png and icon #.p
 busy = [False]
 continue_prompt = [False]
 cooldown = [False]
+dlslot = [8]
 echothreadn = []
 error = [[]]
 newfilen = [0]
@@ -1016,6 +1017,8 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
             dl = os.path.getsize(todisk + ".part")
     else:
         echo(threadn, "0 MB")
+    while echothreadn.index(threadn) >= dlslot[0]:
+        time.sleep(0.1)
     resp, err = fetch(url, context, headers, stderr, dl, threadn)
     if not resp:
         return err
@@ -3498,7 +3501,7 @@ def source_view():
 savepage = [{}]
 def keylistener():
     while True:
-        el = choice("abcdghiklnoqrstvx")
+        el = choice("abcdghiklnoqrstvx0123456789")
         if el == 1:
             echo("", 1)
             retryall_always[0] = True
@@ -3616,6 +3619,9 @@ def keylistener():
             echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
             retryx[0] = False if retryx[0] else True
             retryall_always[0] = True
+        elif 0 <= (n := min(el-18, 8)) < 9:
+            echo(f"""PARALLEL DOWNLOAD SLOT: {n} {"(pause)" if not n else ""}""", 1, 1)
+            dlslot[0] = n
         else:
             seek[0] = True
 t = Thread(target=keylistener)

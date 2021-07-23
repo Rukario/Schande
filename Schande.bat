@@ -3620,7 +3620,7 @@ def keylistener():
             retryx[0] = False if retryx[0] else True
             retryall_always[0] = True
         elif 0 <= (n := min(el-18, 8)) < 9:
-            echo(f"""PARALLEL DOWNLOAD SLOT: {n} {"(pause)" if not n else ""}""", 1, 1)
+            echo(f"""MAX PARALLEL DOWNLOAD SLOT: {n} {"(pause)" if not n else ""}""", 1, 1)
             dlslot[0] = n
         else:
             seek[0] = True

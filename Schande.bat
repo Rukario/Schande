@@ -1017,9 +1017,8 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
             dl = os.path.getsize(todisk + ".part")
     else:
         echo(threadn, "0 MB")
-    if echothreadn:
-        while echothreadn.index(threadn) >= dlslot[0]:
-            time.sleep(0.1)
+    while echothreadn and echothreadn.index(threadn) >= dlslot[0]:
+        time.sleep(0.1)
     resp, err = fetch(url, context, headers, stderr, dl, threadn)
     if not resp:
         return err

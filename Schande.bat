@@ -3633,6 +3633,7 @@ print("""
   > Press S to skip next error once during downloading files.
   > Press T to enable or disable cooldown during errors (reduce server strain).
   > Press K to view cookies.
+  > Press 1 to 8 to set max parallel download of 8 available slots, 0 to pause.
   > Press Ctrl + C to break and reconnect of the ongoing downloads or to end timer instantly.""")
 
 

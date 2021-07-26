@@ -1824,7 +1824,7 @@ def pick_in_page(scraper):
                         c = z[1].rsplit(" = ", 1)
                         result = tree(db, [z[0], [[c[0], c[1].split(" > "), 0, 0, 0, 0]]])
                     else:
-                        result = True if z in part[0][0] else False
+                        result = True if [x[1] for x in carrots(part, z, [], False)][0] else False
                     if y[0]["alt"] and result:
                         if not pick["dismiss"] and Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)

@@ -350,6 +350,7 @@ def alert(m, s, d=False):
         sys.stdout.write("(C)ontinue")
         sys.stdout.flush()
         choice(bg="2e")
+        continue_prompt[0] = False
         while not continue_prompt[0]:
             time.sleep(0.1)
         continue_prompt[0] = False
@@ -429,7 +430,7 @@ def echoMBs(threadn, Bytes, ff):
         stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {batchname} {''.join(fx[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
     else:
         echofriction[0] = int(s*eps)
-    if Bstime[0] < int(s):
+    if Bytes and Bstime[0] < int(s):
         Bstime[0] = int(s)
         MBs[0] = f"{(Bs[0]+Bytes)/1048576:.2f}"
         Bs[0] = Bytes
@@ -1020,6 +1021,9 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
             dl = os.path.getsize(todisk + ".part")
     else:
         echo(threadn, "0 MB")
+    echoMBs(threadn, 0, 0)
+    skiptonext[0] = False
+    seek[0] = False
     while echothreadn and echothreadn.index(threadn) >= dlslot[0]:
         time.sleep(0.1)
     resp, err = fetch(url, context, headers, stderr, dl, threadn)
@@ -2177,6 +2181,7 @@ def scrape(startpages):
                             stdout += "\n"
                     echo(stdout + tcolorx)
                 echo(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """, 0, 1)
+                continue_prompt[0] = False
                 while not continue_prompt[0]:
                     time.sleep(0.1)
                 continue_prompt[0] = False
@@ -3517,6 +3522,8 @@ def keylistener():
         if el == 1:
             echo("", 1)
             retryall_always[0] = True
+            if not busy[0]:
+                ready_input()
         elif el == 2:
             if not Browser:
                 choice(bg=True)
@@ -3537,10 +3544,13 @@ def keylistener():
  "Edge detect" and "Geistauge" are canvas features and they require Cross-Origin Resource Sharing (CORS)
  (Google it but tl;dr: Try HTML server)
 """)
-            ready_input()
+            if not busy[0]:
+                ready_input()
         elif el == 3:
             echo("", 1)
             continue_prompt[0] = True
+            if not busy[0]:
+                ready_input()
         elif el == 4:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -3596,6 +3606,8 @@ def keylistener():
                 echo(str(c), 1, 2)
             if not c:
                 echo("No cookies!", 1, 1)
+            if not busy[0]:
+                ready_input()
         elif el == 9:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -3604,6 +3616,8 @@ def keylistener():
         elif el == 10:
             echo("", 1)
             retryall_else[0] = True
+            if not busy[0]:
+                ready_input()
         elif el == 11:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -3613,27 +3627,39 @@ def keylistener():
         elif el == 12:
             echo("", 1)
             retryall_always[0] = False
+            if not busy[0]:
+                ready_input()
         elif el == 13:
             echo("", 1)
             retryall[0] = True
+            if not busy[0]:
+                ready_input()
         elif el == 14:
             echo("", 1)
             skiptonext[0] = True
+            if not busy[0]:
+                ready_input()
         elif el == 15:
             if ticks:
                 echo(f"""COOLDOWN {"DISABLED" if cooldown[0] else "ENABLED"}""", 1, 1)
             else:
                 echo(f"""Timer not enabled, please add "#-# seconds rarity 100%" in {rulefile}, add another timer to manipulate rarity.""", 1, 1)
             cooldown[0] = False if cooldown[0] else True
+            if not busy[0]:
+                ready_input()
         elif el == 16:
             source_view()
         elif el == 17:
             echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
             retryx[0] = False if retryx[0] else True
             retryall_always[0] = True
+            if not busy[0]:
+                ready_input()
         elif 0 <= (n := min(el-18, 8)) < 9:
             echo(f"""MAX PARALLEL DOWNLOAD SLOT: {n} {"(pause)" if not n else ""}""", 1, 1)
             dlslot[0] = n
+            if not busy[0]:
+                ready_input()
         else:
             seek[0] = True
 t = Thread(target=keylistener)

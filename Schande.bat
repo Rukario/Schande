@@ -430,7 +430,7 @@ def echoMBs(threadn, Bytes, ff):
         stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {batchname} {''.join(fx[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
     else:
         echofriction[0] = int(s*eps)
-    if Bytes and Bstime[0] < int(s):
+    if Bstime[0] < int(s):
         Bstime[0] = int(s)
         MBs[0] = f"{(Bs[0]+Bytes)/1048576:.2f}"
         Bs[0] = Bytes
@@ -989,7 +989,11 @@ def retry(stderr):
 
 
 
-def fetch(url, context=None, headers={'User-Agent':'Mozilla/5.0'}, stderr="", dl=0, threadn=0, data=None):
+def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
+    referer = x[0] if (x := [v for k, v in referers.items() if url.startswith(k)]) else ""
+    ua = x[0] if (x := [v for k, v in mozilla.items() if url.startswith(k)]) else 'Mozilla/5.0'
+    headers = {x[0][0]:x[0][1]} if (x := [v for k, v in hydras.items() if url.startswith(k)]) else {}
+    headers.update({'User-Agent':ua, 'Referer':referer, 'Origin':referer})
     while True:
         try:
             headers.update({'Range':f'bytes={dl}-', 'Accept':"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"})
@@ -1012,7 +1016,7 @@ def fetch(url, context=None, headers={'User-Agent':'Mozilla/5.0'}, stderr="", dl
 request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookies)))
 # cookies.save()
 
-def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'User-Agent':'Mozilla/5.0', 'Referer':"", 'Origin':""}, headonly=False, stderr="", threadn=0):
+def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=False, stderr="", threadn=0):
     echolink = f"{url[:87]}{(url[87:] and '█')}"
     dl = 0
     if todisk:
@@ -1021,12 +1025,11 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
             dl = os.path.getsize(todisk + ".part")
     else:
         echo(threadn, "0 MB")
-    echoMBs(threadn, 0, 0)
     skiptonext[0] = False
     seek[0] = False
     while echothreadn and echothreadn.index(threadn) >= dlslot[0]:
         time.sleep(0.1)
-    resp, err = fetch(url, context, headers, stderr, dl, threadn)
+    resp, err = fetch(url, context, stderr, dl, threadn)
     if not resp:
         return err
     total = resp.headers['Content-length']
@@ -1063,21 +1066,21 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
                             break
                         if not retry(stderr):
                             return err
-                        resp, err = fetch(url, context, headers, stderr, dl, threadn)
+                        resp, err = fetch(url, context, stderr, dl, threadn)
                         if not resp:
                             return err
                         if resp.status == 200 and dl > 0:
                             kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                         continue
                 except KeyboardInterrupt:
-                    resp, err = fetch(url, context, headers, stderr, dl, threadn)
+                    resp, err = fetch(url, context, stderr, dl, threadn)
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                     continue
                 except:
                     if not retry(stderr):
                         return err
-                    resp, err = fetch(url, context, headers, stderr, dl, threadn)
+                    resp, err = fetch(url, context, stderr, dl, threadn)
                     if not resp:
                         return err
                     if resp.status == 200 and dl > 0:
@@ -1089,7 +1092,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
                 echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
                 echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {echolink}""", friction=True)
                 if seek[0]:
-                    resp, err = fetch(url, context, headers, stderr, dl, threadn)
+                    resp, err = fetch(url, context, stderr, dl, threadn)
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                     seek[0] = False
@@ -1126,7 +1129,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
                             return data
                     if not retry(stderr):
                         return err
-                    resp, err = fetch(url, context, headers, stderr, dl, threadn)
+                    resp, err = fetch(url, context, stderr, dl, threadn)
                     if not resp:
                         return err
                     if resp.status == 200:
@@ -1134,7 +1137,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
                         dl = 0
                     continue
             except KeyboardInterrupt:
-                resp, err = fetch(url, context, headers, stderr, dl, threadn)
+                resp, err = fetch(url, context, stderr, dl, threadn)
                 if resp.status == 200:
                     data = b''
                     dl = 0
@@ -1142,7 +1145,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
             except:
                 if not retry(stderr):
                     return err
-                resp, err = fetch(url, context, headers, stderr, dl, threadn)
+                resp, err = fetch(url, context, stderr, dl, threadn)
                 if not resp:
                     return err
                 if resp.status == 200:
@@ -1155,7 +1158,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headers={'U
             echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
             echo(threadn, f"{int(dl/1048576)} MB", friction=True)
             if seek[0]:
-                resp, err = fetch(url, context, headers, stderr, dl, threadn)
+                resp, err = fetch(url, context, stderr, dl, threadn)
                 if resp.status == 200:
                     data = b''
                     dl = 0
@@ -1171,10 +1174,6 @@ def echolinks(download):
             if n and not collisionisreal:
                 continue
             url = onserver[n]
-            referer = x[0] if (x := [v for k, v in referers.items() if url.startswith(k)]) else ""
-            ua = x[0] if (x := [v for k, v in mozilla.items() if url.startswith(k)]) else 'Mozilla/5.0'
-            headers = {x[0][0]:x[0][1]} if (x := [v for k, v in hydras.items() if url.startswith(k)]) else {}
-            headers.update({'User-Agent':ua, 'Referer':referer, 'Origin':referer})
             if n:
                 if not conflict[0]:
                     conflict[0] += [todisk]
@@ -1182,7 +1181,7 @@ def echolinks(download):
                 conflict[0] += [todisk]
             if os.path.exists(todisk):
                 echo(f"{threadn:>3} Already downloaded: {todisk}", 0, 1)
-            elif (err := get(url, todisk=todisk, conflict=conflict, headers=headers, threadn=threadn)) == 1:
+            elif (err := get(url, todisk=todisk, conflict=conflict, threadn=threadn)) == 1:
                 newfilen[0] += 1
                 html.append("<a href=\"" + todisk.replace("#", "%23") + "\"><img src=\"" + todisk.replace("#", "%23") + "\" height=200px></a>")
             else:
@@ -1803,10 +1802,6 @@ def pick_in_page(scraper):
             page = redir
         if not pick["ready"]:
             echo(f" Visiting {page}", 0, 1)
-        referer = x[0] if (x := [v for k, v in referers.items() if page.startswith(k)]) else ""
-        ua = x[0] if (x := [v for k, v in mozilla.items() if page.startswith(k)]) else 'Mozilla/5.0'
-        headers = {x[0][0]:x[0][1]} if (x := [v for k, v in hydras.items() if page.startswith(k)]) else {}
-        headers.update({'User-Agent':ua, 'Referer':referer, 'Origin':referer})
         if pick["send"]:
             for x in pick["send"]:
                 post = x[1] if x[1] else url
@@ -1815,7 +1810,7 @@ def pick_in_page(scraper):
                 print(f" Error visiting {page}")
                 break
             data = data.read()
-        if not data and (data := get(url if url else page, utf8=True, headers=headers, stderr="Update cookie or referer if these are required to view", threadn=threadn)) and not data.isdigit():
+        if not data and (data := get(url if url else page, utf8=True, stderr="Update cookie or referer if these are required to view", threadn=threadn)) and not data.isdigit():
             pass
         else:
             print(f" Error visiting {page}")
@@ -3480,13 +3475,9 @@ def source_view():
     while True:
         m = input("Enter URL to view source, append URL with key > s > to read it as dictionary, enter nothing to exit: ").rstrip()
         if m.startswith("http"):
-            referer = x[0] if (x := [v for k, v in referers.items() if m.startswith(k)]) else ""
-            ua = x[0] if (x := [v for k, v in mozilla.items() if m.startswith(k)]) else 'Mozilla/5.0'
-            headers = {x[0][0]:x[0][1]} if (x := [v for k, v in hydras.items() if m.startswith(k)]) else {}
-            headers.update({'User-Agent':ua, 'Referer':referer, 'Origin':referer})
             m = m.split(" ", 1)
             if not m[0] in savepage[0]:
-                data = get(m[0], utf8=True, headers=headers)
+                data = get(m[0], utf8=True)
                 savepage[0] = {m[0]:data}
             else:
                 data = savepage[0][m[0]]

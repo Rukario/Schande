@@ -1210,20 +1210,31 @@ def get_cd(file, makedirs=False, preview=False):
         prepend, append = rule[0]
         todisk = f"{folder}{prepend}{name}{append}{ext}".replace("\\", "/") # "\\" in file["name"] can work like folder after prepend
         dir = todisk.rsplit("/", 1)[0] + "/"
+        tdir = "\\" + dir.replace("/", "\\")
         if not preview and not os.path.exists(dir):
             if makedirs or [ast(x) for x in exempt if ast(x) == dir.replace("/", "\\")]:
-                os.makedirs(dir)
+                try:
+                    os.makedirs(dir)
+                except:
+                    kill(f"Can't make folder {tdir} because there's a file using that name, I must exit!")
             else:
                 print(f" Error downloading (dir): {link}")
                 error[0] += [todisk]
                 link = ""
     elif not preview:
         dir = todisk.rsplit("/", 1)[0] + "/"
+        tdir = "\\" + dir.replace("/", "\\")
         if not os.path.exists(mf):
-            os.makedirs(mf)
+            try:
+                os.makedirs(mf)
+            except:
+                kill(f"Can't make folder {tdir} because there's a file using that name, I must exit!")
     if not preview:
         if makedirs and not os.path.exists(dir):
-            os.makedirs(dir)
+            try:
+                os.makedirs(dir)
+            except:
+                kill(f"Can't make folder {tdir} because there's a file using that name, I must exit!")
         file.update({"name":todisk, "edited":file["edited"]})
     return [link, todisk, file["edited"]]
 

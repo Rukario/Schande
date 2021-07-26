@@ -349,7 +349,10 @@ def alert(m, s, d=False):
     if not d:
         sys.stdout.write("(C)ontinue")
         sys.stdout.flush()
-        choice("c", bg="2e")
+        choice(bg="2e")
+        while not continue_prompt[0]:
+            time.sleep(0.1)
+        continue_prompt[0] = False
 
 
 
@@ -2163,11 +2166,9 @@ def scrape(startpages):
                             stdout += "\n"
                     echo(stdout + tcolorx)
                 echo(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """, 0, 1)
-                while True:
-                    if continue_prompt[0]:
-                        continue_prompt[0] = False
-                        break
+                while not continue_prompt[0]:
                     time.sleep(0.1)
+                continue_prompt[0] = False
             downloadtodisk(shelf[p], makedirs=True)
     return True
 

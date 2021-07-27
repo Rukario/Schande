@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8"/>
+<title>Make APNG</title>
+<style>
+html,body {background-color:#0c0c0c; color:#3f3; font-family:courier; font-size:14px;}
+a{color:#6f8; text-decoration:none;}
+.frame{display:inline-block; vertical-align:top; position:relative;}
+input[type="file"] {display:none;}
+::placeholder{color:#3cb;}
+.previous{background-color:#4bb; color:#133; border:1px solid #033; border-radius:0px; cursor:pointer; font-size:12px; padding:2px 10px 2px; font-family:Arial;}
+.reverse{background-color:#066; color:#6fe; border:1px solid #033; border-radius:0px; cursor:pointer; font-size:12px; padding:2px 10px 2px; font-family:Arial;}
+.next{background-color:#066; color:#6fe; border:1px solid #033; border-radius:0px; cursor:pointer; font-size:12px; padding:2px 10px 2px; font-family:Arial;}
+.sources{font-size:80%; width:200px;}
+.stdout {border:1px solid #333;}
+@media (prefers-color-scheme: light) {
+html,body {background-color:#eee; color:#333; font-family:courier; font-size:14px;}
+.stdout {border:1px solid #999;}
+}
+</style>
+<body>
+<label class="next"><input id="frames" type="file" multiple></input>Load Frames</label>
+<label class="next"><input id="more" type="file" multiple></input>Load More</label>
+<label class="next" id="jsload"><input id="js" type="file" accept=".js, text/javascript"></input>Load optipng.js</label><button style="background: none; border:none; color:inherit; cursor:pointer;" onclick="echo('Optimize frames with <a href=&quot;https://github.com/LI-NA/optipng.js/tree/master/demo/js&quot; target=&quot;_blank&quot;>optipng.min.js</a> (minified of optipng.js), save next to HTML to load it automatically')">what?</button><label class="next"><input id="viewer" type="file"></input>Echo File</label>
+<p>
+<div style="display:inline-block; width:340px; vertical-align: text-top;">
+<p id="framelist" class="stdout" style="background-color:#181818; color:#fd6; display:inline-block; padding:8px;" onpaste="plaintext(this, event);" contenteditable>
+<div style="float:right; width:300px;">Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.</div>
+</div>
+<p>
+<button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">Make APNG</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 1px 10px 1px; width:16px;" placeholder="10"> fps
+<br><p class="stdout" id="stdout" style="background-color:#181818; color:#888; display:inline-block; padding:8px;">
+</body>
+<script>
+function get_ext(f) {
+  var fp = f.name.split('.');
+  return fp[fp.length - 1];
+}
+
+function isImage(ext) {
+  switch (ext.toLowerCase()) {
+    case 'jpg':
+    case 'gif':
+    case 'bmp':
+    case 'png':
+      return true;
+  }
+  return false;
+}
+
+function isVideo(ext) {
+  switch (ext.toLowerCase()) {
+    case 'm4v':
+    case 'avi':
+    case 'mpg':
+    case 'mp4':
+    case 'webm':
+      return true;
+  }
+  return false;
+}
+
+document.getElementById("viewer").addEventListener('change', (event) => {
+  var stdout = document.getElementById("stdout");
+  stdout.innerHTML += "<br>";
+  var f = event.target.files[0];
+  if (isVideo(get_ext(f))) {
+    var v = document.createElement("video");
+    v.style = "max-height:400px;"
+    v.setAttribute("controls", "");
+    v.setAttribute("playsinline", "");
+    v.src = window.URL.createObjectURL(f);
+    stdout.appendChild(v);
+    v.play();
+  } else if (isImage(get_ext(f))) {
+    var img = document.createElement("img")
+    var src = window.URL.createObjectURL(f);
+    img.src = src;
+    img.style = "max-height:400px;"
+    var dl = document.createElement("a");
+    dl.download = f.name;
+    dl.href = src;
+    dl.appendChild(img);
+    stdout.appendChild(dl);
+  } else {
+    stdout.innerHTML += "Maybe try another program.";
+  }
+});
+
+var fps = 10;
+var frameSaver = true;
+var optimize = false;
+var name, rgb, rgb2;
+
+function setfps(text) {
+  let d = document.getElementById("fps");
+  if(isNaN(text)){
+    d.style.backgroundColor = "#399"
+    fps = 10;
+  } else {
+    if(text>60){
+      d.style.backgroundColor = "#399"
+      fps = 10;
+    } else {
+      d.style.backgroundColor = "#066"
+      fps = Number(text);
+    }
+  }
+  if(!text){
+    d.style.backgroundColor = "#066"
+    fps = 10;
+  }
+}
+
+function echo(B) {
+  var stdout = document.getElementById("stdout");
+  stdout.innerHTML += "<br>" + B;
+}
+
+function ABtoURL(ab){
+  return URL.createObjectURL(new Blob([ab], {type: 'application/octet-stream'}));
+}
+
+function echoABtoIMG(ab, B){
+  var stdout = document.getElementById("stdout");
+  var src = ABtoURL(new Uint8Array(ab));
+  var img = document.createElement("img")
+  img.src = src;
+  img.style = "max-height:400px;"
+  var dl = document.createElement("a");
+  dl.download = B + ".png";
+  dl.href = src;
+  dl.appendChild(img);
+  stdout.innerHTML += "<br>"
+  stdout.appendChild(dl);
+}
+
+function echoABtoDL(ab, B){
+  var stdout = document.getElementById("stdout");
+  var dl = document.createElement("a")
+  dl.href = ABtoURL(new Uint8Array(ab));
+  dl.download = B + ".png";
+  dl.innerHTML = "<br>" + B
+  stdout.appendChild(dl);
+}
+
+function echoCanvas(c) {
+  c.toBlob((blob) => {
+    var img = document.createElement('img');
+    var fr = new FileReader();
+    fr.readAsDataURL(blob);
+    fr.addEventListener('loadend', () => {
+      img.src = fr.result;
+      document.body.appendChild(img);
+    });
+  }, 'image/png');
+}
+
+function canvasToAB(c) {
+  return function(resolve) {
+    c.toBlob((blob0) => {
+      var fr = new FileReader();
+      fr.readAsArrayBuffer(blob0);
+      fr.onload = () => {
+        var arri = new Uint8Array(fr.result);
+        var Module = {};
+        if(optimize){
+          //https://manpages.debian.org/stretch/optipng/optipng.1.en.html
+          //Ideal settings for apng production
+          arri = optipng(arri, ['-force', '-zw', '32k', '-f', '0', '-zs', '0', '-zm', '8', '-zc', '9', '-nx', '-strip', 'all']).data;
+        }
+        resolve(arri);
+      };
+    }, 'image/png');
+  }
+}
+
+function emergen(c, callback, i){
+  var promise = new Promise(canvasToAB(c))
+  promise.then(function(arri){
+    arri = Array.from(arri);
+    frameBytes.bin = arri;
+    if(i !== undefined){
+      addframe(c, fps);
+    } else {
+      addframe(c, 1);
+    }
+    if(callback){
+      if(i !== undefined){
+        //echoABtoIMG(arri, "Frame " + (i+1));
+        echo("Frame " + (i+1));
+        document.title = "Frame " + (i+1);
+        callback(i+1);
+      } else {
+        //echoABtoIMG(arri, "Resave as");
+        echo("resave as");
+        document.title = "Make APNG";
+        callback();
+      }
+    }
+  })
+}
+
+function canvas(image) {
+  var c = document.createElement("canvas");
+  //sets max width, divide by 2 when exceeded, increment division times when 2 isn't enough
+  var len = Math.ceil(image.width / 3000)
+  c.width = Math.floor(image.width / len)
+  c.height = Math.floor(image.height / len)
+  return c
+}
+
+function addframe(c, fps){
+  frame += 1;
+  if (!frame) {
+    apngBytes.bin = apngBytes.bin.concat(PNG_signature);
+
+    var chunk = frameBytes.findChunk("IHDR");
+    var chunkSlice = frameBytes.bin.slice(chunk.idx, chunk.idx + 12 + chunk.len);
+    apngBytes.bin = apngBytes.bin.concat(chunkSlice);
+
+    var acTL = new Array(0);
+    acTL = acTL.concat([0x00, 0x00, 0x00, 0x08, 0x61, 0x63, 0x54, 0x4C]);
+    acTL = acTL.concat([0,0,0,1]);
+    acTL = acTL.concat([0,0,0,0]);
+    acTL = acTL.concat( int32ToBytes4(crc32(acTL.slice(4, 4 + 4 + 8))) );
+    apngBytes.bin = apngBytes.bin.concat(acTL);
+  }
+
+  var chunkArray = frameBytes.findChunkAll("IDAT");
+  //echo("IDATs: " + chunkArray.length)
+  for (var i = 0; i < chunkArray.length; i++) { 
+    if (!i) {
+      //echo(i + "th IDAT size: " + chunkArray[i].len)
+      seqNumber +=1;
+      var fcTL = new Array(0);
+      fcTL = fcTL.concat( int32ToBytes4(26) );
+      fcTL = fcTL.concat([0x66, 0x63, 0x54, 0x4C]);
+      fcTL = fcTL.concat( int32ToBytes4(seqNumber) );
+      fcTL = fcTL.concat( int32ToBytes4(c.width) );
+      fcTL = fcTL.concat( int32ToBytes4(c.height) );
+      fcTL = fcTL.concat( int32ToBytes4(dim[0]) );
+      fcTL = fcTL.concat( int32ToBytes4(dim[1]) );
+      fcTL = fcTL.concat( int16ToBytes2(1000/fps) );
+      fcTL = fcTL.concat( int16ToBytes2(1000) );
+      fcTL = fcTL.concat([0x00]);
+      fcTL = fcTL.concat( [blend] );
+      fcTL = fcTL.concat(int32ToBytes4(crc32(fcTL.slice(4, 4+4+26))));
+      apngBytes.bin = apngBytes.bin.concat(fcTL);
+    }
+    chunk = chunkArray[i];
+
+    if (!frame) {
+      var chunkSlice = frameBytes.bin.slice(chunk.idx, chunk.idx + 12 + chunk.len);
+      apngBytes.bin = apngBytes.bin.concat(chunkSlice)
+    } else {
+      var chunk_IDAT_data = frameBytes.bin.slice(chunk.idx + 8, chunk.idx + 8 + chunk.len);
+      var len_fdAT = chunk.len + 4;
+
+      seqNumber +=1;
+      var fdAT = new Array(0);
+      fdAT = fdAT.concat( int32ToBytes4(len_fdAT) );
+      fdAT = fdAT.concat( [0x66, 0x64, 0x41, 0x54] );
+      fdAT = fdAT.concat( int32ToBytes4(seqNumber) );
+      fdAT = fdAT.concat( chunk_IDAT_data );
+      fdAT = fdAT.concat( int32ToBytes4(crc32(fdAT.slice(4, 4 + 4 + len_fdAT))) );
+      apngBytes.bin = apngBytes.bin.concat(fdAT);
+    };
+  }
+}
+
+var PNG_signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+var IEND = [0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82];
+var frame = -1
+var apngBytes = new ByteArray(0);
+var frameBytes = new ByteArray(0);
+var seqNumber = -1
+var blend = 1;
+    
+function makeapng(i) {
+  apngBytes.bin = apngBytes.bin.concat(IEND);
+
+  var chunk = apngBytes.findChunk("acTL");
+  var nFrames = int32ToBytes4(frame + 1);
+  apngBytes.bin[chunk.idx+8] = nFrames[0];
+  apngBytes.bin[chunk.idx+8+1] = nFrames[1];
+  apngBytes.bin[chunk.idx+8+2] = nFrames[2];
+  apngBytes.bin[chunk.idx+8+3] = nFrames[3];
+
+  var acTLslice = apngBytes.bin.slice(chunk.idx+4, chunk.idx+4+4+8);
+  var crcBytes = int32ToBytes4(crc32(acTLslice));
+  apngBytes.bin[chunk.idx+4+4+8] = crcBytes[0];
+  apngBytes.bin[chunk.idx+4+4+8+1] = crcBytes[1];
+  apngBytes.bin[chunk.idx+4+4+8+2] = crcBytes[2];
+  apngBytes.bin[chunk.idx+4+4+8+3] = crcBytes[3];
+
+  frame = -1
+  frameBytes = new ByteArray(0);
+  seqNumber = -1
+
+  echoABtoIMG(apngBytes.bin, name.split('.').slice(0, -1).join('.') + " (apng)");
+  document.title = "Make APNG";
+  apngBytes = new ByteArray(0);
+}
+
+function base64ToAB(base64) {
+  var utf8 = atob(base64);
+  var len = utf8.length;
+  var arr = new Array(len);
+  for (var i = 0; i < len; ++i) {
+    arr[i] = utf8.charCodeAt(i);
+  }
+  return arr;
+}
+
+function ABToBase64(buffer) {
+  var binary = "";
+  for (var i = 0; i < buffer.length; i++)
+    binary += String.fromCharCode(buffer[i]);
+  return btoa(binary);
+}
+
+function ByteArray(len) {
+  this.bin = new Array(len);
+  function Chunk(idx, len, type) {
+     this.idx = idx;
+     this.len = len;
+     this.type = type;
+  }
+  this.findChunk =
+    function(iType) {
+      var offset = 8;
+      var chunk = null;
+      while (offset < this.bin.length) {
+        var chunk1 = this.bin.slice(offset, offset + 4);
+        var chunk2 = this.bin.slice(offset + 4, offset + 8);
+        var chunkLength = bytes4ToInt32(chunk1);
+        if (bytes4ToStr4(chunk2) === iType) {
+          chunk = new Chunk(offset, chunkLength, iType);
+          return chunk;
+        }
+        offset += 4 + 4 + chunkLength + 4;
+      }
+      return chunk;
+    }
+  this.findChunkAll =
+    function(iType) {
+      var offset = 8;
+      var chunkArray = [];
+      while (offset < this.bin.length) {
+        //echo("Current BIN size: " + this.bin.length)
+        var chunk1 = this.bin.slice(offset, offset + 4);
+        var chunk2 = this.bin.slice(offset + 4, offset + 8);
+        var chunkLength = bytes4ToInt32(chunk1);
+        if (bytes4ToStr4(chunk2) === iType) {
+          if(chunk1[0]||chunk1[1]){
+            chunkLength = this.bin.length-8-25-12-12; //-PNG signature -IHDR -UNK -IEND
+          }
+          //echo("Added " + chunkLength + " bytes to apngBytes.bin")
+          chunk = new Chunk(offset, chunkLength, iType);
+          chunkArray.push(chunk);
+        }
+        offset += 4 + 4 + chunkLength + 4;
+      }
+      return chunkArray;
+    }
+  return this;
+}
+
+function bytes4ToStr4(iBytes) {
+   var cc = 
+     String.fromCharCode(iBytes[0]) +
+     String.fromCharCode(iBytes[1]) +
+     String.fromCharCode(iBytes[2]) +
+     String.fromCharCode(iBytes[3]);
+   return cc;
+}
+
+function int32ToBytes4(iNum) {
+   var int32 = iNum;
+   var arr = [0, 0, 0, 0];
+   for ( var idx = 0; idx < arr.length; idx ++ ) {
+      var byte = int32 & 0xff;
+      arr[idx] = byte;
+      int32 = (int32 - byte) / 256 ;
+   }
+   return arr.reverse();
+}
+
+function bytes4ToInt32(iBytes) {
+   var num = (iBytes[0] << 24) + (iBytes[1] << 12) + (iBytes[2] << 8) + iBytes[3];
+   return num;
+}
+
+function int16ToBytes2(iNum) {
+   var int16 = iNum;
+   var arr = [0, 0];
+   for ( var idx = 0; idx < 2; idx ++ ) {
+      var byte = int16 & 0xff;
+      arr[idx] = byte;
+      int16 = (int16 - byte) / 256 ;
+   }
+   return arr.reverse();
+}
+
+var table = new Uint32Array(256);
+for (var i = 0; i < 256; i++) {
+  var c = i;
+  for (var k = 0; k < 8; k++) c = (c & 1) ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+  table[i] = c;
+}
+
+function crc32(ab) {
+  var crc = -1;
+  for (var i=0; i < ab.length; i++) {
+    crc = ( crc >>> 8 ) ^ table[( crc ^ ab[i] ) & 0xFF];
+  }
+  return (crc ^ (-1)) >>> 0;
+}
+
+var dim;
+function diff(a, b) {
+  var d = {x:[], y:[]};
+  for(var y=0;y<h;y++){
+    var o = (y+1)*w
+    for(var x=(o-w)*4;x<o*4;x+=4){
+      if(b[x+3] == 0 || a[x+3] == 255 && a[x] == b[x] && a[x+1] == b[x+1] && a[x+2] == b[x+2]){
+        b[x+3] = 0;
+      } else {
+        d.x.push((x/4)+w-o);
+        d.y.push(y);
+      }
+    }
+  }
+  d.x.sort((a,b) => a-b);
+  d.y.sort((a,b) => a-b);
+  dim = [d.x[0], d.y[0], d.x[d.x.length-1]-d.x[0]+1, d.y[d.y.length-1]-d.y[0]+1];
+}
+
+function staticAPNG(i){
+  c.width = 1;
+  c.height = 1;
+  context.clearRect(0, 0, 1, 1);
+  emergen(c, makeapng);
+}
+
+var framearray = []
+var c, context, w, h;
+function compileframes(){
+  let p = document.getElementById("framelist");
+  d = p.innerHTML.split("<br>").filter(function(el) { return el; })
+  function readFrame(i){
+    if(i == 0){
+      c = canvas(framearray[d[i]-1]);
+      w = c.width;
+      h = c.height;
+      dim = [0, 0, w, h]
+    } else {
+      c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+    }
+    context = c.getContext("2d");
+    context.drawImage(framearray[d[i]-1], 0, 0, w, h);
+    if(frameSaver){
+      if(i == 0){
+        rgb = context.getImageData(0, 0, w, h).data;
+      } else {
+        var imageData = context.getImageData(0, 0, w, h);
+        rgb2 = imageData.data;
+        diff(rgb, rgb2)
+        rgb = context.getImageData(0, 0, w, h).data;
+        context.putImageData(imageData, 0, 0);
+        if(dim[0] == undefined){
+          c.width = 1;
+          c.height = 1;
+          context.clearRect(0, 0, 1, 1);
+        } else {
+          var cropped = context.getImageData(dim[0], dim[1], dim[2], dim[3]);
+          c.width = dim[2];
+          c.height = dim[3];
+          context.putImageData(cropped, 0, 0);
+        }
+      }
+    }
+    if(i+1 == d.length){
+      if(1 == d.length){
+        emergen(c, staticAPNG);
+      } else {
+        emergen(c, makeapng, i);
+      }
+    } else {
+      emergen(c, readFrame, i);
+    }
+  }
+  readFrame(0);
+}
+
+function editlist(){
+  var p = document.getElementById("framelist");
+  p.innerHTML = ""
+  for(var i=1;i<framearray.length+1;i++){
+    p.innerHTML = p.innerHTML+i+"<br>"
+  }
+
+  var b = document.getElementById("makeapng");
+  b.setAttribute("onclick", "compileframes();")
+  b.classList = "next";
+}
+
+function read(filelist){
+  filelist = Array.from(filelist).sort((a,b) => a.name > b.name);
+  name = filelist[0].name;
+  function readFile(i){
+    if(i == filelist.length) return;
+    var fr = new FileReader();
+    fr.readAsArrayBuffer(filelist[i]);
+    fr.onload = () => {
+      var arri = new Uint8Array(fr.result);
+      var img = new Image();
+      img.src = ABtoURL(arri)
+      img.onload = () => {
+        framearray.push(img);
+        if(i+1 == filelist.length){
+          editlist();
+        } else {
+          readFile(i+1);
+        }
+      }
+    }
+  }
+  readFile(0);
+}
+
+document.getElementById("frames").addEventListener('change', (event) => {
+  framearray = [];
+  read(event.target.files);
+});
+
+document.getElementById("more").addEventListener('change', (event) => {
+  read(event.target.files);
+});
+
+document.addEventListener("dragover", (event) => {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'copy';
+});
+
+document.addEventListener("drop", (event) => {
+  event.preventDefault();
+  framearray = [];
+  read(event.dataTransfer.files);
+});
+
+document.getElementById("js").addEventListener('change', (event) => {
+  var fr = new FileReader();
+  fr.readAsArrayBuffer(event.target.files[0]);
+  fr.onload = () => {
+    var d = document.getElementById("jsload");
+    d.classList = "previous";
+    d.setAttribute("onclick", "echo('Already loaded!')")
+    d.innerHTML = "optipng.js armed";
+    var s = document.createElement("script");
+    s.src = ABtoURL(new Uint8Array(fr.result));
+    document.body.appendChild(s);
+    optimize = true;
+  }
+});
+
+var jslist = ["optipng.min.js", "optipng.js"]
+var Module;
+function NextJs(i){
+  if(i>=jslist.length){return;}
+  var s = document.createElement("script");
+  s.src = jslist[i];
+  document.body.appendChild(s);
+  s.onload = () => {
+    if(Module){
+      var d = document.getElementById("jsload");
+      d.classList = "previous";
+      d.setAttribute("onclick", "echo('Already loaded!')")
+      d.innerHTML = "optipng.js armed";
+      optimize = true;
+    }
+  }
+  s.onerror = () => {
+    NextJs(i+1)
+  }
+}
+NextJs(0)
+</script>
+</html>

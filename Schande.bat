@@ -62,9 +62,6 @@ sf = [0]
 shuddup = False
 skiptonext = [False]
 
-from PIL import Image
-Image.MAX_IMAGE_PIXELS = 400000000
-
 # Probably useless settings
 collisionisreal = False
 editisreal = False
@@ -629,6 +626,9 @@ if "socks5://" in proxy and proxy[10:]:
 print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 
 
+
+from PIL import Image
+Image.MAX_IMAGE_PIXELS = 400000000
 
 cookies = cookiejar.MozillaCookieJar("cookies.txt")
 if os.path.exists("cookies.txt"):
@@ -1767,6 +1767,41 @@ def rp(x, p):
 
 
 
+def get_data(threadn, page, url, pick):
+    data = ""
+    if not pick["ready"]:
+        echo(f" Visiting {page}", 0, 1)
+    if pick["visit"]:
+        fetch(page, stderr="Error visiting the page to visit")
+    if pick["send"]:
+        for x in pick["send"]:
+            post = x[1] if x[1] else url
+            data = fetch(post, stderr="Error sending data", data=str(x[0]).encode('utf-8'))
+        if not data:
+            print(f" Error visiting {page}")
+            return
+        data = data.read()
+    if not data and (data := get(url if url else page, utf8=True, stderr="Update cookie or referer if these are required to view", threadn=threadn)) and not data.isdigit():
+        if len(data) < 4:
+            return
+    else:
+        print(f" Error visiting {page}")
+        return
+    title(batchfile + monitor())
+    data = ''.join([x.strip() for x in data.splitlines()])
+    if pick["part"]:
+        part = []
+        for z in pick["part"]:
+            part += [[x[1], ""] for x in carrots([[data, ""]], z)]
+    else:
+        part = [[data, ""]]
+    if not pick["html"]:
+        for p in part:
+            p[0] = rp(p[0], pick["replace"])
+    return data, part
+
+
+
 def pick_in_page(scraper):
     while True:
         data = ""
@@ -1775,8 +1810,6 @@ def pick_in_page(scraper):
         htmlpart = fromhtml["partition"][threadn]
         folder = fromhtml["folder"]
         pg[0] += 1
-        if pick["visit"]:
-            fetch(page, stderr="Error visiting the page to visit")
         if x := pick["url"]:
             redir = ""
             for y in x[1]:
@@ -1800,33 +1833,10 @@ def pick_in_page(scraper):
                 print(f" Error fixing url for permanent redirection from {page}")
                 break
             page = redir
-        if not pick["ready"]:
-            echo(f" Visiting {page}", 0, 1)
-        if pick["send"]:
-            for x in pick["send"]:
-                post = x[1] if x[1] else url
-                data = fetch(post, stderr="Error sending data", data=str(x[0]).encode('utf-8'))
-            if not data:
-                print(f" Error visiting {page}")
-                break
-            data = data.read()
-        if not data and (data := get(url if url else page, utf8=True, stderr="Update cookie or referer if these are required to view", threadn=threadn)) and not data.isdigit():
-            pass
-        else:
-            print(f" Error visiting {page}")
-            break
-        if len(data) < 4:
-            break
-        title(batchfile + monitor())
-        data = ''.join([x.strip() for x in data.splitlines()])
-        if pick["part"]:
-            part = []
-            for z in pick["part"]:
-                part += [[x[1], ""] for x in carrots([[data, ""]], z)]
-        else:
-            part = [[data, ""]]
         db = ""
         if pick["expect"]:
+            if not data and (x := get_data(threadn, page, url, pick)):
+                data, part = x
             pos = 0
             for y in pick["expect"]:
                 for z, cw, a in y[1:]:
@@ -1851,6 +1861,8 @@ def pick_in_page(scraper):
                         timer("Not quite as expected! ", False)
         if not folder:
             if pick["folder"]:
+                if not data and (x := get_data(threadn, page, url, pick)):
+                    data, part = x
                 for y in pick["folder"]:
                     name_err = True
                     for z, cw, a in y[1:]:
@@ -1880,6 +1892,8 @@ def pick_in_page(scraper):
             if x := pick["savelink"]:
                 fromhtml["page"] = {"link":page, "name":saint(x), "edited":0}
         if pick["pages"]:
+            if not data and (x := get_data(threadn, page, url, pick)):
+                data, part = x
             for y in pick["pages"]:
                 for z, cw, a in y[1:]:
                     if a:
@@ -1911,6 +1925,8 @@ def pick_in_page(scraper):
                 elif y[1][1]:
                     p, _, a = peanut(y[1][1], [], False)
                     if a:
+                        if not data and (x := get_data(threadn, page, url, pick)):
+                            data, part = x
                         if not db:
                             db = opendb(data)
                         x = tree(db, [p[0], [[p[1], 0, 0, 0, 0]]])[-1][0]
@@ -1920,6 +1936,8 @@ def pick_in_page(scraper):
             more_pages += [[start, new]]
         filelist_html = []
         if pick["html"]:
+            if not data and (x := get_data(threadn, page, url, pick)):
+                data, part = x
             fromhtml["makehtml"] = True
             k_html = []
             if pick["key"] and pick["key"][0]:
@@ -2030,10 +2048,9 @@ def pick_in_page(scraper):
                 if not z in htmlpart:
                     htmlpart.update(new_p(z))
                 htmlpart[z]["keywords"] += [rp(y, pick["replace"]) for y in keywords[z]]
-        else:
-            for p in part:
-                p[0] = rp(p[0], pick["replace"])
         if pick["icon"]:
+            if not data and (x := get_data(threadn, page, url, pick)):
+                data, part = x
             pos = 0
             for y in pick["icon"]:
                 if len(fromhtml["icons"]) < pos + 1:
@@ -2056,13 +2073,15 @@ def pick_in_page(scraper):
                                         ext = x
                                 fromhtml["icons"] += [{"link":url, "name":f"""icon{" " + str(pos) if pos else ""}{ext}""", "edited":0}]
                 pos += 1
-        pos = 0
-        filelist = []
-        if pick["file"]:
-            pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file"], folder, filelist, pos, False)
-        if pick["file_after"]:
-            pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file_after"], folder, filelist, pos, True)
         if pick["file"] or pick["file_after"]:
+            if not data and (x := get_data(threadn, page, url, pick)):
+                data, part = x
+            pos = 0
+            filelist = []
+            if pick["file"]:
+                pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file"], folder, filelist, pos, False)
+            if pick["file_after"]:
+                pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file_after"], folder, filelist, pos, True)
             for file in filelist:
                 k = file[0]
                 if not k in htmlpart:

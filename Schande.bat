@@ -726,7 +726,7 @@ def at(s, r, cw=[], alt=0, key=False, name=False):
 
 
 def new_picker():
-    return {"replace":[], "send":[], "visit":False, "part":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "send":[], "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
 
 
 
@@ -742,6 +742,8 @@ def picker(s, rule):
     elif rule.startswith("replace "):
         rule = rule.split(" ", 1)[1].split(" with ", 1)
         s["replace"] += [[rule[0], rule[1]]]
+    elif rule.startswith("dict "):
+        s["dict"] += [rule.split("dict ", 1)[1]]
     elif rule.startswith("html"):
         at(s["html"], rule.split("html", 1)[1])
         if s["file"] or s["file_after"]:
@@ -1834,6 +1836,12 @@ def pick_in_page(scraper):
                 break
             page = redir
         db = ""
+        if pick["dict"]:
+            if not data and (x := get_data(threadn, page, url, pick)):
+                data, part = x
+            for y in pick["dict"]:
+                if len(c := carrots(part, y)) == 2:
+                    data = c[0][1]
         if pick["expect"]:
             if not data and (x := get_data(threadn, page, url, pick)):
                 data, part = x
@@ -3487,6 +3495,7 @@ def readfile():
 
 
 
+savepage = [{}]
 def source_view():
     if busy[0]:
         echo("Please wait for another operation to finish", 1, 1)
@@ -3497,18 +3506,24 @@ def source_view():
             m = m.split(" ", 1)
             if not m[0] in savepage[0]:
                 data = get(m[0], utf8=True)
-                savepage[0] = {m[0]:data}
+                savepage[0] = {m[0]:data, "part":[]}
             else:
                 data = savepage[0][m[0]]
             if not data.isdigit():
                 if len(m) == 2:
-                    z = m[1].replace("*", "0")
-                    z = z.rsplit(" > 0", 1) if " > 0" in z else ["0", z.split("0", 1)[1]] if z.startswith("0") else ["", z]
-                    if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0, 0]]]):
-                        for y in x:
-                            print(syntax(y[0], True))
+                    z, _, a = peanut(m[1], [], False)
+                    if a:
+                        if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0, 0]]]):
+                            for y in x:
+                                print(syntax(y[0], True))
+                                savepage[0]["part"] += [y[0]]
+                        else:
+                            print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}\n")
                     else:
-                        print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}\n")
+                        part = []
+                        for x in carrots([[data, ""]], z):
+                            print(x[1])
+                            savepage[0]["part"] += [x[1]]
                 else:
                     data = ''.join([s.strip() if s.strip() else "" for s in data.splitlines()])
                     print(syntax(data))
@@ -3520,12 +3535,25 @@ def source_view():
             echo("", 1)
             break
         else:
-            choice(bg=True)
+            z, _, a = peanut(m, [], False)
+            part = savepage[0]["part"]
+            savepage[0]["part"] = []
+            for data in part:
+                if a:
+                    if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0, 0]]]):
+                        for y in x:
+                            print(syntax(y[0], True))
+                            savepage[0]["part"] += [y[0]]
+                    else:
+                        print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}\n")
+                else:
+                    for x in carrots([[data, ""]], z):
+                        print(x[1])
+                        savepage[0]["part"] += [x[1]]
     ready_input()
 
 
 
-savepage = [{}]
 def keylistener():
     while True:
         el = choice("abcdghiklnoqrstvx0123456789")

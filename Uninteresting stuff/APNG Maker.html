@@ -184,9 +184,9 @@ function Convolute(pixels, weights) {
   return output;
 }
 
-function edge(s, cw, ch, context) {
-  context.drawImage(s, 0, 0, cw, ch);
-  rgb = context.getImageData(0, 0, cw, ch);
+function edge(s) {
+  context.drawImage(s, 0, 0, w, h);
+  rgb = context.getImageData(0, 0, w, h);
   rgb = Convolute(rgb, [-1, -1, -1, -1,  8, -1, -1, -1, -1])
   context.putImageData(rgb, 0, 0);
   echo("Edge Detect")
@@ -240,20 +240,38 @@ function ghost(rgb) {
 }
 
 function detect() {
-  let p = document.getElementById("framelist");
-  d = p.innerHTML.split("<br>").filter(function(el) { return el; })
-  c = canvas(framearray[d[0]-1]);
-  context = c.getContext("2d");
-  dim = [0, 0, c.width, c.height]
+  let d = fl.innerHTML.split("<br>").filter(function(el) { return el; })
+  canvas(framearray[d[0]-1]);
+  w = c.width
+  h = c.height
+  dim = [0, 0, w, h]
   if(d.length > 1) {
     if(fps == 0){
       echo("Bad FPS")
     } else {
-      apngdiff(framearray[d[0]-1], framearray[d[1]-1], c.width, c.height, context);
+      apngdiff(framearray[d[0]-1], framearray[d[1]-1]);
     }
   } else {
-    edge(framearray[d[0]-1], c.width, c.height, context);
+    edge(framearray[d[0]-1]);
   }
+}
+
+function frame_diff(a, b) {
+  var d = {x:[], y:[]};
+  for(var y=0;y<h;y++){
+    var o = (y+1)*w
+    for(var x=(o-w)*4;x<o*4;x+=4){
+      if(b[x+3] == 0 || a[x+3] == 255 && a[x] == b[x] && a[x+1] == b[x+1] && a[x+2] == b[x+2]){
+        b[x+3] = 0;
+      } else {
+        d.x.push((x/4)+w-o);
+        d.y.push(y);
+      }
+    }
+  }
+  d.x.sort((a,b) => a-b);
+  d.y.sort((a,b) => a-b);
+  dim = [d.x[0], d.y[0], d.x[d.x.length-1]-d.x[0]+1, d.y[d.y.length-1]-d.y[0]+1];
 }
 
 function diff(a, b) {
@@ -282,67 +300,102 @@ function darkdiff(a, b) {
   ghost(b)
 }
 
-function apngdiff(m, s, cw, ch, context) {
-  context.drawImage(m, 0, 0, cw, ch);
-  rgb = context.getImageData(0, 0, cw, ch)
+function apngdiff(m, s) {
+  context.drawImage(m, 0, 0, w, h);
+  orig = context.getImageData(0, 0, w, h)
+  rgb = orig.data;
   emergen(c, f2, 0);
 
   function f2(){
-  context.drawImage(s, 0, 0, cw, ch);
-  rgb2 = context.getImageData(0, 0, cw, ch)
-  diff(rgb.data, rgb2.data)
-  context.putImageData(rgb2, 0, 0);
+  context.drawImage(s, 0, 0, w, h);
+  imageData = context.getImageData(0, 0, w, h);
+  diff(rgb, imageData.data);
+  rgb = context.getImageData(0, 0, w, h).data;
+  context.putImageData(imageData, 0, 0);
   emergen(c, f3, 1);
   }
 
   function f3(){
-  context.drawImage(m, 0, 0, cw, ch);
-  rgb2 = context.getImageData(0, 0, cw, ch)
-  diff(rgb.data, rgb2.data)
-  context.putImageData(rgb2, 0, 0);
+  context.drawImage(m, 0, 0, w, h);
+  imageData = context.getImageData(0, 0, w, h);
+  diff(rgb, imageData.data)
+  orig = context.getImageData(0, 0, w, h)
+  rgb = orig.data;
+  context.putImageData(imageData, 0, 0);
   emergen(c, f4, 0);
   }
 
   function f4(){
-  context.drawImage(s, 0, 0, cw, ch);
-  rgb2 = context.getImageData(0, 0, cw, ch)
-  diff(rgb.data, rgb2.data)
-  context.putImageData(rgb2, 0, 0);
+  context.drawImage(s, 0, 0, w, h);
+  imageData = context.getImageData(0, 0, w, h);
+  diff(rgb, imageData.data)
+  context.putImageData(imageData, 0, 0);
   emergen(c, f5, 1);
   }
 
   function f5(){
-  context.drawImage(s, 0, 0, cw, ch);
-  rgb2 = context.getImageData(0, 0, cw, ch)
-  darkside(rgb.data, rgb2.data);
-  context.putImageData(rgb2, 0, 0);
+  context.drawImage(s, 0, 0, w, h);
+  imageData = context.getImageData(0, 0, w, h);
+  darkside(rgb, imageData.data);
+  context.putImageData(imageData, 0, 0);
   emergen(c, f6, -2);
   }
   
   function f6(){
-  context.drawImage(s, 0, 0, cw, ch);
-  rgb2 = context.getImageData(0, 0, cw, ch);
-  darkdiff(rgb.data, rgb2.data);
-  context.putImageData(rgb2, 0, 0);
+  context.drawImage(s, 0, 0, w, h);
+  imageData = context.getImageData(0, 0, w, h);
+  darkdiff(rgb, imageData.data);
+  context.putImageData(imageData, 0, 0);
   emergen(c, f7, -2.5);
   }
 
   function f7(){
-  context.drawImage(s, 0, 0, cw, ch);
-  rgb2 = context.getImageData(0, 0, cw, ch);
-  darkside(rgb2.data, rgb.data);
-  context.putImageData(rgb, 0, 0);
+  context.drawImage(s, 0, 0, w, h);
+  imageData = context.getImageData(0, 0, w, h);
+  darkside(imageData.data, rgb);
+  context.putImageData(orig, 0, 0);
   emergen(c, makeapng, -3);
   }
 }
 
+function canvasdiff(m, s, cw, ch) {
+  document.body.appendChild(c);
+  context.drawImage(m, 0, 0, cw, ch)
+  rgb = context.getImageData(0, 0, cw, ch);
+  setTimeout(function() {
+    context.drawImage(s, 0, 0, cw, ch)
+    rgb2 = context.getImageData(0, 0, cw, ch);
+    darkside(rgb.data, rgb2.data);
+    setTimeout(function() {
+      context.putImageData(rgb2, 0, 0);
+      setTimeout(function() {
+        context.drawImage(s, 0, 0, cw, ch);
+        rgb2 = context.getImageData(0, 0, cw, ch);
+        darkdiff(rgb.data, rgb2.data);
+        context.putImageData(rgb2, 0, 0);
+        setTimeout(function() {
+          context.drawImage(s, 0, 0, cw, ch);
+          rgb2 = context.getImageData(0, 0, cw, ch);
+          darkside(rgb2.data, rgb.data);
+          context.putImageData(rgb, 0, 0);
+          setTimeout(function() {
+            requestAnimationFrame(canvasdiff);
+          }, 1000/fps);
+        }, 1000/fps);
+      }, 1000/fps);
+    }, 1000/fps);
+  }, 1000/fps);
+}
+
 function canvas(image) {
-  var c = document.createElement("canvas");
-  //sets max width, divide by 2 when exceeded, increment division times when 2 isn't enough
-  var len = Math.ceil(image.width / 3000)
-  c.width = Math.floor(image.width / len)
-  c.height = Math.floor(image.height / len)
-  return c
+  c = document.createElement("canvas");
+  if(image){
+    //sets max width, divide by 2 when exceeded, increment division times when 2 isn't enough
+    var len = Math.ceil(image.width / 3000)
+    c.width = Math.floor(image.width / len)
+    c.height = Math.floor(image.height / len)
+  }
+  context = c.getContext("2d");
 }
 
 function addframe(c, fps){
@@ -540,9 +593,9 @@ function int16ToBytes2(iNum) {
 
 var table = new Uint32Array(256);
 for (var i = 0; i < 256; i++) {
-  var c = i;
-  for (var k = 0; k < 8; k++) c = (c & 1) ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
-  table[i] = c;
+  let x = i;
+  for (var k = 0; k < 8; k++) x = (x & 1) ? 0xEDB88320 ^ (x >>> 1) : x >>> 1;
+  table[i] = x;
 }
 
 function crc32(ab) {
@@ -553,25 +606,6 @@ function crc32(ab) {
   return (crc ^ (-1)) >>> 0;
 }
 
-var dim;
-function diff(a, b) {
-  var d = {x:[], y:[]};
-  for(var y=0;y<h;y++){
-    var o = (y+1)*w
-    for(var x=(o-w)*4;x<o*4;x+=4){
-      if(b[x+3] == 0 || a[x+3] == 255 && a[x] == b[x] && a[x+1] == b[x+1] && a[x+2] == b[x+2]){
-        b[x+3] = 0;
-      } else {
-        d.x.push((x/4)+w-o);
-        d.y.push(y);
-      }
-    }
-  }
-  d.x.sort((a,b) => a-b);
-  d.y.sort((a,b) => a-b);
-  dim = [d.x[0], d.y[0], d.x[d.x.length-1]-d.x[0]+1, d.y[d.y.length-1]-d.y[0]+1];
-}
-
 function staticAPNG(){
   c.width = 1;
   c.height = 1;
@@ -579,43 +613,42 @@ function staticAPNG(){
   emergen(c, makeapng);
 }
 
-var framearray = []
-var c, context, w, h;
+function crop(){
+  if(dim[0] == undefined){
+    c.width = 1;
+    c.height = 1;
+    context.clearRect(0, 0, 1, 1);
+  } else {
+    var cropped = context.getImageData(dim[0], dim[1], dim[2], dim[3]);
+    c.width = dim[2];
+    c.height = dim[3];
+    context.putImageData(cropped, 0, 0);
+  }
+}
+
 function compileframes(){
-  let p = document.getElementById("framelist");
-  d = p.innerHTML.split("<br>").filter(function(el) { return el; })
+  let d = fl.innerHTML.split("<br>").filter(function(el) { return el; })
   function readFrame(i){
     if(i == 0){
-      c = canvas(framearray[d[i]-1]);
+      canvas(framearray[d[i]-1]);
       w = c.width;
       h = c.height;
       dim = [0, 0, w, h]
     } else {
-      c = document.createElement("canvas");
+      canvas();
       c.width = w;
       c.height = h;
     }
-    context = c.getContext("2d");
     context.drawImage(framearray[d[i]-1], 0, 0, w, h);
     if(frameSaver){
       if(i == 0){
         rgb = context.getImageData(0, 0, w, h).data;
       } else {
-        var imageData = context.getImageData(0, 0, w, h);
-        rgb2 = imageData.data;
-        diff(rgb, rgb2)
+        imageData = context.getImageData(0, 0, w, h);
+        frame_diff(rgb, imageData.data)
         rgb = context.getImageData(0, 0, w, h).data;
         context.putImageData(imageData, 0, 0);
-        if(dim[0] == undefined){
-          c.width = 1;
-          c.height = 1;
-          context.clearRect(0, 0, 1, 1);
-        } else {
-          var cropped = context.getImageData(dim[0], dim[1], dim[2], dim[3]);
-          c.width = dim[2];
-          c.height = dim[3];
-          context.putImageData(cropped, 0, 0);
-        }
+        crop()
       }
     }
     if(i+1 == d.length){
@@ -637,13 +670,12 @@ function compileframes(){
 }
 
 function editlist(){
-  var e = document.getElementById("framelist");
-  e.innerHTML = ""
+  fl.innerHTML = ""
   for(var i=1;i<framearray.length+1;i++){
-    e.innerHTML = e.innerHTML + i + "<br>"
+    fl.innerHTML += i + "<br>"
   }
 
-  e = document.getElementById("makeapng");
+  let e = document.getElementById("makeapng");
   e.setAttribute("onclick", "compileframes();")
   e.classList = "next";
 
@@ -676,23 +708,9 @@ function read(filelist){
   readFile(0);
 }
 
-var fps = 0;
-var frameSaver = true;
-var optimize = false;
-var arri, arro, stdout, dl, img, Module, name, rgb, rgb2;
+function loaded(){
+  fl = document.getElementById("framelist");
 
-window.onload = () => {
-  document.body.innerHTML = `<label class="next"><input id="frames" type="file" multiple></input>Load Frames</label>
-<label class="next"><input id="more" type="file" multiple></input>Load More</label>
-<label class="next" id="jsload"><input id="js" type="file" accept=".js, text/javascript"></input>Load optipng.js</label><button style="background: none; border:none; color:inherit; cursor:pointer;" onclick="echo('Optimize frames with <a href=&quot;https://github.com/LI-NA/optipng.js/tree/master/demo/js&quot; target=&quot;_blank&quot;>optipng.min.js</a> (minified of optipng.js), save next to HTML to load it automatically')">what?</button><label class="next"><input id="viewer" type="file"></input>Echo File</label>
-<p>
-<div style="display:inline-block; width:340px; vertical-align: text-top;">
-<p id="framelist" class="stdout" style="background-color:#181818; color:#fd6; display:inline-block; padding:8px;" onpaste="plaintext(this, event);" contenteditable>
-<div style="float:right; width:300px;">Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.</div>
-</div>
-<p>
-<button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">Make APNG</button> <button class="previous" onclick="echo('Filelist is empty!')" id="detect">Detect</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 1px 10px 1px; width:22px;" placeholder="Bad"> fps
-<br><p class="stdout" id="stdout" style="background-color:#181818; color:#888; display:inline-block; padding:8px;">`
   document.getElementById("viewer").addEventListener('change', (event) => {
     stdout = document.getElementById("stdout");
     stdout.innerHTML += "<br>";
@@ -719,27 +737,27 @@ window.onload = () => {
       stdout.innerHTML += "Maybe try another program.";
     }
   });
-  
+
   document.getElementById("frames").addEventListener('change', (event) => {
     framearray = [];
     read(event.target.files);
   });
-  
+
   document.getElementById("more").addEventListener('change', (event) => {
     read(event.target.files);
   });
-  
+
   document.addEventListener("dragover", (event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
   });
-  
+
   document.addEventListener("drop", (event) => {
     event.preventDefault();
     framearray = [];
     read(event.dataTransfer.files);
   });
-  
+
   document.getElementById("js").addEventListener('change', (event) => {
     var fr = new FileReader();
     fr.readAsArrayBuffer(event.target.files[0]);
@@ -754,7 +772,7 @@ window.onload = () => {
       optimize = true;
     }
   });
-  
+
   var jslist = ["optipng.min.js", "optipng.js"]
   function NextJs(i){
     if(i>=jslist.length){return;}
@@ -775,6 +793,27 @@ window.onload = () => {
     }
   }
   NextJs(0)
+}
+
+var fps = 0;
+var framearray = []
+var frameSaver = true;
+var optimize = false;
+var c, context, dim, imageData, w, h, fl, arri, arro, stdout, dl, img, Module, name, rgb, rgb2;
+
+window.onload = () => {
+  document.body.innerHTML = `<label class="next"><input id="frames" type="file" multiple></input>Load Frames</label>
+<label class="next"><input id="more" type="file" multiple></input>Load More</label>
+<label class="next" id="jsload"><input id="js" type="file" accept=".js, text/javascript"></input>Load optipng.js</label><button style="background: none; border:none; color:inherit; cursor:pointer;" onclick="echo('Optimize frames with <a href=&quot;https://github.com/LI-NA/optipng.js/tree/master/demo/js&quot; target=&quot;_blank&quot;>optipng.min.js</a> (minified of optipng.js), save next to HTML to load it automatically')">what?</button><label class="next"><input id="viewer" type="file"></input>Echo File</label>
+<p>
+<div style="display:inline-block; width:340px; vertical-align: text-top;">
+<p id="framelist" class="stdout" style="background-color:#181818; color:#fd6; display:inline-block; padding:8px;" onpaste="plaintext(this, event);" contenteditable>
+<div style="float:right; width:300px;">Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.</div>
+</div>
+<p>
+<button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">Make APNG</button> <button class="previous" onclick="echo('Filelist is empty!')" id="detect">Detect</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 1px 10px 1px; width:22px;" placeholder="Bad"> fps
+<br><p class="stdout" id="stdout" style="background-color:#181818; color:#888; display:inline-block; padding:8px;">`
+  loaded()
 }
 </script>
 <body>☠️</body>

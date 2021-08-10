@@ -290,7 +290,7 @@ function canvasToFrame(callback, i, fpsm){
       document.title = "Frame " + (i+1);
       //echoIMG(ABtoIMG(arri), "Frame " + (i+1));
       toFrame(fps, fpsm);
-      callback(i+2);
+      callback(i + callafter);
     }
   })
 }
@@ -895,7 +895,8 @@ function frameSaver(i){
   //echo((ti[2] - ti[1])/1000 + "s frameSaver()")
 }
 
-var start = [1,1];
+var callafter = 1;
+var start = [1, 1];
 var fpsm = 1;
 function compileframes(){
   let d = fl.innerHTML.split("<br>").filter(function(el) { return el; })
@@ -907,6 +908,9 @@ function compileframes(){
     ti[0] = performance.now()
     ti[1] = performance.now()
 
+    if (i == 0){
+      maxresof(framearray[d[0]-1]);
+    }
     c = document.createElement("canvas");
     c.width = dim[2];
     c.height = dim[3];
@@ -963,6 +967,8 @@ function compileframes(){
     }
   }
   FPSmultiplier(0);
+  callafter = 2
+  //readFrame(0);
 }
 
 function compileapngs(){

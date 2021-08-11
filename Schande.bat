@@ -346,11 +346,12 @@ def alert(m, s, d=False):
     if not d:
         sys.stdout.write("(C)ontinue")
         sys.stdout.flush()
-        choice(bg="2e")
+        choice(bg="2e", persist=True)
         continue_prompt[0] = False
         while not continue_prompt[0]:
             time.sleep(0.1)
         continue_prompt[0] = False
+        choice(bg="2e")
 
 
 
@@ -376,11 +377,11 @@ def debug(e="echoed", b=0, f=1):
 
 
 
-def choice(keys="", bg=False):
+def choice(keys="", bg=False, persist=False):
     if sys.platform == "win32":
         if bg: os.system(f"""color {"%stopcolor%" if bg == True else bg}""")
         if keys: el = os.system(f"choice /c:{keys} /n")
-        if bg: os.system("color %color%")
+        if bg and not persist: os.system("color %color%")
     else:
         if keys: el = os.system("""while true; do
 read -s -n 1 el || break

@@ -21,7 +21,7 @@ Any good OS with Python 3 installed will work. iOS/iPadOS: get iSH Shell app fro
 python3 -x /drag/n/drop/the/batchfile
 ```
 
-iOS/iPadOS (iSH Shell app)
+ > iOS/iPadOS (iSH Shell app)
 ```
 cat /dev/location > /dev/null &
 mount -t ios . /mnt

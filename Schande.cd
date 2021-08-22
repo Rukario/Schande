@@ -70,16 +70,16 @@ file https://exhentai.org/fullimg.php*" customize with https://exhentai.org/full
 file id="img" src="*"
 
 https://www.youtube.com/watch?v=
-urlfix https://www.youtube.com/watch?v=* with https://youtube.com/get_video_info?video_id=*&el=detailpage&ps=default&eurl=&gl=US&hl=en&html5=1&c=TVHTML5&cver=7.20201028
-choose player_response >> streamingData > adaptiveFormats > 0 > itag = 308 > 299 > 298 > 137 > 136
-file player_response >> streamingData > adaptiveFormats > 0 > url
-name player_response >> videoDetails > title
-choose player_response >> streamingData > adaptiveFormats > 0 > itag = 140
-file player_response >> streamingData > adaptiveFormats > 0 > url
-name player_response >> videoDetails > title customize with * (audio)
-choose player_response >> captions > playerCaptionsTracklistRenderer > captionTracks > 0 > name > simpleText = English > English - CC (English)
-file player_response >> captions > playerCaptionsTracklistRenderer > captionTracks > 0 > baseUrl customize with *&fmt=vtt
-name player_response >> videoDetails > title
+dict var ytInitialPlayerResponse = *;var
+choose streamingData > adaptiveFormats > 0 > itag = 308 > 299 > 298 > 137 > 136
+file streamingData > adaptiveFormats > 0 > url
+name videoDetails > title
+choose streamingData > adaptiveFormats > 0 > itag = 140
+file streamingData > adaptiveFormats > 0 > url
+name videoDetails > title customize with * (audio)
+choose captions > playerCaptionsTracklistRenderer > captionTracks > 0 > name > simpleText = English > English - CC (English)
+file captions > playerCaptionsTracklistRenderer > captionTracks > 0 > baseUrl customize with *&fmt=vtt
+name videoDetails > title
 meta1 &mime=*%2F*& customize with .*
 meta1 ^&fmt=* customize with .*
 

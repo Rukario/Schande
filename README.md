@@ -16,14 +16,9 @@ Any good OS with Python 3 installed will work. iOS/iPadOS: get iSH Shell app fro
 1. Follow one for your system:
  > Windows: Change the file extension back to .bat if it's in something else, then double click on it and read the CLI message.
 
- > MacOS (Terminal):
+ > Linux/MacOS (Terminal):
 ```
 python3 -x /drag/n/drop/the/batchfile
-```
-
- > Linux (Terminal):
-```
-python3 -x /path/to/batchfile
 ```
 
 iOS/iPadOS (iSH Shell app)

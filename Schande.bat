@@ -1,6 +1,6 @@
 @echo off && goto loaded
 
-import os, sys, getpass, smtplib, ssl, socket, socks, time, zlib, json, inspect, hashlib
+import os, sys, getpass, smtplib, ssl, socket, time, zlib, json, inspect, hashlib
 from datetime import datetime
 from fnmatch import fnmatch
 from http import cookiejar
@@ -44,6 +44,7 @@ videofile = [".mkv", ".mp4", ".webm"]
 specialfile = ["gallery.html", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
 
 busy = [False]
+columns = os.get_terminal_size().columns
 continue_prompt = [False]
 cooldown = [False]
 dlslot = [8]
@@ -73,21 +74,17 @@ buildthumbnail = False
 def title(echo):
     sys.stdout.write("\033]0;" + echo + "\007")
 cls = "\033[H\033[2J"
-if sys.platform == "win32":
+if sys.platform == "darwin":
+    tcolor = "\033[40m"
+    tcolorx = "\033[0m"
+else:
     tcolor = "\033[40;93m"
-    tcolorr = "\033[40;91m"
-    tcolorg = "\033[40;92m"
-    tcolorb = "\033[40;94m"
-    tcoloro = "\033[40;38;2;255;144;48m"
     tcolorx = "\033[48;2;0;90;128;96m"
     os.system("")
-else:
-    tcolor = "\033[40m"
-    tcolorr = "\033[40;91m"
-    tcolorg = "\033[40;92m"
-    tcolorb = "\033[40;36m"
-    tcoloro = "\033[40;38;2;255;144;48m"
-    tcolorx = "\033[0m"
+tcolorr = "\033[40;91m"
+tcolorg = "\033[40;92m"
+tcolorb = "\033[40;38;2;59;120;255m"
+tcoloro = "\033[40;38;2;255;144;48m"
 title(batchfile)
 sys.stdout.write("Non-ANSI-compliant Command Prompt/Terminal (expect lot of visual glitches): Upgrade to Windows 10 if you're on Windows.")
 sys.stdout.write(tcolorx + cls)
@@ -305,14 +302,14 @@ def echo(threadn, b=0, f=0, friction=False):
     if not str(threadn).isdigit():
         stdout[0] = ""
         stdout[1] = ""
-        sys.stdout.write("\033[A"*b + f"{threadn:<113}" + "\n"*f + "\r")
+        sys.stdout.write("\033[A"*b + f"{threadn:<{columns}}" + "\n"*f + "\r")
     elif not echothreadn or threadn == echothreadn[0]:
         if friction:
-            stdout[0] = f"{b:<113}\r"
+            stdout[0] = f"{b:<{columns}}\r"
         else:
             stdout[0] = ""
             stdout[1] = ""
-            sys.stdout.write(f"{b:<113}\r")
+            sys.stdout.write(f"{b:<{columns}}\r")
     else:
         return
 
@@ -605,15 +602,22 @@ else:
 if Geistauge:
     try:
         import numpy, cv2
+        from PIL import Image
+        Image.MAX_IMAGE_PIXELS = 400000000
         print(" GEISTAUGE: ON")
     except:
-        print(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install numpy\n{sys.exec_prefix}\Scripts\pip.exe install opencv-python")
+        print(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install pillow\n{sys.exec_prefix}\Scripts\pip.exe install numpy\n{sys.exec_prefix}\Scripts\pip.exe install opencv-python")
         sys.exit()
 else:    
     print(" GEISTAUGE: OFF")
 if "socks5://" in proxy and proxy[10:]:
     if not ":" in proxy[10:]:
         print(" PROXY: Invalid socks5:// address, it must be socks5://X.X.X.X:port OR socks5://user:pass@X.X.X.X:port\n\n TRY AGAIN!")
+        sys.exit()
+    try:
+        import socks
+    except:
+        print(f" PROXY: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install PySocks")
         sys.exit()
     if "@" in proxy[10:]:
         usr, pw, address, port = proxy.replace("socks5:","").replace("/","").replace("@",":").split(":")
@@ -627,9 +631,6 @@ if "socks5://" in proxy and proxy[10:]:
 print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 
 
-
-from PIL import Image
-Image.MAX_IMAGE_PIXELS = 400000000
 
 cookies = cookiejar.MozillaCookieJar("cookies.txt")
 if os.path.exists("cookies.txt"):
@@ -1020,7 +1021,7 @@ request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookies)
 # cookies.save()
 
 def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=False, stderr="", threadn=0):
-    echolink = f"{url[:87]}{(url[87:] and '█')}"
+    echolink = f"{url[:columns-30]}{(url[columns-30:] and '█')}"
     dl = 0
     if todisk:
         echo(threadn, f"{threadn:>3} Downloading 0 / 0 MB {echolink}")
@@ -3775,8 +3776,6 @@ while True:
 ::MacOS - Install Python 3 then open Terminal and enter:
 open /Applications/Python\ 3.9/Install\ Certificates.command
 sudo python3 -m pip install --upgrade pip
-sudo python3 -m pip install Pillow
-sudo python3 -m pip install PySocks
 python3 -x /drag/n/drop/the/batchfile
 
 :loaded
@@ -3818,15 +3817,15 @@ pause%>nul
 exit)
 set pythondir=!pythondir:\=\\!
 
-if exist Lib\site-packages\PIL (goto start) else (goto install)
-if exist Lib\site-packages\socks.py (echo.) else (echo.)
+if exist Lib\site-packages\ (goto start) else (goto install)
+if exist Lib\site-packages\ (echo.) else (echo.)
 
 :install
 echo  Hold on . . . I need to install the missing packages.
 if exist "Scripts\pip.exe" (echo.) else (color %stopcolor% && echo  PIP.exe doesn't seem to exist . . . Please install Python properly^^! I must exit^^! && pause>nul && exit)
 python -m pip install --upgrade pip
-Scripts\pip.exe install Pillow
-Scripts\pip.exe install PySocks
+::Scripts\pip.exe install name_of_the_missing_package
+::Scripts\pip.exe install what_else
 echo.
 pause
 

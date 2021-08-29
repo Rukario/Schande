@@ -11,21 +11,20 @@
            \          /     '-==\}/
             '--------'
 ```
-Any good OS with Python 3 installed will work. iOS/iPadOS: get iSH Shell app from https://apps.apple.com/us/app/ish-shell/id1436902243 then enter `apk add py3-pip`. MacOS need one more step after installing Python: open Terminal and enter `open /Applications/Python\ 3.9/Install\ Certificates.command`
+Any good OS with Python 3 installed will work. iOS/iPadOS: get iSH Shell app from https://apps.apple.com/us/app/ish-shell/id1436902243 then enter `apk add py3-pip` and then `mount -t ios . /mnt`. MacOS need one more step after installing Python: open Terminal and enter `open /Applications/Python\ 3.9/Install\ Certificates.command`
 
 1. Follow one for your system:
  > Windows: Change the file extension back to .bat if it's in something else, then double click on it and read the CLI message.
 
  > Linux/MacOS (Terminal):
 ```
-python3 -x /drag/n/drop/the/batchfile
+python3 -x /drag/n/drop/Schande.bat
 ```
 
  > iOS/iPadOS (iSH Shell app)
 ```
 cat /dev/location > /dev/null &
-mount -t ios . /mnt
-python3 -x /mnt/batchfile
+python3 -x /mnt/Schande.bat
 ```
 
 2. Schande.bat on first run will create a new file: Schande.cd, open it in your favorite text editor and add a rule there (to establish your capabilities to open and edit it), refer to the premade Schande.cd for inspiration.

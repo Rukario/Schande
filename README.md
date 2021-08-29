@@ -11,10 +11,10 @@
            \          /     '-==\}/
             '--------'
 ```
-Any good OS with Python 3 installed will work. iOS/iPadOS: get iSH Shell app from https://apps.apple.com/us/app/ish-shell/id1436902243 then enter `apk add py3-pip` and then `mount -t ios . /mnt`. MacOS need one more step after installing Python: open Terminal and enter `open /Applications/Python\ 3.9/Install\ Certificates.command`
+Any good OS with Python 3 installed will work. Save Schande.bat to your favorite location where you want to download files to, change the file extension back to .bat if it's in something else. iOS/iPadOS: get iSH Shell app from https://apps.apple.com/us/app/ish-shell/id1436902243 then enter `apk add py3-pip` and then `mount -t ios . /mnt` and select parent folder of Schande.bat. MacOS need one more step after installing Python: open Terminal and enter `open /Applications/Python\ 3.9/Install\ Certificates.command`
 
 1. Follow one for your system:
- > Windows: Change the file extension back to .bat if it's in something else, then double click on it and read the CLI message.
+ > Windows: Double click on it and read the CLI message.
 
  > Linux/MacOS (Terminal):
 ```

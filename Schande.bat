@@ -81,6 +81,8 @@ else:
     tcolor = "\033[40;93m"
     tcolorx = "\033[48;2;0;90;128;96m"
     os.system("")
+if sys.platform == "linux":
+    os.system("cat /dev/location > /dev/null &")
 tcolorr = "\033[40;91m"
 tcolorg = "\033[40;92m"
 tcolorb = "\033[40;38;2;59;120;255m"
@@ -252,36 +254,6 @@ def help():
 
 
 
-if not os.path.exists(rulefile):
-    open(rulefile, 'w').close()
-if os.path.getsize(rulefile) < 1:
-    help()
-    print(f"Please add a rule in rule file ({rulefile}) and restart CLI to continue.")
-    sys.exit()
-print(f"Reading {rulefile} . . .")
-with open(rulefile, 'r', encoding="utf-8") as f:
-    rules = f.read().splitlines()
-def tidy(offset, append):
-    if offset == 0:
-        data = append + "\n\n" + "\n".join(rules)
-    else:
-        data = "\n".join(rules[:offset]) + "\n" + append + "\n" + "\n".join(rules[offset:])
-    with open(rulefile, 'wb') as f:
-        f.write(bytes(data, 'utf-8'))
-    return data.splitlines()
-offset = 0
-settings = ["Launch HTML server = No", "Browser = ", "Mail = ", "Geistauge = No", "Python = " + pythondir, "Proxy = socks5://"]
-for setting in settings:
-    if not rules[offset].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
-        if not offset and not "#" in "".join(rules):
-            rules = tidy(offset, setting)
-        else:
-            rules = tidy(offset, setting)
-        print(f"""Added new setting "{setting}" to {rulefile}!""")
-    offset += 1
-
-
-
 eps = 30
 echofriction = [int(time.time()*eps)]
 stdout = ["", ""]
@@ -401,6 +373,35 @@ def input(i="Your Input: ", c=False):
         return choice(c)
     else:
         return sys.stdin.readline()
+
+
+
+if not os.path.exists(rulefile):
+    open(rulefile, 'w').close()
+print(f"Reading {rulefile} . . .")
+if os.path.getsize(rulefile) < 1:
+    rules = ["- - - - Spoofer - - - -", "Mozilla/5.0 for http"]
+else:
+    with open(rulefile, 'r', encoding="utf-8") as f:
+        rules = f.read().splitlines()
+def tidy(offset, append):
+    if offset == 0:
+        data = append + "\n\n" + "\n".join(rules)
+    else:
+        data = "\n".join(rules[:offset]) + "\n" + append + "\n" + "\n".join(rules[offset:])
+    with open(rulefile, 'wb') as f:
+        f.write(bytes(data, 'utf-8'))
+    return data.splitlines()
+offset = 0
+settings = ["Launch HTML server = ", "Browser = ", "Mail = ", "Geistauge = No", "Python = " + pythondir, "Proxy = socks5://"]
+for setting in settings:
+    if not rules[offset].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
+        if offset == 0:
+            setting += "Yes" if input("Launch HTML server? (Y)es/(N)o: ", "yn") == 1 else "No"
+            echo("", 1, 0)
+        rules = tidy(offset, setting)
+        print(f"""Added new setting "{setting}" to {rulefile}!""")
+    offset += 1
 
 
 

@@ -129,7 +129,7 @@ def skull():
     choice(bg="4c")
 def help():
     print(f"""
- {rulefile} is collection of rules that defines how files are downloaded and sorted.
+ {rulefile} is {batchname}'s only setting file and only place to follow your rules how files are downloaded and sorted.
 
  - - - - Geistauge - - - -
   Wildcard: None, non-anchored start/end.

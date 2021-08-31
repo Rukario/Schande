@@ -25,7 +25,6 @@ python3 -x /drag/n/drop/Schande.bat
 
  > iOS/iPadOS (iSH Shell app)
 ```
-cat /dev/location > /dev/null &
 python3 -x /mnt/Schande.bat
 ```
 

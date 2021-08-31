@@ -183,14 +183,17 @@ function echo(B, b) {
 }
 
 function ABtoURL(ab){
-  return URL.createObjectURL(new Blob([ab], {type: 'application/octet-stream'}));
+  return URL.createObjectURL(new Blob(ab, {type: 'application/octet-stream'}));
 }
 
 function ABtoIMG(ab){
-  var src = ABtoURL(new Uint8Array(ab));
   img = document.createElement("img")
-  img.src = src;
+  img.src = ABtoURL(ab);
   return img;
+}
+
+function ABtoAB(ab){
+  return [new Uint8Array(ab)]
 }
 
 function echoIMG(img, B){
@@ -207,7 +210,7 @@ function echoIMG(img, B){
 function echoABtoDL(ab, B){
   stdout = document.getElementById("stdout");
   dl = document.createElement("a")
-  dl.href = ABtoURL(new Uint8Array(ab));
+  dl.href = ABtoURL(ABtoAB(ab));
   dl.download = B + ".png";
   dl.innerHTML = "<br>" + B
   stdout.appendChild(dl);
@@ -216,7 +219,7 @@ function echoABtoDL(ab, B){
 function echoIMGfromCanvas() {
   var promise = new Promise(canvasToAB())
   promise.then(function(arri){
-    echoIMG(ABtoIMG(arri))
+    echoIMG(ABtoIMG(ABtoAB(arri)))
   })
 }
 
@@ -270,24 +273,24 @@ function maxresof(image) {
   dim = [0, 0, Math.floor(image.width / len), Math.floor(image.height / len)]
 }
 
-function canvasToFrame(callback, i, fpsm){
+function canvasToFrame(callback, i, fpsm=1){
   ti[1] = performance.now()
   var promise = new Promise(canvasToAB())
   promise.then(function(arri){
     ti[1] = performance.now()
     arri = Array.from(arri);
-    frame.arri = arri;
+    newframe.arri = arri;
     ti[2] = performance.now()
     //echo((ti[2] - ti[1])/1000 + "s ArrayBuffer")
     if(i == undefined){
       document.title = "Make APNG";
-      //echoIMG(ABtoIMG(arri), "Resave as");
+      //echoIMG(ABtoIMG(ABtoAB(arri)), "Resave as");
       toFrame([1000, 1000]);
       callback();
     } else {
       echo("Frame " + (i+1));
       document.title = "Frame " + (i+1);
-      //echoIMG(ABtoIMG(arri), "Frame " + (i+1));
+      //echoIMG(ABtoIMG(ABtoAB(arri)), "Frame " + (i+1));
       toFrame([1000/(fps/fpsm), 1000]);
       callback(i + callafter);
     }
@@ -344,48 +347,48 @@ function edge(s) {
   canvasToFrame(staticAPNG)
 }
 
-function ghost(rgb) {
-  for (var i = 0; i < rgb.length; i += 4) {
-    if(rgb[i] == 0 && rgb[i+1] == 0 && rgb[i+2] == 0){
-      rgb[i] = 0;
-      rgb[i+1] = 0;
-      rgb[i+2] = 0;
-      rgb[i+3] = 255;
-    } else if(rgb[i] > 12 || rgb[i+1] > 12 || rgb[i+2] > 12){
-      rgb[i] = 255;
-      rgb[i+1] = 255;
-      rgb[i+2] = 255;
-      rgb[i+3] = 255;
-    } else if(rgb[i] > 10 || rgb[i+1] > 10 || rgb[i+2] > 10){
-      rgb[i] = 208;
-      rgb[i+1] = 192;
-      rgb[i+2] = 240;
-      rgb[i+3] = 255;
-    } else if(rgb[i] > 8 || rgb[i+1] > 8 || rgb[i+2] > 8){
-      rgb[i] = 176;
-      rgb[i+1] = 128;
-      rgb[i+2] = 224;
-      rgb[i+3] = 255;
-    } else if(rgb[i] > 6 || rgb[i+1] > 6 || rgb[i+2] > 6){
-      rgb[i] = 144;
-      rgb[i+1] = 64;
-      rgb[i+2] = 192;
-      rgb[i+3] = 255;
-    } else if(rgb[i] > 4 || rgb[i+1] > 4 || rgb[i+2] > 4){
-      rgb[i] = 112;
-      rgb[i+1] = 32;
-      rgb[i+2] = 160;
-      rgb[i+3] = 255;
-    } else if(rgb[i] > 2 || rgb[i+1] > 2 || rgb[i+2] > 2){
-      rgb[i] = 64;
-      rgb[i+1] = 16;
-      rgb[i+2] = 128;
-      rgb[i+3] = 255;
-    } else if(rgb[i] > 0 || rgb[i+1] > 0 || rgb[i+2] > 0){
-      rgb[i] = 32;
-      rgb[i+1] = 8;
-      rgb[i+2] = 96;
-      rgb[i+3] = 255;
+function ghost(a) {
+  for (var i = 0; i < a.length; i += 4) {
+    if(a[i] == 0 && a[i+1] == 0 && a[i+2] == 0){
+      a[i] = 0;
+      a[i+1] = 0;
+      a[i+2] = 0;
+      a[i+3] = 255;
+    } else if(a[i] > 12 || a[i+1] > 12 || a[i+2] > 12){
+      a[i] = 255;
+      a[i+1] = 255;
+      a[i+2] = 255;
+      a[i+3] = 255;
+    } else if(a[i] > 10 || a[i+1] > 10 || a[i+2] > 10){
+      a[i] = 208;
+      a[i+1] = 192;
+      a[i+2] = 240;
+      a[i+3] = 255;
+    } else if(a[i] > 8 || a[i+1] > 8 || a[i+2] > 8){
+      a[i] = 176;
+      a[i+1] = 128;
+      a[i+2] = 224;
+      a[i+3] = 255;
+    } else if(a[i] > 6 || a[i+1] > 6 || a[i+2] > 6){
+      a[i] = 144;
+      a[i+1] = 64;
+      a[i+2] = 192;
+      a[i+3] = 255;
+    } else if(a[i] > 4 || a[i+1] > 4 || a[i+2] > 4){
+      a[i] = 112;
+      a[i+1] = 32;
+      a[i+2] = 160;
+      a[i+3] = 255;
+    } else if(a[i] > 2 || a[i+1] > 2 || a[i+2] > 2){
+      a[i] = 64;
+      a[i+1] = 16;
+      a[i+2] = 128;
+      a[i+3] = 255;
+    } else if(a[i] > 0 || a[i+1] > 0 || a[i+2] > 0){
+      a[i] = 32;
+      a[i+1] = 8;
+      a[i+2] = 96;
+      a[i+3] = 255;
     };
   }
 }
@@ -402,7 +405,11 @@ function detect() {
     if(fps == 0){
       echo("Bad FPS")
     } else {
-      apngdiff(framearray[d[0]-1], framearray[d[1]-1]);
+      if(d.length > 2) {
+        apngdiff2(framearray[d[0]-1], framearray[d[1]-1], framearray[d[2]-1])
+      } else {
+        apngdiff(framearray[d[0]-1], framearray[d[1]-1]);
+      }
     }
   } else {
     edge(framearray[d[0]-1]);
@@ -415,7 +422,7 @@ function frame_diff(a, b) {
   for(var y=0;y<dim[3];y++){
     var o = (y+1)*dim[2]
     for(var x=(o-dim[2])*4;x<o*4;x+=4){
-      if(b[x+3] == 0 || a[x+3] == 255 && a[x] == b[x] && a[x+1] == b[x+1] && a[x+2] == b[x+2]){
+      if(b[x+3] !== 0 && a[x+3] == 255 && a[x] == b[x] && a[x+1] == b[x+1] && a[x+2] == b[x+2]){
         b[x+3] = 0;
       } else {
         d.x.push((x/4)+dim[2]-o);
@@ -432,123 +439,201 @@ function frame_diff(a, b) {
   new_dim = [d.x[0], d.y[0], d.x[d.x.length-1]-d.x[0]+1, d.y[d.y.length-1]-d.y[0]+1];
 }
 
-function diff(a, b) {
-  for (var i = 0; i < b.length; i += 4) {
-    if (a[i] == b[i] && a[i+1] == b[i+1] && a[i+2] == b[i+2]) {
-      b[i+3] = 0
-    }
-  }
+function draw(x) {
+  ti[0] = performance.now()
+  ti[1] = performance.now()
+  c.width = dim[2];
+  c.height = dim[3];
+  context.drawImage(x, ...dim);
+  cactus = context.getImageData(...dim);
 }
 
-function darkside(a, b) {
-  for (var i = 0; i < b.length; i += 4) {
-    b[i] -= a[i];
-    b[i+1] -= a[i+1];
-    b[i+2] -= a[i+2];
+function difference(a, b) {
+  var d = b.data
+  for (var i = 0; i < d.length; i += 4) {
+    d[i] = Math.abs(d[i] - a[i]);
+    d[i+1] = Math.abs(d[i+1] - a[i+1]);
+    d[i+2] = Math.abs(d[i+2] - a[i+2]);
   }
-  ghost(b)
+  ghost(d);
+  context.putImageData(b, 0, 0);
 }
 
-function darkdiff(a, b) {
-  for (var i = 0; i < b.length; i += 4) {
-    b[i] = Math.abs(b[i] - a[i]);
-    b[i+1] = Math.abs(b[i+1] - a[i+1]);
-    b[i+2] = Math.abs(b[i+2] - a[i+2]);
+function subtract(a, b) {
+  var d = b.data
+  for (var i = 0; i < d.length; i += 4) {
+    d[i] -= a[i];
+    d[i+1] -= a[i+1];
+    d[i+2] -= a[i+2];
   }
-  ghost(b)
+  ghost(d);
+  context.putImageData(b, 0, 0);
+}
+
+function cropdiff(a){
+  frame_diff(a, cactus.data)
+  var d = context.getImageData(...dim).data;
+  context.putImageData(cactus, 0, 0);
+  crop()
+  return d;
 }
 
 function apngdiff(m, s) {
-  ti[0] = performance.now()
-  ti[1] = performance.now()
-  context.drawImage(m, ...dim);
-  orig = context.getImageData(...dim)
-  rgb = orig.data;
+  draw(m);
+  portrait = cactus;
+  rgb = portrait.data;
   canvasToFrame(f2, 0);
 
   function f2(){
-  ti[0] = performance.now()
-  ti[1] = performance.now()
-  context.drawImage(s, ...dim);
-  imageData = context.getImageData(...dim);
-  diff(rgb, imageData.data);
-  rgb = context.getImageData(...dim).data;
-  context.putImageData(imageData, 0, 0);
+  draw(s);
+  rgb2 = cropdiff(rgb)
   canvasToFrame(f3, 1);
   }
 
   function f3(){
-  ti[0] = performance.now()
-  ti[1] = performance.now()
-  context.drawImage(m, ...dim);
-  imageData = context.getImageData(...dim);
-  diff(rgb, imageData.data)
-  orig = context.getImageData(...dim)
-  rgb = orig.data;
-  context.putImageData(imageData, 0, 0);
+  draw(m);
+  rgb2 = cropdiff(rgb2)
   canvasToFrame(f4, 0);
   }
 
   function f4(){
-  ti[0] = performance.now()
-  ti[1] = performance.now()
-  context.drawImage(s, ...dim);
-  imageData = context.getImageData(...dim);
-  diff(rgb, imageData.data)
-  context.putImageData(imageData, 0, 0);
+  draw(s);
+  rgb2 = cropdiff(rgb2)
   canvasToFrame(f5, 1);
   }
 
   function f5(){
-  ti[0] = performance.now()
-  ti[1] = performance.now()
-  context.drawImage(s, ...dim);
-  imageData = context.getImageData(...dim);
-  darkside(rgb, imageData.data);
-  context.putImageData(imageData, 0, 0);
+  draw(s);
+  subtract(portrait.data, cactus);
+  rgb2 = cropdiff(rgb2)
   canvasToFrame(f6, -2);
   }
   
   function f6(){
-  ti[0] = performance.now()
-  ti[1] = performance.now()
-  context.drawImage(s, ...dim);
-  imageData = context.getImageData(...dim);
-  darkdiff(rgb, imageData.data);
-  context.putImageData(imageData, 0, 0);
+  draw(s);
+  difference(rgb, cactus);
+  rgb2 = cropdiff(rgb2)
   canvasToFrame(f7, -2.5);
   }
 
   function f7(){
-  ti[0] = performance.now()
-  ti[1] = performance.now()
-  context.drawImage(s, ...dim);
-  imageData = context.getImageData(...dim);
-  darkside(imageData.data, rgb);
-  context.putImageData(orig, 0, 0);
+  draw(s);
+  subtract(cactus.data, portrait);
+  frame_diff(rgb2, rgb)
+  context.putImageData(portrait, 0, 0);
+  crop()
   canvasToFrame(makeapng, -3);
+  }
+}
+
+function apngdiff2(m, s, s2) {
+  draw(m);
+  portrait = cactus;
+  rgb = portrait.data;
+  canvasToFrame(f2, 0);
+
+  function f2(){
+  draw(s);
+  rgb2 = cropdiff(rgb)
+  canvasToFrame(f3, 1);
+  }
+
+  function f3(){
+  draw(s2);
+  rgb2 = cropdiff(rgb2)
+  canvasToFrame(f4, 2);
+  }
+
+
+
+
+  function f4(){
+  draw(m);
+  rgb2 = cropdiff(rgb2)
+  canvasToFrame(f5, 0);
+  }
+
+  function f5(){
+  draw(s);
+  rgb2 = cropdiff(rgb2)
+  canvasToFrame(f6, 1);
+  }
+
+  function f6(){
+  draw(s2);
+  rgb2 = cropdiff(rgb2)
+  canvasToFrame(f7, 2);
+  }
+
+
+
+  function f7(){
+  draw(s);
+  subtract(rgb, cactus);
+  rgb2 = cropdiff(rgb2)
+  canvasToFrame(f8, -2);
+  }
+  
+  function f8(){
+  draw(s);
+  difference(rgb, cactus);
+  rgb2 = cropdiff(rgb2)
+  canvasToFrame(f9, -2.5);
+  }
+
+  function f9(){
+  draw(s);
+  subtract(cactus.data, portrait);
+  frame_diff(rgb2, rgb)
+  context.putImageData(portrait, 0, 0);
+  crop()
+  canvasToFrame(makeapng, -2);
+  }
+
+  function f10(){
+  draw(s);
+  difference(rgb, cactus.data);
+  rgb2 = cropdiff(rgb2)
+  canvasToFrame(f11, -3.5);
+  }
+  
+  function f11(){
+  draw(s);
+  subtract(rgb, cactus.data);
+  rgb2 = cropdiff(rgb2)
+  canvasToFrame(f12, -4);
+  }
+
+  function f12(){
+  draw(s);
+  difference(cactus.data, portrait);
+  frame_diff(rgb2, rgb)
+  context.putImageData(portrait, 0, 0);
+  crop()
+  canvasToFrame(makeapng, -4.5);
   }
 }
 
 function canvasdiff(m, s) {
   context.drawImage(m, ...dim)
-  rgb = context.getImageData(...dim);
+  portrait = context.getImageData(...dim);
+  rgb = portrait.data;
   setTimeout(function() {
     context.drawImage(s, ...dim)
-    rgb2 = context.getImageData(...dim);
-    darkside(rgb.data, rgb2.data);
+    cactus = context.getImageData(...dim);
+    darkside(rgb, cactus.data);
     setTimeout(function() {
-      context.putImageData(rgb2, 0, 0);
+      context.putImageData(cactus, 0, 0);
       setTimeout(function() {
         context.drawImage(s, ...dim);
-        rgb2 = context.getImageData(...dim);
-        darkdiff(rgb.data, rgb2.data);
-        context.putImageData(rgb2, 0, 0);
+        cactus = context.getImageData(...dim);
+        darkdiff(rgb, cactus.data);
+        context.putImageData(cactus, 0, 0);
         setTimeout(function() {
           context.drawImage(s, ...dim);
-          rgb2 = context.getImageData(...dim);
-          darkside(rgb2.data, rgb.data);
-          context.putImageData(rgb, 0, 0);
+          cactus = context.getImageData(...dim);
+          darkside(cactus.data, rgb);
+          context.putImageData(portrait, 0, 0);
           setTimeout(function() {
             requestAnimationFrame(canvasdiff(m, s));
           }, 1000/fps);
@@ -580,22 +665,23 @@ function Frame() {
   this.blendOp = 0;
   this.arri = new Array(0);
   this.IDATs = [];
-  this.get = function findPos(type) {
-    var offset = 8;
-    while (offset < this.arri.length) {
-      var len = ABtoInt32(this.arri.slice(offset, offset + 4));
-      if (readString(this.arri.slice(offset + 4, offset + 8)) === type) {
-        return new Chunk(offset, len, type);
-      }
-      offset += 4 + 4 + len + 4;
+}
+
+function findPos(ab, type) {
+  var offset = 8;
+  while (offset < ab.length) {
+    var len = ABtoInt32(ab.slice(offset, offset + 4));
+    if (readString(ab.slice(offset + 4, offset + 8)) === type) {
+      return new Chunk(offset, len, type);
     }
+    offset += 4 + 4 + len + 4;
   }
 }
 
 function Chunk(offset, len, type) {
-   this.offset = offset;
-   this.len = len;
-   this.type = type;
+  this.offset = offset;
+  this.len = len;
+  this.type = type;
 }
 
 
@@ -699,14 +785,14 @@ function utf8ToAB(utf8) {
 }
 
 function makeChunkBytes(type, dataBytes) {
-    var crcLen = type.length + dataBytes.length;
-    var bytes = new Uint8Array(crcLen + 8);
+    var crc = type.length + dataBytes.length;
+    var bytes = new Uint8Array(crc + 8);
     var dv = new DataView(bytes.buffer);
 
     dv.setUint32(0, dataBytes.length);
     bytes.set(utf8ToAB(type), 4);
     bytes.set(dataBytes, 8);
-    dv.setUint32(crcLen + 4, crc32(bytes, 4, crcLen));
+    dv.setUint32(crc + 4, crc32(bytes, 4, crc));
     return bytes;
 };
 
@@ -722,30 +808,32 @@ function ABtoInt32(ab) {
 
 var PNG_signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 var IEND = [0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82];
-var newAPNG = new APNG(0);
-var frame = new Frame(0);
+var newAPNG = [];
+var newframe = new Frame();
 var frame_counter = -1;
 var sequence_number = -1;
 
-function toFrame(fps){
+function toFrame(fps, bp=[0, 1]){
   ti[1] = performance.now()
   frame_counter += 1;
 
   if (!frame_counter) {
-    newAPNG.arri = newAPNG.arri.concat(PNG_signature);
-    var IHDR = frame.get("IHDR");
-    newAPNG.arri = newAPNG.arri.concat(frame.arri.slice(IHDR.offset, IHDR.offset + 12 + IHDR.len)); //IHDR inherited
-    newAPNG.arri = newAPNG.arri.concat([0, 0, 0, 0x08, 0x61, 0x63, 0x54, 0x4C, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); //acTL reserved
+    var IHDR = findPos(newframe.arri, "IHDR");
+    IHDR = newframe.arri.slice(IHDR.offset, IHDR.offset + 12 + IHDR.len)
+
+    newAPNG.push(new Uint8Array(PNG_signature));
+    newAPNG.push(new Uint8Array(IHDR)); //IHDR inherited
+    newAPNG.push([]); //acTL reserved
   }
 
   var offset = 8;
   var IDATs = [];
-  while (offset < frame.arri.length) {
-    var chunk = frame.arri.slice(offset, offset + 4);
+  while (offset < newframe.arri.length) {
+    var chunk = newframe.arri.slice(offset, offset + 4);
     var len = ABtoInt32(chunk);
-    if (readString(frame.arri.slice(offset + 4, offset + 8)) === "IDAT") {
+    if (readString(newframe.arri.slice(offset + 4, offset + 8)) === "IDAT") {
       if(chunk[0]||chunk[1]){
-        len = frame.arri.length-8-25-12-12; //-PNG signature -IHDR -UNK -IEND
+        len = newframe.arri.length-8-25-12-12; //-PNG signature -IHDR -UNK -IEND
       }
       IDATs.push(new Chunk(offset, len, "IDAT"));
     }
@@ -767,16 +855,16 @@ function toFrame(fps){
       fcTL = fcTL.concat( int32ToAB(new_dim[1]) );
       fcTL = fcTL.concat( int32ToAB(fps[0]).slice(-2) );
       fcTL = fcTL.concat( int32ToAB(fps[1]).slice(-2) );
-      fcTL = fcTL.concat([0, 1]); //disposeOp and blendOp
+      fcTL = fcTL.concat( bp ); //disposeOp and blendOp
       fcTL = fcTL.concat( int32ToAB(crc32(fcTL.slice(4, 4+4+26))) );
-      newAPNG.arri = newAPNG.arri.concat(fcTL);
+      newAPNG.push(new Uint8Array(fcTL));
     }
 
     var IDAT = IDATs[i];
     if (!frame_counter) {
-      newAPNG.arri = newAPNG.arri.concat(frame.arri.slice(IDAT.offset, IDAT.offset + 12 + IDAT.len))
+      newAPNG.push(new Uint8Array(newframe.arri.slice(IDAT.offset, IDAT.offset + 12 + IDAT.len)))
     } else {
-      var clean_IDAT = frame.arri.slice(IDAT.offset + 8, IDAT.offset + 8 + IDAT.len);
+      var clean_IDAT = newframe.arri.slice(IDAT.offset + 8, IDAT.offset + 8 + IDAT.len);
       var len = IDAT.len + 4;
 
       sequence_number +=1;
@@ -786,7 +874,7 @@ function toFrame(fps){
       fdAT = fdAT.concat( int32ToAB(sequence_number) );
       fdAT = fdAT.concat( clean_IDAT );
       fdAT = fdAT.concat( int32ToAB(crc32(fdAT.slice(4, 4 + 4 + len))) );
-      newAPNG.arri = newAPNG.arri.concat(fdAT);
+      newAPNG.push(new Uint8Array(fdAT));
     };
   }
   ti[2] = performance.now()
@@ -796,28 +884,25 @@ function toFrame(fps){
 }
 
 function makeapng(i) {
-  newAPNG.arri = newAPNG.arri.concat(IEND);
-  var acTL = int32ToAB(frame_counter + 1);
-  var off = 33;
-  newAPNG.arri[off+8] = acTL[0];
-  newAPNG.arri[off+8+1] = acTL[1];
-  newAPNG.arri[off+8+2] = acTL[2];
-  newAPNG.arri[off+8+3] = acTL[3];
-  acTL = newAPNG.arri.slice(off+4, off+16);
-  acTL = int32ToAB(crc32(acTL, acTL.length))
-  newAPNG.arri[off+16] = acTL[0];
-  newAPNG.arri[off+16+1] = acTL[1];
-  newAPNG.arri[off+16+2] = acTL[2];
-  newAPNG.arri[off+16+3] = acTL[3];
+  newAPNG.push(new Uint8Array(IEND));
 
-  frame = new Frame();
+  var acTL = new Array(0)
+  acTL = acTL.concat([0, 0, 0, 0x08, 0x61, 0x63, 0x54, 0x4C])
+  acTL = acTL.concat(int32ToAB(frame_counter + 1));
+  acTL = acTL.concat([0, 0, 0, 0]) //loop times, infinity
+
+  var crc = acTL.slice(4, 16);
+  acTL = acTL.concat(int32ToAB(crc32(crc, crc.length)))
+  newAPNG[2] = new Uint8Array(acTL);
+
   frame_counter = -1
+  newframe = new Frame();
   sequence_number = -1
 
   //echoPalette();
-  echoIMG(ABtoIMG(newAPNG.arri), name.split('.').slice(0, -1).join('.') + " (apng)");
+  echoIMG(ABtoIMG(newAPNG), name.split('.').slice(0, -1).join('.') + " (apng)");
   document.title = "Make APNG";
-  newAPNG = new APNG();
+  newAPNG = [];
 }
 
 
@@ -867,12 +952,12 @@ function crop(){
 function frameSaver(i){
   ti[1] = performance.now()
   if(i == 0){
-    orig = context.getImageData(...dim);
+    portrait = context.getImageData(...dim);
   } else {
-    imageData = context.getImageData(...dim);
-    frame_diff(orig.data, imageData.data)
-    orig = context.getImageData(...dim);
-    context.putImageData(imageData, 0, 0);
+    cactus = context.getImageData(...dim);
+    frame_diff(portrait.data, cactus.data)
+    portrait = context.getImageData(...dim);
+    context.putImageData(cactus, 0, 0);
     crop()
   }
   ti[2] = performance.now()
@@ -957,12 +1042,6 @@ function compileframes(){
 
 function compileapngs(){
   let d = al.innerHTML.split("<br>").filter(function(el) { return el; })
-  if(1 == d.length){
-    echo("There must be more than one in APNG list")
-    //return;
-  }
-
-  fpsm = 1;
   stdout = document.getElementById("stdout");
   function readFile(i){
     ti[0] = performance.now()
@@ -978,7 +1057,8 @@ function compileapngs(){
       new_dim = [frame.left, frame.top, frame.width, frame.height]
 
       var next = "Frame " + f + " of APNG " + d[i]
-      img = ABtoIMG(arri)
+      arri = frame.arri
+      img = ABtoIMG(ABtoAB(arri))
       img.onload = () => {
         ti[0] = performance.now()
         ti[1] = performance.now()
@@ -994,8 +1074,8 @@ function compileapngs(){
             document.title = next;
             echo(next)
             //echoIMG(img, next)
-            frame.arri = arri;
-            toFrame([frame.numerator, frame.denominator]);
+            newframe.arri = arri;
+            toFrame([frame.numerator, frame.denominator], [frame.disposeOp, frame.blendOp]);
             if(f+1 == frames.length){
               readFile(i+1);
             } else {
@@ -1011,15 +1091,15 @@ function compileapngs(){
             var promise = new Promise(canvasToAB())
             promise.then(function(arri){
               arri = Array.from(arri);
-              img = ABtoIMG(arri)
+              img = ABtoIMG(ABtoAB(arri))
               document.title = next;
               echo(next)
               //echoIMG(img, next)
-              frame.arri = arri;
-              toFrame([frame.numerator, frame.denominator]);
+              newframe.arri = arri;
+              toFrame([frame.numerator, frame.denominator], [frame.disposeOp, frame.blendOp]);
               c.width = dim[2];
               c.height = dim[3];
-              context.putImageData(orig, 0, 0);
+              context.putImageData(portrait, 0, 0);
               if(f+1 == frames.length){
                 readFile(i+1);
               } else {
@@ -1033,8 +1113,8 @@ function compileapngs(){
           document.title = next;
           echo(next)
           //echoIMG(img, next)
-          frame.arri = arri;
-          toFrame([frame.numerator, frame.denominator]);
+          newframe.arri = arri;
+          toFrame([frame.numerator, frame.denominator], [frame.disposeOp, frame.blendOp]);
           if(f+1 == frames.length){
             readFile(i+1);
           } else {
@@ -1086,8 +1166,7 @@ function read(filelist){
     fr.readAsArrayBuffer(filelist[i]);
     fr.onload = () => {
       arri = new Uint8Array(fr.result);
-      img = new Image();
-      img.src = ABtoURL(arri)
+      img = ABtoIMG([arri])
       img.onload = () => {
         framearray.push(img);
         if(i+1 == filelist.length){
@@ -1109,8 +1188,7 @@ function readapng(filelist){
     fr.readAsArrayBuffer(filelist[i]);
     fr.onload = () => {
       arri = new Uint8Array(fr.result);
-      img = new Image();
-      img.src = ABtoURL(arri)
+      img = ABtoIMG([arri])
       img.onload = () => {
 
         var isAPNG = false;
@@ -1208,7 +1286,7 @@ function loaded(){
       d.setAttribute("onclick", "echo('Already loaded!')")
       d.innerHTML = "optipng.js armed";
       var s = document.createElement("script");
-      s.src = ABtoURL(new Uint8Array(fr.result));
+      s.src = ABtoURL(ABtoAB(fr.result));
       document.body.appendChild(s);
       optimize = true;
     }
@@ -1241,7 +1319,7 @@ var framearray = [];
 var apngarray = [];
 var optimize = false;
 var ti = [0, 0, 0, 0];
-var c, context, dim, new_dim, orig, imageData, al, fl, arri, arro, stdout, dl, img, Module, name, rgb, rgb2;
+var c, context, dim, new_dim, portrait, cactus, al, fl, arri, arro, stdout, dl, img, Module, name, rgb, rgb2, rgb3;
 
 window.onload = () => {
   document.body.innerHTML = `<!-- <div class="container">
@@ -1274,7 +1352,7 @@ window.onload = () => {
 </div>
 <p>
 
-<button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">Make APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">Detect</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 1px 10px 1px; width:22px;" placeholder="Bad"> fps
+<button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">Make APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">emphasizing diffs</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 1px 10px 1px; width:22px;" placeholder="Bad"> fps
 </div>
 
 

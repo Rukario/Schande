@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html>
-<meta charset="utf-8"/>
+<meta charset="UTF-8"/>
+<meta name="format-detection" content="telephone=no">
 <title>Make APNG</title>
 <style>
-html,body {background-color:#0c0c0c; color:#3f3; font-family:courier; font-size:14px;}
-a{color:#3f3; text-decoration:none;}
+html,body {caret-color:#ff8228; background-color:#300710; color:#ff4455; font-family:courier; font-size:14px; margin-bottom:-2px; padding-top:2px;}
+[contenteditable]:focus {outline: none;}
+a {color:#ff9449;}
+a:visited {color:#ffc66d;}
 .frame{display:inline-block; vertical-align:top; position:relative;}
 input[type="file"] {display:none;}
 ::placeholder{color:#3cb;}
@@ -13,12 +16,8 @@ input[type="file"] {display:none;}
 .inverse{background-color:#d9f; color:#428; border:1px solid #214}
 .next{background-color:#066; color:#6fe; border:1px solid #033}
 .previous, .reverse, .inverse, .next {border-radius:0px; cursor:pointer; font-size:12px; padding:2px 10px 2px; font-family:Arial;}
-.cell{display:inline-block; width: 360px; vertical-align: text-top; border:2px solid #fff; padding-left:10px;}
-.stdout {border:1px solid #333;}
-@media (prefers-color-scheme: light) {
-html,body {background-color:#eee; color:#333; font-family:courier; font-size:14px;}
-.stdout {border:1px solid #999;}
-}
+.cell{display:inline-block; width: 360px; vertical-align: text-top; border:2px solid #772227; padding-left:10px;}
+.stdout {color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:8px;}
 </style>
 <script>
 function plaintext(elem, e) {
@@ -277,19 +276,19 @@ function canvasToFrame(callback, i, fpsm){
   promise.then(function(arri){
     ti[1] = performance.now()
     arri = Array.from(arri);
-    frameBytes.bin = arri;
+    frame.arri = arri;
     ti[2] = performance.now()
     //echo((ti[2] - ti[1])/1000 + "s ArrayBuffer")
     if(i == undefined){
       document.title = "Make APNG";
       //echoIMG(ABtoIMG(arri), "Resave as");
-      toFrame(1);
+      toFrame([1000, 1000]);
       callback();
     } else {
       echo("Frame " + (i+1));
       document.title = "Frame " + (i+1);
       //echoIMG(ABtoIMG(arri), "Frame " + (i+1));
-      toFrame(fps, fpsm);
+      toFrame([1000/(fps/fpsm), 1000]);
       callback(i + callafter);
     }
   })
@@ -562,23 +561,35 @@ function canvasdiff(m, s) {
 
 
 function APNG() {
-    this.width = 0;
-    this.height = 0;
-    this.numPlays = 0;
-    this.playTime = 0;
-    this.frames = [];
+  this.width = 0;
+  this.height = 0;
+  this.numPlays = 0;
+  this.playTime = 0;
+  this.frames = [];
+  this.arri = new Array(0);
 }
 
 function Frame() {
-    this.left = 0;
-    this.top = 0;
-    this.width = 0;
-    this.height = 0;
-    this.delay = 0;
-    this.disposeOp = 0;
-    this.blendOp = 0;
-    this.data = [];
-    this.IDATs = [];
+  this.left = 0;
+  this.top = 0;
+  this.width = 0;
+  this.height = 0;
+  this.numerator = 0;
+  this.denominator = 0;
+  this.disposeOp = 0;
+  this.blendOp = 0;
+  this.arri = new Array(0);
+  this.IDATs = [];
+  this.get = function findPos(type) {
+    var offset = 8;
+    while (offset < this.arri.length) {
+      var len = ABtoInt32(this.arri.slice(offset, offset + 4));
+      if (readString(this.arri.slice(offset + 4, offset + 8)) === type) {
+        return new Chunk(offset, len, type);
+      }
+      offset += 4 + 4 + len + 4;
+    }
+  }
 }
 
 function Chunk(offset, len, type) {
@@ -616,10 +627,8 @@ function fromAPNG(arri){
         frame.height = dv.getUint32(offset + 8 + 8);
         frame.left = dv.getUint32(offset + 8 + 12);
         frame.top = dv.getUint32(offset + 8 + 16);
-        //var delayN = dv.getUint16(offset + 8 + 20);
-        //var delayD = dv.getUint16(offset + 8 + 22);
-        //frame.delay = 1000 * delayN / delayD;
-        frame.delay = dv.getUint16(offset + 8 + 20);
+        frame.numerator = dv.getUint16(offset + 8 + 20);
+        frame.denominator = dv.getUint16(offset + 8 + 22);
         apng.playTime += frame.delay;
         frame.disposeOp = dv.getUint8(offset + 8 + 24);
         frame.blendOp = dv.getUint8(offset + 8 + 25);
@@ -653,7 +662,9 @@ function fromAPNG(arri){
           data.push(makeChunkBytes('IDAT', IDAT));
       });
       data.push(IEND);
-      frame.data = data;
+      data.forEach(function (u){
+         frame.arri = frame.arri.concat(Array.from(u))
+      })
       frame.IDATs = [];
       data = [];
   });
@@ -711,24 +722,37 @@ function ABtoInt32(ab) {
 
 var PNG_signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 var IEND = [0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82];
-var apngBytes = new ByteArray(0);
-var frameBytes = new ByteArray(0);
-var frame = -1;
+var newAPNG = new APNG(0);
+var frame = new Frame(0);
+var frame_counter = -1;
 var sequence_number = -1;
 
-function toFrame(fps, fpsm=1){
+function toFrame(fps){
   ti[1] = performance.now()
-  frame += 1;
+  frame_counter += 1;
 
-  if (!frame) {
-    apngBytes.bin = apngBytes.bin.concat(PNG_signature);
-    var IHDR = frameBytes.findChunk("IHDR");
-    apngBytes.bin = apngBytes.bin.concat(frameBytes.bin.slice(IHDR.offset, IHDR.offset + 12 + IHDR.len)); //IHDR inherited
-    apngBytes.bin = apngBytes.bin.concat([0, 0, 0, 0x08, 0x61, 0x63, 0x54, 0x4C, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); //acTL reserved
+  if (!frame_counter) {
+    newAPNG.arri = newAPNG.arri.concat(PNG_signature);
+    var IHDR = frame.get("IHDR");
+    newAPNG.arri = newAPNG.arri.concat(frame.arri.slice(IHDR.offset, IHDR.offset + 12 + IHDR.len)); //IHDR inherited
+    newAPNG.arri = newAPNG.arri.concat([0, 0, 0, 0x08, 0x61, 0x63, 0x54, 0x4C, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); //acTL reserved
   }
 
-  var IDATs = frameBytes.findChunkAll("IDAT");
+  var offset = 8;
+  var IDATs = [];
+  while (offset < frame.arri.length) {
+    var chunk = frame.arri.slice(offset, offset + 4);
+    var len = ABtoInt32(chunk);
+    if (readString(frame.arri.slice(offset + 4, offset + 8)) === "IDAT") {
+      if(chunk[0]||chunk[1]){
+        len = frame.arri.length-8-25-12-12; //-PNG signature -IHDR -UNK -IEND
+      }
+      IDATs.push(new Chunk(offset, len, "IDAT"));
+    }
+    offset += 4 + 4 + len + 4;
+  }
   //echo("IDATs: " + IDATs.length)
+
   for (var i = 0; i < IDATs.length; i++) {
     if (!i) {
       //echo(i + "th IDAT size: " + IDATs[i].len)
@@ -741,18 +765,18 @@ function toFrame(fps, fpsm=1){
       fcTL = fcTL.concat( int32ToAB(new_dim[3]) );
       fcTL = fcTL.concat( int32ToAB(new_dim[0]) );
       fcTL = fcTL.concat( int32ToAB(new_dim[1]) );
-      fcTL = fcTL.concat( int32ToAB(1000/(fps/fpsm)).slice(-2) );
-      fcTL = fcTL.concat( int32ToAB(1000).slice(-2) );
+      fcTL = fcTL.concat( int32ToAB(fps[0]).slice(-2) );
+      fcTL = fcTL.concat( int32ToAB(fps[1]).slice(-2) );
       fcTL = fcTL.concat([0, 1]); //disposeOp and blendOp
       fcTL = fcTL.concat( int32ToAB(crc32(fcTL.slice(4, 4+4+26))) );
-      apngBytes.bin = apngBytes.bin.concat(fcTL);
+      newAPNG.arri = newAPNG.arri.concat(fcTL);
     }
 
     var IDAT = IDATs[i];
-    if (!frame) {
-      apngBytes.bin = apngBytes.bin.concat(frameBytes.bin.slice(IDAT.offset, IDAT.offset + 12 + IDAT.len))
+    if (!frame_counter) {
+      newAPNG.arri = newAPNG.arri.concat(frame.arri.slice(IDAT.offset, IDAT.offset + 12 + IDAT.len))
     } else {
-      var clean_IDAT = frameBytes.bin.slice(IDAT.offset + 8, IDAT.offset + 8 + IDAT.len);
+      var clean_IDAT = frame.arri.slice(IDAT.offset + 8, IDAT.offset + 8 + IDAT.len);
       var len = IDAT.len + 4;
 
       sequence_number +=1;
@@ -762,7 +786,7 @@ function toFrame(fps, fpsm=1){
       fdAT = fdAT.concat( int32ToAB(sequence_number) );
       fdAT = fdAT.concat( clean_IDAT );
       fdAT = fdAT.concat( int32ToAB(crc32(fdAT.slice(4, 4 + 4 + len))) );
-      apngBytes.bin = apngBytes.bin.concat(fdAT);
+      newAPNG.arri = newAPNG.arri.concat(fdAT);
     };
   }
   ti[2] = performance.now()
@@ -772,68 +796,28 @@ function toFrame(fps, fpsm=1){
 }
 
 function makeapng(i) {
-  apngBytes.bin = apngBytes.bin.concat(IEND);
+  newAPNG.arri = newAPNG.arri.concat(IEND);
+  var acTL = int32ToAB(frame_counter + 1);
+  var off = 33;
+  newAPNG.arri[off+8] = acTL[0];
+  newAPNG.arri[off+8+1] = acTL[1];
+  newAPNG.arri[off+8+2] = acTL[2];
+  newAPNG.arri[off+8+3] = acTL[3];
+  acTL = newAPNG.arri.slice(off+4, off+16);
+  acTL = int32ToAB(crc32(acTL, acTL.length))
+  newAPNG.arri[off+16] = acTL[0];
+  newAPNG.arri[off+16+1] = acTL[1];
+  newAPNG.arri[off+16+2] = acTL[2];
+  newAPNG.arri[off+16+3] = acTL[3];
 
-  var acTL = apngBytes.findChunk("acTL");
-  var nFrames = int32ToAB(frame + 1);
-  apngBytes.bin[acTL.offset+8] = nFrames[0];
-  apngBytes.bin[acTL.offset+8+1] = nFrames[1];
-  apngBytes.bin[acTL.offset+8+2] = nFrames[2];
-  apngBytes.bin[acTL.offset+8+3] = nFrames[3];
-
-  var acTLslice = apngBytes.bin.slice(acTL.offset + 4, acTL.offset + 16);
-  var crcBytes = int32ToAB(crc32(acTLslice, acTLslice.length));
-  apngBytes.bin[acTL.offset+8+8] = crcBytes[0];
-  apngBytes.bin[acTL.offset+8+8+1] = crcBytes[1];
-  apngBytes.bin[acTL.offset+8+8+2] = crcBytes[2];
-  apngBytes.bin[acTL.offset+8+8+3] = crcBytes[3];
-
-  frame = -1
-  frameBytes = new ByteArray(0);
+  frame = new Frame();
+  frame_counter = -1
   sequence_number = -1
 
   //echoPalette();
-  echoIMG(ABtoIMG(apngBytes.bin), name.split('.').slice(0, -1).join('.') + " (apng)");
+  echoIMG(ABtoIMG(newAPNG.arri), name.split('.').slice(0, -1).join('.') + " (apng)");
   document.title = "Make APNG";
-  apngBytes = new ByteArray(0);
-}
-
-function ByteArray(len) {
-  this.bin = new Array(len);
-  this.findChunk = function(type) {
-      var offset = 8;
-      var chunk = null;
-      while (offset < this.bin.length) {
-        var len = ABtoInt32(this.bin.slice(offset, offset + 4));
-        var type2 = readString(this.bin.slice(offset + 4, offset + 8))
-        if (type === type2) {
-          return new Chunk(offset, len, type);
-        }
-        offset += 4 + 4 + len + 4;
-      }
-      return chunk;
-    }
-  this.findChunkAll =
-    function(type) {
-      var offset = 8;
-      var chunkArray = [];
-      while (offset < this.bin.length) {
-        //echo("Current BIN size: " + this.bin.length)
-        var chunk2 = this.bin.slice(offset, offset + 4);
-        var len = ABtoInt32(chunk2);
-        var type2 = readString(this.bin.slice(offset + 4, offset + 8));
-        if (type === type2) {
-          if(chunk2[0]||chunk2[1]){
-            len = this.bin.length-8-25-12-12; //-PNG signature -IHDR -UNK -IEND
-          }
-          //echo("Added " + len + " bytes to apngBytes.bin")
-          chunkArray.push(new Chunk(offset, len, type));
-        }
-        offset += 4 + 4 + len + 4;
-      }
-      return chunkArray;
-    }
-  return this;
+  newAPNG = new APNG();
 }
 
 
@@ -975,7 +959,7 @@ function compileapngs(){
   let d = al.innerHTML.split("<br>").filter(function(el) { return el; })
   if(1 == d.length){
     echo("There must be more than one in APNG list")
-    return;
+    //return;
   }
 
   fpsm = 1;
@@ -992,11 +976,6 @@ function compileapngs(){
       if(f == frames.length) return;
       var frame = frames[f];
       new_dim = [frame.left, frame.top, frame.width, frame.height]
-
-      arri = new Array(0)
-      frame.data.forEach(function (u){
-         arri = arri.concat(Array.from(u))
-      })
 
       var next = "Frame " + f + " of APNG " + d[i]
       img = ABtoIMG(arri)
@@ -1015,8 +994,8 @@ function compileapngs(){
             document.title = next;
             echo(next)
             //echoIMG(img, next)
-            frameBytes.bin = arri;
-            toFrame(1000/frame.delay);
+            frame.arri = arri;
+            toFrame([frame.numerator, frame.denominator]);
             if(f+1 == frames.length){
               readFile(i+1);
             } else {
@@ -1036,8 +1015,8 @@ function compileapngs(){
               document.title = next;
               echo(next)
               //echoIMG(img, next)
-              frameBytes.bin = arri;
-              toFrame(1000/frame.delay);
+              frame.arri = arri;
+              toFrame([frame.numerator, frame.denominator]);
               c.width = dim[2];
               c.height = dim[3];
               context.putImageData(orig, 0, 0);
@@ -1054,8 +1033,8 @@ function compileapngs(){
           document.title = next;
           echo(next)
           //echoIMG(img, next)
-          frameBytes.bin = arri;
-          toFrame(1000/frame.delay);
+          frame.arri = arri;
+          toFrame([frame.numerator, frame.denominator]);
           if(f+1 == frames.length){
             readFile(i+1);
           } else {
@@ -1276,7 +1255,7 @@ window.onload = () => {
 
 <label class="next" id="jsload"><input id="js" type="file" accept=".js, text/javascript"></input>Load optipng.js</label>
 <button style="background: none; border:none; color:inherit; cursor:pointer;" onclick="echo('Optimize frames with <a href=&quot;https://github.com/LI-NA/optipng.js/tree/master/demo/js&quot; target=&quot;_blank&quot;>optipng.min.js</a> (minified of optipng.js), save next to HTML to load it automatically.<br>')">what?</button>
-<button style="background: none; border:none; color:inherit; cursor:pointer;" onclick="echo('APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, they will be cropped equally as well.<br>&nbsp;&gt; Load optipng.js for additional file size reduction.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long series of frames and/or loops.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; Full 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">production advices</button>
+<button style="background: none; border:none; color:inherit; cursor:pointer;" onclick="echo('APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Load optipng.js for additional file size reduction.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">production advices</button>
 <label class="next"><input id="viewer" type="file"></input>Echo File</label>
 <p>
 
@@ -1284,13 +1263,13 @@ window.onload = () => {
 
 <div>
 <div class="cell">
-<div style="background-color:#eee; padding:4px; top:-12px; position:relative; display:table;">Make</div>
+<div style="background-color:inherit; padding:4px; top:-12px; position:relative; display:table;">Make</div>
 <label class="next"><input id="frames" type="file" multiple></input>Load Frames</label>
 <label class="next"><input id="more" type="file" multiple></input>Load more</label>
 <p>
 
 <div style="display:inline-block; width:340px; vertical-align: text-top;">
-<p id="framelist" class="stdout" style="background-color:#181818; color:#fd6; display:inline-block; padding:8px;" onpaste="plaintext(this, event);" contenteditable>
+<p id="framelist" class="stdout" style="color:#fd6;" onpaste="plaintext(this, event);" contenteditable>
 <div style="float:right; width:300px;">Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.</div>
 </div>
 <p>
@@ -1301,13 +1280,13 @@ window.onload = () => {
 
 
 <div class="cell">
-<div style="background-color:#eee; padding:4px; top:-12px; position:relative; display:table;">Merge</div>
+<div style="background-color:inherit; padding:4px; top:-12px; position:relative; display:table;">Merge</div>
 <label class="next"><input id="apngframes" type="file" multiple></input>Load APNG</label>
 <label class="next"><input id="apngmore" type="file" multiple></input>Load more</label>
 <p>
 
 <div style="display:inline-block; width:340px; vertical-align: text-top;">
-<p id="apnglist" class="stdout" style="background-color:#181818; color:#fd6; display:inline-block; padding:8px;" onpaste="plaintext(this, event);" contenteditable>
+<p id="apnglist" class="stdout" style="color:#fd6;" onpaste="plaintext(this, event);" contenteditable>
 <div style="float:right; width:300px;">Edit list to rearrange, repeat, or skip APNG series.</div>
 </div>
 <p>
@@ -1318,11 +1297,12 @@ window.onload = () => {
 
 
 
-<p class="stdout" id="stdout" style="background-color:#181818; color:#888; display:inline-block; padding:8px;">`
+<p class="stdout" id="stdout">`
   loaded();
   lazyload();
   //document.addEventListener("click", Expander);
 }
 </script>
-<body>☠️</body>
+<body>1. Set up and run Schande.bat from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a><br>
+2. Take me to Schande.bat, then launch <a href="http://localhost:8886/APNG Maker.html">http://localhost:8886/APNG Maker.html</a></body>
 </html>

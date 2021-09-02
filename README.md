@@ -13,7 +13,7 @@
 ```
 Any good OS with Python 3 installed will work. iOS/iPadOS: get iSH Shell app from https://apps.apple.com/us/app/ish-shell/id1436902243 then enter `apk add py3-pip` and then `mount -t ios . /mnt` and select your favorite location for Schande.bat. MacOS need one more step after installing Python: open Terminal and enter `open /Applications/Python\ 3.9/Install\ Certificates.command`
 
-1. Save Schande.bat to your favorite location where you want to download files to, change the file extension back to .bat if it's in something else. (or continue with Schande.bat.txt for non-Windows)
+1. Save Schande.bat to your favorite location where you want to download files to, change the file extension back to .bat if it's in something else.
 
 2. Follow one for your system:
  > Windows: Double click on it and read the CLI message.

@@ -4,18 +4,20 @@
 <meta name="format-detection" content="telephone=no">
 <title>Make APNG</title>
 <style>
-html,body {caret-color:#ff8228; background-color:#2d0710; color:#ff4455; font-family:courier; font-size:14px; margin-bottom:-2px; padding-top:2px;}
+html,body {caret-color:#ff8228; font-family:courier; font-size:14px; margin-bottom:-2px; padding-top:2px; padding:2px;}
 [contenteditable]:focus {outline: none;}
 a {color:#ff9449;}
 a:visited {color:#ffc66d;}
 .frame{display:inline-block; vertical-align:top; position:relative;}
 input[type="file"] {display:none;}
 ::placeholder{color:#3cb;}
+.next{background-color:#066; color:#6fe; border:1px solid #033}
 .previous{background-color:#4bb; color:#133; border:1px solid #033}
 .reverse{background-color:#428; color:#d9f; border:1px solid #214}
 .inverse{background-color:#d9f; color:#428; border:1px solid #214}
-.next{background-color:#066; color:#6fe; border:1px solid #033}
-.previous, .reverse, .inverse, .next {border-radius:0px; cursor:pointer; font-size:12px; padding:2px 10px 2px; font-family:Arial;}
+.menu {color:#6e5; background-color:#132;}
+.exitmenu {color:#f45;background-color:#2d0710;}
+.previous, .reverse, .inverse, .next {border-radius:0px; cursor:pointer; font-size:12px; padding:4px 11px; font-family:Arial;}
 .cell{display:inline-block; width: 360px; vertical-align: text-top; border:2px solid #772227; padding-left:10px;}
 .stdout {color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:8px;}
 </style>
@@ -1341,7 +1343,7 @@ window.onload = () => {
 
 <div>
 <div class="cell">
-<div style="background-color:inherit; padding:4px; top:-12px; position:relative; display:table;">Make</div>
+<div style="background-color:#2d0710; padding:4px; top:-12px; position:relative; display:table;">Make</div>
 <label class="next"><input id="frames" type="file" multiple></input>Load Frames</label>
 <label class="next"><input id="more" type="file" multiple></input>Load more</label>
 <p>
@@ -1352,13 +1354,13 @@ window.onload = () => {
 </div>
 <p>
 
-<button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">Make APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">emphasizing diffs</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 1px 10px 1px; width:22px;" placeholder="Bad"> fps
+<button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">Make APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">emphasizing diffs</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 3px 11px; width:22px;" placeholder="Bad"> fps
 </div>
 
 
 
 <div class="cell">
-<div style="background-color:inherit; padding:4px; top:-12px; position:relative; display:table;">Merge</div>
+<div style="background-color:#2d0710; padding:4px; top:-12px; position:relative; display:table;">Merge</div>
 <label class="next"><input id="apngframes" type="file" multiple></input>Load APNG</label>
 <label class="next"><input id="apngmore" type="file" multiple></input>Load more</label>
 <p>
@@ -1381,6 +1383,6 @@ window.onload = () => {
   //document.addEventListener("click", Expander);
 }
 </script>
-<body>1. Set up and run Schande.bat for its HTML server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a><br>
+<body class="exitmenu">1. Set up and run Schande.bat for its HTML server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a><br>
 2. Take me to Schande.bat, then launch <a href="http://localhost:8886/APNG Maker.html">http://localhost:8886/APNG Maker.html</a></body>
 </html>

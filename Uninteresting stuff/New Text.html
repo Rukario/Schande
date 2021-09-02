@@ -367,6 +367,10 @@ function toolbar(){
   /*editor.setAttribute("onpaste", "plaintext(this, event);");*/
   editor.setAttribute("onselect", "selected();");
   editor.setAttribute("contenteditable", "plaintext-only");
+  if(editor.isContentEditable){
+    editor.setAttribute("onpaste", "plaintext(this, event)");
+    editor.setAttribute("contenteditable", "true");
+  }
   editor.setAttribute("spellcheck", false);
   var x = document.getElementById("picker");
   x.addEventListener('change', (event) => {

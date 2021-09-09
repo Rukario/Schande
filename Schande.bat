@@ -44,7 +44,6 @@ videofile = [".mkv", ".mp4", ".webm"]
 specialfile = ["gallery.html", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
 
 busy = [False]
-columns = os.get_terminal_size().columns
 continue_prompt = [False]
 cooldown = [False]
 dlslot = [8]
@@ -270,18 +269,24 @@ t.start()
 
 
 
-def echo(threadn, b=0, f=0, friction=False):
+def columns():
+    return os.get_terminal_size().columns
+
+def echo(threadn, b=0, f=0, clamp='', friction=False):
     if not str(threadn).isdigit():
         stdout[0] = ""
         stdout[1] = ""
-        sys.stdout.write("\033[A"*b + f"{threadn:<{columns}}" + "\n"*f + "\r")
+        sys.stdout.write("\033[A"*b + f"{threadn:<{columns()}}" + "\n"*f + "\r")
     elif not echothreadn or threadn == echothreadn[0]:
+        c = columns()
+        if clamp:
+            b = f"{b[:c-1]}{(b[c-1:] and clamp)}"
         if friction:
-            stdout[0] = f"{b:<{columns}}\r"
+            stdout[0] = f"{b:<{c}}\r"
         else:
             stdout[0] = ""
             stdout[1] = ""
-            sys.stdout.write(f"{b:<{columns}}\r")
+            sys.stdout.write(f"{b:<{c}}\r")
     else:
         return
 
@@ -1011,6 +1016,13 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
             else:
                 skiptonext[0] = False
                 return 0, str(e.code)
+        except:
+            if stderr or retryx[0] and not skiptonext[0]:
+                if not retry(f"{stderr} (closed by host)"):
+                    return 0, "closed by host"
+            else:
+                skiptonext[0] = False
+                return 0, "closed by host"
     return resp, 0
 
 
@@ -1022,10 +1034,9 @@ request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookies)
 # cookies.save()
 
 def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=False, stderr="", threadn=0):
-    echolink = f"{url[:columns-30]}{(url[columns-30:] and '█')}"
     dl = 0
     if todisk:
-        echo(threadn, f"{threadn:>3} Downloading 0 / 0 MB {echolink}")
+        echo(threadn, f"{threadn:>3} Downloading 0 / 0 MB {url}", clamp='█')
         if os.path.exists(todisk + ".part"):
             dl = os.path.getsize(todisk + ".part")
     else:
@@ -1061,7 +1072,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
                 echo("Filename collision + same filesize, safe to ignore", 0, 1)
                 return 2
         conflict[1] += [total]
-        echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {echolink}""")
+        echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {url}""", clamp='█')
         with open(todisk + ".part", 'ab') as f:
             while True:
                 try:
@@ -1095,7 +1106,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
                 Bytes = len(block)
                 dl += Bytes
                 echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
-                echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {echolink}""", friction=True)
+                echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {url}""", clamp='█', friction=True)
                 if seek[0]:
                     resp, err = fetch(url, context, stderr, dl, threadn)
                     if resp.status == 200 and dl > 0:

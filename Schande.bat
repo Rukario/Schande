@@ -3612,7 +3612,7 @@ def keylistener():
                 print(" GEISTAUGE: Maybe not.")
             else:
                 choice(bg="4c")
-                if input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "") == f"{batchdir}{sav}":
+                if input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "").replace("\\", "/") == f"{batchdir}{sav}":
                     skull()
                     tohtml_g(delete=True)
             ready_input()

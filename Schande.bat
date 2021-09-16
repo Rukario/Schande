@@ -1418,7 +1418,7 @@ def carrot(array, z, cw, new, my_conditions):
         if len(z) == 2 and not z[0] and not z[1]:
             if met(update_array[0], my_conditions):
                 array[0] = ""
-                new += [["", update_array[0]]]
+                new += [["", cw[0] + update_array[0] + cw[1] if cw else update_array[0]]]
             return
         elif len(z) == 2 and not z[0]:
             y = ["", update_array[0]]
@@ -1429,7 +1429,7 @@ def carrot(array, z, cw, new, my_conditions):
         if len(z) == 2 and not z[1]:
             if met(y[1], my_conditions):
                 array[0] = ""
-                new += [[y[0], y[1]]]
+                new += [[y[0], cw[0] + y[1] + cw[1] if cw else y[1]]]
             return
         if carrot_saver:
             carrot_saver.reverse()

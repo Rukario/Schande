@@ -1402,7 +1402,7 @@ def carrot(array, z, cw, new, my_conditions):
         if z in update_array[0]:
             if met(update_array[0], my_conditions):
                 array[0] = ""
-                new += [["", cw[0] + cw[1]]]
+                new += [["", cw[0] + cw[1] if cw else ""]]
         return
     z = [0, z]
     pc = False

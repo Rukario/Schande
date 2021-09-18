@@ -183,7 +183,7 @@ def help():
  |
  | Alert
  |  "expect ...*..."  put scraper into loop, exit when a pattern is found in page. "unexpect" for opposition.
- |    API: "un/expect .. > .. = X", "X > X" for multiple possibilities.
+ |    API: "un/expect .. > .. = X", "X > X" for multiple possibilities. Without equal sign for key existence mode.
  |  "message ..."     customize alert message. Leave blank to exit loop without alerting.
  |
  | Get files
@@ -1867,7 +1867,7 @@ def pick_in_page(scraper):
                             db = opendb(data)
                         pos += 1
                         c = z[1].rsplit(" = ", 1)
-                        result = tree(db, [z[0], [[c[0], c[1].split(" > "), 0, 0, 0, 0]]])
+                        result = tree(db, [z[0], [[c[0], c[1].split(" > ") if len(c) == 2 else 0, 0, 0, 0, 0]]])
                     else:
                         result = True if [x[1] for x in carrots(part, z, [], False)][0] else False
                     if y[0]["alt"] and result:
@@ -1942,7 +1942,12 @@ def pick_in_page(scraper):
                 l = carrots([[new, ""]], y[0][0])[0][1] if len(y[0]) > 1 else ""
                 l_fix = y[1][0]
                 x = carrots([[new, ""]], y[0][1 if len(y[0]) > 1 else 0])[0][1]
-                if (p := y[1][1])[1:].isdigit():
+                if (p := y[1][1]).isdigit() or p[1:].isdigit():
+                    if not x.isdigit():
+                        kill(f""" String captured: {x}
+ Calculate with (+): {p}
+
+Paginate picker is broken, captured string must be digit for calculator +/- mode!""")
                     x = int(x) + int(p)
                 elif y[1][1]:
                     p, _, a = peanut(y[1][1], [], False)

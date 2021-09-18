@@ -183,7 +183,7 @@ def help():
  |
  | Alert
  |  "expect ...*..."  put scraper into loop, exit when a pattern is found in page. "unexpect" for opposition.
- |    API: "un/expect .. > .. = X", "X > X" for multiple possibilities. Without equal sign for key existence mode.
+ |    API: "un/expect .. > .. = X", "X > X" for multiple possibilities. Without equal sign to un/expect key only.
  |  "message ..."     customize alert message. Leave blank to exit loop without alerting.
  |
  | Get files

@@ -9,7 +9,7 @@ from queue import Queue
 from socketserver import ThreadingMixIn
 from threading import Thread
 from urllib import parse, request
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from random import random
 
 if len(sys.argv) > 3:
@@ -1016,6 +1016,13 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
             else:
                 skiptonext[0] = False
                 return 0, str(e.code)
+        except URLError as e:
+            if stderr or retryx[0] and not skiptonext[0]:
+                if not retry(f"{stderr} (e.reason)"):
+                    return 0, e.reason
+            else:
+                skiptonext[0] = False
+                return 0, e.reason
         except:
             if stderr or retryx[0] and not skiptonext[0]:
                 if not retry(f"{stderr} (closed by host)"):
@@ -1363,6 +1370,7 @@ def downloadtodisk(fromhtml, makedirs=False):
         newfile = False if lastfilen == newfilen[0] else True
         if error[0]:
             for x in error[0]:
+                # Legacy code for ender! Need a new way to find part IDs of failed downloads.
                 htmlpart.pop(os.path.basename(x).split(".", 1)[0], None)
         if not newfile:
             sys.stdout.write(" Nothing new to download.")

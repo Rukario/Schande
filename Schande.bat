@@ -463,6 +463,11 @@ def status():
 
 
 class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if '?' in self.path:
+            self.path = self.path.split('?')[0]
+        SimpleHTTPRequestHandler.do_GET(self)
+
     def send_head(self):
         self.range = (0, 0)
         self.total = 0
@@ -3556,7 +3561,7 @@ def source_view():
                     print(syntax(data))
                     print()
             else:
-                print("Error or dead (update cookie or referer if these are required to view)\n")
+                print(f"Error or dead (update cookie or referer if these are required to view: {data})\n")
         elif not m:
             echo("", 1)
             echo("", 1)

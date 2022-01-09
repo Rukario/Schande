@@ -13,7 +13,7 @@ input[type="file"] {display: none;}
 .next {color:#6fe; background-color:#066; border:1px solid #033; border-radius:0px; padding:4px 11px;}
 ::placeholder {color:#3cb;}
 .prev {color:#6fe; background-color:#399; border:1px solid #033; padding:4px 11px;}
-.menu {color:#6e5; background-color:#132;}
+.menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45;background-color:#2d0710;}
 
 /*
@@ -316,7 +316,7 @@ function diff(e, a){
     let di = m.textContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").split("\n");
     for (var i=0;i<d.length;i++){
       if(d[i] !== di[i]){
-        d[i] = "<span style='color:#9b859d; background-color:#110c13;'>" + d[i]
+        d[i] = "<span class='menu'>" + d[i]
         break
       }
     }

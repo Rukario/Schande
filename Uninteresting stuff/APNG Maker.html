@@ -15,11 +15,12 @@ input[type="file"] {display:none;}
 .previous{background-color:#4bb; color:#133; border:1px solid #033}
 .reverse{background-color:#428; color:#d9f; border:1px solid #214}
 .inverse{background-color:#d9f; color:#428; border:1px solid #214}
-.menu {color:#6e5; background-color:#132;}
-.exitmenu {color:#f45;background-color:#2d0710;}
+.menu {color:#9b859d; background-color:#110c13;}
+.exitmenu {color:#f45; background-color:#2d0710;}
+.tooltip {background:rgba(255, 128, 32, 0.2); border:none; color:#ff9449; cursor:pointer; position:relative; margin-top:-2px;}
 .previous, .reverse, .inverse, .next {border-radius:0px; cursor:pointer; font-size:12px; padding:4px 11px; font-family:Arial;}
 .cell{display:inline-block; width: 360px; vertical-align: text-top; border:2px solid #772227; padding-left:10px;}
-.stdout {color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:8px;}
+.stdout {color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
 </style>
 <script>
 function plaintext(elem, e) {
@@ -39,7 +40,7 @@ function quicklook(e) {
     var s = new Image();
     s.src = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0].getAttribute("href");
 
-    maxresof(m);
+    get_dim(m);
     c = document.createElement("canvas");
     context = c.getContext("2d");
     c.width = dim[2];
@@ -267,12 +268,26 @@ function canvasToAB() {
   }
 }
 
-function maxresof(image) {
-  //sets max dimension, divide by 2 when exceeded, increment division times when 2 isn't enough
-  var len = Math.ceil(image.width / 4000)
-  var leny = Math.ceil(image.height / 4000)
-  if (leny > len) len = leny;
-  dim = [0, 0, Math.floor(image.width / len), Math.floor(image.height / len)]
+function fullres() {
+  dim = [...orig_dim];
+  di.innerHTML = dim[2] + " &times; " + dim[3];
+}
+
+function get_dim(image, enablescaling) {
+  orig_dim = [0, 0, image.width, image.height];
+  if (enablescaling) {
+    //sets max dimension, divide by 2 when exceeded, increment division times when 2 isn't enough
+    var len = Math.ceil(image.width / 4000)
+    var leny = Math.ceil(image.height / 4000)
+    if (leny > len) len = leny;
+    dim = [0, 0, Math.floor(orig_dim[2] / len), Math.floor(orig_dim[3] / len)]
+    di.innerHTML = dim[2] + " &times; " + dim[3];
+    if (len > 1){
+      di.innerHTML += " <button class='tooltip' onclick='fullres()'>use original</button>"
+    }
+  } else {
+    dim = [...orig_dim];
+  }
 }
 
 function canvasToFrame(callback, i, fpsm=1){
@@ -341,6 +356,8 @@ function Convolute(pixels, weights) {
 }
 
 function edge(s) {
+  ti[0] = performance.now()
+  ti[1] = performance.now()
   context.drawImage(s, ...dim);
   rgb = context.getImageData(...dim);
   rgb = Convolute(rgb, [-1, -1, -1, -1,  8, -1, -1, -1, -1])
@@ -397,7 +414,7 @@ function ghost(a) {
 
 function detect() {
   let d = fl.innerHTML.split("<br>").filter(function(el) { return el; })
-  maxresof(framearray[d[0]-1]);
+  get_dim(framearray[d[0]-1]);
   c = document.createElement("canvas");
   c.width = dim[2];
   c.height = dim[3];
@@ -979,9 +996,6 @@ function compileframes(){
     ti[0] = performance.now()
     ti[1] = performance.now()
 
-    if (i == 0){
-      maxresof(framearray[d[0]-1]);
-    }
     c = document.createElement("canvas");
     c.width = dim[2];
     c.height = dim[3];
@@ -1020,7 +1034,6 @@ function compileframes(){
       readFrame(i-1, fpsm);
     } else {
       if (start[0]){
-        maxresof(framearray[d[0]-1]);
         start[0] = 0
         last = d[0]
         FPSmultiplier(i+1)
@@ -1066,7 +1079,7 @@ function compileapngs(){
         ti[1] = performance.now()
         if(f == 0){
           if(i == 0){
-            maxresof(img)
+            get_dim(img)
             c = document.createElement("canvas");
             c.width = dim[2];
             c.height = dim[3];
@@ -1170,6 +1183,9 @@ function read(filelist){
       arri = new Uint8Array(fr.result);
       img = ABtoIMG([arri])
       img.onload = () => {
+        if (i == 0){
+          get_dim(img, true);
+        }
         framearray.push(img);
         if(i+1 == filelist.length){
           editlist();
@@ -1220,6 +1236,7 @@ function readapng(filelist){
 }
 
 function loaded(){
+  di = document.getElementById("di");
   fl = document.getElementById("framelist");
   al = document.getElementById("apnglist");
 
@@ -1321,7 +1338,7 @@ var framearray = [];
 var apngarray = [];
 var optimize = false;
 var ti = [0, 0, 0, 0];
-var c, context, dim, new_dim, portrait, cactus, al, fl, arri, arro, stdout, dl, img, Module, name, rgb, rgb2, rgb3;
+var c, context, di, dim, orig_dim, new_dim, portrait, cactus, al, fl, arri, arro, stdout, dl, img, Module, name, rgb, rgb2, rgb3;
 
 window.onload = () => {
   document.body.innerHTML = `<!-- <div class="container">
@@ -1334,8 +1351,8 @@ window.onload = () => {
 </div>-->
 
 <label class="next" id="jsload"><input id="js" type="file" accept=".js, text/javascript"></input>Load optipng.js</label>
-<button style="background: none; border:none; color:inherit; cursor:pointer;" onclick="echo('Optimize frames with <a href=&quot;https://github.com/LI-NA/optipng.js/tree/master/demo/js&quot; target=&quot;_blank&quot;>optipng.min.js</a> (minified of optipng.js), save next to HTML to load it automatically.<br>')">what?</button>
-<button style="background: none; border:none; color:inherit; cursor:pointer;" onclick="echo('APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Load optipng.js for additional file size reduction.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">production advices</button>
+<button class="tooltip" onclick="echo('Optimize frames with <a href=&quot;https://github.com/LI-NA/optipng.js/tree/master/demo/js&quot; target=&quot;_blank&quot;>optipng.min.js</a> (minified of optipng.js), save next to HTML to load it automatically.<br>')">what?</button>
+<button class="tooltip" onclick="echo('APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Load optipng.js for additional file size reduction.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">production advices</button>
 <label class="next"><input id="viewer" type="file"></input>Echo File</label>
 <p>
 
@@ -1354,7 +1371,7 @@ window.onload = () => {
 </div>
 <p>
 
-<button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">Make APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">emphasizing diffs</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 3px 11px; width:22px;" placeholder="Bad"> fps
+<button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">Make APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">emphasizing diffs</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 3px 11px; width:22px;" placeholder="Bad"> fps in dimension: <span id="di">-- &times; --</span>
 </div>
 
 

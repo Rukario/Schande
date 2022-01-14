@@ -424,11 +424,7 @@ function detect() {
     if(fps == 0){
       echo("Bad FPS")
     } else {
-      if(d.length > 2) {
-        apngdiff2(framearray[d[0]-1], framearray[d[1]-1], framearray[d[2]-1])
-      } else {
-        apngdiff(framearray[d[0]-1], framearray[d[1]-1]);
-      }
+      apngdiff(framearray[d[0]-1], framearray[d[1]-1]);
     }
   } else {
     edge(framearray[d[0]-1]);
@@ -505,153 +501,64 @@ function apngdiff(m, s) {
 
   function f2(){
   draw(s);
-  rgb2 = cropdiff(rgb)
+  rgb = cropdiff(portrait.data)
   canvasToFrame(f3, 1);
   }
 
   function f3(){
   draw(m);
-  rgb2 = cropdiff(rgb2)
+  rgb = cropdiff(rgb)
   canvasToFrame(f4, 0);
   }
 
   function f4(){
   draw(s);
-  rgb2 = cropdiff(rgb2)
+  rgb = cropdiff(rgb)
   canvasToFrame(f5, 1);
   }
 
   function f5(){
   draw(s);
   subtract(portrait.data, cactus);
-  rgb2 = cropdiff(rgb2)
+  rgb = cropdiff(rgb)
   canvasToFrame(f6, -2);
   }
   
   function f6(){
   draw(s);
-  difference(rgb, cactus);
-  rgb2 = cropdiff(rgb2)
+  difference(portrait.data, cactus);
+  rgb = cropdiff(rgb)
   canvasToFrame(f7, -2.5);
   }
 
   function f7(){
   draw(s);
   subtract(cactus.data, portrait);
-  frame_diff(rgb2, rgb)
+  frame_diff(rgb, portrait.data)
   context.putImageData(portrait, 0, 0);
   crop()
   canvasToFrame(makeapng, -3);
   }
 }
 
-function apngdiff2(m, s, s2) {
-  draw(m);
-  portrait = cactus;
-  rgb = portrait.data;
-  canvasToFrame(f2, 0);
-
-  function f2(){
-  draw(s);
-  rgb2 = cropdiff(rgb)
-  canvasToFrame(f3, 1);
-  }
-
-  function f3(){
-  draw(s2);
-  rgb2 = cropdiff(rgb2)
-  canvasToFrame(f4, 2);
-  }
-
-
-
-
-  function f4(){
-  draw(m);
-  rgb2 = cropdiff(rgb2)
-  canvasToFrame(f5, 0);
-  }
-
-  function f5(){
-  draw(s);
-  rgb2 = cropdiff(rgb2)
-  canvasToFrame(f6, 1);
-  }
-
-  function f6(){
-  draw(s2);
-  rgb2 = cropdiff(rgb2)
-  canvasToFrame(f7, 2);
-  }
-
-
-
-  function f7(){
-  draw(s);
-  subtract(rgb, cactus);
-  rgb2 = cropdiff(rgb2)
-  canvasToFrame(f8, -2);
-  }
-  
-  function f8(){
-  draw(s);
-  difference(rgb, cactus);
-  rgb2 = cropdiff(rgb2)
-  canvasToFrame(f9, -2.5);
-  }
-
-  function f9(){
-  draw(s);
-  subtract(cactus.data, portrait);
-  frame_diff(rgb2, rgb)
-  context.putImageData(portrait, 0, 0);
-  crop()
-  canvasToFrame(makeapng, -2);
-  }
-
-  function f10(){
-  draw(s);
-  difference(rgb, cactus.data);
-  rgb2 = cropdiff(rgb2)
-  canvasToFrame(f11, -3.5);
-  }
-  
-  function f11(){
-  draw(s);
-  subtract(rgb, cactus.data);
-  rgb2 = cropdiff(rgb2)
-  canvasToFrame(f12, -4);
-  }
-
-  function f12(){
-  draw(s);
-  difference(cactus.data, portrait);
-  frame_diff(rgb2, rgb)
-  context.putImageData(portrait, 0, 0);
-  crop()
-  canvasToFrame(makeapng, -4.5);
-  }
-}
-
 function canvasdiff(m, s) {
   context.drawImage(m, ...dim)
   portrait = context.getImageData(...dim);
-  rgb = portrait.data;
   setTimeout(function() {
     context.drawImage(s, ...dim)
     cactus = context.getImageData(...dim);
-    darkside(rgb, cactus.data);
+    darkside(portrait.data, cactus.data);
     setTimeout(function() {
       context.putImageData(cactus, 0, 0);
       setTimeout(function() {
         context.drawImage(s, ...dim);
         cactus = context.getImageData(...dim);
-        darkdiff(rgb, cactus.data);
+        darkdiff(portrait.data, cactus.data);
         context.putImageData(cactus, 0, 0);
         setTimeout(function() {
           context.drawImage(s, ...dim);
           cactus = context.getImageData(...dim);
-          darkside(cactus.data, rgb);
+          darkside(cactus.data, portrait.data);
           context.putImageData(portrait, 0, 0);
           setTimeout(function() {
             requestAnimationFrame(canvasdiff(m, s));
@@ -1338,7 +1245,7 @@ var framearray = [];
 var apngarray = [];
 var optimize = false;
 var ti = [0, 0, 0, 0];
-var c, context, di, dim, orig_dim, new_dim, portrait, cactus, al, fl, arri, arro, stdout, dl, img, Module, name, rgb, rgb2, rgb3;
+var c, context, di, dim, orig_dim, new_dim, portrait, cactus, al, fl, arri, arro, stdout, dl, img, Module, name, rgb;
 
 window.onload = () => {
   document.body.innerHTML = `<!-- <div class="container">

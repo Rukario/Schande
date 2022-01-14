@@ -17,7 +17,7 @@ input[type="file"] {display:none;}
 .inverse{background-color:#d9f; color:#428; border:1px solid #214}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
-.tooltip {background:rgba(255, 128, 32, 0.2); border:none; color:#ff9449; cursor:pointer; position:relative; margin-top:-2px;}
+.tooltip {background:none; border:1px solid #772227; color:inherit; cursor:pointer; position:relative; margin:-2px 0px;}
 .previous, .reverse, .inverse, .next {border-radius:0px; cursor:pointer; font-size:12px; padding:4px 11px; font-family:Arial;}
 .cell{display:inline-block; width: 360px; vertical-align: text-top; border:2px solid #772227; padding-left:10px;}
 .stdout {color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
@@ -362,8 +362,7 @@ function edge(s) {
   rgb = context.getImageData(...dim);
   rgb = Convolute(rgb, [-1, -1, -1, -1,  8, -1, -1, -1, -1])
   context.putImageData(rgb, 0, 0);
-  echo("Edge Detect")
-  canvasToFrame(staticAPNG)
+  canvasToFrame(staticAPNG, -2)
 }
 
 function ghost(a) {
@@ -414,7 +413,7 @@ function ghost(a) {
 
 function detect() {
   let d = fl.innerHTML.split("<br>").filter(function(el) { return el; })
-  get_dim(framearray[d[0]-1]);
+  get_dim(framearray[d[0]-1], true);
   c = document.createElement("canvas");
   c.width = dim[2];
   c.height = dim[3];
@@ -854,10 +853,13 @@ function crc32(ab, start=0, len=0) {
 }
 
 function staticAPNG(){
+  ti[0] = performance.now()
+  ti[1] = performance.now()
   c.width = 1;
   c.height = 1;
   new_dim = [0, 0, 1, 1]
   context.clearRect(...new_dim);
+  echo("APNGified")
   canvasToFrame(makeapng);
 }
 
@@ -919,8 +921,7 @@ function compileframes(){
 
     if(i+1 == d.length){
       if(1 == d.length){
-        echo("Resave as");
-        canvasToFrame(staticAPNG);
+        canvasToFrame(staticAPNG, 0);
       } else {
         canvasToFrame(makeapng, i, fpsm);
       }

@@ -16,17 +16,9 @@ Any good OS with Python 3 installed will work. iOS/iPadOS: get iSH Shell app fro
 1. Save Schande.bat to your favorite location where you want to download files to, change the file extension back to .bat if it's in something else.
 
 2. Follow one for your system:
- > Windows: Double click on it and read the CLI message.
-
- > Linux/MacOS (Terminal):
-```
-python3 -x /drag/n/drop/Schande.bat
-```
-
- > iOS/iPadOS (iSH Shell app)
-```
-python3 -x /mnt/Schande.bat
-```
+    - Windows: Double click on it and read the CLI message.
+    - Linux/MacOS (Terminal): `python3 -x /drag/n/drop/Schande.bat`
+    - iOS/iPadOS (iSH Shell app): `python3 -x /mnt/Schande.bat`
 
 3. Schande.bat on first run will create a new file: Schande.cd, open it in your favorite text editor to edit rules, refer to the premade Schande.cd for inspiration.
 

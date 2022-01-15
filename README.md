@@ -28,8 +28,10 @@ python3 -x /drag/n/drop/Schande.bat
 python3 -x /mnt/Schande.bat
 ```
 
-3. Schande.bat on first run will create a new file: Schande.cd, open it in your favorite text editor and add a rule there (to establish your capabilities to open and edit it), refer to the premade Schande.cd for inspiration.
+3. Schande.bat on first run will create a new file: Schande.cd, open it in your favorite text editor to edit rules, refer to the premade Schande.cd for inspiration.
 
 4A. Paranoids: (H)elp, (V)iew page source
 
 4B. Braves: (I)nput
+
+4C. Leaving it in background for HTML server (if enabled)

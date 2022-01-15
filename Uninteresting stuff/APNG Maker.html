@@ -40,8 +40,9 @@ function quicklook(e) {
     var s = new Image();
     s.src = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0].getAttribute("href");
 
-    get_dim(m);
     c = document.createElement("canvas");
+    get_dim(m);
+    new_dim = [...dim];
     context = c.getContext("2d");
     c.width = dim[2];
     c.height = dim[3];
@@ -228,10 +229,8 @@ function echoIMGfromCanvas() {
 
 function echoPalette(){
   palette.sort();
-  c = document.createElement("canvas");
   c.height = 8;
   c.width = Math.ceil(palette.length/c.height);
-  context = c.getContext("2d");
   var img = context.createImageData(c.width, c.height);
   var data = img.data;
   for(var i=0;i<palette.length;i++){
@@ -413,12 +412,9 @@ function ghost(a) {
 
 function detect() {
   let d = fl.innerHTML.split("<br>").filter(function(el) { return el; })
-  get_dim(framearray[d[0]-1], true);
-  c = document.createElement("canvas");
   c.width = dim[2];
   c.height = dim[3];
   new_dim = [...dim]
-  context = c.getContext("2d");
   if(d.length > 1) {
     if(fps == 0){
       echo("Bad FPS")
@@ -546,18 +542,18 @@ function canvasdiff(m, s) {
   setTimeout(function() {
     context.drawImage(s, ...dim)
     cactus = context.getImageData(...dim);
-    darkside(portrait.data, cactus.data);
+    subtract(portrait.data, cactus);
     setTimeout(function() {
       context.putImageData(cactus, 0, 0);
       setTimeout(function() {
         context.drawImage(s, ...dim);
         cactus = context.getImageData(...dim);
-        darkdiff(portrait.data, cactus.data);
+        difference(portrait.data, cactus);
         context.putImageData(cactus, 0, 0);
         setTimeout(function() {
           context.drawImage(s, ...dim);
           cactus = context.getImageData(...dim);
-          darkside(cactus.data, portrait.data);
+          subtract(cactus.data, portrait);
           context.putImageData(portrait, 0, 0);
           setTimeout(function() {
             requestAnimationFrame(canvasdiff(m, s));
@@ -855,9 +851,9 @@ function crc32(ab, start=0, len=0) {
 function staticAPNG(){
   ti[0] = performance.now()
   ti[1] = performance.now()
+  new_dim = [0, 0, 1, 1]
   c.width = 1;
   c.height = 1;
-  new_dim = [0, 0, 1, 1]
   context.clearRect(...new_dim);
   echo("APNGified")
   canvasToFrame(makeapng);
@@ -905,12 +901,10 @@ function compileframes(){
     ti[0] = performance.now()
     ti[1] = performance.now()
 
-    c = document.createElement("canvas");
     c.width = dim[2];
     c.height = dim[3];
-    context = c.getContext("2d");
-
     context.drawImage(framearray[d[i]-1], ...dim);
+
     new_dim = [...dim]
     if (start[1]) {
       frameSaver(0);
@@ -929,7 +923,6 @@ function compileframes(){
       if(fps == 0){
         echo("Bad fps")
       } else {
-        //canvasToFrame(readFrame, i);
         canvasToFrame(FPSmultiplier, i, fpsm);
       }
     }
@@ -960,7 +953,6 @@ function compileframes(){
   }
   FPSmultiplier(0);
   callafter = 2
-  //readFrame(0);
 }
 
 function compileapngs(){
@@ -988,10 +980,8 @@ function compileapngs(){
         if(f == 0){
           if(i == 0){
             get_dim(img)
-            c = document.createElement("canvas");
             c.width = dim[2];
             c.height = dim[3];
-            context = c.getContext("2d");
             context.drawImage(img, ...dim);
             frameSaver(0);
             document.title = next;
@@ -1005,11 +995,7 @@ function compileapngs(){
               readFrame(f+1);
             }
           } else {
-            c = document.createElement("canvas");
-            context = c.getContext("2d");
-            c.width = dim[2];
-            c.height = dim[3];
-            context.drawImage(img, ...dim);
+            context.drawImage(img, ...new_dim);
             frameSaver(1);
             var promise = new Promise(canvasToAB())
             promise.then(function(arri){
@@ -1246,10 +1232,12 @@ var framearray = [];
 var apngarray = [];
 var optimize = false;
 var ti = [0, 0, 0, 0];
-var c, context, di, dim, orig_dim, new_dim, portrait, cactus, al, fl, arri, arro, stdout, dl, img, Module, name, rgb;
+var c = document.createElement("canvas");
+var context = c.getContext("2d");
+var di, dim, orig_dim, new_dim, portrait, cactus, al, fl, arri, arro, stdout, dl, img, Module, name, rgb;
 
 window.onload = () => {
-  document.body.innerHTML = `<!-- <div class="container">
+  document.body.innerHTML = `<!--<div class="container">
 <div class="frame"><a class="fileThumb" href="Eye - Green.png"><img class="lazy" data-src="Eye - Green.png"></a></div>
 <div class="frame"><a class="fileThumb" href="Eye - pink.png"><img class="lazy" id="load" data-src="Eye - pink.png"></a></div>
 </div>

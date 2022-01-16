@@ -172,8 +172,7 @@ function dedup(){
       clean.push("");
     }
   }
-  render(clean.join("\n"));
-  toolbar();
+  toolbar(render(clean.join("\n")));
 };
 
 function denew(){
@@ -184,19 +183,16 @@ function denew(){
       clean.push(dirty[i]);
     }
   }
-  render(clean.join("\n"));
-  toolbar();
+  toolbar(render(clean.join("\n")));
 }
 
 function detab(){
-  render(editor.textContent.replace(/	/g, "    "));
-  toolbar();
+  toolbar(render(editor.textContent.replace(/	/g, "    ")));
 }
 
 function decode(){
   try {
-    render(decodeURIComponent(editor.textContent));
-    toolbar();
+    toolbar(render(decodeURIComponent(editor.textContent)));
   } catch {
     alert("The percent sign in this document appears malformed and has killed decoder!");
   }
@@ -239,13 +235,12 @@ function unraw(str) {
 function replace(x, y){
   var x = document.getElementById("replace");
   if(!x.value){
-    render(editor.textContent);
+    toolbar(render(editor.textContent));
   } else {
     var y = document.getElementById("with");
     var r = new RegExp(x.value, 'g');
-    render(editor.textContent.replace(r, unraw(y.value)));
+    toolbar(render(editor.textContent.replace(r, unraw(y.value))));
   }
-  toolbar();
 }
 
 function fraktur(){
@@ -265,8 +260,7 @@ function fraktur(){
     str += String.fromCodePoint(c);
   }
   document.body.textContent = str;
-  editor = document.body;
-  toolbar();
+  toolbar(document.body.innerHTML);
 }
 
 function check(e){
@@ -305,42 +299,40 @@ function locatoon(e, a){
 }
 
 function diff(e, a){
-  let m = document.getElementById("editable");
   if (e.classList.contains("next")){
     e.classList.remove("next");
     e.classList.add("prev");
     e.setAttribute("data-html-original", e.innerHTML);
     e.innerHTML = a;
-    m.setAttribute("data-html-original", m.innerHTML);
-    let d = m.getAttribute("data-diff").split("\n");
-    let di = m.textContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").split("\n");
+    let d = editdiff.textContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").split("\n");
+    let di = editor.textContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").split("\n");
     for (var i=0;i<d.length;i++){
       if(d[i] !== di[i]){
         d[i] = "<span class='menu'>" + d[i]
         break
       }
     }
-    m.innerHTML = d.join("\n") + "</span>";
+    editdiff.innerHTML = d.join("\n") + "</span>";
+    editor.style.display = "none";
+    editdiff.style.display = "inline-block";
   } else {
     e.classList.remove("prev");
     e.classList.add("next");
     e.innerHTML = e.getAttribute("data-html-original");
-    m.setAttribute("data-diff", m.textContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
-    m.innerHTML = m.getAttribute("data-html-original");
+    editdiff.style.display = "none";
+    editor.style.display = "inline-block";
   }
 }
 
 function render(text) {
-  document.body.innerHTML = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/(https:\/\/.*?)(\"|\'|\n| )/g, '<a href="$1" target="_blank" contenteditable="false">$1</a>$2');
-  editor = document.body;
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/(https:\/\/.*?)(\"|\'|\n| )/g, '<a href="$1" target="_blank" contenteditable="false">$1</a>$2');
 }
 
 function open(file) {
   var fr = new FileReader();
   fr.readAsText(file);
   fr.onload = () => {
-    render(fr.result);
-    toolbar();
+    toolbar(render(fr.result));
   }
 }
 
@@ -348,8 +340,7 @@ function opendiff(file){
   var fr = new FileReader();
   fr.readAsText(file);
   fr.onload = () => {
-    let m = document.getElementById("editable");
-    m.setAttribute("data-diff", fr.result.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+    editdiff.innerHTML = fr.result.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
   let d = document.getElementById("togglediff")
   d.style.display = "inline-block";
@@ -357,20 +348,22 @@ function opendiff(file){
   d.style.display = "none";
 }
 
-function toolbar(){
+function toolbar(d){
   document.body.className = "exitmenu";
+  document.body.innerHTML = d;
   hljs.initHighlighting.called = false;
   hljs.initHighlighting();
-  document.body.innerHTML = `<div style="position:fixed; white-space:nowrap; background-color:inherit;"><div id="dimm" style="font-size:14px; display:none;"><button class="prev" onclick="exitmenu();">🦊 -(Destructive tools)</button> 🦊 -(De<button class="next" onclick="dedup();">duplicate</button><button class="next" onclick="denew();">newline</button><button class="next" onclick="detab();">tab</button><button class="next" onclick="decode();">code</button> or <input id="replace" class="next" style="padding:7px 10px 6px; margin:2px; width:86px;" type="text" placeholder="Replace...">→<input id="with" class="next" style="padding:7px 10px 6px; margin:2px; width:88px;" type="text" placeholder="none">) <button class="next" onclick="fraktur();">🦊 -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="font-size:14px; display:block;"><button class="next" onclick="menu()">🦊 -(Destructive tools)</button><input id="calculator" class="next" style="padding:7px 10px 6px; margin:2px; width:88px;" type="text" oninput="check(this);" placeholder="Quick Calculator"> 🦊 -(Open<label class="next" style="font-size:11px; padding:5px 12px 4px; margin:2px; font-family:arial;"><input type="file" id="picker"></input>File</label><label id="togglediffx" class="next" style="font-size:11px; padding:5px 12px 4px; margin:2px; font-family:arial;"><input type="file" id="pickerdiff"></input>Diff</label><button class="next" id="togglediff" style="display:none;" onclick="diff(this, 'File 2')">File 1</button>) <button class="next" onclick="rename();">🦊 -(Save as)</button> 🦊 -(<button class="next" onclick="save()">Save</button><button class="next" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</div></div><div class="editor" id="editable" style="display:inline-block;">` + editor.innerHTML + `</div>`;
+  document.body.innerHTML = `<div style="position:fixed; white-space:nowrap; background-color:inherit;"><div id="dimm" style="font-size:14px; display:none;"><button class="prev" onclick="exitmenu();">🦊 -(Destructive tools)</button> 🦊 -(De<button class="next" onclick="dedup();">duplicate</button><button class="next" onclick="denew();">newline</button><button class="next" onclick="detab();">tab</button><button class="next" onclick="decode();">code</button> or <input id="replace" class="next" style="padding:7px 10px 6px; margin:2px; width:86px;" type="text" placeholder="Replace...">→<input id="with" class="next" style="padding:7px 10px 6px; margin:2px; width:88px;" type="text" placeholder="none">) <button class="next" onclick="fraktur();">🦊 -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="font-size:14px; display:block;"><button class="next" onclick="menu()">🦊 -(Destructive tools)</button><input id="calculator" class="next" style="padding:7px 10px 6px; margin:2px; width:88px;" type="text" oninput="check(this);" placeholder="Quick Calculator"> 🦊 -(Open<label class="next" style="font-size:11px; padding:5px 12px 4px; margin:2px; font-family:arial;"><input type="file" id="picker"></input>File</label><label id="togglediffx" class="next" style="font-size:11px; padding:5px 12px 4px; margin:2px; font-family:arial;"><input type="file" id="pickerdiff"></input>Diff</label><button class="next" id="togglediff" style="display:none;" onclick="diff(this, 'File 2')">File 1</button>) <button class="next" onclick="rename();">🦊 -(Save as)</button> 🦊 -(<button class="next" onclick="save()">Save</button><button class="next" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + document.body.innerHTML + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
   editor = document.getElementById("editable");
+  editdiff = document.getElementById("editable2");
   editor.setAttribute("oninput", "edit();");
   editor.setAttribute("onselect", "selected();");
-  editor.setAttribute("contenteditable", "plaintext-only");
   if(!editor.isContentEditable){
     editor.setAttribute("onpaste", "plaintext(this, event)");
     editor.setAttribute("contenteditable", "true");
+    editdiff.setAttribute("onpaste", "plaintext(this, event)");
+    editdiff.setAttribute("contenteditable", "true");
   }
-  editor.setAttribute("spellcheck", false);
   var x = document.getElementById("picker");
   x.addEventListener('change', (event) => {
     file = event.target.files[0];
@@ -404,7 +397,7 @@ function toolbar(){
   });
 }
 
-var editor;
+var editor, editdiff;
 window.onload = () => {
   var scale = "26px";
   if (window.screen.width > 800){
@@ -412,9 +405,7 @@ window.onload = () => {
   }
   document.body.style.fontSize = scale
   document.body.style.lineHeight = scale
-  editor = document.body;
-  editor.innerHTML = ""
-  toolbar();
+  toolbar("");
 }
 
 /*

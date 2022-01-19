@@ -35,6 +35,7 @@ tcd = "\\" + cd.replace("/", "\\")
 htmlfile = batchname + ".html"
 rulefile = batchname + ".cd"
 sav = batchname + ".sav"
+savb = batchname + ".savb"
 savx = batchname + ".savx"
 textfile = batchname + ".txt"
 
@@ -102,7 +103,8 @@ def mainmenu():
  + Press B to launch HTML in your favorite browser.
  | Press G to re/compile HTML from Geistauge's database (your browser will be used as comparison GUI).
  | Press D to delete non-exempted duplicate images immediately with a confirmation.
- +  > One first non-exempt in path alphabetically will be kept if no other duplication are exempted.
+ |  > One first non-exempt in path alphabetically will be kept if no other duplication are exempted.
+ + Press Z to split Geistauge's database to pathless version (for vetrification against unwanted recenty downloads).
 
  - - - - Input - - - -
  + Enter file:/// or http://localhost url to enter delete mode.
@@ -3588,7 +3590,7 @@ def source_view():
 
 def keylistener():
     while True:
-        el = choice("abcdghiklnoqrstvx0123456789")
+        el = choice("abcdefghijklmnopqrstuvwxyz0123456789")
         if el == 1:
             echo("", 1)
             retryall_always[0] = True
@@ -3638,13 +3640,25 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
+            echo("Keypress E unrecognized", 0, 1)
+            ready_input()
+        elif el == 6:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            echo("Keypress F unrecognized", 0, 1)
+            ready_input()
+        elif el == 7:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
             if not Geistauge:
                 choice(bg=True)
                 print(" GEISTAUGE: Maybe not.")
             else:
                 tohtml_g()
             ready_input()
-        elif el == 6:
+        elif el == 8:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
@@ -3662,7 +3676,7 @@ def keylistener():
                     echo("", 1, 0)
                     echo("", 1, 0)
                     ready_input()
-        elif el == 7:
+        elif el == 9:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
@@ -3670,7 +3684,13 @@ def keylistener():
                 echo("", 1, 0)
                 echo("", 1, 0)
                 ready_input()
-        elif el == 8:
+        elif el == 10:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            echo("Keypress J unrecognized", 0, 1)
+            ready_input()
+        elif el == 11:
             c = False
             for c in cookies:
                 echo(str(c), 1, 2)
@@ -3678,38 +3698,50 @@ def keylistener():
                 echo("No cookies!", 1, 1)
             if not busy[0]:
                 ready_input()
-        elif el == 9:
+        elif el == 12:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             run_input[2] = True
-        elif el == 10:
+        elif el == 13:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            echo("Keypress M unrecognized", 0, 1)
+            ready_input()
+        elif el == 14:
             echo("", 1)
             retryall_else[0] = True
             if not busy[0]:
                 ready_input()
-        elif el == 11:
+        elif el == 15:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             finish_sort()
             ready_input()
-        elif el == 12:
+        elif el == 16:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            echo("Keypress P unrecognized", 0, 1)
+            ready_input()
+        elif el == 17:
             echo("", 1)
             retryall_always[0] = False
             if not busy[0]:
                 ready_input()
-        elif el == 13:
+        elif el == 18:
             echo("", 1)
             retryall[0] = True
             if not busy[0]:
                 ready_input()
-        elif el == 14:
+        elif el == 19:
             echo("", 1)
             skiptonext[0] = True
             if not busy[0]:
                 ready_input()
-        elif el == 15:
+        elif el == 20:
             if ticks:
                 echo(f"""COOLDOWN {"DISABLED" if cooldown[0] else "ENABLED"}""", 1, 1)
             else:
@@ -3717,15 +3749,39 @@ def keylistener():
             cooldown[0] = False if cooldown[0] else True
             if not busy[0]:
                 ready_input()
-        elif el == 16:
+        elif el == 21:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            echo("Keypress U unrecognized", 0, 1)
+            ready_input()
+        elif el == 22:
             source_view()
-        elif el == 17:
+        elif el == 23:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            echo("Keypress W unrecognized", 0, 1)
+            ready_input()
+        elif el == 24:
             echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
             retryx[0] = False if retryx[0] else True
             retryall_always[0] = True
             if not busy[0]:
                 ready_input()
-        elif 0 <= (n := min(el-18, 8)) < 9:
+        elif el == 25:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            echo("Keypress Y unrecognized", 0, 1)
+            ready_input()
+        elif el == 26:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            echo("Keypress Z unrecognized", 0, 1)
+            ready_input()
+        elif 0 <= (n := min(el-27, 8)) < 9:
             echo(f"""MAX PARALLEL DOWNLOAD SLOT: {n} {"(pause)" if not n else ""}""", 1, 1)
             dlslot[0] = n
             if not busy[0]:

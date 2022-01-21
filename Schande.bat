@@ -3910,6 +3910,33 @@ while True:
 
 
 
+if os.path.isfile(batchdir + "geckodriver.exe"):
+    try:
+        from selenium import webdriver
+    except:
+        print(f"\nSELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install selenium")
+        sys.exit()
+    browser = webdriver.Firefox()
+    browser.get('https://example.com')
+    while True:
+        if """FOUND""" in browser.page_source:
+            echo("FOUND", 0, 1)
+        else:
+            echo("Nope", 0, 1)
+        for bc in browser.get_cookies():
+            if "httpOnly" in bc: del bc["httpOnly"]
+            if "expiry" in bc: del bc["expiry"]
+            if "sameSite" in bc: del bc["sameSite"]
+            c = new_cookie()
+            c.update(bc)
+            cookies.set_cookie(cookiejar.Cookie(**c))
+        input("Cookie updated. Refresh?\r")
+        browser.refresh()
+else:
+    print(f"\n Download and extract the latest win64 package from https://github.com/mozilla/geckodriver/releases and then try again.")
+
+
+
 """
 ::MacOS - Install Python 3 then open Terminal and enter:
 open /Applications/Python\ 3.9/Install\ Certificates.command

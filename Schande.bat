@@ -3970,8 +3970,6 @@ if exist "!txtfilex!" for /f "delims=" %%i in ('findstr /b /i "Python = " "!txtf
 chcp 437>nul
 if not "!string!"=="" (set pythondir=!string!)
 set x=Python 3.9
-set cute=!x:.=!
-set cute=!cute: =!
 set pythondirx=!pythondir!!x: 3.=3!
 if exist "!pythondirx!\python.exe" (cd /d "!pythondirx!" && color %color%) else (color %stopcolor%
 echo.
@@ -3982,8 +3980,8 @@ pause%>nul
 exit)
 set pythondir=!pythondir:\=\\!
 
-if exist Lib\site-packages\ (goto start) else (goto install)
-if exist Lib\site-packages\ (echo.) else (echo.)
+if exist Lib\site-packages\ (echo.) else (goto install)
+if exist Lib\site-packages\ (goto start) else (echo.)
 
 :install
 echo  Hold on . . . I need to install the missing packages.

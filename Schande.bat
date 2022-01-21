@@ -35,7 +35,8 @@ tcd = "\\" + cd.replace("/", "\\")
 htmlfile = batchname + ".html"
 rulefile = batchname + ".cd"
 sav = batchname + ".sav"
-savb = batchname + ".savb"
+savm = batchname + ".savm"
+savp = batchname + ".savp"
 savx = batchname + ".savx"
 textfile = batchname + ".txt"
 
@@ -720,7 +721,7 @@ def peanut(z, cw, a):
 
 
 
-def at(s, r, cw=[], alt=0, key=False, name=False):
+def at(s, r, cw=[], alt=0, key=False, name=False, meta=False):
     n, r = r.split(" ", 1) if " " in r else [r, ""]
     n = int(n) if n else 0
     if key:
@@ -737,6 +738,9 @@ def at(s, r, cw=[], alt=0, key=False, name=False):
     s[n] += [r] if s[n] else [{"alt":alt}, r]
     if name and r[0] and not r[2]:
         file_pos[0] = "file_after"
+    if name or meta:
+        if len(s) > total_names[0]:
+            total_names[0] = len(s)
 
 
 
@@ -801,7 +805,7 @@ def picker(s, rule):
     elif rule.startswith("name"):
         at(s["name"], rule.split("name", 1)[1], ["", ""], 1, name=True)
     elif rule.startswith("meta"):
-        at(s["name"], rule.split("meta", 1)[1], ["", ""])
+        at(s["name"], rule.split("meta", 1)[1], ["", ""], meta=True)
     elif rule.startswith("extfix "):
         s["extfix"] = rule.split("extfix ", 1)[1]
     elif rule.startswith("urlfix"):
@@ -857,6 +861,7 @@ mozilla = {}
 exempt = []
 pickers = {"void":new_picker()}
 site = "void"
+total_names = [0]
 dir = ""
 ticks = []
 for rule in rules:
@@ -878,8 +883,7 @@ for rule in rules:
         elif len(r := rr[0].split(" ")) == 2:
             hydras.update({rr[1]: r})
         else:
-            print("\n There is at least one of the bad custom dir rules (no asterisk or too many).")
-            sys.exit()
+            kill("\n There is at least one of the bad custom dir rules (no asterisk or too many).")
     elif len(rr) == 2 and rr[1].startswith('.'):
         c = new_cookie()
         c.update({'domain': rr[1], 'name': rr[0].split(" ")[0], 'value': rr[0].split(" ")[1]})
@@ -917,6 +921,10 @@ for rule in rules:
                 print(f"{tcoloro} SORTER: \\{dir[0]} must be announced only once.{tcolorx}")
             sorter.update({dir[0]: [True, dir[1]]})
     elif rule.startswith("http"):
+        for n in range(total_names[0]):
+            if not pickers[site]["name"][n]:
+                kill(f"\n One of the name pickers for sequential name assemblement was skipped.")
+        total_names[0] = 0
         site = rule
         if not site in pickers:
             pickers.update({site:new_picker()})
@@ -927,6 +935,9 @@ for rule in rules:
         sorter[dir] += [rule]
     else:
         exempt += [rule]
+for n in range(total_names[0]):
+    if not pickers[site]["name"][n]:
+        kill(f"\n One of the name pickers for sequential name assemblement was skipped.")
 
 
 
@@ -3182,7 +3193,7 @@ def tohtml_g(delete=False):
         phash, file = line.split(" ", 1)
         datagroup.setdefault(phash, [])
         datagroup[phash].append(file)
-    dbz = opensav(savx).splitlines()
+    new_savx = opensav(savx).splitlines()
     for v in datagroup.values():
         if len(v := [x for x in v if os.path.exists(x)]) < 2:
             continue
@@ -3199,21 +3210,21 @@ def tohtml_g(delete=False):
         file2 = next(v)
         while True:
             s = [0, 0, 0, 0]
-            for line in dbz:
+            for line in new_savx:
                 if file2 in line:
                     s = list(map(int, line.split(" ", 3)[:3])) + [line.split(" ", 4)[3]]
                     break
             if not s[3]:
                 s = whsm(file2)
-                dbz += [" ".join([str(x) for x in s]) + f" {file2}"]
+                new_savx += [" ".join([str(x) for x in s]) + f" {file2}"]
             if not m[3]:
-                for line in dbz:
+                for line in new_savx:
                     if file in line:
                         m = list(map(int, line.split(" ", 3)[:3])) + [line.split(" ", 4)[3]]
                         break
                 if not m[3]:
                     m = whsm(file)
-                    dbz += [" ".join([str(x) for x in m]) + f" {file}"]
+                    new_savx += [" ".join([str(x) for x in m]) + f" {file}"]
             if m[3] == s[3] and delete:
                 if not any(word in file2 for word in exempt):
                     if os.path.exists(file2):
@@ -3240,7 +3251,7 @@ def tohtml_g(delete=False):
             with open(morehtml, 'wb') as f:
                 f.write(bytes(new_html(builder, batchname, ""), 'utf-8'))
             with open(savx, 'wb') as f:
-                f.write(bytes("\n".join(dbz), 'utf-8'))
+                f.write(bytes("\n".join(new_savx), 'utf-8'))
             print("\"" + morehtml + "\" created!")
             builder = ""
             counter += 1
@@ -3248,9 +3259,46 @@ def tohtml_g(delete=False):
     with open(morehtml, 'wb') as f:
         f.write(bytes(new_html(builder, batchname, ""), 'utf-8'))
     with open(savx, 'wb') as f:
-        f.write(bytes("\n".join(dbz), 'utf-8'))
+        f.write(bytes("\n".join(new_savx), 'utf-8'))
     print("\"" + morehtml + "\" created!")
     print(f"total runtime: {time.time()-start}")
+
+
+
+def updsav():
+    echo("Split mode: (D)elete (P)revent from redownload or e(X)it", 0, 1)
+    mode = choice("dpx")
+    if mode == 0 or mode == 3:
+        return
+    old_sav = opensav(sav).splitlines()
+    new_sav = []
+    old_savx = opensav(savx).splitlines()
+    new_savx = []
+    if mode == 2:
+        new_savm = opensav(savm).splitlines()
+        new_savp = opensav(savp).splitlines()
+    for line in old_sav:
+        phash, file = line.split(" ", 1)
+        if os.path.exists(file):
+            new_sav += [line]
+        elif mode == 2:
+            new_savp += [phash]
+    for line in old_savx:
+        if os.path.exists(line.split(" ", 5)[4]):
+            new_savx += line
+        elif mode == 2:
+            new_savm += [" ".join(line.split(" ", 4)[:4])]
+    if mode == 2:
+        with open(savm, 'wb') as f:
+            f.write(bytes("\n".join(new_savm), 'utf-8'))
+        with open(savp, 'wb') as f:
+            f.write(bytes("\n".join(new_savp), 'utf-8'))
+    print(f"I'd overwrite {sav} and {savx} with new ones.")
+    return
+    with open(sav, 'wb') as f:
+        f.write(bytes("\n".join(new_sav), 'utf-8'))
+    with open(savx, 'wb') as f:
+        f.write(bytes("\n".join(new_savx), 'utf-8'))
 
 
 
@@ -3779,7 +3827,11 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            echo("Keypress Z unrecognized", 0, 1)
+            if not Geistauge:
+                choice(bg=True)
+                print(" GEISTAUGE: Maybe not.")
+            else:
+                updsav()
             ready_input()
         elif 0 <= (n := min(el-27, 8)) < 9:
             echo(f"""MAX PARALLEL DOWNLOAD SLOT: {n} {"(pause)" if not n else ""}""", 1, 1)

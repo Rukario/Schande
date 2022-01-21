@@ -3308,7 +3308,7 @@ def compare(m):
     except:
         print(" Featuring image is corrupted.")
         return
-    s = input("Drag'n'drop and enter another image to compare, more folder to scan, or empty to find in database: ").rstrip().strip('\"')
+    s = input("Enter reference (compare) / more folder to scan / nothing (find in database): ").rstrip().strip('\"')
     start = time.time()
     if not s:
         db = opensav(sav).splitlines()
@@ -3327,9 +3327,9 @@ def compare(m):
                 else:
                     indb = True
         if not found and indb:
-            print(" Featuring image is unique! But come on, let's compile HTML from database so you can find duplication faster.")
+            print(f" {tcolorg}Featuring image is unique!{tcolorx} But come on, let's compile HTML from database so you can find duplication faster.")
         elif not found:
-            print(" Featuring image is unique! Nothing like it in database!")
+            print(f" {tcolorg}Featuring image is unique! Nothing like it in database!{tcolorx}")
         else:
             print(f"{hash} {m} (featuring image)\nSame file found! (C)ontinue")
             choice("c", "2e")
@@ -3340,14 +3340,14 @@ def compare(m):
         try:
             hash2 = ph(s)
         except:
-            print(" Reference image is corrupted.")
+            print(f"\n {tcolorr}Reference image is corrupted.{tcolorx}")
             return
         if hash == hash2:
             m = whsm(m)
             print(f"\n Featuring: {m[0]} x {m[1]}\n Reference: {label(m, whsm(s))}")
         else:
-            print("\n They're different")
-    print(f"total runtime: {time.time()-start}\n")
+            print(f"\n {tcolorg}Use your eyes, they're different{tcolorx}")
+    print(f"total runtime: {time.time()-start}")
 
 
 
@@ -3636,6 +3636,29 @@ def source_view():
 
 
 
+busy[0] = True
+if filelist:
+    m = filelist[0]
+    if len(filelist) > 1:
+        print(f"""
+ Only one input at a time is allowed! It's a good indication that you should reorganize better
+ if there are too many folders to input and you don't want to use input's parent.{'''
+
+ Geistauge is also disabled which can be a reminder that this is not the setup to run Geistauge.
+ May I suggest having another copy of this script with Geistauge enabled in different directory?''' if not Geistauge else ""}""")
+        sys.exit()
+    print(f"""\nLoading featuring {"folder" if os.path.isdir(m) else "image"} successful: "{m}" """)
+    if not Geistauge:
+        print("\n GEISTAUGE: Maybe not.")
+        sys.exit()
+    if os.path.isdir(m):
+        todb(m)
+    else:
+        compare(m)
+busy[0] = False
+
+
+
 def keylistener():
     while True:
         el = choice("abcdefghijklmnopqrstuvwxyz0123456789")
@@ -3851,29 +3874,6 @@ print("""
   > Press K to view cookies.
   > Press 1 to 8 to set max parallel download of 8 available slots, 0 to pause.
   > Press Ctrl + C to break and reconnect of the ongoing downloads or to end timer instantly.""")
-
-
-
-busy[0] = True
-if filelist:
-    m = filelist[0]
-    if len(filelist) > 1:
-        print(f"""
- Only one input at a time is allowed! It's a good indication that you should reorganize better
- if there are too many folders to input and you don't want to use input's parent.{'''
-
- Geistauge is also disabled which can be a reminder that this is not the setup to run Geistauge.
- May I suggest having another copy of this script with Geistauge enabled in different directory?''' if not Geistauge else ""}""")
-        sys.exit()
-    print(f"""Loading featuring {"folder" if os.path.isdir(m) else "image"} successful: "{m}" """)
-    if not Geistauge:
-        print("\n GEISTAUGE: Maybe not.")
-        sys.exit()
-    if os.path.isdir(m):
-        todb(m)
-    else:
-        compare(m)
-busy[0] = False
 
 
 

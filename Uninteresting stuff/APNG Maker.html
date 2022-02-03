@@ -1156,6 +1156,16 @@ function loaded(){
       dl.href = src;
       dl.appendChild(img);
       stdout.appendChild(dl);
+    } else if (get_ext(f).toLowerCase()=="swf") {
+      try {
+        const ruffle = window.RufflePlayer.newest();
+        const player = ruffle.createPlayer();
+        stdout.appendChild(player);
+        var src = window.URL.createObjectURL(f);
+        player.load(src);
+      } catch {
+        stdout.innerHTML += "Please update <a href='https://github.com/ruffle-rs/ruffle/releases'>Ruffle</a> (choose self-hosted version)";
+       } 
     } else {
       stdout.innerHTML += "Maybe try another program.";
     }
@@ -1225,6 +1235,9 @@ function loaded(){
     }
   }
   NextJs(0)
+  var s = document.createElement("script");
+  s.src = "ruffle.js?" + Date.now();
+  document.body.appendChild(s);
 }
 
 var fps = 0;

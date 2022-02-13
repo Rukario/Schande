@@ -180,10 +180,9 @@ function setfps(text) {
 }
 
 function echo(B, b) {
-  stdout = document.getElementById("stdout");
   if (!b) B = "<br>" + B
   if (b) B = " " + B
-  stdout.innerHTML += B;
+  stdout.insertAdjacentHTML("beforeend", B);
 }
 
 function ABtoURL(ab){
@@ -201,18 +200,16 @@ function ABtoAB(ab){
 }
 
 function echoIMG(img, B){
-  stdout = document.getElementById("stdout");
   img.style = "max-height:400px;"
   dl = document.createElement("a");
   dl.download = B + ".png";
   dl.href = img.src;
   dl.appendChild(img);
-  stdout.innerHTML += "<br>"
+  stdout.insertAdjacentHTML("beforeend", "<br>");
   stdout.appendChild(dl);
 }
 
 function echoABtoDL(ab, B){
-  stdout = document.getElementById("stdout");
   dl = document.createElement("a")
   dl.href = ABtoURL(ABtoAB(ab));
   dl.download = B + ".png";
@@ -957,7 +954,6 @@ function compileframes(){
 
 function compileapngs(){
   let d = al.innerHTML.split("<br>").filter(function(el) { return el; })
-  stdout = document.getElementById("stdout");
   function readFile(i){
     ti[0] = performance.now()
     ti[1] = performance.now()
@@ -1133,10 +1129,10 @@ function loaded(){
   di = document.getElementById("di");
   fl = document.getElementById("framelist");
   al = document.getElementById("apnglist");
+  stdout = document.getElementById("stdout");
 
   document.getElementById("viewer").addEventListener('change', (event) => {
-    stdout = document.getElementById("stdout");
-    stdout.innerHTML += "<br>";
+    stdout.insertAdjacentHTML("beforeend", "<br>");
     var f = event.target.files[0];
     if (isVideo(get_ext(f))) {
       var v = document.createElement("video");
@@ -1164,10 +1160,10 @@ function loaded(){
         var src = window.URL.createObjectURL(f);
         player.load(src);
       } catch {
-        stdout.innerHTML += "Please update <a href='https://github.com/ruffle-rs/ruffle/releases'>Ruffle</a> (choose self-hosted version)";
+        stdout.insertAdjacentHTML("beforeend", "Please update <a href='https://github.com/ruffle-rs/ruffle/releases'>Ruffle</a> (choose self-hosted version)");
        } 
     } else {
-      stdout.innerHTML += "Maybe try another program.";
+      stdout.insertAdjacentHTML("beforeend", "Maybe try another program.");
     }
   });
 

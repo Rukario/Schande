@@ -22,7 +22,7 @@ else:
 batchdir = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
 if "/" in batchdir and not batchdir.endswith("/"): batchdir += "/"
 elif not batchdir.endswith("\\"): batchdir += "\\"
-batchdirx = batchdir.replace("\\", "\\\\")
+batchdirx = batchdir.replace("\\", "\\\\") + "\\\\"
 batchfile = os.path.basename(__file__)
 batchname = os.path.splitext(batchfile)[0]
 os.chdir(batchdir)
@@ -52,10 +52,11 @@ dlslot = [8]
 echothreadn = []
 error = [[]]
 newfilen = [0]
-retryall = [False]
-retryall_else = [False]
-retryall_prompt = [False]
-retryall_always = [False]
+Keypress_flush = [False]
+Keypress_prompt = [False]
+Keypress_A = [False]
+Keypress_F = [False]
+Keypress_N = [False]
 personal = False
 retries = [0]
 retryx = [False]
@@ -63,6 +64,7 @@ seek = [False]
 sf = [0]
 shuddup = False
 skiptonext = [False]
+readonly = False
 
 # Probably useless settings
 collisionisreal = False
@@ -75,6 +77,10 @@ buildthumbnail = False
 def title(echo):
     sys.stdout.write("\033]0;" + echo + "\007")
 cls = "\033[H\033[2J"
+tcolorr = "\033[40;91m"
+tcolorg = "\033[40;92m"
+tcolorb = "\033[40;38;2;59;120;255m"
+tcoloro = "\033[40;38;2;255;144;48m"
 if sys.platform == "darwin":
     tcolor = "\033[40m"
     tcolorx = "\033[0m"
@@ -84,10 +90,6 @@ else:
     os.system("")
 if sys.platform == "linux":
     os.system("cat /dev/location > /dev/null &")
-tcolorr = "\033[40;91m"
-tcolorg = "\033[40;92m"
-tcolorb = "\033[40;38;2;59;120;255m"
-tcoloro = "\033[40;38;2;255;144;48m"
 title(batchfile)
 sys.stdout.write("Non-ANSI-compliant Command Prompt/Terminal (expect lot of visual glitches): Upgrade to Windows 10 if you're on Windows.")
 sys.stdout.write(tcolorx + cls)
@@ -105,7 +107,7 @@ def mainmenu():
  | Press G to re/compile HTML from Geistauge's database (your browser will be used as comparison GUI).
  | Press D to delete non-exempted duplicate images immediately with a confirmation.
  |  > One first non-exempt in path alphabetically will be kept if no other duplication are exempted.
- + Press Z to split Geistauge's database to pathless version (for vetrification against unwanted recenty downloads).
+ + Press Z to split Geistauge's database to pathless version (for verification against unwanted recenty downloads).
 
  - - - - Input - - - -
  + Enter file:/// or http://localhost url to enter delete mode.
@@ -332,9 +334,13 @@ def alert(m, s, d=False):
 
 
 
-def kill(threadn, e=None):
+def kill(threadn, e=None, r=None):
     if not e:
         echo(f"{tcolorr}{threadn}{tcolorx}", 0, 1)
+    elif r:
+        echo(f"""
+ {e}
+ Please update or remove {r} from {rulefile} then restart CLI.""", 0, 1)
     else:
         echo(f"""{tcolorr}Thread {threadn} was killed {"by" if "(" in e else "because"} {e}{tcolorx}""", 0, 1)
     sys.exit()
@@ -374,19 +380,35 @@ done""")
 
 
 
-def input(i="Your Input: ", c=False):
+def input(i="Your Input: ", choices=False):
     sys.stdout.write(str(i))
     sys.stdout.flush()
-    if c:
-        return choice(c)
+    if choices:
+        keys = ""
+        for c in choices:
+            keys += c[0]
+        while True:
+            el = choice(keys)
+            if (c := choices[el-1])[1:]:
+                echo("", 1, 0)
+                nter = input("Type and enter to confirm, else to return: " + c + f"\033[{len(c)-1}D")
+                echo("", 1, 0)
+                sys.stdout.write(str(i))
+                sys.stdout.flush()
+                if nter.lower() == choices[el-1][1:].lower():
+                    echo(c, 0, 0)
+                    return el
+            else:
+                echo(str(i) + choices[el-1], 1, 1)
+                return el
     else:
-        return sys.stdin.readline()
+        return sys.stdin.readline().replace("\n", "")
 
 
 
 if not os.path.exists(rulefile):
     open(rulefile, 'w').close()
-print(f"Reading {rulefile} . . .")
+print(f"Reading settings from {rulefile} . . .")
 if os.path.getsize(rulefile) < 1:
     rules = ["- - - - Spoofer - - - -", "Mozilla/5.0 for http"]
 else:
@@ -400,6 +422,9 @@ def tidy(offset, append):
     with open(rulefile, 'wb') as f:
         f.write(bytes(data, 'utf-8'))
     return data.splitlines()
+
+
+
 offset = 0
 settings = ["Launch HTML server = ", "Browser = ", "Mail = ", "Geistauge = No", "Python = " + pythondir, "Proxy = socks5://"]
 for setting in settings:
@@ -422,9 +447,6 @@ for n in range(256):
     h0 = int(h[0],16)
     h1 = int(h[1],16)
     fp += chr(10240+h1+int(h0/2)*16+int(h1/8)*64+int(h0/8)*64+(h0%2)*8-int(h1/8)*8)
-
-
-
 def echoMBs(threadn, Bytes, ff):
     if not threadn or (x := echothreadn.index(threadn)) < len(fx[0]):
         fx[0][x if threadn else 0] = fp[ff%257]
@@ -884,7 +906,7 @@ for rule in rules:
             hydras.update({rr[1]: r})
         else:
             kill("\n There is at least one of the bad custom dir rules (no asterisk or too many).")
-    elif len(rr) == 2 and rr[1].startswith('.'):
+    elif len(rr) == 2 and rr[1].startswith('.') or len(rr) == 2 and rr[1].startswith('www.'):
         c = new_cookie()
         c.update({'domain': rr[1], 'name': rr[0].split(" ")[0], 'value': rr[0].split(" ")[1]})
         cookies.set_cookie(cookiejar.Cookie(**c))
@@ -896,6 +918,12 @@ for rule in rules:
         ticks += [[int(x) for x in sr[0].split("-")]]*int(sr[1].split("%")[0])
     elif rule == "shuddup":
         shuddup = True
+    elif rule == "collisionisreal":
+        collisionisreal = True
+    elif rule == "editisreal":
+        editisreal = True
+    elif rule == "buildthumbnail":
+        buildthumbnail = True
     elif rule.startswith("\\"):
         dir = rule.split("\\", 1)[1]
         if dir.endswith("\\"):
@@ -980,38 +1008,41 @@ def timer(e="", all=True):
 
 def retry(stderr):
     # Warning: urllib has slight memory leak
-    retryall[0] = False
+    Keypress_flush[0] = False
     while True:
-        if not retryall_prompt[0]:
-            retryall_prompt[0] = True
+        if not Keypress_prompt[0]:
+            Keypress_prompt[0] = True
             if stderr:
-                if retryall_always[0]:
+                if Keypress_A[0]:
                     e = f"{retries[0]} retries (Q)uit trying "
                     if cooldown[0]:
                         timer(e)
                     else:
                         echo(e)
-                    retryall[0] = True
+                    Keypress_flush[0] = True
                 else:
                     title(status() + batchname)
-                    print(f"{stderr} (R)etry? (A)lways (N)ext")
+                    print(f"{stderr} (R)etry? (A)lways (N)ext defuse antibot with (F)irefox")
                     while True:
-                        if retryall[0] or retryall_always[0]:
-                            retryall_prompt[0] = False
+                        if Keypress_flush[0] or Keypress_A[0]:
+                            Keypress_prompt[0] = False
                             break
-                        if retryall_else[0]:
-                            retryall_prompt[0] = False
-                            retryall_else[0] = False
+                        if Keypress_N[0]:
+                            Keypress_prompt[0] = False
+                            Keypress_N[0] = False
                             return
+                        if Keypress_F[0]:
+                            Keypress_F[0] = False
+                            return 2
                         time.sleep(0.1)
             else:
                 echo(f"{retries[0]} retries (S)kip one, wait it out, or press X to quit trying . . . ")
             time.sleep(0.5)
             title(status() + batchname)
             retries[0] += 1
-            retryall_prompt[0] = False
+            Keypress_prompt[0] = False
             return True
-        elif retryall[0]:
+        elif Keypress_flush[0]:
             return True
         time.sleep(0.5)
 
@@ -1029,7 +1060,11 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
             break
         except HTTPError as e:
             if stderr or retryx[0] and not skiptonext[0]:
-                if not retry(f"{stderr} ({e.code} {e.reason})"):
+                el = retry(f"{stderr} ({e.code} {e.reason})")
+                if el == 2:
+                    firefox(saint(url=url))
+                    Keypress_prompt[0] = False
+                elif not el:
                     return 0, str(e.code)
             else:
                 skiptonext[0] = False
@@ -1239,7 +1274,7 @@ for i in range(8):
 
 
 
-def get_cd(file, makedirs=False, preview=False):
+def get_cd(file, makedirs=False, preview=False, subdir=""):
     link = file["link"] if preview else file.pop("link")
     todisk = mf + file["name"].replace("\\", "/")
     if rule := [v for k, v in customdir.items() if k in link]:
@@ -1253,20 +1288,21 @@ def get_cd(file, makedirs=False, preview=False):
             name = name[0]
         prepend, append = rule[0]
         todisk = f"{folder}{prepend}{name}{append}{ext}".replace("\\", "/") # "\\" in file["name"] can work like folder after prepend
-        dir = todisk.rsplit("/", 1)[0] + "/"
+        dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
         tdir = "\\" + dir.replace("/", "\\")
-        if not preview and not os.path.exists(dir):
-            if makedirs or [ast(x) for x in exempt if ast(x) == dir.replace("/", "\\")]:
-                try:
-                    os.makedirs(dir)
-                except:
-                    kill(f"Can't make folder {tdir} because there's a file using that name, I must exit!")
-            else:
-                print(f" Error downloading (dir): {link}")
-                error[0] += [todisk]
-                link = ""
+        if not preview:
+            if not os.path.exists(dir):
+                if makedirs or [ast(x) for x in exempt if ast(x) == dir.replace("/", "\\")]:
+                    try:
+                        os.makedirs(dir)
+                    except:
+                        kill(f"Can't make folder {tdir} because there's a file using that name, I must exit!")
+                else:
+                    print(f" Error downloading (dir): {link}")
+                    error[0] += [todisk]
+                    link = ""
     elif not preview:
-        dir = todisk.rsplit("/", 1)[0] + "/"
+        dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
         tdir = "\\" + dir.replace("/", "\\")
         if not os.path.exists(mf):
             try:
@@ -1413,6 +1449,51 @@ URL={x["link"]}""")
                 x = "\\" + file.replace("/", "\\")
                 print(f" File created: {x}")
     error[0] = []
+
+
+
+firefox_running = [False]
+def new_firefox():
+    if os.path.isfile(batchdir + "geckodriver.exe"):
+        try:
+            from selenium import webdriver
+        except:
+            echo(f"\nSELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install selenium", 0, 2)
+        options = webdriver.FirefoxOptions()
+        # options.add_argument("--headless")
+        return webdriver.Firefox(options=options)
+    else:
+        echo(f"\n Download and extract the latest win64 package from https://github.com/mozilla/geckodriver/releases and then try again.", 0, 2)
+def ff_login():
+    revisit = False
+    for c in cookies:
+        if dom == c.domain:
+            revisit = True
+            firefox_running[0].add_cookie({"name":c.name, "value":c.value, "domain":c.domain})
+    if revisit:
+        firefox_running[0].get(url)
+def firefox(url):
+    dom = parse.urlparse(url).netloc.replace("www", "")
+    if not firefox_running[0]:
+        if f := new_firefox():
+            firefox_running[0] = f
+        else:
+            return
+    firefox_running[0].get(url)
+    # ff_login()
+    echo("(C)ontinue when finished defusing.")
+    continue_prompt[0] = False
+    while not continue_prompt[0]:
+        time.sleep(0.1)
+    continue_prompt[0] = False
+    for bc in firefox_running[0].get_cookies():
+        if "httpOnly" in bc: del bc["httpOnly"]
+        if "expiry" in bc: del bc["expiry"]
+        if "sameSite" in bc: del bc["sameSite"]
+        c = new_cookie()
+        c.update(bc)
+        cookies.set_cookie(cookiejar.Cookie(**c))
+    return True
 
 
 
@@ -3664,7 +3745,7 @@ def keylistener():
         el = choice("abcdefghijklmnopqrstuvwxyz0123456789")
         if el == 1:
             echo("", 1)
-            retryall_always[0] = True
+            Keypress_A[0] = True
             if not busy[0]:
                 ready_input()
         elif el == 2:
@@ -3714,11 +3795,9 @@ def keylistener():
             echo("Keypress E unrecognized", 0, 1)
             ready_input()
         elif el == 6:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress F unrecognized", 0, 1)
-            ready_input()
+            Keypress_F[0] = True
+            if not busy[0]:
+                ready_input()
         elif el == 7:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -3782,7 +3861,7 @@ def keylistener():
             ready_input()
         elif el == 14:
             echo("", 1)
-            retryall_else[0] = True
+            Keypress_N[0] = True
             if not busy[0]:
                 ready_input()
         elif el == 15:
@@ -3799,12 +3878,12 @@ def keylistener():
             ready_input()
         elif el == 17:
             echo("", 1)
-            retryall_always[0] = False
+            Keypress_A[0] = False
             if not busy[0]:
                 ready_input()
         elif el == 18:
             echo("", 1)
-            retryall[0] = True
+            Keypress_flush[0] = True
             if not busy[0]:
                 ready_input()
         elif el == 19:
@@ -3837,7 +3916,7 @@ def keylistener():
         elif el == 24:
             echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
             retryx[0] = False if retryx[0] else True
-            retryall_always[0] = True
+            Keypress_A[0] = True
             if not busy[0]:
                 ready_input()
         elif el == 25:
@@ -3910,36 +3989,10 @@ while True:
 
 
 
-if os.path.isfile(batchdir + "geckodriver.exe"):
-    try:
-        from selenium import webdriver
-    except:
-        print(f"\nSELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install selenium")
-        sys.exit()
-    browser = webdriver.Firefox()
-    browser.get('https://example.com')
-    while True:
-        if """FOUND""" in browser.page_source:
-            echo("FOUND", 0, 1)
-        else:
-            echo("Nope", 0, 1)
-        for bc in browser.get_cookies():
-            if "httpOnly" in bc: del bc["httpOnly"]
-            if "expiry" in bc: del bc["expiry"]
-            if "sameSite" in bc: del bc["sameSite"]
-            c = new_cookie()
-            c.update(bc)
-            cookies.set_cookie(cookiejar.Cookie(**c))
-        input("Cookie updated. Refresh?\r")
-        browser.refresh()
-else:
-    print(f"\n Download and extract the latest win64 package from https://github.com/mozilla/geckodriver/releases and then try again.")
-
-
 
 """
 ::MacOS - Install Python 3 then open Terminal and enter:
-open /Applications/Python\ 3.9/Install\ Certificates.command
+open /Applications/Python\ 3.10/Install\ Certificates.command
 sudo python3 -m pip install --upgrade pip
 python3 -x /drag/n/drop/the/batchfile
 
@@ -3965,15 +4018,17 @@ if not [%1]==[] goto loop
 
 set pythondir=%userprofile%\AppData\Local\Programs\Python\
 chcp 65001>nul
-if exist "!txtfilex!" for /f "delims=" %%i in ('findstr /b /i "Python = " "!txtfilex!"') do set string=%%i&& set string=!string:~9!&&goto check
+if exist "!txtfilex!" for /f "delims=" %%i in ('findstr /b /i "Python = " "!txtfilex!"') do set string=%%i&& set string=!string:~9!&& goto check
 :check
 chcp 437>nul
 if not "!string!"=="" (set pythondir=!string!)
-set x=Python 3.9
-set pythondirx=!pythondir!!x: 3.=3!
+set x=Python 3.10
+set cute=!x:.=!
+set cute=!cute: =!
+set pythondirx=!pythondir!!cute!
 if exist "!pythondirx!\python.exe" (cd /d "!pythondirx!" && color %color%) else (color %stopcolor%
 echo.
-if "!string!"=="" (echo  I can't seem to find \!x: 3.=3!\python.exe^^! Install !x! in default location please, or edit this batch file.&&echo.&&echo  Download the latest !x!.x from https://www.python.org/downloads/) else (echo  Please fix path to \!x: 3.=3!\python.exe in "Python =" setting in !txtfile!)
+if "!string!"=="" (echo  I can't seem to find \!cute!\python.exe^^! Install !x! in default location please, or edit this batch file.&&echo.&&echo  Download the latest !x!.x from https://www.python.org/downloads/) else (echo  Please fix path to \!cute!\python.exe in "Python =" setting in !txtfile!)
 echo.
 echo  I must exit^^!
 pause%>nul

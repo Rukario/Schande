@@ -106,10 +106,9 @@ def new_css():
 a{color:#dc8 /*efdfa8*/;}
 a:visited{color:#cccccc;}
 .aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
-.carbon, .time{background-color:#10100c; border:3px solid #6a6a66; border-radius:12px;}
+.carbon, .files, .time{background-color:#10100c /*07300f*/; border:3px solid #6a6a66 /*192*/; border-radius:12px;}
 .time{white-space:pre-wrap; color:#ccc; font-size:90%; line-height:1.6;}
 .cell, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
-.files{background-color:#112230 /*07300f*/; border:3px solid #367 /*192*/; border-radius:12px;}
 .edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45;}
 .previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
 .next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
@@ -1149,8 +1148,6 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
     htmlpart = fromhtml_pm["partition"]
     htmlname = fromhtml["htmlname"]
     for key in htmlpart.keys():
-        if file := htmlpart[key]["file"]:
-            filelist += [get_cd(file, rejlist, makedirs, subdir=f"{batchname}/{htmlname}/") + [key]]
         for file in htmlpart[key]["files"]:
             if not file["name"]:
                 print(f""" I don't have a scraper for {file["link"]}""")
@@ -1182,7 +1179,7 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
 
     if not filelist:
         if fromhtml["makehtml"]:
-            tohtml(htmlname, fromhtml_pm, rejlist, [])
+            tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml_pm, [], rejlist)
         else:
             print("Filelist is empty!")
         error[0] = []
@@ -1299,7 +1296,7 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
             if not file.endswith(tuple(specialfile)):
                 orphfiles += [file]
         if not x:
-            tohtml(htmlname, fromhtml_pm, rejlist, set(orphfiles).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
+            tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml_pm, set(orphfiles).difference(x[1].rsplit("/", 1)[-1] for x in filelist), rejlist)
         if Patrol:
             print()
             total = len(orphfiles)
@@ -1929,7 +1926,7 @@ img{vertical-align:top;}
 .mySlides{white-space:pre-wrap; padding-right:32px;}
 .closebtn{position:absolute; top:15px; right:15px;}
 .carbon, .files, .edits{margin-right:12px;}
-.cell{overflow:auto; width:calc(100% - 20px); display:inline-block; vertical-align:text-top;}
+.cell{overflow:auto; width:calc(100% - 28px); display:inline-block; vertical-align:text-top;}
 h2{margin:4px;}
 .postMessage{white-space:pre-wrap;}
 </style>
@@ -1944,10 +1941,10 @@ h2{margin:4px;}
 <button class="next" onclick="resizeImg('{imgsize*2}px')">2x</button>
 <button class="next" onclick="resizeImg('{imgsize*4}px')">4x</button>
 <button class="next" onclick="resizeImg('auto')">1:1</button>
-<button class="next" onclick="resizeCell('calc(100% - 36px)')">&nbsp;.&nbsp;</button>
-<button class="next" onclick="resizeCell('calc(50% - 40px)')">. .</button>
-<button class="next" onclick="resizeCell('calc(33.33% - 42px)')">...</button>
-<button class="next" onclick="resizeCell('calc(25% - 42px)')">....</button>
+<button class="next" onclick="resizeCell('calc(100% - 28px)')">&nbsp;.&nbsp;</button>
+<button class="next" onclick="resizeCell('calc(50% - 32px)')">. .</button>
+<button class="next" onclick="resizeCell('calc(33.33% - 34px)')">...</button>
+<button class="next" onclick="resizeCell('calc(25% - 34px)')">....</button>
 <button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')">Preview</button>
 <button id="ge" class="next" onclick="previewg(this, 'vs left', 'vs left <', 'vs left >', 'Find Edge')">Original</button>
 <button class="next" onclick="hideSources()">Sources</button>
@@ -1976,58 +1973,70 @@ def hyperlink(html):
         new_html += f"""<a href="{url}">{url}</a>{link[1]}"""
     return new_html
 
-def thumbnail_dir(dir):
-    subdir = [dir, "HTML assets/"]
-    if not os.path.exists(dir := "".join(subdir)):
-        os.makedirs(dir)
-    return subdir
 
 
-
-def tohtml(htmlname, fromhtml, rejlist, orphfiles):
+def tohtml(subdir, htmlname, fromhtml, orphfiles, rejlist):
     builder = ""
     listurls = ""
     htmlpart = fromhtml["partition"]
-    subdir = thumbnail_dir(batchname + "/" + htmlname + "/")
+    thumbnail_dir = "HTML assets/"
+    if not os.path.exists(thumbnail_dir):
+        os.makedirs(thumbnail_dir)
+    new_relics = htmlpart.copy()
 
 
 
     for icon in fromhtml["icons"]:
-        if not os.path.exists("".join(subdir) + icon["name"]):
-            if not (err := get(icon["link"], "".join(subdir) + icon["name"])) == 1:
+        if not os.path.exists(subdir + thumbnail_dir + icon["name"]):
+            if not (err := get(icon["link"], subdir + thumbnail_dir + icon["name"])) == 1:
                 echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
-        builder += f"""<img src="{htmlname + "/" + subdir[1] + icon["name"]}" height="100px">\n"""
+        builder += f"""<img src="{htmlname}/{thumbnail_dir}{icon["name"]}" height="100px">\n"""
     if x := fromhtml["page"]:
         builder += f"""<h2>Paysite: <a href="{x["link"]}">{x["name"]}</a></h2>"""
 
 
 
-    partfile = "".join(subdir) + "partition.json"
+    for key in new_relics.keys():
+        new_relics[key] = htmlpart[key].copy()
+        files = []
+        duplicates = set()
+        for file in htmlpart[key]["files"]:
+            if not file["name"] in duplicates and not duplicates.add(file["name"]):
+                files += [file["name"].rsplit("/", 1)[-1]]
+        new_relics[key]["files"] = files
+        for array in new_relics[key]["html"]:
+            if len(array) == 2 and array[1]:
+                array[1]["name"] = array[1]["name"].rsplit("/", 1)[-1]
+
+
+
+    partfile = subdir + thumbnail_dir + "partition.json"
     gallery_is = "updated"
     if not os.path.exists(partfile):
         gallery_is = "created"
         with open(partfile, 'w') as f:
-            f.write(json.dumps(htmlpart))
+            f.write(json.dumps(new_relics))
     with open(partfile, 'r', encoding="utf-8") as f:
         relics = json.loads(f.read())
     orphid = iter(relics.keys())
     part = {}
-    for id in htmlpart.keys():
+    for id in new_relics.keys():
         if not id in relics:
-            part.update({id:htmlpart[id]})
+            part.update({id:new_relics[id]})
             continue
         for idx in orphid:
             if not id == idx:
                 part.update({idx:relics[idx]})
             else:
                 break
-        if not relics[id]["html"] or relics[id]["keywords"][1] < htmlpart[id]["keywords"][1]:
-            part.update({id:htmlpart[id]})
+        if not relics[id]["html"] or not relics[id]["keywords"] == new_relics[id]["keywords"]:
+            part.update({id:new_relics[id]})
         else:
             part.update({id:relics[id]})
     with open(partfile, 'w') as f:
         f.write(json.dumps(part))
-    print(f" File {gallery_is}: {batchname}\\{htmlname}\\partition.json")
+    buffer = partfile.replace("/", "\\")
+    print(f" File {gallery_is}: {buffer}")
 
 
 
@@ -2065,23 +2074,19 @@ def tohtml(htmlname, fromhtml, rejlist, orphfiles):
             keywords = ", ".join(x for x in keywords[2:]) if len(keywords) > 2 else "None"
             builder += f"""<div class="time" id="{id}" style="float:right;">Part {id} ꍯ {time}<sup><span style="font-size:80%;">UTC</span></sup>\nKeywords: {keywords}</div>\n"""
         builder += title
-        if file := part[id]["file"]:
-            builder += f"""<div class="carbon">\n{container(subdir[0] + file["name"], rejlist, 1)}</div>\n"""
-        files = [x for x in part[id]["files"] if not file or not file["name"] == x["name"]]
-        if files:
+        if part[id]["files"]:
             builder += "<div class=\"files\">\n"
-            for file in files:
-                builder += container(subdir[0] + file["name"], rejlist, 1)
+            for file in part[id]["files"]:
+                builder += container(subdir + file, rejlist, 1)
             builder += "</div>\n"
         if "orphfiles" in part[id]:
             builder += "<div class=\"edits\">\n"
             for file in part[id]["orphfiles"]:
-                # os.rename(dir + file, dir + "Orphaned files/" + file)
-                builder += container(subdir[0] + file, rejlist, 1)
+                # os.rename(subdir + file, subdir + "Orphaned files/" + file)
+                builder += container(subdir + file, rejlist, 1)
             builder += "<br><br>orphaned file(s)\n</div>\n"
         if html := part[id]["html"]:
             builder += """<div class="postMessage">"""
-            content = ""
             for array in html:
                 if len(array) == 2:
                     if new_container:
@@ -2089,7 +2094,7 @@ def tohtml(htmlname, fromhtml, rejlist, orphfiles):
                         end_container = True
                         new_container = False
                     if array[1]:
-                        content += f"""{array[0]}{container(subdir[0] + array[1]["name"], rejlist, 1)}"""
+                        content += f"""{array[0]}{container(subdir + array[1]["name"], rejlist, 1)}"""
                     else:
                         content += array[0]
                 elif end_container:
@@ -2110,7 +2115,7 @@ def tohtml(htmlname, fromhtml, rejlist, orphfiles):
                     links += f"""<a href="{link}">{link}</a><br>"""
                 listurls += f"""# From <a href="#{id}">#{id}</a> :: {part[id]["keywords"][0]}<br>{links}\n"""
             builder += f"{content}</div>\n"
-        elif not files:
+        elif not part[id]["files"]:
             builder += "<div class=\"edits\">Rebuild HTML with a different login/tier may be required to view</div>\n"
         builder += "</div>\n\n"
     with open(f"{batchname}/{htmlname}.html", 'wb') as f:
@@ -2200,19 +2205,19 @@ def new_part():
 
 def fanbox_avatars(threadn, htmlname, CREATOR_ID):
     api = json.loads(get(f"https://api.fanbox.cc/creator.get?userId={CREATOR_ID}", stderr=f"Broken API on Fanbox for {htmlname}", threadn=threadn).decode('utf-8'))
-    if asset := api["body"]:
-        return {"page":{"link":f"""https://{asset["creatorId"]}.fanbox.cc/""", "name":asset["user"]["name"]}, "icons":[{"link":asset["user"]["iconUrl"], "name":"avatar.png", "edited":0}, {"link":asset["coverImageUrl"], "name":"cover.png", "edited":0}]}
+    if obj := api["body"]:
+        return {"page":{"link":f"""https://{obj["creatorId"]}.fanbox.cc/""", "name":obj["user"]["name"]}, "icons":[{"link":obj["user"]["iconUrl"], "name":"avatar.png", "edited":0}, {"link":obj["coverImageUrl"], "name":"cover.png", "edited":0}]}
 
 def fantia_avatars(threadn, htmlname, CREATOR_ID):
     api = json.loads(get("https://fantia.jp/api/v1/fanclubs/" + CREATOR_ID, stderr=f"Broken API on Fantia for {htmlname}", threadn=threadn).decode('utf-8'))
-    if asset := api["fanclub"]:
-        return {"page":{"link":f"https://fantia.jp/fanclubs/{CREATOR_ID}", "name":asset["fanclub_name_with_creator_name"]}, "icons":[{"link":asset["icon"]["original"], "name":"avatar.png", "edited":0}, {"link":asset["cover"]["original"], "name":"cover.png", "edited":0}]}
+    if obj := api["fanclub"]:
+        return {"page":{"link":f"https://fantia.jp/fanclubs/{CREATOR_ID}", "name":obj["fanclub_name_with_creator_name"]}, "icons":[{"link":obj["icon"]["original"], "name":"avatar.png", "edited":0}, {"link":obj["cover"]["original"], "name":"cover.png", "edited":0}]}
 
 def patreon_avatars(threadn, htmlname, CREATOR_ID):
     if not (data := get("https://www.patreon.com/api/user/" + CREATOR_ID, utf8=True, stderr=f"Broken API on Patreon while fetching profile for {htmlname}\n > Or failed at Patreon's aggressive anti-bot detection\n > To pass: provide your browser's user-agent string and cookie value for __cf_bm\n\n", threadn=threadn)).isdigit():
         api = json.loads(data)
-        if asset := api["included"][0]["attributes"]:
-            return {"page":{"link":api["data"]["attributes"]["url"], "name":api["data"]["attributes"]["vanity"]}, "campaign_id":api["data"]["relationships"]["campaign"]["data"]["id"], "icons":[{"link":asset["avatar_photo_url"], "name":"avatar.png", "edited":0}, {"link":asset["cover_photo_url"], "name":"cover.png", "edited":0}]}
+        if obj := api["included"][0]["attributes"]:
+            return {"page":{"link":api["data"]["attributes"]["url"], "name":api["data"]["attributes"]["vanity"]}, "campaign_id":api["data"]["relationships"]["campaign"]["data"]["id"], "icons":[{"link":obj["avatar_photo_url"], "name":"avatar.png", "edited":0}, {"link":obj["cover_photo_url"], "name":"cover.png", "edited":0}]}
 
 
 
@@ -2225,31 +2230,30 @@ def fanbox_assets(threadn, htmlname, CREATOR_ID):
         if not api:
             return fromhtml
         api = json.loads(api.decode('utf-8'))
-        data = api["body"]["items"]
-        for asset in data:
-            id = asset["id"]
-            keywords = [asset["title"], asset["updatedDatetime"].replace("T", " ").split("+", 1)[0]]
+        for next_obj in api["body"]["items"]:
+            id = next_obj["id"]
+            keywords = [next_obj["title"], next_obj["updatedDatetime"].replace("T", " ").split("+", 1)[0]]
             edited = keywords[1].split(" ", 1)[0].replace("-", "")
             html = []
-            if not asset["body"]:
-                assets = []
-            elif "text" in asset["body"]:
-                html = [[hyperlink(asset["body"]["text"].replace("\n", "<br>")), ""]]
-                assets = asset["body"]["images"] if "images" in asset["body"] else []
-            elif "blocks" in asset["body"]:
-                for block in asset["body"]["blocks"]:
+            filelist = []
+            if not next_obj["body"]:
+                filelist = []
+            elif "text" in next_obj["body"]:
+                html = [[hyperlink(next_obj["body"]["text"].replace("\n", "<br>")), ""]]
+                filelist += next_obj["body"]["images"] if "images" in next_obj["body"] else []
+            elif "blocks" in next_obj["body"]:
+                for block in next_obj["body"]["blocks"]:
                     if "text" in block:
                         html += [["<p>" + hyperlink(block["text"].replace("\n", "<br>")), ""]]
                     else:
-                        url = asset["body"]["imageMap"][block["imageId"]]["originalUrl"]
+                        url = next_obj["body"]["imageMap"][block["imageId"]]["originalUrl"]
                         html += [["<p>", {"link":url, "name":id + "." + url.rsplit("/", 1)[1], "edited":edited}]]
-                assets = []
+                filelist = []
             files = []
-            for file in assets:
+            for file in filelist:
                 url = file["originalUrl"]
                 files += [{"link":url, "name":id + "." + url.rsplit("/", 1)[1], "edited":edited}]
-            file = ""
-            fromhtml["partition"].update({id:{"keywords":keywords, "file":file, "html":html, "files":files}})
+            fromhtml["partition"].update({id:{"keywords":keywords, "html":html, "files":files}})
         if api["body"]["nextUrl"]:
             url = api["body"]["nextUrl"]
         else:
@@ -2266,8 +2270,8 @@ def fantia_assets(threadn, htmlname, CREATOR_ID):
         html = get(f'https://fantia.jp/fanclubs/{CREATOR_ID}/posts?page={page}', stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
         html = html.replace("\n", "").replace("<div class=\"post-meta\">", "\n").replace(u"\u2028"," ").splitlines()
         for part in html[1:]:
-            id = part.split("href=\"/posts/", 1)[1].split("\"", 1)[0]
-            assets = get("https://fantia.jp/posts/" + id, stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
+            key = part.split("href=\"/posts/", 1)[1].split("\"", 1)[0]
+            assets = get("https://fantia.jp/posts/" + key, stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
         page += 1
     return fromhtml
 
@@ -2280,10 +2284,10 @@ def fantia_assets(threadn, htmlname, CREATOR_ID):
     html = html.replace("<a href=\"/fantia/posts/", "\n").splitlines()[1:]
     edited = 0
     for part in html:
-        id = part.split("\"", 1)[0]
-        assets = get('https://yiff.party/fantia/posts/' + id, stderr=f"Error reading posts for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
+        key = part.split("\"", 1)[0]
+        assets = get('https://yiff.party/fantia/posts/' + key, stderr=f"Error reading posts for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
         assets = assets.replace(u"\u2028","\n").replace("\n ", "\n").replace("\n", "\\n").replace("col s12 l9\">\\n", "\nheader", 1).replace("<div class=\"yp-post-content\">\\n", "\ncontent").replace("<div class=\"col s12 l3\">", "\n").splitlines()
-        file = ""
+        files = []
         html = []
         keywords = ["Untitled"]
         for asset in assets[1:]:
@@ -2291,8 +2295,8 @@ def fantia_assets(threadn, htmlname, CREATOR_ID):
                 asset = asset.replace("header", "", 1)
                 if asset.startswith("<a href=\""):
                     url = asset.split("\"", 2)[1]
-                    name = id + "." + url.rsplit(".", 1)[1]
-                    file = {"link":url, "name":name[:200], "edited":edited}
+                    name = key + "." + url.rsplit(".", 1)[1]
+                    files += [{"link":url, "name":name[:200], "edited":edited}]
                 keywords[0], header = asset.split("<h2>")[1].split("</h2>\\n", 1)
                 html += [[header.replace("\\n", "<br>").replace("<p class=\"preline\">", "", 1)]]
             elif asset.startswith("content"):
@@ -2303,20 +2307,20 @@ def fantia_assets(threadn, htmlname, CREATOR_ID):
                     for gallery in asset:
                         if gallery.startswith("imagefile"):
                             url = gallery.split("\"", 2)[1]
-                            name =  id + " " + url.rsplit("/", 3)[1] + "." + url.rsplit("/", 2)[1] + "." + url.rsplit(".", 1)[1]
+                            name =  key + " " + url.rsplit("/", 3)[1] + "." + url.rsplit("/", 2)[1] + "." + url.rsplit(".", 1)[1]
                             html += [["", {"link":url, "name":name, "edited":edited}]]
                 else:
                     asset = asset[0].split("</div>", 1)[0].replace("\\n", "<br>").replace("<p class=\"preline\">", "").replace("</p>", "")
                     if "<div class=\"yp-post-download\">" in asset:
                         asset, download = asset.rsplit("<a href=\"", 1)
                         url, name = download.split("\" download=\"")
-                        name = id + " " + url.rsplit("/", 2)[1] + "." + name.split("\"", 1)[0]
+                        name = key + " " + url.rsplit("/", 2)[1] + "." + name.split("\"", 1)[0]
                         html += [[asset, ""]]
                         html += [["", {"link":url, "name":name[:200], "edited":edited}]]
                     else:
                         html += [[asset, ""]]
                 html += [[""]]
-        fromhtml["partition"].update({id:{"keywords":keywords, "file":file, "html":html, "files":[]}})
+        fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":[]}})
     return fromhtml
 
 
@@ -2332,7 +2336,7 @@ def kp_fanbox_assets(threadn, htmlname, CREATOR_ID):
             break
         for next_obj in api:
             pos = 0
-            id = next_obj["id"]
+            key = next_obj["id"]
             keywords = [next_obj["title"], datetime.strptime(next_obj["published"], "%a, %d %b %Y %H:%M:%S GMT").isoformat(" ")]
             # desired result is "YYYY-MM-DD HH:MM:SS"
             edited = keywords[1].split(" ", 1)[0].replace("-", "")
@@ -2341,15 +2345,14 @@ def kp_fanbox_assets(threadn, htmlname, CREATOR_ID):
                 ext = file["name"].rsplit(".", 1)[-1]
                 if ext == "jpe":
                     ext = "jpeg"
-                files += [{"link":"https://kemono.party" + file["path"], "name":f"{id}.{pos:03}.{ext}", "edited":edited}]
+                files += [{"link":"https://kemono.party" + file["path"], "name":f"{key}.{pos:03}.{ext}", "edited":edited}]
             if attachments := next_obj["attachments"]:
                 for file in attachments:
                     pos += 1
                     ext = file["name"].rsplit(".", 1)[-1]
                     if ext == "jpe":
                         ext = "jpeg"
-                    files += [{"link":"https://kemono.party" + file["path"], "name":f"{id}.{pos:03}.{ext}", "edited":edited}]
-            file = ""
+                    files += [{"link":"https://kemono.party" + file["path"], "name":f"{key}.{pos:03}.{ext}", "edited":edited}]
             html = []
             if next_obj["content"]:
                 next_obj = next_obj["content"].replace("\n", "").replace("<p>", "").replace("<br></p>", "").replace("</p>", "").split("<br>")
@@ -2362,7 +2365,7 @@ def kp_fanbox_assets(threadn, htmlname, CREATOR_ID):
                             ext = url.rsplit("/", 1)[1].rsplit(".", 1)[-1]
                             if ext == "jpe":
                                 ext = "jpeg"
-                            html += [["<p>", {"link":url, "name":f"{id}.{pos:03}.{ext}", "edited":edited}]]
+                            html += [["<p>", {"link":url, "name":f"{key}.{pos:03}.{ext}", "edited":edited}]]
                         else:
                             block = block[0].split("<a href=")
                             if len(block) > 1:
@@ -2371,12 +2374,12 @@ def kp_fanbox_assets(threadn, htmlname, CREATOR_ID):
                                 ext = url.rsplit("/", 1)[1].rsplit(".", 1)[-1]
                                 if ext == "jpe":
                                     ext = "jpeg"
-                                html += [["<p>", {"link":url, "name":f"{id}.{pos:03}.{ext}", "edited":edited}]]
+                                html += [["<p>", {"link":url, "name":f"{key}.{pos:03}.{ext}", "edited":edited}]]
                             else:
                                 html += [["<p>" + hyperlink(block[0]), ""]]
                 else:
                     html += [[hyperlink(next_obj[0].replace("<br />", "<br>")), ""]]
-            fromhtml["partition"].update({id:{"keywords":keywords, "file":file, "html":html, "files":files}})
+            fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
         page += 1
     return fromhtml
 
@@ -2393,7 +2396,7 @@ def kp_fantia_assets(threadn, htmlname, CREATOR_ID):
             break
         for next_obj in api:
             pos = 0
-            id = next_obj["id"]
+            key = next_obj["id"]
             keywords = [next_obj["title"], datetime.strptime(next_obj["published"], "%a, %d %b %Y %H:%M:%S GMT").isoformat(" ")]
             # desired result is "YYYY-MM-DD HH:MM:SS"
             edited = keywords[1].split(" ", 1)[0].replace("-", "")
@@ -2403,15 +2406,14 @@ def kp_fantia_assets(threadn, htmlname, CREATOR_ID):
                 ext = file["name"].rsplit(".", 1)[-1]
                 if ext == "jpe":
                     ext = "jpeg"
-                files += [{"link":"https://kemono.party" + file["path"], "name":f"{id}.{pos:03}.{ext}", "edited":edited}]
+                files += [{"link":"https://kemono.party" + file["path"], "name":f"{key}.{pos:03}.{ext}", "edited":edited}]
             if attachments := next_obj["attachments"]:
                 for file in attachments:
                     pos += 1
                     ext = file["name"].rsplit(".", 1)[-1]
                     if ext == "jpe":
                         ext = "jpeg"
-                    files += [{"link":"https://kemono.party" + file["path"], "name":f"{id}.{pos:03}.{ext}", "edited":edited}]
-            file = ""
+                    files += [{"link":"https://kemono.party" + file["path"], "name":f"{key}.{pos:03}.{ext}", "edited":edited}]
             html = []
             if next_obj["content"]:
                 next_obj = next_obj["content"].split("\n")
@@ -2420,7 +2422,7 @@ def kp_fantia_assets(threadn, htmlname, CREATOR_ID):
                         html += [[hyperlink(block[0]), ""]]
                 else:
                     html += [[hyperlink(next_obj[0]), ""]]
-            fromhtml["partition"].update({id:{"keywords":keywords, "file":file, "html":html, "files":files}})
+            fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
         page += 1
     return fromhtml
 
@@ -2438,17 +2440,16 @@ def kp_patreon_assets(threadn, htmlname, CREATOR_ID):
         if not (api := json.loads(api.decode('utf-8'))):
             break
         for asset in api:
-            id = asset["id"]
+            key = asset["id"]
             keywords = [asset["title"] + datetime.strptime(asset["published"], "%a, %d %b %Y %H:%M:%S GMT").isoformat(" ")]
             # desired result is "YYYY-MM-DD HH:MM:SS"
             edited = keywords[1].split(" ", 1)[0].replace("-", "")
             files = []
             if file := asset["file"]:
-                files += [{"link":"https://kemono.party" + file["path"], "name":saint(id + "." + file["name"]), "edited":edited}]
+                files += [{"link":"https://kemono.party" + file["path"], "name":saint(key + "." + file["name"]), "edited":edited}]
             if attachments := asset["attachments"]:
                 for file in attachments:
-                    files += [{"link":"https://kemono.party" + file["path"], "name":saint(id + "." + file["name"]), "edited":edited}]
-            file = ""
+                    files += [{"link":"https://kemono.party" + file["path"], "name":saint(key + "." + file["name"]), "edited":edited}]
             html = []
             embed = ""
             if asset["embed"]:
@@ -2464,14 +2465,14 @@ def kp_patreon_assets(threadn, htmlname, CREATOR_ID):
                         url = url.split("\"", 1)[0]
                         try:
                             ext = url.rsplit("/", 1)[1].split("?")[0].split(".")[1]
-                            name = f"""{id}.{name}.{ext}"""
+                            name = f"""{key}.{name}.{ext}"""
                         except:
                             name = url
                         html += [[asset[0], {"link":"https://kemono.party" + url, "name":saint(name), "edited":edited}]]
                     else:
                         break
                 html += [[asset[0] + embed]]
-            fromhtml["partition"].update({id:{"keywords":keywords, "file":file, "html":html, "files":files}})
+            fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
         page += 1
     #for k in fromhtml["partition"].keys():
     #    print(fromhtml["partition"][k])
@@ -2492,52 +2493,45 @@ def patreon_assets(threadn, htmlname, CREATOR_ID):
         if not api:
             return fromhtml
         api = json.loads(api.decode('utf-8'))
-        try:
-            included = api["included"]
-            data = api["data"]
-        except:
+        if not "included" in api or not "data" in api:
             break
         edited = {}
-        for asset in data:
-            id = asset["id"]
-            asset = asset["attributes"]
-            keywords = [asset["title"], asset["edited_at"].replace("T", " ").split(".", 1)[0] if asset["edited_at"] else "0"]
-            edited.update({id:keywords[1].split(" ", 1)[0].replace("-", "")})
-            file = ""
+        for next_obj in api["data"]:
+            key = next_obj["id"]
+            next_obj = next_obj["attributes"]
+            keywords = [next_obj["title"], next_obj["edited_at"].replace("T", " ").split(".", 1)[0] if next_obj["edited_at"] else "0"]
+            edited.update({key:keywords[1].split(" ", 1)[0].replace("-", "")})
             html = []
             files = []
             embed = ""
-            if asset["current_user_can_view"]:
-                if file := asset["post_file"]:
-                    file = {"link":file["url"], "name":id + "." + file["name"], "edited":edited[id]}
-                if asset["embed"]:
-                    url = asset["embed"]["url"]
+            if next_obj["current_user_can_view"]:
+                if file := next_obj["post_file"]:
+                    files += [{"link":file["url"], "name":key + "." + file["name"], "edited":edited[key]}]
+                if next_obj["embed"]:
+                    url = next_obj["embed"]["url"]
                     embed = f"""<p><a href="{url}">{url}</a></p>"""
-                asset = ["", asset["content"]]
+                next_obj = ["", next_obj["content"]]
                 while True:
-                    asset = asset[1].split("<img data-media-id=\"", 1)
-                    if len(asset) == 2:
-                        image, asset[1] = asset[1].split("\">", 1)
+                    next_obj = next_obj[1].split("<img data-media-id=\"", 1)
+                    if len(next_obj) == 2:
+                        image, next_obj[1] = next_obj[1].split("\">", 1)
                         name, url = image.split("\" src=\"")
-                        name = f"""{id}.{name}.{url.rsplit("/", 1)[1].split("?")[0].split(".")[1]}"""
-                        html += [[asset[0], {"link":url, "name":name, "edited":edited[id]}]]
+                        name = f"""{key}.{name}.{url.rsplit("/", 1)[1].split("?")[0].split(".")[1]}"""
+                        html += [[next_obj[0], {"link":url, "name":name, "edited":edited[key]}]]
                     else:
                         break
-                html += [[asset[0] + embed]]
-            fromhtml["partition"].update({id:{"keywords":keywords, "file":file, "html":html, "files":files}})
-        for attachment in included:
+                html += [[next_obj[0] + embed]]
+            fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
+        for attachment in api["included"]:
             if attachment["type"] == "attachment":
-                id = attachment["relationships"]["post"]["data"]["id"]
-                fromhtml["partition"][id]["files"] += [{"link":attachment["attributes"]["url"], "name":f"""{id}.{attachment["attributes"]["name"][:200]}""", "edited":edited[id]}]
-            try:
-                if attachment["type"] == "media":
-                    id = attachment["attributes"]["owner_id"]
-                    fromhtml["partition"][id]["files"] += [{"link":attachment["attributes"]["download_url"], "name":f"""{id}.{attachment["attributes"]["file_name"].rsplit("/", 1)[-1][:200]}""", "edited":edited[id]}]
-            except:
-                pass
-        try:
+                key = attachment["relationships"]["post"]["data"]["id"]
+                fromhtml["partition"][key]["files"] += [{"link":attachment["attributes"]["url"], "name":f"""{key}.{attachment["attributes"]["name"][:200]}""", "edited":edited[key]}]
+            if "type" in attachment and attachment["type"] == "media" and "download_url" in attachment["attributes"]:
+                key = attachment["attributes"]["owner_id"]
+                fromhtml["partition"][key]["files"] += [{"link":attachment["attributes"]["download_url"], "name":f"""{key}.{attachment["attributes"]["file_name"].rsplit("/", 1)[-1][:200]}""", "edited":edited[key]}]
+        if "links" in api and "next" in api["links"]:
             url = api["links"]["next"]
-        except:
+        else:
             break
     return fromhtml
 

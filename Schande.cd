@@ -1,14 +1,16 @@
 Launch HTML server = Yes
 Browser = C:\Program Files\Mozilla Firefox\firefox.exe
 Mail = 
-Geistauge = Yes
+Geistauge = No
 Python = 
 Proxy = socks5://
+
+shuddup
 
 
 
 - - - - Spoofer - - - -
-Mozilla/5.0 for http
+Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0 for http
 4-8 seconds rarity 75%
 12-24 seconds rarity 23%
 # 64-128 seconds rarity 2%
@@ -16,16 +18,22 @@ Mozilla/5.0 for http
 https://www.pixiv.net/ for https://i.pximg.net
 https://www.fanbox.cc for https://api.fanbox.cc
 https://thebarchive.com/ for https://thebarchive.com/
-Authorization ... for https://discord.com
 
+Authorization ... for .discord.com
 ipb_member_id ... for .exhentai.org
 ipb_pass_hash ... for .exhentai.org
 session_id ... for .patreon.com
 PHPSESSID ... for .pixiv.net
 FANBOXSESSID ... for .fanbox.cc
 _session_id ... for .fantia.jp
-
 __cf_bm ... for .patreon.com
+
+# Amazon cookies if necessary
+# at-main  for .amazon.com
+# session-id  for .amazon.com
+# sst-main  for .amazon.com
+# ubid-main  for .amazon.com
+# x-main  for .amazon.com
 
 
 
@@ -39,14 +47,45 @@ Fantia\* for https://c.fantia.jp/
 Fantia\* for https://cc.fantia.jp/
 Patreon\* for https://c10.patreonusercontent.com
 Patreon\* for https://www.patreon.com
+Discord\* for https://cdn.discordapp.com
 Dropbox\* for https://dl.dropbox.com
 Dropbox\* for https://www.dropbox.com
 Dropbox\* for https://dl.dropboxusercontent.com
+* for https://data.kemono.party/
+* for https://kemono.party/
 R-18 *date\* for https://i.4cdn.org/b/
 R-18 *date\* for https://is2.4chan.org/b/
 R-18 *date\* for https://thebarchive.com/data/b/
+R-18 *date\* for https://static1.e621.net/data/
 R-18 *date\
 Update me\* for http
+
+
+
+- - - - Alarm - - - -
+https://www.bestbuy.com/site/
+url https://www.bestbuy.com/site/*/*.p?skuId=* with https://www.bestbuy.com/api/tcfb/model.json?paths=%5B%5B%22shop%22%2C%22scds%22%2C%22v2%22%2C%22page%22%2C%22tenants%22%2C%22bbypres%22%2C%22pages%22%2C%22globalnavigationv5sv%22%2C%22header%22%5D%2C%5B%22shop%22%2C%22buttonstate%22%2C%22v5%22%2C%22item%22%2C%22skus%22%2C*%2C%22conditions%22%2C%22NONE%22%2C%22destinationZipCode%22%2C%22%2520%22%2C%22storeId%22%2C%22%2520%22%2C%22context%22%2C%22cyp%22%2C%22addAll%22%2C%22false%22%5D%5D&method=get
+# expect jsonGraph > shop > buttonstate > v5 > item > skus > * > conditions > NONE > destinationZipCode > %20 > storeId > %20 > context > cyp > addAll > false > value > buttonStateResponseInfos > 0 > displayText = Add to Cart > Check Stores
+unexpect jsonGraph > shop > buttonstate > v5 > item > skus > * > conditions > NONE > destinationZipCode > %20 > storeId > %20 > context > cyp > addAll > false > value > buttonStateResponseInfos > 0 > displayText = Coming Soon > Sold Out
+message IN STOCK AT BEST BUY!
+ready
+
+https://www.newegg.com/p/
+url https://www.newegg.com/p/* with https://www.newegg.com/product/api/ProductRealtime?ItemNumber=*
+unexpect MainItem > PromotionInfo > DisplayPromotionText = OUT OF STOCK
+ready
+
+https://www.amazon.com/dp/
+url https://www.amazon.com/dp/*/ with https://www.amazon.com/gp/aod/ajax/ref=dp_aod_NEW_mbc?asin=*&m=&qid=&smid=&sourcecustomerorglistid=&sourcecustomerorglistitemid=&sr=&pc=dp
+expect <span class="a-size-small a-color-base">Amazon.com</span>
+dismiss
+pages ^name="offeringID.1" value="*^"/><input type="hidden" name="quantity.1" value="1"/>*^<span class="a-size-small a-color-base">Amazon.com</span> customize with https://www.amazon.com/gp/aws/cart/add.html?OfferListingId.1=*&Quantity.1=1&SessionId=136-7195773-1821837&confirmPage=confirm
+checkpoint
+ready
+
+https://www.amazon.com/gp/aws/cart/add
+expect Proceed to checkout
+ready
 
 
 
@@ -70,16 +109,31 @@ file https://exhentai.org/fullimg.php*" customize with https://exhentai.org/full
 file id="img" src="*"
 
 https://www.youtube.com/watch?v=
+# urlfix https://www.youtube.com/watch?v=* with https://youtube.com/get_video_info?video_id=*&el=detailpage&ps=default&eurl=&gl=US&hl=en&html5=1&c=TVHTML5&cver=7.20201028
 dict var ytInitialPlayerResponse = *;var
-choose streamingData > adaptiveFormats > 0 > itag = 308 > 299 > 298 > 137 > 136
+choose streamingData > adaptiveFormats > 0 > itag = 299 > 298 > 137 > 136
 file streamingData > adaptiveFormats > 0 > url
 name videoDetails > title
-choose streamingData > adaptiveFormats > 0 > itag = 140
+choose  streamingData > adaptiveFormats > 0 > itag = 140
 file streamingData > adaptiveFormats > 0 > url
 name videoDetails > title customize with * (audio)
 choose captions > playerCaptionsTracklistRenderer > captionTracks > 0 > name > simpleText = English > English - CC (English)
 file captions > playerCaptionsTracklistRenderer > captionTracks > 0 > baseUrl customize with *&fmt=vtt
 name videoDetails > title
+meta1 &mime=*%2F*& customize with .*
+meta1 ^&fmt=* customize with .*
+
+https://www.youtube.com/watch?v=GONE
+urlfix https://www.youtube.com/watch?v=* with https://youtube.com/get_video_info?video_id=*&el=detailpage&ps=default&eurl=&gl=US&hl=en&html5=1&c=TVHTML5&cver=7.20201028
+choose player_response >> streamingData > adaptiveFormats > 0 > itag = 308 > 299 > 298 > 137 > 136
+file player_response >> streamingData > adaptiveFormats > 0 > url
+name player_response >> videoDetails > title
+choose player_response >> streamingData > adaptiveFormats > 0 > itag = 140
+file player_response >> streamingData > adaptiveFormats > 0 > url
+name player_response >> videoDetails > title customize with * (audio)
+choose player_response >> captions > playerCaptionsTracklistRenderer > captionTracks > 0 > name > simpleText = English > English - CC (English)
+file player_response >> captions > playerCaptionsTracklistRenderer > captionTracks > 0 > baseUrl customize with *&fmt=vtt
+name player_response >> videoDetails > title
 meta1 &mime=*%2F*& customize with .*
 meta1 ^&fmt=* customize with .*
 
@@ -188,6 +242,15 @@ key body > items > 0 > id << body > items > 0 > body > images > 0 > id
 meta ^/*^/ customize with *.
 pages body > nextUrl
 
+https://api.fanbox.cc/post.listComments
+key body > items > id
+key3 body > items > user > name
+html body > items > body
+key body > items > id << body > items > replies > 0 > id
+key3 body > items > replies > 0 > user > name
+html body > items > replies > 0 > body
+pages body > nextUrl
+
 https://fantia.jp/fanclubs/
 folder ^/*^/
 pages <a class="link-block" href="*" customize with https://fantia.jp*
@@ -222,6 +285,38 @@ meta2 ^/* ends with .jpg
 meta2 ^/* ends with .jpeg
 meta2 ^/* ends with .gif
 
+https://kemono.party/api
+files 0 > file > path not starts with http customize with https://data.kemono.party*
+name1 0 > file > name
+files 0 > attachments > 0 > path not starts with http customize with https://data.kemono.party*
+name1 0 > attachments > 0 > name
+files 0 > file > path starts with http
+name1 0 > file > name
+files 0 > attachments > 0 > path starts with http
+name1 0 > attachments > 0 > name
+meta kemono.party/files/fanbox/*/*/ customize with *.
+meta kemono.party/files/*/*/ customize with *.
+meta kemono.party/attachments/*/*/ customize with *.
+meta
+key 0 > id
+key1 0 > title
+key2 0 > edited
+html 0 > content
+name1 <img data-media-id="*" customize with *id.*.
+name1 <img customize with *id.000.*
+meta2 kemono.party/inline/*/*
+meta2 kemono.party/inline/*
+files  src="/inline/*"> customize with https://data.kemono.party/inline/*
+paginate *^= ^=* with =(+25)
+
+https://kemono.party/
+folder /patreon/ customize with Patreon\
+folder /fanbox/ customize with Fanbox\
+folder /fantia/ customize with Fantia\
+folder1 user/* customize with *
+title2 <span itemprop="name">*</span> customize with  *\
+paginate https://kemono.party/* with https://kemono.party/api/*?o=0
+
 https://discord.com/
 urlfix https://discord.com/channels/*/* with https://discord.com/api/v9/channels/*/messages?limit=50
 urlfix
@@ -234,3 +329,12 @@ files 0 > attachments > 0 > url
 name 0 > attachments > 0 > id customize with *.
 name1 0 > attachments > 0 > filename
 paginate *^messages? * ^limit=* with messages?before=(0 > id)&limit=
+
+https://e621.net/posts
+urlfix https://e621.net/posts?* with https://e621.net/posts.json?page=1&*
+urlfix
+unexpect posts > 0 > id
+files posts > 0 > file > url
+name posts > 0 > id
+meta1 ^/*
+paginate *^page= * &* with page=(1)&

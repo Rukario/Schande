@@ -72,15 +72,15 @@ personal = False
 
 
 
+def ansi(c):
+    return ";".join(str(int(x, 16)) for x in [c[0:2], c[2:4], c[4:6]])
+
 def ansi_color(b=False, f="3"):
     if not b:
         return "\033[0m"
-    c = [b, f]
-    n = 0
-    for d in [4, 3]:
-        c[n] = (f"{d}8;2;" + ";".join(str(int(x, 16)) for x in [f'{c[n]:06}'[i:i+2] for i in range(0, 6, 2)])) if len(c[n]) == 6 else f"{d if d == 4 else 9}{c[n]}"
-        n += 1
-    return f"\033[{c[0]};{c[1]}m"
+    b = "48;2;" + ansi(b) if len(b) == 6 else f"4{b}"
+    f = "38;2;" + ansi(f) if len(f) == 6 else f"9{f}"
+    return f"\033[{b};{f}m"
 
 
 
@@ -1339,15 +1339,10 @@ def get_cd(file, makedirs=False, preview=False, subdir=""):
 
 
 def downloadtodisk(fromhtml, makedirs=False):
-
     filelist = []
     filelisthtml = []
-
     htmlpart = fromhtml["partition"]
-
     for key in htmlpart.keys():
-
-
         for file in htmlpart[key]["files"]:
             if not file["name"]:
                 print(f""" I don't have a scraper for {file["link"]}""")
@@ -1402,38 +1397,37 @@ def downloadtodisk(fromhtml, makedirs=False):
 
     dirs = set()
     htmldirs = {}
-    for file in filelist:
-        fp = file[3]
-        dir = file[1].rsplit("/", 1)[0] + "/"
+    for onserver, ondisk, edited, key in filelist:
+        dir = ondisk.rsplit("/", 1)[0] + "/"
         if not dir in dirs and not dirs.add(dir):
             if os.path.exists(dir + "partition.json"):
                 with open(dir + "partition.json", 'r') as f:
                     htmldirs.update({dir:json.loads(f.read())})
             else:
                 htmldirs.update({dir:{}})
-        if dir in htmldirs and fp in htmldirs[dir]:
-            if len(htmldirs[dir][fp]["keywords"]) < 2:
+        if dir in htmldirs and key in htmldirs[dir]:
+            if len(htmldirs[dir][key]["keywords"]) < 2:
                 continue
-            k = htmldirs[dir][fp]["keywords"][1]
-            if not file[2] == "0" and not file[2] == k:
-                if os.path.exists(file[1]):
+            k = htmldirs[dir][key]["keywords"][1]
+            if not edited == "0" and not edited == k:
+                if os.path.exists(ondisk):
                     if editisreal:
                         old = ".old_file_" + k
-                        os.rename(file[1], ren(file[1], old))
-                        thumbnail = ren(file[1], append="_small")
+                        os.rename(ondisk, ren(ondisk, old))
+                        thumbnail = ren(ondisk, append="_small")
                         if os.path.exists(thumbnail):
                             os.rename(thumbnail, ren(thumbnail, old))
                     else:
-                        print(f"  Edited on server: {file[1]}")
+                        print(f"  Edited on server: {ondisk}")
                         continue
             else:
                 continue
 
-        if not file[0]:
+        if not onserver:
             continue
-        if conflict := [k for k in queued.keys() if file[1].lower() == k.lower()]:
-            file[1] = conflict[0]
-        queued.update({file[1]: [file[0]] + (queued[file[1]] if queued.get(file[1]) else [])})
+        if conflict := [k for k in queued.keys() if ondisk.lower() == k.lower()]:
+            ondisk = conflict[0]
+        queued.update({ondisk: [onserver] + (queued[ondisk] if queued.get(ondisk) else [])})
 
     threadn = 0
     for ondisk, onserver in queued.items():
@@ -3839,10 +3833,10 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            sys.stdout.write("Open (H)elp unless you mean (I)nput mode for (HTTP...): ")
-            sys.stdout.flush()
-            el = choice("hvi")
-            if el == 1:
+            el = input("Open (H)elp unless you mean (I)nput mode for (HTTP...): ", ["h", "v", "i"])
+            if not el:
+                kill(0)
+            elif el == 1:
                 help()
                 ready_input()
             elif el == 2:

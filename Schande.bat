@@ -28,10 +28,8 @@ batchname = os.path.splitext(batchfile)[0]
 os.chdir(batchdir)
 
 date = datetime.now().strftime('%Y') + "-" + datetime.now().strftime('%m') + "-XX"
-mf = batchname + "/"
-tmf = "\\" + mf.replace("/", "\\")
 cd = batchname + " cd/"
-tcd = "\\" + cd.replace("/", "\\")
+tcd = "\\" + batchname + " cd\\"
 htmlfile = batchname + ".html"
 rulefile = batchname + ".cd"
 sav = batchname + ".sav"
@@ -46,53 +44,63 @@ videofile = [".mkv", ".mp4", ".webm"]
 specialfile = ["gallery.html", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
 
 busy = [False]
-continue_prompt = [False]
 cooldown = [False]
 dlslot = [8]
 echothreadn = []
 error = [[]]
+htmlname = batchfile
 newfilen = [0]
 Keypress_flush = [False]
 Keypress_prompt = [False]
 Keypress_A = [False]
+Keypress_C = [False]
 Keypress_F = [False]
 Keypress_N = [False]
-personal = False
+Keypress_S = [False]
+Keypress_X = [False]
+Keypress_CtrlC = [False]
 retries = [0]
-retryx = [False]
-seek = [False]
 sf = [0]
-shuddup = False
-skiptonext = [False]
-readonly = False
 
 # Probably useless settings
 collisionisreal = False
 editisreal = False
 buildthumbnail = False
 # True if you want to serve pages efficiently. It'll take a while to build new thumbnails from large collection.
+shuddup = False
+personal = False
+
+
+
+def ansi_color(b=False, f="3"):
+    if not b:
+        return "\033[0m"
+    c = [b, f]
+    n = 0
+    for d in [4, 3]:
+        c[n] = (f"{d}8;2;" + ";".join(str(int(x, 16)) for x in [f'{c[n]:06}'[i:i+2] for i in range(0, 6, 2)])) if len(c[n]) == 6 else f"{d if d == 4 else 9}{c[n]}"
+        n += 1
+    return f"\033[{c[0]};{c[1]}m"
 
 
 
 def title(echo):
     sys.stdout.write("\033]0;" + echo + "\007")
 cls = "\033[H\033[2J"
-tcolorr = "\033[40;91m"
-tcolorg = "\033[40;92m"
-tcolorb = "\033[40;38;2;59;120;255m"
-tcoloro = "\033[40;38;2;255;144;48m"
+tcolor = ansi_color("0")
+tcolorr = ansi_color("0", "1")
+tcolorg = ansi_color("0", "2")
+tcolorb = ansi_color("0", "3B78FF")
+tcoloro = ansi_color("0", "FF9030")
 if sys.platform == "darwin":
-    tcolor = "\033[40m"
-    tcolorx = "\033[0m"
+    tcolorx = ansi_color()
 else:
-    tcolor = "\033[40;93m"
-    tcolorx = "\033[48;2;0;90;128;96m"
+    tcolorx = ansi_color("005A80", "6")
     os.system("")
 if sys.platform == "linux":
     os.system("cat /dev/location > /dev/null &")
 title(batchfile)
 sys.stdout.write("Non-ANSI-compliant Command Prompt/Terminal (expect lot of visual glitches): Upgrade to Windows 10 if you're on Windows.")
-sys.stdout.write(tcolorx + cls)
 
 
 
@@ -146,7 +154,7 @@ def help():
 
  - - - - Sorter - - - -
   Wildcard: UNIX-style wildcard, ? matches 1 character, * matches everything, start/end is anchored until wildcarded.
- + Wildcard for file names only. Sorting from {tmf}:
+ + Wildcard for file names only. Sorting from \\{batchname}\\:
  |  "\\...\\"                   use this directory for future matching. Multiple backslashes for nesting folders.
  |  "!\\...\\"                  use this directory for future non-matching.
  |  "\\...\\..." or "!\\...\\..." one-liner and future matching/non-matching.
@@ -158,10 +166,10 @@ def help():
 
  - - - - Download directory - - - -
   Wildcard: Single asterisk only, capture for prepend/append before file extension, non-anchored http ending.
- +  "...\\* for http..."       custom dir for downloads, {tmf} if no custom dir specified.
+ +  "...\\* for http..."       custom dir for downloads, \\{batchname}\\ if no custom dir specified.
  |  "...*date\\* for http..."  custom dir for downloads, "*date" will become "{date}".
  |  "...\\...*... for http..." and the file are also renamed (prepend/append).
- +  "...*... for http..."     and they go to {tmf} while renamed.
+ +  "...*... for http..."     and they go to \\{batchname}\\ while renamed.
 
  - - - - Spoofer - - - -
   Wildcard: None, non-anchored http ending.
@@ -326,10 +334,10 @@ def alert(m, s, d=False):
         sys.stdout.write("(C)ontinue")
         sys.stdout.flush()
         choice(bg="2e", persist=True)
-        continue_prompt[0] = False
-        while not continue_prompt[0]:
+        Keypress_C[0] = False
+        while not Keypress_C[0]:
             time.sleep(0.1)
-        continue_prompt[0] = False
+        Keypress_C[0] = False
         choice(bg="2e")
 
 
@@ -408,7 +416,6 @@ def input(i="Your Input: ", choices=False):
 
 if not os.path.exists(rulefile):
     open(rulefile, 'w').close()
-print(f"Reading settings from {rulefile} . . .")
 if os.path.getsize(rulefile) < 1:
     rules = ["- - - - Spoofer - - - -", "Mozilla/5.0 for http"]
 else:
@@ -453,7 +460,7 @@ def echoMBs(threadn, Bytes, ff):
     s = time.time()
     if echofriction[0] < int(s*eps):
         echofriction[0] = int(s*eps)
-        stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {batchname} {''.join(fx[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
+        stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {htmlname} {''.join(fx[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
     else:
         echofriction[0] = int(s*eps)
     if Bstime[0] < int(s):
@@ -588,83 +595,6 @@ def startserver(port, directory):
     d = f"\\{d}\\" if d else "current drive"
     print(f""" HTML SERVER: Serving {d} at port {port}""")
     ThreadedHTTPServer(("", port), handler(directory)).serve_forever()
-
-
-
-# Loading settings from rulefile
-def y(y, yn=False):
-    y = y.split("=", 1)[1].strip()
-    if yn:
-        if os.path.exists(y):
-            return y
-        return True if y.lower()[0] == "y" else False
-    else:
-        return y
-HTMLserver = y(rules[0], True)
-Browser = y(rules[1])
-Mail = y(rules[2])
-Geistauge = y(rules[3], True)
-proxy = y(rules[5])
-if HTMLserver:
-    port = 8885
-    directories = [os.getcwd()]
-    for directory in directories:
-        port += 1
-        t = Thread(target=startserver, args=(port,directory,))
-        t.daemon = True
-        t.start()
-else:
-    print(" HTML SERVER: OFF")
-if Browser:
-    print(" BROWSER: " + Browser.replace("\\", "/").rsplit("/", 1)[-1])
-else:
-    print(" BROWSER: NONE")
-if Mail:
-    Mail = Mail.split(" ", 2)
-    if len(Mail) > 1:
-        if Mail[0].endswith("@gmail.com"):
-            print(" MAIL: " + Mail[0] + " -> " + Mail[1] + " *")
-        else:
-            print(" MAIL: Non-Gmail as sender is unimplemented for now.\n\n Please try again . . .")
-    else:
-        print(" MAIL: Please add your two email addresses (sender/receiver)\n\n TRY AGAIN!")
-        sys.exit()
-    if len(Mail) < 3:
-        Mail += [getpass.getpass(prompt=f" {Mail[0]}'s password (automatic if saved as third address): ")]
-        echo("", 1)
-    personal = True
-else:
-    print(" MAIL: NONE")
-if Geistauge:
-    try:
-        import numpy, cv2
-        from PIL import Image
-        Image.MAX_IMAGE_PIXELS = 400000000
-        print(" GEISTAUGE: ON")
-    except:
-        print(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install pillow\n{sys.exec_prefix}\Scripts\pip.exe install numpy\n{sys.exec_prefix}\Scripts\pip.exe install opencv-python")
-        sys.exit()
-else:    
-    print(" GEISTAUGE: OFF")
-if "socks5://" in proxy and proxy[10:]:
-    if not ":" in proxy[10:]:
-        print(" PROXY: Invalid socks5:// address, it must be socks5://X.X.X.X:port OR socks5://user:pass@X.X.X.X:port\n\n TRY AGAIN!")
-        sys.exit()
-    try:
-        import socks
-    except:
-        print(f" PROXY: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install PySocks")
-        sys.exit()
-    if "@" in proxy[10:]:
-        usr, pw, address, port = proxy.replace("socks5:","").replace("/","").replace("@",":").split(":")
-        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port), username=usr, password=pw)
-    else:
-        address, port = proxy.replace("socks5:","").replace("/","").split(":")
-        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port))
-    socket.socket = socks.socksocket
-    # The following line prevents DNS leaks. https://stackoverflow.com/questions/13184205/dns-over-proxy
-    socket.getaddrinfo = lambda *args: [(socket.AF_INET, socket.SOCK_STREAM, 6, '', (args[0], args[1]))]
-print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 
 
 
@@ -874,6 +804,8 @@ def picker(s, rule):
 
 
 # Loading referer, sort, and custom dir rules, pickers, and global file rejection by file types from rulefile
+bgcolor = False
+fgcolor = "3"
 customdir = {}
 sorter = {}
 md5er = []
@@ -924,6 +856,10 @@ for rule in rules:
         editisreal = True
     elif rule == "buildthumbnail":
         buildthumbnail = True
+    elif rule.startswith('bgcolor '):
+        bgcolor = rule.replace("bgcolor ", "")
+    elif rule.startswith('fgcolor '):
+        fgcolor = rule.replace("fgcolor ", "")
     elif rule.startswith("\\"):
         dir = rule.split("\\", 1)[1]
         if dir.endswith("\\"):
@@ -963,9 +899,91 @@ for rule in rules:
         sorter[dir] += [rule]
     else:
         exempt += [rule]
+
 for n in range(total_names[0]):
     if not pickers[site]["name"][n]:
         kill(f"\n One of the name pickers for sequential name assemblement was skipped.")
+
+if bgcolor:
+    tcolorx = ansi_color(bgcolor, fgcolor)
+sys.stdout.write(tcolorx + cls)
+
+
+
+print(f"Reading settings from {rulefile} . . .")
+def y(y, yn=False):
+    y = y.split("=", 1)[1].strip()
+    if yn:
+        if os.path.exists(y):
+            return y
+        return True if y.lower()[0] == "y" else False
+    else:
+        return y
+HTMLserver = y(rules[0], True)
+Browser = y(rules[1])
+Mail = y(rules[2])
+Geistauge = y(rules[3], True)
+proxy = y(rules[5])
+if HTMLserver:
+    port = 8885
+    directories = [os.getcwd()]
+    for directory in directories:
+        port += 1
+        t = Thread(target=startserver, args=(port,directory,))
+        t.daemon = True
+        t.start()
+else:
+    print(" HTML SERVER: OFF")
+if Browser:
+    print(" BROWSER: " + Browser.replace("\\", "/").rsplit("/", 1)[-1])
+else:
+    print(" BROWSER: NONE")
+if Mail:
+    Mail = Mail.split(" ", 2)
+    if len(Mail) > 1:
+        if Mail[0].endswith("@gmail.com"):
+            print(" MAIL: " + Mail[0] + " -> " + Mail[1] + " *")
+        else:
+            print(" MAIL: Non-Gmail as sender is unimplemented for now.\n\n Please try again . . .")
+    else:
+        print(" MAIL: Please add your two email addresses (sender/receiver)\n\n TRY AGAIN!")
+        sys.exit()
+    if len(Mail) < 3:
+        Mail += [getpass.getpass(prompt=f" {Mail[0]}'s password (automatic if saved as third address): ")]
+        echo("", 1)
+    personal = True
+else:
+    print(" MAIL: NONE")
+if Geistauge:
+    try:
+        import numpy, cv2
+        from PIL import Image
+        Image.MAX_IMAGE_PIXELS = 400000000
+        print(" GEISTAUGE: ON")
+    except:
+        print(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install pillow\n{sys.exec_prefix}\Scripts\pip.exe install numpy\n{sys.exec_prefix}\Scripts\pip.exe install opencv-python")
+        sys.exit()
+else:    
+    print(" GEISTAUGE: OFF")
+if "socks5://" in proxy and proxy[10:]:
+    if not ":" in proxy[10:]:
+        print(" PROXY: Invalid socks5:// address, it must be socks5://X.X.X.X:port OR socks5://user:pass@X.X.X.X:port\n\n TRY AGAIN!")
+        sys.exit()
+    try:
+        import socks
+    except:
+        print(f" PROXY: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install PySocks")
+        sys.exit()
+    if "@" in proxy[10:]:
+        usr, pw, address, port = proxy.replace("socks5:","").replace("/","").replace("@",":").split(":")
+        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port), username=usr, password=pw)
+    else:
+        address, port = proxy.replace("socks5:","").replace("/","").split(":")
+        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port))
+    socket.socket = socks.socksocket
+    # The following line prevents DNS leaks. https://stackoverflow.com/questions/13184205/dns-over-proxy
+    socket.getaddrinfo = lambda *args: [(socket.AF_INET, socket.SOCK_STREAM, 6, '', (args[0], args[1]))]
+print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 
 
 
@@ -996,8 +1014,8 @@ def timer(e="", all=True):
                 pgtime[0] = int(time.time()/5)
                 pg[0] = 0
                 title(batchfile + monitor())
-            if seek[0]:
-                seek[0] = False
+            if Keypress_CtrlC[0]:
+                Keypress_CtrlC[0] = False
                 break
         ticking[0] = False
     elif all:
@@ -1059,7 +1077,7 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
             resp = request.urlopen(request.Request(saint(url=url), headers=headers, data=data), context=context)
             break
         except HTTPError as e:
-            if stderr or retryx[0] and not skiptonext[0]:
+            if stderr or Keypress_X[0] and not Keypress_S[0]:
                 el = retry(f"{stderr} ({e.code} {e.reason})")
                 if el == 2:
                     firefox(saint(url=url))
@@ -1067,21 +1085,21 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
                 elif not el:
                     return 0, str(e.code)
             else:
-                skiptonext[0] = False
+                Keypress_S[0] = False
                 return 0, str(e.code)
         except URLError as e:
-            if stderr or retryx[0] and not skiptonext[0]:
+            if stderr or Keypress_X[0] and not Keypress_S[0]:
                 if not retry(f"{stderr} (e.reason)"):
                     return 0, e.reason
             else:
-                skiptonext[0] = False
+                Keypress_S[0] = False
                 return 0, e.reason
         except:
-            if stderr or retryx[0] and not skiptonext[0]:
+            if stderr or Keypress_X[0] and not Keypress_S[0]:
                 if not retry(f"{stderr} (closed by host)"):
                     return 0, "closed by host"
             else:
-                skiptonext[0] = False
+                Keypress_S[0] = False
                 return 0, "closed by host"
     return resp, 0
 
@@ -1101,8 +1119,8 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
             dl = os.path.getsize(todisk + ".part")
     else:
         echo(threadn, "0 MB")
-    skiptonext[0] = False
-    seek[0] = False
+    Keypress_S[0] = False
+    Keypress_CtrlC[0] = False
     while echothreadn and echothreadn.index(threadn) >= dlslot[0]:
         time.sleep(0.1)
     resp, err = fetch(url, context, stderr, dl, threadn)
@@ -1167,11 +1185,11 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
                 dl += Bytes
                 echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
                 echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {url}""", clamp='█', friction=True)
-                if seek[0]:
+                if Keypress_CtrlC[0]:
                     resp, err = fetch(url, context, stderr, dl, threadn)
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
-                    seek[0] = False
+                    Keypress_CtrlC[0] = False
         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
         os.rename(todisk + ".part", todisk)
         stdout[0] = ""
@@ -1233,12 +1251,12 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
             dl += Bytes
             echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
             echo(threadn, f"{int(dl/1048576)} MB", friction=True)
-            if seek[0]:
+            if Keypress_CtrlC[0]:
                 resp, err = fetch(url, context, stderr, dl, threadn)
                 if resp.status == 200:
                     data = b''
                     dl = 0
-                seek[0] = False
+                Keypress_CtrlC[0] = False
 
 
 
@@ -1276,7 +1294,7 @@ for i in range(8):
 
 def get_cd(file, makedirs=False, preview=False, subdir=""):
     link = file["link"] if preview else file.pop("link")
-    todisk = mf + file["name"].replace("\\", "/")
+    todisk = batchname + "/" + file["name"].replace("\\", "/")
     if rule := [v for k, v in customdir.items() if k in link]:
         name, ext = os.path.splitext(file["name"])
         name = name.rsplit("/", 1)
@@ -1304,9 +1322,9 @@ def get_cd(file, makedirs=False, preview=False, subdir=""):
     elif not preview:
         dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
         tdir = "\\" + dir.replace("/", "\\")
-        if not os.path.exists(mf):
+        if not os.path.exists(batchname + "/"):
             try:
-                os.makedirs(mf)
+                os.makedirs(batchname + "/")
             except:
                 kill(f"Can't make folder {tdir} because there's a file using that name, I must exit!")
     if not preview:
@@ -1321,22 +1339,27 @@ def get_cd(file, makedirs=False, preview=False, subdir=""):
 
 
 def downloadtodisk(fromhtml, makedirs=False):
+
     filelist = []
     filelisthtml = []
+
     htmlpart = fromhtml["partition"]
+
     for key in htmlpart.keys():
+
+
         for file in htmlpart[key]["files"]:
             if not file["name"]:
                 print(f""" I don't have a scraper for {file["link"]}""")
             else:
                 if (x := get_cd(file, makedirs) + [key])[0]:
                     filelist += [x]
-        for html in htmlpart[key]["html"]:
-            if len(html) == 2 and html[1]:
-                if not html[1]["name"]:
-                    print(f""" I don't have a scraper for {html[1]["link"]}""")
+        for array in htmlpart[key]["html"]:
+            if len(array) == 2 and array[1]:
+                if not array[1]["name"]:
+                    print(f""" I don't have a scraper for {array[1]["link"]}""")
                 else:
-                    if (x := get_cd(html[1], makedirs) + [key])[0]:
+                    if (x := get_cd(array[1], makedirs) + [key])[0]:
                         filelisthtml += [x]
     if fromhtml["inlinefirst"]:
         filelist = filelisthtml + filelist
@@ -1356,7 +1379,8 @@ def downloadtodisk(fromhtml, makedirs=False):
 
     if not filelist:
         if fromhtml["makehtml"]:
-            tohtml(get_cd({"link":fromhtml["page"], "name":fromhtml["folder"], "edited":0}, makedirs)[1], fromhtml, [])
+            x = get_cd({"link":fromhtml["page"], "name":fromhtml["folder"], "edited":0}, makedirs)[1]
+            tohtml(x, x.split("/")[-2], fromhtml, [])
         else:
             print("Filelist is empty!")
         error[0] = []
@@ -1372,8 +1396,10 @@ def downloadtodisk(fromhtml, makedirs=False):
             pass
         return
     queued = {}
-
     lastfilen = newfilen[0]
+
+
+
     dirs = set()
     htmldirs = {}
     for file in filelist:
@@ -1438,7 +1464,7 @@ def downloadtodisk(fromhtml, makedirs=False):
                 for file in next(os.walk(dir))[2]:
                     if not file.endswith(tuple(specialfile)) and not file.startswith("icon"):
                         orphfiles += [file]
-                tohtml(dir, fromhtml, set(orphfiles).difference([x[1].rsplit("/", 1)[-1] for x in filelist]))
+                tohtml(dir, dir.split("/")[-2], fromhtml, set(orphfiles).difference([x[1].rsplit("/", 1)[-1] for x in filelist]))
     for dir in htmldirs.keys():
         if x := fromhtml["page"]:
             file = dir + x["name"] + ".URL"
@@ -1482,10 +1508,10 @@ def firefox(url):
     firefox_running[0].get(url)
     # ff_login()
     echo("(C)ontinue when finished defusing.")
-    continue_prompt[0] = False
-    while not continue_prompt[0]:
+    Keypress_C[0] = False
+    while not Keypress_C[0]:
         time.sleep(0.1)
-    continue_prompt[0] = False
+    Keypress_C[0] = False
     for bc in firefox_running[0].get_cookies():
         if "httpOnly" in bc: del bc["httpOnly"]
         if "expiry" in bc: del bc["expiry"]
@@ -2329,10 +2355,10 @@ def scrape(startpages):
                             stdout += "\n"
                     echo(stdout + tcolorx)
                 echo(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """, 0, 1)
-                continue_prompt[0] = False
-                while not continue_prompt[0]:
+                Keypress_C[0] = False
+                while not Keypress_C[0]:
                     time.sleep(0.1)
-                continue_prompt[0] = False
+                Keypress_C[0] = False
             downloadtodisk(shelf[p], makedirs=True)
     return True
 
@@ -2497,13 +2523,13 @@ def container_c(ondisk, label):
 
 
 
-def new_html(builder, title, listurls, imgsize=200):
+def new_html(builder, htmlname, listurls, imgsize=200):
     if not listurls:
         listurls = "Maybe in another page."
     return """<!DOCTYPE html>
 <html>
 <meta charset="utf-8"/>
-""" + f"<title>{title}</title>" + """
+""" + f"<title>{htmlname}</title>" + """
 <script>
 var Expand = function(c, t) {
   if(!c.naturalWidth) {
@@ -3013,8 +3039,7 @@ html,body{background-color:#10100c; color:#088 /*cb7*/; font-family:consolas, co
 a{color:#dc8 /*efdfa8*/;}
 a:visited{color:#cccccc;}
 .aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
-.aquatext{color:#22cccc}
-.carbon, .files, .time{background-color:#10100c; border:3px solid #6a6a66; border-radius:12px;}
+.carbon, .files, .time{background-color:#10100c /*07300f*/; border:3px solid #6a6a66 /*192*/; border-radius:12px;}
 .time{white-space:pre-wrap; color:#ccc; font-size:90%; line-height:1.6;}
 .cell, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
 .edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45;}
@@ -3041,7 +3066,7 @@ img{vertical-align:top;}
 .mySlides{white-space:pre-wrap; padding-right:32px;}
 .closebtn{position:absolute; top:15px; right:15px;}
 .carbon, .files, .edits{margin-right:12px;}
-.cell{overflow:auto; width:calc(100% - 20px); display:inline-block; vertical-align:text-top;}
+.cell{overflow:auto; width:calc(100% - 28px); display:inline-block; vertical-align:text-top;}
 h2{margin:4px;}
 .postMessage{white-space:pre-wrap;}
 </style>
@@ -3056,9 +3081,9 @@ h2{margin:4px;}
 <button class="next" onclick="resizeImg('{imgsize*2}px')">2x</button>
 <button class="next" onclick="resizeImg('{imgsize*4}px')">4x</button>
 <button class="next" onclick="resizeImg('auto')">1:1</button>
-<button class="next" onclick="resizeCell('calc(100% - 20px)')">&nbsp;.&nbsp;</button>
+<button class="next" onclick="resizeCell('calc(100% - 28px)')">&nbsp;.&nbsp;</button>
 <button class="next" onclick="resizeCell('calc(50% - 32px)')">. .</button>
-<button class="next" onclick="resizeCell('calc(33% - 28px)')">...</button>
+<button class="next" onclick="resizeCell('calc(33.33% - 34px)')">...</button>
 <button class="next" onclick="resizeCell('calc(25% - 34px)')">....</button>
 <button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')">Preview</button>
 <button id="ge" class="next" onclick="previewg(this, 'vs left', 'vs left <', 'vs left >', 'Find Edge')">Original</button>
@@ -3090,21 +3115,22 @@ def hyperlink(html):
 
 
 
-def tohtml(dir, fromhtml, orphfiles):
-    tdir = "\\" + dir.replace("/", "\\")
+def tohtml(subdir, htmlname, fromhtml, orphfiles):
     builder = ""
     listurls = ""
     htmlpart = fromhtml["partition"]
+    thumbnail_dir = ""
+    if not os.path.exists(subdir + thumbnail_dir):
+        os.makedirs(subdir + thumbnail_dir)
     new_relics = htmlpart.copy()
 
 
 
     for icon in fromhtml["icons"]:
-        todisk = dir + icon["name"]
-        if not os.path.exists(todisk):
-            if not (err := get(icon["link"], todisk)) == 1:
+        if not os.path.exists(subdir + thumbnail_dir + icon["name"]):
+            if not (err := get(icon["link"], subdir + thumbnail_dir + icon["name"])) == 1:
                 echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
-        builder += f"""<img src="{icon["name"]}" height="100px">\n"""
+        builder += f"""<img src="{thumbnail_dir}{icon["name"]}" height="100px">\n"""
     if x := fromhtml["page"]:
         builder += f"""<h2><a href="{x["link"]}">{x["name"]}</a></h2>"""
 
@@ -3124,13 +3150,12 @@ def tohtml(dir, fromhtml, orphfiles):
 
 
 
-    partfile = dir + "partition.json"
+    partfile = subdir + thumbnail_dir + "partition.json"
     gallery_is = "updated"
     if not os.path.exists(partfile):
         gallery_is = "created"
         with open(partfile, 'w') as f:
             f.write(json.dumps(new_relics))
-    print(f" File {gallery_is}: {tdir}partition.json")
     with open(partfile, 'r', encoding="utf-8") as f:
         relics = json.loads(f.read())
     orphid = iter(relics.keys())
@@ -3144,12 +3169,14 @@ def tohtml(dir, fromhtml, orphfiles):
                 part.update({idx:relics[idx]})
             else:
                 break
-        if not relics[id]["html"] or relics[id]["keywords"] < new_relics[id]["keywords"]:
+        if not relics[id]["html"] or not relics[id]["keywords"] == new_relics[id]["keywords"]:
             part.update({id:new_relics[id]})
         else:
             part.update({id:relics[id]})
     with open(partfile, 'w') as f:
         f.write(json.dumps(part))
+    buffer = partfile.replace("/", "\\")
+    print(f" File {gallery_is}: {buffer}")
 
 
 
@@ -3164,8 +3191,6 @@ def tohtml(dir, fromhtml, orphfiles):
         else:
             part[id]["orphfiles"] = [file]
     if buildthumbnail:
-        if not os.path.exists(dir + "Thumbnails/"):
-            os.makedirs(dir + "Thumbnails/")
         echo("Building thumbnails . . .")
 
 
@@ -3189,17 +3214,18 @@ def tohtml(dir, fromhtml, orphfiles):
             keywords = ", ".join(x for x in keywords[2:]) if len(keywords) > 2 else "None"
             builder += f"""<div class="time" id="{id}" style="float:right;">Part {id} ꍯ {time}\nKeywords: {keywords}</div>\n"""
         builder += title
-        files = [x for x in part[id]["files"]]
-        if files:
+        # if file := part[id]["file"]:
+        #     builder += f"""<div class="carbon">\n{container(subdir[0] + file["name"], rejlist, 1)}</div>\n"""
+        if part[id]["files"]:
             builder += "<div class=\"files\">\n"
-            for file in files:
-                builder += container(dir, file)
+            for file in part[id]["files"]:
+                builder += container(subdir, file)
             builder += "</div>\n"
         if "orphfiles" in part[id]:
             builder += "<div class=\"edits\">\n"
             for file in part[id]["orphfiles"]:
-                # os.rename(dir + file, dir + "Orphaned files/" + file)
-                builder += container(dir, file)
+                # os.rename(subdir + file, subdir + "Orphaned files/" + file)
+                builder += container(subdir, file)
             builder += "<br><br>orphaned file(s)\n</div>\n"
         if html := part[id]["html"]:
             builder += """<div class="postMessage">"""
@@ -3210,7 +3236,7 @@ def tohtml(dir, fromhtml, orphfiles):
                         end_container = True
                         new_container = False
                     if array[1]:
-                        content += f"""{array[0]}{container(dir, array[1]["name"])}"""
+                        content += f"""{array[0]}{container(subdir, array[1]["name"])}"""
                     else:
                         content += array[0]
                 elif end_container:
@@ -3231,12 +3257,13 @@ def tohtml(dir, fromhtml, orphfiles):
                     links += f"""<a href="{link}">{link}</a><br>"""
                 listurls += f"""# From <a href="#{id}">#{id}</a> :: {title}<br>{links}\n"""
             builder += f"{content}</div>\n"
-        elif not files:
+        elif not part[id]["files"]:
             builder += "<div class=\"edits\">Rebuild HTML with a different login/tier may be required to view</div>\n"
         builder += "</div>\n\n"
-    with open(dir + "gallery.html", 'wb') as f:
-        f.write(bytes(new_html(builder, batchname, listurls), "utf-8"))
-    print(f" File {gallery_is}: {tdir}gallery.html ")
+    with open(subdir + "gallery.html", 'wb') as f:
+        f.write(bytes(new_html(builder, htmlname, listurls), "utf-8"))
+    buffer = subdir.replace("/", "\\")
+    print(f" File {gallery_is}: {buffer}gallery.html ")
 
 
 
@@ -3478,22 +3505,22 @@ def delmode(m):
 
 
 def finish_sort():
-    if not os.path.exists(mf):
+    if not os.path.exists(batchname + "/"):
         choice(bg=True)
-        print(f" {tmf} doesn't exist! Nothing to sort.")
+        print(f" \\{batchname}\\ doesn't exist! Nothing to sort.")
         return
     mover = {}
-    for file in next(os.walk(mf))[2]:
+    for file in next(os.walk(batchname + "/"))[2]:
         for n in md5er:
             if len(c := carrots([[file,""]], n, [], False)) == 2 and not c[0][0] and not c[-1][0]:
-                ondisk = mf + file
+                ondisk = batchname + "/" + file
                 with open(ondisk, 'rb') as f:
                     s = f.read()
                 ext = os.path.splitext(ondisk)[1].lower()
                 m = hashlib.md5(s).hexdigest()
                 file = m + ext
                 if not os.path.exists(m + ext):
-                    os.rename(ondisk, mf + file)
+                    os.rename(ondisk, batchname + "/" + file)
                 else:
                     print(f"I want to (D)elete {ondisk} because {file} already exists.")
                     if choice("d") == 1:
@@ -3518,7 +3545,7 @@ def finish_sort():
                         break
     if not mover:
         choice(bg=True)
-        print(f" Nothing to sort! Check and add or update pattern if there are files in {tmf} needed to be sorted.")
+        print(f" Nothing to sort! Check and add or update pattern if there are files in \\{batchname}\\ needed to be sorted.")
         return
     sys.stdout.write(f" ({tcolorb}From directory {tcolorr}-> {tcolorg}to a more deserving directory{tcolorx}) {tcd} for non-existent directories - (C)ontinue ")
     sys.stdout.flush()
@@ -3527,25 +3554,25 @@ def finish_sort():
     for file, dir in mover.items():
         if os.path.exists(dir + file):
             print(f"""I want to (D)elete source file because destination file already exists:
-     source:      {mf}{file}
+     source:      {batchname + "/"}{file}
      destination: {dir}{file}""")
             if not choice("d") == 1:
                 kill(0)
-            os.remove(mf + file)
+            os.remove(batchname + "/" + file)
         elif os.path.exists(dir):
-            os.rename(mf + file, dir + file)
+            os.rename(batchname + "/" + file, dir + file)
         else:
             if not os.path.exists(cd):
                 os.makedirs(cd)
             if not os.path.exists(cd + file):
-                os.rename(mf + file, cd + file)
+                os.rename(batchname + "/" + file, cd + file)
             else:
                 print(f"""I want to (D)elete source file because destination file already exists:
-     source:      {mf}{file}
+     source:      {batchname}/{file}
      destination: {cd}{file}""")
                 if not choice("d") == 1:
                     kill(0)
-                os.remove(mf + file)
+                os.remove(batchname + "/" + file)
 
 
 
@@ -3772,7 +3799,7 @@ def keylistener():
                 ready_input()
         elif el == 3:
             echo("", 1)
-            continue_prompt[0] = True
+            Keypress_C[0] = True
             if not busy[0]:
                 ready_input()
         elif el == 4:
@@ -3888,7 +3915,7 @@ def keylistener():
                 ready_input()
         elif el == 19:
             echo("", 1)
-            skiptonext[0] = True
+            Keypress_S[0] = True
             if not busy[0]:
                 ready_input()
         elif el == 20:
@@ -3914,8 +3941,8 @@ def keylistener():
             echo("Keypress W unrecognized", 0, 1)
             ready_input()
         elif el == 24:
-            echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
-            retryx[0] = False if retryx[0] else True
+            echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if Keypress_X[0] else "RETRY"}""", 1, 1)
+            Keypress_X[0] = False if Keypress_X[0] else True
             Keypress_A[0] = True
             if not busy[0]:
                 ready_input()
@@ -3941,7 +3968,7 @@ def keylistener():
             if not busy[0]:
                 ready_input()
         else:
-            seek[0] = True
+            Keypress_CtrlC[0] = True
 t = Thread(target=keylistener)
 t.daemon = True
 t.start()

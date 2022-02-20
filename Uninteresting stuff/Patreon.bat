@@ -61,7 +61,6 @@ seek = [False]
 sf = [0]
 shuddup = False
 skiptonext = [False]
-readonly = False
 
 # Probably useless settings
 collisionisreal = False
@@ -72,97 +71,44 @@ buildthumbnail = False
 # True if you want to serve pages efficiently. It'll take a while to build new thumbnails from large collection.
 favoriteispledged = False
 # All your favorites are your "pledges", used for when some creators have paid contents still available to you on Patreon for a month.
-inline_css = False
+Kemonoparty = False
 
 
 
-def new_css_tcolor():
-    return """cmd
-/*
-# Real code for Python. Do not edit uneducated. These are variables of ANSI escape colors for CLI.
-tcolor = "\\033[40;93m"
-tcolorr = "\\033[40;91m"
-tcolorg = "\\033[40;92m"
-tcolorb = "\\033[40;94m"
-tcoloro = "\\033[40;38;2;255;144;48m"
-tcolorx = "\\033[48;2;0;90;128;96m"
-*/
+if not os.path.exists(batchname + "/"):
+    os.makedirs(batchname + "/")
 
-terminal
-/*
-# Do not edit uneducated.
-tcolor = "\\033[40m"
-tcolorr = "\\033[40;91m"
-tcolorg = "\\033[40;92m"
-tcolorb = "\\033[40;36m"
-tcoloro = "\\033[40;38;2;255;144;48m"
-tcolorx = "\\033[0m"
-*/
 
-"""
 
-def new_css():
-    return """html,body{background-color:#10100c; color:#088 /*cb7*/; font-family:consolas, courier; font-size:14px;}
-a{color:#dc8 /*efdfa8*/;}
-a:visited{color:#cccccc;}
-.aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
-.carbon, .files, .time{background-color:#10100c /*07300f*/; border:3px solid #6a6a66 /*192*/; border-radius:12px;}
-.time{white-space:pre-wrap; color:#ccc; font-size:90%; line-height:1.6;}
-.cell, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
-.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45;}
-.previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
-.next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
-.closebtn{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}"""
-
-def open_css():
-    if not os.path.exists(batchname + "/"):
-        os.makedirs(batchname + "/")
-    if os.path.exists(batchname + "/style.css"):
-        with open(batchname + "/style.css", 'r', encoding="utf-8") as f:
-            return f.read()
-    else:
-        css = new_css_tcolor() + new_css()
-        with open(batchname + "/style.css", 'w') as f:
-            f.write(css)
-        return css
-
-if inline_css:
-    css_inline = new_css()
-    css_tcolor = []
-else:
-    css_inline = ""
-    css_tcolor = iter(open_css().split("\n/*"))
+def ansi_color(b=False, f="3"):
+    if not b:
+        return "\033[0m"
+    c = [b, f]
+    n = 0
+    for d in [4, 3]:
+        c[n] = (f"{d}8;2;" + ";".join(str(int(x, 16)) for x in [f'{c[n]:06}'[i:i+2] for i in range(0, 6, 2)])) if len(c[n]) == 6 else f"{d if d == 4 else 9}{c[n]}"
+        n += 1
+    return f"\033[{c[0]};{c[1]}m"
 
 
 
 def title(echo):
     sys.stdout.write("\033]0;" + echo + "\007")
 cls = "\033[H\033[2J"
-tcolorr = "\033[40;91m"
-tcolorg = "\033[40;92m"
-tcolorb = "\033[40;38;2;59;120;255m"
-tcoloro = "\033[40;38;2;255;144;48m"
+tcolor = ansi_color("0")
+tcolorr = ansi_color("0", "1")
+tcolorg = ansi_color("0", "2")
+tcolorb = ansi_color("0", "3B78FF")
+tcoloro = ansi_color("0", "FF9030")
 if sys.platform == "darwin":
-    tcolor = "\033[40m"
-    tcolorx = "\033[0m"
-    for line in css_tcolor:
-        if line.endswith("terminal"):
-            exec(next(css_tcolor).split("*/")[0])
-            break
+    tcolorx = ansi_color()
 else:
-    tcolor = "\033[40;93m"
-    tcolorx = "\033[48;2;0;90;128;96m"
-    for line in css_tcolor:
-        if line.endswith("cmd"):
-            exec(next(css_tcolor).split("*/")[0])
-            break
+    tcolorx = ansi_color("005A80", "6")
     os.system("")
 if sys.platform == "linux":
     os.system("cat /dev/location > /dev/null &")
 title(batchfile)
 sys.stdout.write("Non-ANSI-compliant Command Prompt/Terminal (expect lot of visual glitches): Upgrade to Windows 10 if you're on Windows.")
-sys.stdout.write(tcolorx + cls)
-
 
 
 def mainmenu():
@@ -315,7 +261,6 @@ def input(i="Your Input: ", choices=False):
 
 if not os.path.exists(rulefile):
     open(rulefile, 'w').close()
-print(f"Reading settings from {rulefile} . . .")
 if os.path.getsize(rulefile) < 1:
     rules = ["- - - - Spoofer - - - -", "Mozilla/5.0 for http"]
 else:
@@ -378,7 +323,7 @@ https://www.fanbox.cc for https://api.fanbox.cc
 
 comment = ""
 offset = 0
-settings = ["Launch HTML server = No", "Show mediocre = No", "Patrol mediocre = No", "Kemono.party = Yes", "Python = " + pythondir, "Proxy = socks5://"]
+settings = ["Launch HTML server = No", "Show mediocre = No", "Patrol mediocre = No", "Python = " + pythondir, "Proxy = socks5://"]
 for setting in settings:
     if not rules[offset].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if offset == 0 and not "#" in "".join(rules):
@@ -547,51 +492,6 @@ def startserver(port, directory):
 
 
 
-# Loading settings from rulefile
-def y(y, yn=False):
-    y = y.split("=", 1)[1].strip()
-    if yn:
-        if os.path.exists(y):
-            return y
-        return True if y.lower()[0] == "y" else False
-    else:
-        return y
-HTMLserver = y(rules[0], True)
-Showpattern = y(rules[1], True)
-Patrol = y(rules[2], True)
-Kemonoparty = y(rules[3], True)
-proxy = y(rules[5])
-if HTMLserver:
-    port = 8885
-    directories = [batchname]
-    for directory in directories:
-        port += 1
-        t = Thread(target=startserver, args=(port,directory,))
-        t.daemon = True
-        t.start()
-else:
-    print(" HTML SERVER: OFF")
-print(f""" SHOW MEDIOCRE: {"ON" if Showpattern else "OFF"}""")
-sevenz = Patrol if os.path.isfile(Patrol) and Patrol.endswith("7z.exe") else ""
-print(f""" PATROL MEDIOCRE: {("ON (7-Zip armed)" if sevenz else "ON (7-Zip for archive scan support, but no path to it is provided)") if Patrol else "OFF"}""")
-print(f""" KEMONO.PARTY: {"ON" if Kemonoparty else "OFF"}""")
-if "socks5://" in proxy and proxy[10:]:
-    if not ":" in proxy[10:]:
-        print(" PROXY: Invalid socks5:// address, it must be socks5://X.X.X.X:port OR socks5://user:pass@X.X.X.X:port\n\n TRY AGAIN!")
-        sys.exit()
-    if "@" in proxy[10:]:
-        usr, pw, address, port = proxy.replace("socks5:","").replace("/","").replace("@",":").split(":")
-        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port), username=usr, password=pw)
-    else:
-        address, port = proxy.replace("socks5:","").replace("/","").split(":")
-        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port))
-    socket.socket = socks.socksocket
-    # The following line prevents DNS leaks. https://stackoverflow.com/questions/13184205/dns-over-proxy
-    socket.getaddrinfo = lambda *args: [(socket.AF_INET, socket.SOCK_STREAM, 6, '', (args[0], args[1]))]
-print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
-
-
-
 cookies = cookiejar.MozillaCookieJar(batchname + "/cookies.txt")
 if os.path.exists(batchname + "/cookies.txt"):
     cookies.load()
@@ -615,6 +515,8 @@ def saint(name=False, url=False):
 
 
 # Loading referer, sort, and custom dir rules, and global file rejection by file types from rulefile
+bgcolor = False
+fgcolor = "3"
 customdir = {}
 sorter = {}
 md5er = []
@@ -666,6 +568,12 @@ for rule in rules:
         buildthumbnail = True
     elif rule == "favoriteispledged":
         favoriteispledged = True
+    elif rule == "Kemono.party":
+        Kemonoparty = True
+    elif rule.startswith('bgcolor '):
+        bgcolor = rule.replace("bgcolor ", "")
+    elif rule.startswith('fgcolor '):
+        fgcolor = rule.replace("fgcolor ", "")
     elif rule.startswith('.'):
         mag += [rule]
     elif rule.startswith('!.'):
@@ -689,8 +597,52 @@ for rule in rules:
     else:
         exempt += [rule]
 
+if bgcolor:
+    tcolorx = ansi_color(bgcolor, fgcolor)
+sys.stdout.write(tcolorx + cls)
 
 
+
+print(f"Reading settings from {rulefile} . . .")
+def y(y, yn=False):
+    y = y.split("=", 1)[1].strip()
+    if yn:
+        if os.path.exists(y):
+            return y
+        return True if y.lower()[0] == "y" else False
+    else:
+        return y
+HTMLserver = y(rules[0], True)
+Showpattern = y(rules[1], True)
+Patrol = y(rules[2], True)
+proxy = y(rules[4])
+if HTMLserver:
+    port = 8885
+    directories = [batchname]
+    for directory in directories:
+        port += 1
+        t = Thread(target=startserver, args=(port,directory,))
+        t.daemon = True
+        t.start()
+else:
+    print(" HTML SERVER: OFF")
+print(f""" SHOW MEDIOCRE: {"ON" if Showpattern else "OFF"}""")
+sevenz = Patrol if os.path.isfile(Patrol) and Patrol.endswith("7z.exe") else ""
+print(f""" PATROL MEDIOCRE: {("ON (7-Zip armed)" if sevenz else "ON (7-Zip for archive scan support, but no path to it is provided)") if Patrol else "OFF"}""")
+if "socks5://" in proxy and proxy[10:]:
+    if not ":" in proxy[10:]:
+        print(" PROXY: Invalid socks5:// address, it must be socks5://X.X.X.X:port OR socks5://user:pass@X.X.X.X:port\n\n TRY AGAIN!")
+        sys.exit()
+    if "@" in proxy[10:]:
+        usr, pw, address, port = proxy.replace("socks5:","").replace("/","").replace("@",":").split(":")
+        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port), username=usr, password=pw)
+    else:
+        address, port = proxy.replace("socks5:","").replace("/","").split(":")
+        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port))
+    socket.socket = socks.socksocket
+    # The following line prevents DNS leaks. https://stackoverflow.com/questions/13184205/dns-over-proxy
+    socket.getaddrinfo = lambda *args: [(socket.AF_INET, socket.SOCK_STREAM, 6, '', (args[0], args[1]))]
+print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 if Patrol or buildthumbnail:
     from PIL import Image
     Image.MAX_IMAGE_PIXELS = 400000000
@@ -698,8 +650,8 @@ if Patrol or buildthumbnail:
 
 
 
-print(f"\n Ready to scrape (visible cookie string means disabled, copy to {rulefile} and restart CLI to enable):")
-print(f"""  > Kemono.party{"" if Kemonoparty else " (disabled)"}""")
+print(f"\n Ready to scrape (visible string means disabled, copy to {rulefile} and restart CLI to enable):")
+print(f"""  > Kemono.party{"" if Kemonoparty else ": Kemono.party"}""")
 Patreoncookie = False
 Fanboxcookie = False
 Fantiacookie = False
@@ -1905,7 +1857,17 @@ function lazyload() {
 </script>
 """ + f"""<link rel="stylesheet" type="text/css" href="{css}">""" + """
 <style>
-""" + css_inline + """
+html,body{background-color:#10100c; color:#088 /*cb7*/; font-family:consolas, courier; font-size:14px;}
+a{color:#dc8 /*efdfa8*/;}
+a:visited{color:#cccccc;}
+.aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
+.carbon, .files, .time{background-color:#10100c /*07300f*/; border:3px solid #6a6a66 /*192*/; border-radius:12px;}
+.time{white-space:pre-wrap; color:#ccc; font-size:90%; line-height:1.6;}
+.cell, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
+.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45;}
+.previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
+.next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
+.closebtn{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
 
 .edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45; padding:12px; margin:6px; word-wrap:break-word;}
 .frame{display:inline-block; vertical-align:top; position:relative;}

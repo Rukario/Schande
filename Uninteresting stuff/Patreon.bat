@@ -43,24 +43,23 @@ videofile = [".mkv", ".mp4", ".webm"]
 specialfile = ["magnificent.txt", "mediocre.txt", ".ender"]
 
 busy = [False]
-continue_prompt = [False]
 cooldown = [False]
 dlslot = [8]
 echothreadn = []
 error = [[]]
+htmlname = batchfile
 newfilen = [0]
 Keypress_flush = [False]
 Keypress_prompt = [False]
 Keypress_A = [False]
+Keypress_C = [False]
 Keypress_F = [False]
 Keypress_N = [False]
-personal = False
+Keypress_S = [False]
+Keypress_X = [False]
+Keypress_CtrlC = [False]
 retries = [0]
-retryx = [False]
-seek = [False]
 sf = [0]
-shuddup = False
-skiptonext = [False]
 
 # Probably useless settings
 collisionisreal = False
@@ -72,11 +71,6 @@ buildthumbnail = False
 favoriteispledged = False
 # All your favorites are your "pledges", used for when some creators have paid contents still available to you on Patreon for a month.
 Kemonoparty = False
-
-
-
-if not os.path.exists(batchname + "/"):
-    os.makedirs(batchname + "/")
 
 
 
@@ -492,6 +486,8 @@ def startserver(port, directory):
 
 
 
+if not os.path.exists(batchname + "/"):
+    os.makedirs(batchname + "/")
 cookies = cookiejar.MozillaCookieJar(batchname + "/cookies.txt")
 if os.path.exists(batchname + "/cookies.txt"):
     cookies.load()
@@ -558,8 +554,6 @@ for rule in rules:
 
     elif len(sr := rule.split(" seconds rarity ")) == 2:
         ticks += [[int(x) for x in sr[0].split("-")]]*int(sr[1].split("%")[0])
-    elif rule == "shuddup":
-        shuddup = True
     elif rule == "collisionisreal":
         collisionisreal = True
     elif rule == "editisreal":
@@ -706,8 +700,8 @@ def timer(e="", all=True):
                 pgtime[0] = int(time.time()/5)
                 pg[0] = 0
                 title(batchfile + monitor())
-            if seek[0]:
-                seek[0] = False
+            if Keypress_CtrlC[0]:
+                Keypress_CtrlC[0] = False
                 break
         ticking[0] = False
     elif all:
@@ -770,7 +764,7 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
             resp = request.urlopen(request.Request(saint(url=url), headers=headers, data=data), context=context)
             break
         except HTTPError as e:
-            if stderr or retryx[0] and not skiptonext[0]:
+            if stderr or Keypress_X[0] and not Keypress_S[0]:
                 el = retry(f"{stderr} ({e.code} {e.reason})")
                 if el == 2:
                     firefox(saint(url=url))
@@ -778,21 +772,21 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
                 elif not el:
                     return 0, str(e.code)
             else:
-                skiptonext[0] = False
+                Keypress_S[0] = False
                 return 0, str(e.code)
         except URLError as e:
-            if stderr or retryx[0] and not skiptonext[0]:
+            if stderr or Keypress_X[0] and not Keypress_S[0]:
                 if not retry(f"{stderr} (e.reason)"):
                     return 0, e.reason
             else:
-                skiptonext[0] = False
+                Keypress_S[0] = False
                 return 0, e.reason
         except:
-            if stderr or retryx[0] and not skiptonext[0]:
+            if stderr or Keypress_X[0] and not Keypress_S[0]:
                 if not retry(f"{stderr} (closed by host)"):
                     return 0, "closed by host"
             else:
-                skiptonext[0] = False
+                Keypress_S[0] = False
                 return 0, "closed by host"
     return resp, 0
 
@@ -812,8 +806,8 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
             dl = os.path.getsize(todisk + ".part")
     else:
         echo(threadn, "0 MB")
-    skiptonext[0] = False
-    seek[0] = False
+    Keypress_S[0] = False
+    Keypress_CtrlC[0] = False
     while echothreadn and echothreadn.index(threadn) >= dlslot[0]:
         time.sleep(0.1)
     resp, err = fetch(url, context, stderr, dl, threadn)
@@ -878,11 +872,11 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
                 dl += Bytes
                 echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
                 echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {url}""", clamp='█', friction=True)
-                if seek[0]:
+                if Keypress_CtrlC[0]:
                     resp, err = fetch(url, context, stderr, dl, threadn)
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
-                    seek[0] = False
+                    Keypress_CtrlC[0] = False
         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
         os.rename(todisk + ".part", todisk)
         stdout[0] = ""
@@ -944,12 +938,12 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
             dl += Bytes
             echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
             echo(threadn, f"{int(dl/1048576)} MB", friction=True)
-            if seek[0]:
+            if Keypress_CtrlC[0]:
                 resp, err = fetch(url, context, stderr, dl, threadn)
                 if resp.status == 200:
                     data = b''
                     dl = 0
-                seek[0] = False
+                Keypress_CtrlC[0] = False
 
 
 
@@ -1295,10 +1289,10 @@ def firefox(url):
     firefox_running[0].get(url)
     # ff_login()
     # echo("(C)ontinue when finished defusing.")
-    # continue_prompt[0] = False
-    # while not continue_prompt[0]:
+    # Keypress_C[0] = False
+    # while not Keypress_C[0]:
     #     time.sleep(0.1)
-    # continue_prompt[0] = False
+    # Keypress_C[0] = False
     for bc in firefox_running[0].get_cookies():
         if "httpOnly" in bc: del bc["httpOnly"]
         if "expiry" in bc: del bc["expiry"]
@@ -1942,8 +1936,8 @@ def tohtml(subdir, htmlname, fromhtml, orphfiles, rejlist):
     listurls = ""
     htmlpart = fromhtml["partition"]
     thumbnail_dir = "HTML assets/"
-    if not os.path.exists(thumbnail_dir):
-        os.makedirs(thumbnail_dir)
+    if not os.path.exists(subdir + thumbnail_dir):
+        os.makedirs(subdir + thumbnail_dir)
     new_relics = htmlpart.copy()
 
 
@@ -2115,7 +2109,6 @@ for i in range(8):
 
 
 
-htmlname = batchfile
 pledges = []
 if Patreoncookie:
     print("Checking your pledges on Patreon . . .")
@@ -2686,7 +2679,7 @@ def keylistener():
             ready_input()
         elif el == 3:
             echo("", 1)
-            continue_prompt[0] = True
+            Keypress_C[0] = True
             if not busy[0]:
                 ready_input()
         elif el == 4:
@@ -2777,7 +2770,7 @@ def keylistener():
                 ready_input()
         elif el == 19:
             echo("", 1)
-            skiptonext[0] = True
+            Keypress_S[0] = True
             if not busy[0]:
                 ready_input()
         elif el == 20:
@@ -2807,8 +2800,8 @@ def keylistener():
             echo("Keypress W unrecognized", 0, 1)
             ready_input()
         elif el == 24:
-            echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if retryx[0] else "RETRY"}""", 1, 1)
-            retryx[0] = False if retryx[0] else True
+            echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if Keypress_X[0] else "RETRY"}""", 1, 1)
+            Keypress_X[0] = False if Keypress_X[0] else True
             Keypress_A[0] = True
             if not busy[0]:
                 ready_input()
@@ -2830,7 +2823,7 @@ def keylistener():
             if not busy[0]:
                 ready_input()
         else:
-            seek[0] = True
+            Keypress_CtrlC[0] = True
 t = Thread(target=keylistener)
 t.daemon = True
 t.start()

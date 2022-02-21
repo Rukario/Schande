@@ -63,26 +63,22 @@ sf = [0]
 
 # Probably useless settings
 collisionisreal = False
-# Please also delete ender files to take effect with older posts.
 editisreal = False
-# If you want to download possible edited pictures. Most of the time it's just edit of a text post.
 buildthumbnail = False
-# True if you want to serve pages efficiently. It'll take a while to build new thumbnails from large collection.
 favoriteispledged = False
-# All your favorites are your "pledges", used for when some creators have paid contents still available to you on Patreon for a month.
 Kemonoparty = False
 
 
 
+def ansi(c):
+    return ";".join(str(int(x, 16)) for x in [c[0:2], c[2:4], c[4:6]])
+
 def ansi_color(b=False, f="3"):
     if not b:
         return "\033[0m"
-    c = [b, f]
-    n = 0
-    for d in [4, 3]:
-        c[n] = (f"{d}8;2;" + ";".join(str(int(x, 16)) for x in [f'{c[n]:06}'[i:i+2] for i in range(0, 6, 2)])) if len(c[n]) == 6 else f"{d if d == 4 else 9}{c[n]}"
-        n += 1
-    return f"\033[{c[0]};{c[1]}m"
+    b = "48;2;" + ansi(b) if len(b) == 6 else f"4{b}"
+    f = "38;2;" + ansi(f) if len(f) == 6 else f"9{f}"
+    return f"\033[{b};{f}m"
 
 
 
@@ -134,7 +130,7 @@ def help():
  | 312424/Adam Wan
  |   Insert a slash to use ending as folder E.G. \\Adam Wan\\ for Zaush.
  |
- | Artists from different paysites in rule file are separated by paysite names ("Fanbox", "Fantia", "Patreon"):
+ | Artists from different paysites in rule file can be grouped by paysite name headings ("Fanbox", "Fantia", "Patreon"):
  | 312424.zaush
  |
  | fanbox
@@ -271,14 +267,47 @@ def tidy(offset, append, comment=""):
 
 
 
-def new_comment():
+def inline_tutorial():
     return f"""
+then
+# resume next creators
+
+end
+# end scanning for debugging or just not feel like scanning
+
+# Appended names are for you to identify, they can be renamed (please also make your changes symmetrical to existing folders), but please do not backspace or continue number after ID.
+# Artists from different paysites can be grouped by paysite name headings ("Fanbox", "Fantia", "Patreon"). Without them, {batchfile} will assume everyone is from Patreon.
+
+
+- - - - Probably useless settings - - - -
+Do not edit uneducated.
+bgcolor 005A80
+fgcolor 6
+# collisionisreal
+# editisreal
+# buildthumbnail
+# favoriteispledged
+
+
+- - - - Spoofer - - - -
+Mozilla/5.0 for http
+4-8 seconds rarity 75%
+# 12-24 seconds rarity 23%
+# 64-128 seconds rarity 2%
+
+# FANBOXSESSID ... for .fanbox.cc
+# session_id ... for .patreon.com
 https://www.fanbox.cc for https://api.fanbox.cc
 
-# Appended names are for you to identify, they can be renamed - But please do not backspace or continue number after ID.
-# These are also folder names - Please make your changes symmetrical to existing folders.
-# Inserting a slash in creator name will split and use the latter as folder name.
-# Artists from different paysites are separated by paysite names ("Fanbox", "Fantia", "Patreon"). Without paysite name, {batchfile} will assume everyone is from Patreon.
+
+- - - - Sorter - - - -
+* for https://fanbox.pixiv.net/images/
+* for https://downloads.fanbox.cc/images/
+* for https://www.patreon.com
+* for https://c10.patreonusercontent.com
+* for https://kemono.party/
+* for https://data.kemono.party/
+Update me/* for https://
 
 # Whitelist - File types to download (blank or comment out all to download any).
 .gif
@@ -300,35 +329,35 @@ https://www.fanbox.cc for https://api.fanbox.cc
 !.webm
 
 # Per-creator filter how-to:
-# Create mediocre.txt in creator folder to blacklist matching pattern, this will incorporate with global filters (here).
-# Create magnificent.txt in creator folder to whitelist matching pattern, this will override global filters but not mediocre.txt. While mediocre.txt is king, global filters will still be overridden by this.
-# Write "{rulefile}" in magnificent.txt to incorporate with global filters, adding flexibility. Illustrated example:
+# mediocre.txt in creator folder to blacklist matching pattern, this will incorporate with inline filters (here).
+# magnificent.txt in creator folder to whitelist matching pattern, this will override inline filters but not mediocre.txt. While mediocre.txt is king, inline filters will still be overridden by this.
+# Write "inherit" in magnificent.txt to inherit other rules from inline filters, adding flexibility. Illustrated example:
 
-#                           global's !.zip = all but .zip
-# mag's .zip              + global's !.zip = .zip only
-# mag's .zip + "{rulefile}" + global's !.zip = all
+#                          inline's !.zip = all but .zip
+# mag's .zip             + inline's !.zip = .zip only
+# mag's .zip + "inherit" + inline's !.zip = all
 
-# Filters will be case insensitive.
-# The beginning and ending of a line will act like wildcard. The asterisk (*) will be literal.
-# Ending wildcards will be disabled if there's a period at the beginning, to avoid matching pattern of a extension name in file names.
+# Filters are case insensitive.
+# Filters start/end are non-anchored, asterisk (*) will be literal and unnecessary.
+# Anchored ending if there's a period at the beginning, to avoid matching pattern of an extension name in file names.
 """
 
 
 
-comment = ""
+first_add = False
 offset = 0
 settings = ["Launch HTML server = No", "Show mediocre = No", "Patrol mediocre = No", "Python = " + pythondir, "Proxy = socks5://"]
 for setting in settings:
     if not rules[offset].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if offset == 0 and not "#" in "".join(rules):
-            comment = new_comment()
-            rules = tidy(offset, setting, comment=comment)
+            rules = tidy(offset, setting, inline_tutorial())
+            first_add = True
         else:
             rules = tidy(offset, setting)
         print(f"""Added new setting "{setting}" to {rulefile}!""")
     offset += 1
-if comment:
-    print(f"\n New comments (# comment) and download filters were added to {rulefile}.\n You may want to check/edit there then restart CLI before I download artpieces with filters and settings.")
+if first_add:
+    print(f"\n Inline tutorial and download filters were added to {rulefile}.\n You may want to check/edit there then restart CLI before I download artpieces with filters and settings.")
     sys.exit()
 
 
@@ -522,8 +551,7 @@ mozilla = {}
 exempt = []
 dir = ""
 ticks = []
-mag = []
-med = []
+inline_m = [[], []]
 for rule in rules:
     if not rule or rule.startswith("#"):
         continue
@@ -568,10 +596,10 @@ for rule in rules:
         bgcolor = rule.replace("bgcolor ", "")
     elif rule.startswith('fgcolor '):
         fgcolor = rule.replace("fgcolor ", "")
-    elif rule.startswith('.'):
-        mag += [rule]
     elif rule.startswith('!.'):
-        med += [rule.replace("!.", ".", 1)]
+        inline_m[0] += [rule.replace("!.", ".", 1)]
+    elif rule.startswith('.'):
+        inline_m[1] += [rule]
     elif rule.startswith("\\"):
         dir = rule.split("\\", 1)[1]
         if dir.endswith("\\"):
@@ -1001,7 +1029,7 @@ def check(string, patterns, majestic=False):
 def isrej(filename, rejlist):
     if not rejlist:
         return ""
-    mediocre, magnificent, magplus = rejlist
+    mediocre, magnificent, inherit = rejlist
     rejected = ""
     origin = ""
     if "/" in filename:
@@ -1012,22 +1040,22 @@ def isrej(filename, rejlist):
     if mediocre:
         origin = "mediocre.txt"
         rejected = check(filename, mediocre)
-    if not rejected and magplus:
+    if not rejected and inherit:
         rejected = check(filename, magnificent, majestic=True)
-        if rejected and mag:
-            rejected = check(filename, mag, majestic=True)
-        elif rejected and med:
+        if rejected and inline_m[1]:
+            rejected = check(filename, inline_m[1], majestic=True)
+        elif rejected and inline_m[0]:
             origin = rulefile
-            rejected = check(filename, med)
+            rejected = check(filename, inline_m[0])
         else:
             rejected = ""
     elif not rejected and magnificent:
         rejected = check(filename, magnificent, majestic=True)
-    elif not rejected and mag:
-        rejected = check(filename, mag, majestic=True)
-    elif not rejected and med:
+    elif not rejected and inline_m[1]:
+        rejected = check(filename, inline_m[1], majestic=True)
+    elif not rejected and inline_m[0]:
         origin = rulefile
-        rejected = check(filename, med)
+        rejected = check(filename, inline_m[0])
     if rejected and Showpattern:
         if rejected in filename.lower():
             print(f"{tcolor}{origin:>18}: {dir}{filename.lower().replace(rejected, tcolorr + rejected + tcolor)}{tcolorx}")
@@ -1338,7 +1366,7 @@ def container(ondisk, rejlist=[], depth=0):
 
 
 
-def new_html(builder, htmlname, listurls, imgsize=200, css="style.css"):
+def new_html(builder, htmlname, listurls, imgsize=200):
     if not listurls:
         listurls = "Maybe in another page."
     return """<!DOCTYPE html>
@@ -1849,13 +1877,12 @@ function lazyload() {
   });
 }
 </script>
-""" + f"""<link rel="stylesheet" type="text/css" href="{css}">""" + """
 <style>
-html,body{background-color:#10100c; color:#088 /*cb7*/; font-family:consolas, courier; font-size:14px;}
+html,body{background-color:#10100c; color:#088 /*088 cb7*/; font-family:consolas, courier; font-size:14px;}
 a{color:#dc8 /*efdfa8*/;}
 a:visited{color:#cccccc;}
 .aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
-.carbon, .files, .time{background-color:#10100c /*07300f*/; border:3px solid #6a6a66 /*192*/; border-radius:12px;}
+.carbon, .files, .time{background-color:#10100c /*10100c 112230 07300f*/; border:3px solid #6a6a66 /*6a6a66 367 192*/; border-radius:12px;}
 .time{white-space:pre-wrap; color:#ccc; font-size:90%; line-height:1.6;}
 .cell, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
 .edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45;}
@@ -2515,14 +2542,14 @@ def get_assets(artworks):
             print(f"Fetched new data for {htmlname} ({HOME})")
         master.update({HOME + CREATOR_ID: {"htmlname":htmlname, "m":[[], [], False], "inlinefirst": False, "mirror": mirror_assets, "paysite": paysite_assets}})
         fromhtml = master[HOME + CREATOR_ID]
-        if os.path.exists(f"{batchname}/{htmlname}/mediocre.txt"):
-            with open(f"{batchname}/{htmlname}/mediocre.txt", 'r', encoding='utf-8') as f:
+        if os.path.exists(x := f"{batchname}/{htmlname}/mediocre.txt"):
+            with open(x, 'r', encoding='utf-8') as f:
                 fromhtml["m"][0] = f.read().splitlines()
-        if os.path.exists(f"{batchname}/{htmlname}/magnificent.txt"):
-            with open(f"{batchname}/{htmlname}/magnificent.txt", 'r', encoding='utf-8') as f:
+        if os.path.exists(x := f"{batchname}/{htmlname}/magnificent.txt"):
+            with open(x, 'r', encoding='utf-8') as f:
                 fromhtml["m"][1] = f.read().splitlines()
-        if rulefile in fromhtml["m"][1]:
-            fromhtml["m"][2] = True
+            if "inherit" in fromhtml["m"][1]:
+                fromhtml["m"][2] = True
         echothreadn.remove(threadn)
         artworks.task_done()
 
@@ -2629,7 +2656,7 @@ def readfile():
 
     if newfilen[0] or not os.path.exists(htmlfile) or Patrol:
         with open(htmlfile, 'wb') as f:
-            f.write(bytes(new_html("\n".join(htmldata[0]), "Today download result", "", css=batchname + "/" + "style.css"), 'utf-8'))
+            f.write(bytes(new_html("\n".join(htmldata[0]), "Today download result", ""), 'utf-8'))
         builder = ""
         for file in next(os.walk(batchname + "/"))[2]:
             if not file.endswith(".html"):

@@ -1,6 +1,6 @@
 @echo off && goto loaded
 
-import os, sys, ssl, socket, socks, time, json
+import os, sys, ssl, time, json
 from datetime import datetime
 from http import cookiejar
 from http.server import SimpleHTTPRequestHandler, HTTPServer
@@ -44,7 +44,7 @@ specialfile = ["magnificent.txt", "mediocre.txt", ".ender"]
 
 busy = [False]
 cooldown = [False]
-dlslot = [8]
+dlslot = [1]
 echothreadn = []
 error = [[]]
 htmlname = batchfile
@@ -273,7 +273,7 @@ then
 # resume next creators
 
 end
-# end scanning for debugging or just not feel like scanning
+# finish scanning creators (do not scan any further)
 
 # Appended names are for you to identify, they can be renamed (please also make your changes symmetrical to existing folders), but please do not backspace or continue number after ID.
 # Artists from different paysites can be grouped by paysite name headings ("Fanbox", "Fantia", "Patreon"). Without them, {batchfile} will assume everyone is from Patreon.
@@ -297,6 +297,7 @@ Mozilla/5.0 for http
 
 # FANBOXSESSID ... for .fanbox.cc
 # session_id ... for .patreon.com
+# __cf_bm ... for .patreon.com
 https://www.fanbox.cc for https://api.fanbox.cc
 
 
@@ -350,8 +351,10 @@ settings = ["Launch HTML server = No", "Show mediocre = No", "Patrol mediocre = 
 for setting in settings:
     if not rules[offset].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if offset == 0 and not "#" in "".join(rules):
+            setting += "Yes" if input("Launch HTML server? (Y)es/(N)o: ", "yn") == 1 else "No"
             rules = tidy(offset, setting, inline_tutorial())
             first_add = True
+            echo("", 1, 0)
         else:
             rules = tidy(offset, setting)
         print(f"""Added new setting "{setting}" to {rulefile}!""")
@@ -652,6 +655,10 @@ print(f""" SHOW MEDIOCRE: {"ON" if Showpattern else "OFF"}""")
 sevenz = Patrol if os.path.isfile(Patrol) and Patrol.endswith("7z.exe") else ""
 print(f""" PATROL MEDIOCRE: {("ON (7-Zip armed)" if sevenz else "ON (7-Zip for archive scan support, but no path to it is provided)") if Patrol else "OFF"}""")
 if "socks5://" in proxy and proxy[10:]:
+    try:
+        import socket, socks
+    except:
+        kill(f" PROXY: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install sysocks")
     if not ":" in proxy[10:]:
         print(" PROXY: Invalid socks5:// address, it must be socks5://X.X.X.X:port OR socks5://user:pass@X.X.X.X:port\n\n TRY AGAIN!")
         sys.exit()
@@ -666,9 +673,12 @@ if "socks5://" in proxy and proxy[10:]:
     socket.getaddrinfo = lambda *args: [(socket.AF_INET, socket.SOCK_STREAM, 6, '', (args[0], args[1]))]
 print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 if Patrol or buildthumbnail:
-    from PIL import Image
-    Image.MAX_IMAGE_PIXELS = 400000000
-    import subprocess
+    try:
+        from PIL import Image
+        Image.MAX_IMAGE_PIXELS = 400000000
+        import subprocess
+    except:
+        kill(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install pillow")
 
 
 
@@ -1909,7 +1919,7 @@ img{vertical-align:top;}
 .mySlides{white-space:pre-wrap; padding-right:32px;}
 .closebtn{position:absolute; top:15px; right:15px;}
 .carbon, .files, .edits{margin-right:12px;}
-.cell{overflow:auto; width:calc(100% - 28px); display:inline-block; vertical-align:text-top;}
+.cell{overflow:auto; width:calc(100% - 30px); display:inline-block; vertical-align:text-top;}
 h2{margin:4px;}
 .postMessage{white-space:pre-wrap;}
 </style>
@@ -1924,10 +1934,10 @@ h2{margin:4px;}
 <button class="next" onclick="resizeImg('{imgsize*2}px')">2x</button>
 <button class="next" onclick="resizeImg('{imgsize*4}px')">4x</button>
 <button class="next" onclick="resizeImg('auto')">1:1</button>
-<button class="next" onclick="resizeCell('calc(100% - 28px)')">&nbsp;.&nbsp;</button>
-<button class="next" onclick="resizeCell('calc(50% - 32px)')">. .</button>
+<button class="next" onclick="resizeCell('calc(100% - 30px)')">&nbsp;.&nbsp;</button>
+<button class="next" onclick="resizeCell('calc(50% - 33px)')">. .</button>
 <button class="next" onclick="resizeCell('calc(33.33% - 34px)')">...</button>
-<button class="next" onclick="resizeCell('calc(25% - 34px)')">....</button>
+<button class="next" onclick="resizeCell('calc(25% - 35px)')">....</button>
 <button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')">Preview</button>
 <button id="ge" class="next" onclick="previewg(this, 'vs left', 'vs left <', 'vs left >', 'Find Edge')">Original</button>
 <button class="next" onclick="hideSources()">Sources</button>
@@ -2421,28 +2431,28 @@ def kp_patreon_assets(threadn, htmlname, CREATOR_ID):
             return fromhtml
         if not (api := json.loads(api.decode('utf-8'))):
             break
-        for asset in api:
-            key = asset["id"]
-            keywords = [asset["title"], datetime.strptime(asset["published"], "%a, %d %b %Y %H:%M:%S GMT").isoformat(" ")]
+        for next_obj in api:
+            key = next_obj["id"]
+            keywords = [next_obj["title"], datetime.strptime(next_obj["published"], "%a, %d %b %Y %H:%M:%S GMT").isoformat(" ")]
             # desired result is "YYYY-MM-DD HH:MM:SS"
             edited = keywords[1].split(" ", 1)[0].replace("-", "")
             files = []
-            if file := asset["file"]:
+            if file := next_obj["file"]:
                 files += [{"link":"https://kemono.party" + file["path"], "name":saint(key + "." + file["name"]), "edited":edited}]
-            if attachments := asset["attachments"]:
+            if attachments := next_obj["attachments"]:
                 for file in attachments:
                     files += [{"link":"https://kemono.party" + file["path"], "name":saint(key + "." + file["name"]), "edited":edited}]
             html = []
             embed = ""
-            if asset["embed"]:
-                url = asset["embed"]["url"]
+            if next_obj["embed"]:
+                url = next_obj["embed"]["url"]
                 embed = f"""<p><a href="{url}">{url}</a></p>"""
-            if asset["content"]:
-                asset = ["", asset["content"]]
+            if next_obj["content"]:
+                next_obj = ["", next_obj["content"]]
                 while True:
-                    asset = asset[1].split("<img data-media-id=\"", 1)
-                    if len(asset) == 2:
-                        image, asset[1] = asset[1].split(">", 1)
+                    next_obj = next_obj[1].split("<img data-media-id=\"", 1)
+                    if len(next_obj) == 2:
+                        image, next_obj[1] = next_obj[1].split(">", 1)
                         name, url = image.split("\" src=\"")
                         url = url.split("\"", 1)[0]
                         try:
@@ -2450,10 +2460,10 @@ def kp_patreon_assets(threadn, htmlname, CREATOR_ID):
                             name = f"""{key}.{name}.{ext}"""
                         except:
                             name = url
-                        html += [[asset[0], {"link":"https://kemono.party" + url, "name":saint(name), "edited":edited}]]
+                        html += [[next_obj[0], {"link":"https://kemono.party" + url, "name":saint(name), "edited":edited}]]
                     else:
                         break
-                html += [[asset[0] + embed]]
+                html += [[next_obj[0] + embed]]
             fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
         page += 1
     #for k in fromhtml["partition"].keys():
@@ -2885,12 +2895,12 @@ while True:
 
 
 """
-::MacOS - Install Python 3 then open Terminal and enter:
-open /Applications/Python\ 3.10/Install\ Certificates.command
-sudo python3 -m pip install --upgrade pip
-sudo python3 -m pip install Pillow
-sudo python3 -m pip install PySocks
-python3 -x /drag/n/drop/the/batchfile
+::MacOS:           open /Applications/Python\ 3.10/Install\ Certificates.command
+::Linux/MacOS:     python3 -x /drag/n/drop/the/batchfile
+
+::if MacOS (pip=sudo python3 -m pip) else if Linux (pip=pip3)
+::update pip:      %pip% install --upgrade pip
+::install package: %pip% install name_of_the_missing_package
 
 :loaded
 set color=0e && set stopcolor=05
@@ -2931,15 +2941,15 @@ pause%>nul
 exit)
 set pythondir=!pythondir:\=\\!
 
-if exist Lib\site-packages\PIL (echo.) else (goto install)
-if exist Lib\site-packages\socks.py (goto start) else (echo.)
+if exist Lib\site-packages\ (echo.) else (goto install)
+if exist Lib\site-packages\ (goto start) else (echo.)
 
 :install
 echo  Hold on . . . I need to install the missing packages.
 if exist "Scripts\pip.exe" (echo.) else (color %stopcolor% && echo  PIP.exe doesn't seem to exist . . . Please install Python properly^^! I must exit^^! && pause>nul && exit)
 python -m pip install --upgrade pip
-Scripts\pip.exe install Pillow
-Scripts\pip.exe install PySocks
+::Scripts\pip.exe install name_of_the_missing_package
+::Scripts\pip.exe install what_else
 echo.
 pause
 

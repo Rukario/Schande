@@ -45,7 +45,7 @@ specialfile = ["gallery.html", "partition.json", ".URL"] # icon.png and icon #.p
 
 busy = [False]
 cooldown = [False]
-dlslot = [8]
+dlslot = [1]
 echothreadn = []
 error = [[]]
 htmlname = batchfile
@@ -961,8 +961,7 @@ if Geistauge:
         Image.MAX_IMAGE_PIXELS = 400000000
         print(" GEISTAUGE: ON")
     except:
-        print(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install pillow\n{sys.exec_prefix}\Scripts\pip.exe install numpy\n{sys.exec_prefix}\Scripts\pip.exe install opencv-python")
-        sys.exit()
+        kill(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install pillow\n{sys.exec_prefix}\Scripts\pip.exe install numpy\n{sys.exec_prefix}\Scripts\pip.exe install opencv-python")
 else:    
     print(" GEISTAUGE: OFF")
 if "socks5://" in proxy and proxy[10:]:
@@ -3060,7 +3059,7 @@ img{vertical-align:top;}
 .mySlides{white-space:pre-wrap; padding-right:32px;}
 .closebtn{position:absolute; top:15px; right:15px;}
 .carbon, .files, .edits{margin-right:12px;}
-.cell{overflow:auto; width:calc(100% - 28px); display:inline-block; vertical-align:text-top;}
+.cell{overflow:auto; width:calc(100% - 30px); display:inline-block; vertical-align:text-top;}
 h2{margin:4px;}
 .postMessage{white-space:pre-wrap;}
 </style>
@@ -3075,10 +3074,10 @@ h2{margin:4px;}
 <button class="next" onclick="resizeImg('{imgsize*2}px')">2x</button>
 <button class="next" onclick="resizeImg('{imgsize*4}px')">4x</button>
 <button class="next" onclick="resizeImg('auto')">1:1</button>
-<button class="next" onclick="resizeCell('calc(100% - 28px)')">&nbsp;.&nbsp;</button>
-<button class="next" onclick="resizeCell('calc(50% - 32px)')">. .</button>
+<button class="next" onclick="resizeCell('calc(100% - 30px)')">&nbsp;.&nbsp;</button>
+<button class="next" onclick="resizeCell('calc(50% - 33px)')">. .</button>
 <button class="next" onclick="resizeCell('calc(33.33% - 34px)')">...</button>
-<button class="next" onclick="resizeCell('calc(25% - 34px)')">....</button>
+<button class="next" onclick="resizeCell('calc(25% - 35px)')">....</button>
 <button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')">Preview</button>
 <button id="ge" class="next" onclick="previewg(this, 'vs left', 'vs left <', 'vs left >', 'Find Edge')">Original</button>
 <button class="next" onclick="hideSources()">Sources</button>
@@ -4012,10 +4011,12 @@ while True:
 
 
 """
-::MacOS - Install Python 3 then open Terminal and enter:
-open /Applications/Python\ 3.10/Install\ Certificates.command
-sudo python3 -m pip install --upgrade pip
-python3 -x /drag/n/drop/the/batchfile
+::MacOS:           open /Applications/Python\ 3.10/Install\ Certificates.command
+::Linux/MacOS:     python3 -x /drag/n/drop/the/batchfile
+
+::if MacOS (pip=sudo python3 -m pip) else if Linux (pip=pip3)
+::update pip:      %pip% install --upgrade pip
+::install package: %pip% install name_of_the_missing_package
 
 :loaded
 set color=0e && set stopcolor=05

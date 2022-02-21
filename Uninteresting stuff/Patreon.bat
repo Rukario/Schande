@@ -2423,7 +2423,7 @@ def kp_patreon_assets(threadn, htmlname, CREATOR_ID):
             break
         for asset in api:
             key = asset["id"]
-            keywords = [asset["title"] + datetime.strptime(asset["published"], "%a, %d %b %Y %H:%M:%S GMT").isoformat(" ")]
+            keywords = [asset["title"], datetime.strptime(asset["published"], "%a, %d %b %Y %H:%M:%S GMT").isoformat(" ")]
             # desired result is "YYYY-MM-DD HH:MM:SS"
             edited = keywords[1].split(" ", 1)[0].replace("-", "")
             files = []

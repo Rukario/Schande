@@ -1164,7 +1164,7 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
         print("\n Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs.")
 
     if not filelist:
-        if fromhtml["makehtml"]:
+        if fromhtml_pm["makehtml"]:
             tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml_pm, [], rejlist)
         else:
             print("Filelist is empty!")
@@ -1709,6 +1709,9 @@ function swap(e) {
       tc.style = cs;
     }
     let d = document.getElementById("fi");
+    if (d.classList.contains("next")) {
+      d.setAttribute("data-html-original", d.innerHTML);
+    }
     d.classList = "previous";
     d.innerHTML = "Preview [ ]"
     document.addEventListener("mouseover", quicklook);
@@ -2041,21 +2044,21 @@ def tohtml(subdir, htmlname, fromhtml, orphfiles, rejlist):
             f.write(json.dumps(new_relics))
     with open(partfile, 'r', encoding="utf-8") as f:
         relics = json.loads(f.read())
-    orphid = iter(relics.keys())
+    orphan_keys = iter(relics.keys())
     part = {}
-    for id in new_relics.keys():
-        if not id in relics:
-            part.update({id:new_relics[id]})
+    for key in new_relics.keys():
+        if not key in relics:
+            part.update({key:new_relics[key]})
             continue
-        for idx in orphid:
-            if not id == idx:
-                part.update({idx:relics[idx]})
+        for orphan_key in orphan_keys:
+            if not key == orphan_key:
+                part.update({orphan_key:relics[orphan_key]})
             else:
                 break
-        if not relics[id]["html"] or not relics[id]["keywords"] == new_relics[id]["keywords"]:
-            part.update({id:new_relics[id]})
+        if not relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
+            part.update({key:new_relics[key]})
         else:
-            part.update({id:relics[id]})
+            part.update({key:relics[key]})
     with open(partfile, 'w') as f:
         f.write(json.dumps(part))
     buffer = partfile.replace("/", "\\")
@@ -2066,28 +2069,28 @@ def tohtml(subdir, htmlname, fromhtml, orphfiles, rejlist):
     for file in orphfiles:
         if file.endswith(tuple(specialfile)) or file.startswith("icon"):
             continue
-        id = file.split(".", 1)[0]
-        if not id in part.keys():
-            id = "0"
-        if "orphfiles" in part[id]:
-            part[id]["orphfiles"] += [file]
+        key = file.split(".", 1)[0]
+        if not key in part.keys():
+            key = "0"
+        if "orphfiles" in part[key]:
+            part[key]["orphfiles"] += [file]
         else:
-            part[id]["orphfiles"] = [file]
+            part[key]["orphfiles"] = [file]
     if buildthumbnail:
         echo("Building thumbnails . . .")
 
 
 
-    for id in part.keys():
-        keywords = part[id]["keywords"]
-        if id == "0":
-            if "orphfiles" in part[id]:
+    for key in part.keys():
+        keywords = part[key]["keywords"]
+        if key == "0":
+            if "orphfiles" in part[key]:
                 title = "Unsorted"
                 content = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really orphans.\n"
             else:
                 continue
         else:
-            title = f"<h2>{keywords[0]}</h2>" if keywords and keywords[0] else f"""<h2 style="color:#666;">ꍯ Part {id} ꍯ</h2>"""
+            title = f"<h2>{keywords[0]}</h2>" if keywords and keywords[0] else f"""<h2 style="color:#666;">ꍯ Part {key} ꍯ</h2>"""
             content = ""
         new_container = False
         end_container = False
@@ -2095,20 +2098,20 @@ def tohtml(subdir, htmlname, fromhtml, orphfiles, rejlist):
         if len(keywords) > 1:
             time = keywords[1] if keywords[1] else "No timestamp"
             keywords = ", ".join(x for x in keywords[2:]) if len(keywords) > 2 else "None"
-            builder += f"""<div class="time" id="{id}" style="float:right;">Part {id} ꍯ {time}<sup><span style="font-size:80%;">UTC</span></sup>\nKeywords: {keywords}</div>\n"""
+            builder += f"""<div class="time" id="{key}" style="float:right;">Part {key} ꍯ {time}<sup><span style="font-size:80%;">UTC</span></sup>\nKeywords: {keywords}</div>\n"""
         builder += title
-        if part[id]["files"]:
+        if part[key]["files"]:
             builder += "<div class=\"files\">\n"
-            for file in part[id]["files"]:
+            for file in part[key]["files"]:
                 builder += container(subdir + file, rejlist, 1)
             builder += "</div>\n"
-        if "orphfiles" in part[id]:
+        if "orphfiles" in part[key]:
             builder += "<div class=\"edits\">\n"
-            for file in part[id]["orphfiles"]:
+            for file in part[key]["orphfiles"]:
                 # os.rename(subdir + file, subdir + "Orphaned files/" + file)
                 builder += container(subdir + file, rejlist, 1)
             builder += "<br><br>orphaned file(s)\n</div>\n"
-        if html := part[id]["html"]:
+        if html := part[key]["html"]:
             builder += """<div class="postMessage">"""
             for array in html:
                 if len(array) == 2:
@@ -2136,9 +2139,9 @@ def tohtml(subdir, htmlname, fromhtml, orphfiles, rejlist):
                 for link in urls[1:]:
                     link = link.split("\"", 1)[0]
                     links += f"""<a href="{link}">{link}</a><br>"""
-                listurls += f"""# From <a href="#{id}">#{id}</a> :: {part[id]["keywords"][0]}<br>{links}\n"""
+                listurls += f"""# From <a href="#{key}">#{key}</a> :: {part[key]["keywords"][0]}<br>{links}\n"""
             builder += f"{content}</div>\n"
-        elif not part[id]["files"]:
+        elif not part[key]["files"]:
             builder += "<div class=\"edits\">Rebuild HTML with a different login/tier may be required to view</div>\n"
         builder += "</div>\n\n"
     with open(f"{batchname}/{htmlname}.html", 'wb') as f:
@@ -2222,8 +2225,12 @@ if Fantiacookie:
 
 
 
-def new_part():
-    return {"page":"", "campaign_id":None, "icons":[], "partition":{}}
+def new_p(z):
+    return {z:{"html":[], "keywords":[], "files":[]}}
+
+def new_part(threadn=0):
+    new = {threadn:new_p("0")} if threadn else new_p("0")
+    return {"ready":True, "page":"", "folder":"", "makehtml":False, "campaign_id":None, "icons":[], "inlinefirst":True, "partition":new}
 
 def fanbox_avatars(threadn, htmlname, id):
     api = json.loads(get(f"https://api.fanbox.cc/creator.get?userId={id}", stderr=f"Broken API on Fanbox for {htmlname}", threadn=threadn).decode('utf-8'))
@@ -2496,9 +2503,6 @@ def kp_patreon_assets(threadn, htmlname, id):
                 html += [[next_obj[0] + embed]]
             fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
         page += 1
-    #for k in fromhtml["partition"].keys():
-    #    print(fromhtml["partition"][k])
-    #input()
     return fromhtml
 
 

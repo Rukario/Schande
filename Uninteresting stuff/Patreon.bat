@@ -125,17 +125,6 @@ def skull():
             '--------'
 """)
     choice(bg="4c")
-def help():
-    print(f"""
- + Find their ID, then append each with their name, please do not backspace or continue number after ID:
- | 312424/Adam Wan
- |   Insert a slash to use ending as folder E.G. \\Adam Wan\\ for Zaush.
- |
- | Artists from different paysites in rule file can be grouped by paysite name headings ("Fanbox", "Fantia", "Patreon")
- | 312424.zaush
- |
- | fanbox
- + 1092867.b@commission""")
 
 
 
@@ -255,7 +244,7 @@ def new_rules():
 
 - - - - Favorite Artists - - - -
 end
-# finish scanning artists (do not scan any further)
+# finish scanning artists (does not scan any further)
 
 # To add new artists, find their ID, then append each with their name, please do not backspace or continue number after ID. E.G.
 312424.zaush
@@ -301,7 +290,7 @@ https://www.fanbox.cc for https://api.fanbox.cc
 * for https://c10.patreonusercontent.com
 * for https://kemono.party/
 * for https://data.kemono.party/
-Update me/* for https://
+Uninteresting stuff/* for https://
 
 # Whitelist - File types to download (blank or comment out all to download any).
 .gif
@@ -544,7 +533,7 @@ def saint(name=False, url=False):
 
 
 
-# Loading referer, sort, and custom dir rules, and global file rejection by file types from rulefile
+# Loading referer, sort, and custom dir rules, and inline file rejection by file types from rulefile
 bgcolor = False
 fgcolor = "3"
 customdir = {}
@@ -2721,8 +2710,19 @@ def readfile():
 
 
     if not HTMLLIST[0]:
-        print(f"\n No artist list in {rulefile}! Add artist's ID per line please.")
-        help()
+        print(f"""
+ No artist list in {rulefile}! Add artist ID and their name per line please.
+
+ + To add new artists, find their ID, then append each with their name, please do not backspace or continue number after ID. E.G.
+ | 312424/Adam Wan
+ | # Insert a slash to use ending as folder E.G. \\Adam Wan\\ for Zaush.
+ |
+ | fanbox
+ | 1092867.b@commission
+ | # Appended names are for you to identify, they can be renamed (please also make your changes symmetrical to existing folders).
+ + # Artists from different paysites in rule file can be grouped by paysite name headings ("Fanbox", "Fantia", "Patreon"). Without them, {batchfile} will assume everyone is from Patreon.""")
+
+
     else:
         if not newfilen[0]:
             print(f"""\n Today download result HTML "{htmlfile}" {"updated with scan result" if Patrol else "will not be made at this time"}. There are 0 new pictures.""")
@@ -2789,11 +2789,7 @@ def keylistener():
         elif el == 15:
             unrecognized("O")
         elif el == 16:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            help()
-            ready_input()
+            unrecognized("P")
         elif el == 17:
             pressed(Keypress_A, False)
         elif el == 18:
@@ -2840,8 +2836,8 @@ print("""
   > Press S to skip next error once during downloading files.
   > Press T to enable or disable cooldown during errors (reduce server strain).
   > Press K to view cookies.
-  > Press 1 to 8 to set max parallel download of 8 available slots, 0 to pause.
-  > Press Ctrl + C or Z to break and reconnect of the ongoing downloads or to end timer instantly.""")
+  > Press 1 to 8 to set max parallel download of 8 available slots, 0 to pause (for this session).
+  > Press Z or CtrlC to break and reconnect of the ongoing downloads or to end timer instantly.""")
 
 
 
@@ -2858,9 +2854,7 @@ while True:
     try:
         time.sleep(0.1)
     except KeyboardInterrupt:
-        echo("Ctrl + C")
         skull()
-        ready_input()
 
 
 

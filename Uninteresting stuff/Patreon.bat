@@ -42,6 +42,7 @@ imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"]
 videofile = [".mkv", ".mp4", ".webm"]
 specialfile = ["magnificent.txt", "mediocre.txt", ".ender"]
 
+alerted = [False]
 busy = [False]
 cooldown = [False]
 dlslot = [1]
@@ -49,12 +50,12 @@ echothreadn = []
 error = [[]]
 htmlname = batchfile
 newfilen = [0]
-Keypress_flush = [False]
 Keypress_prompt = [False]
 Keypress_A = [False]
+Keypress_B = [False]
 Keypress_C = [False]
 Keypress_F = [False]
-Keypress_N = [False]
+Keypress_R = [False]
 Keypress_S = [False]
 Keypress_X = [False]
 Keypress_CtrlC = [False]
@@ -130,7 +131,7 @@ def help():
  | 312424/Adam Wan
  |   Insert a slash to use ending as folder E.G. \\Adam Wan\\ for Zaush.
  |
- | Artists from different paysites in rule file can be grouped by paysite name headings ("Fanbox", "Fantia", "Patreon"):
+ | Artists from different paysites in rule file can be grouped by paysite name headings ("Fanbox", "Fantia", "Patreon")
  | 312424.zaush
  |
  | fanbox
@@ -219,7 +220,7 @@ done""")
     if not keys: return
     if el >= 256:
         el /= 256
-    return el
+    return int(el)
 
 
 
@@ -249,33 +250,25 @@ def input(i="Your Input: ", choices=False):
 
 
 
-if not os.path.exists(rulefile):
-    open(rulefile, 'w').close()
-if os.path.getsize(rulefile) < 1:
-    rules = ["- - - - Spoofer - - - -", "Mozilla/5.0 for http"]
-else:
-    with open(rulefile, 'r', encoding="utf-8") as f:
-        rules = f.read().splitlines()
-def tidy(offset, append, comment=""):
-    if offset == 0:
-        data = append + "\n\n" + "\n".join(rules) + comment
-    else:
-        data = "\n".join(rules[:offset]) + "\n" + append + "\n" + "\n".join(rules[offset:])
-    with open(rulefile, 'wb') as f:
-        f.write(bytes(data, 'utf-8'))
-    return data.splitlines()
-
-
-
-def inline_tutorial():
+def new_rules():
     return f"""
-then
-# resume next creators
 
+- - - - Favorite Artists - - - -
 end
-# finish scanning creators (do not scan any further)
+# finish scanning artists (do not scan any further)
 
-# Appended names are for you to identify, they can be renamed (please also make your changes symmetrical to existing folders), but please do not backspace or continue number after ID.
+# To add new artists, find their ID, then append each with their name, please do not backspace or continue number after ID. E.G.
+312424.zaush
+312424/Adam Wan
+# Insert a slash to use ending as folder E.G. \\Adam Wan\\ for Zaush.
+
+then
+# resume next artists
+
+fanbox
+1092867.b@commission
+
+# Appended names are for you to identify, they can be renamed (please also make your changes symmetrical to existing folders).
 # Artists from different paysites can be grouped by paysite name headings ("Fanbox", "Fantia", "Patreon"). Without them, {batchfile} will assume everyone is from Patreon.
 
 
@@ -329,9 +322,9 @@ Update me/* for https://
 !.mp4
 !.webm
 
-# Per-creator filter how-to:
-# mediocre.txt in creator folder to blacklist matching pattern, this will incorporate with inline filters (here).
-# magnificent.txt in creator folder to whitelist matching pattern, this will override inline filters but not mediocre.txt. While mediocre.txt is king, inline filters will still be overridden by this.
+# Per-artist filter how-to:
+# mediocre.txt in artist folder to blacklist matching pattern, this will incorporate with inline filters (here).
+# magnificent.txt in artist folder to whitelist matching pattern, this will override inline filters but not mediocre.txt. While mediocre.txt is king, inline filters will still be overridden by this.
 # Write "inherit" in magnificent.txt to inherit other rules from inline filters, adding flexibility. Illustrated example:
 
 #                          inline's !.zip = all but .zip
@@ -345,23 +338,32 @@ Update me/* for https://
 
 
 
-first_add = False
+sys.stdout.write(tcolorx + cls)
+
+if not os.path.exists(rulefile):
+    open(rulefile, 'w').close()
+if os.path.getsize(rulefile) < 1:
+    rules = new_rules().splitlines()
+else:
+    with open(rulefile, 'r', encoding="utf-8") as f:
+        rules = f.read().splitlines()
+
+new_setting = False
 offset = 0
-settings = ["Launch HTML server = No", "Show mediocre = No", "Patrol mediocre = No", "Python = " + pythondir, "Proxy = socks5://"]
+settings = ["Launch HTML server = ", "Show mediocre = No", "Patrol mediocre = No", "Python = " + pythondir, "Proxy = socks5://"]
 for setting in settings:
     if not rules[offset].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
-        if offset == 0 and not "#" in "".join(rules):
-            setting += "Yes" if input("Launch HTML server? (Y)es/(N)o: ", "yn") == 1 else "No"
-            rules = tidy(offset, setting, inline_tutorial())
-            first_add = True
+        if offset == 0:
+            setting += "Yes" if input(f"Launch HTML server? (Y)es/(N)o: ", "yn") == 1 else "No"
             echo("", 1, 0)
-        else:
-            rules = tidy(offset, setting)
+            echo(f" Inline tutorial and download filters were added to {rulefile}.\n You may want to check/edit there before I download artpieces with filters and settings.", 0, 2)
+        rules.insert(offset, setting)
         print(f"""Added new setting "{setting}" to {rulefile}!""")
+        new_setting = True
     offset += 1
-if first_add:
-    print(f"\n Inline tutorial and download filters were added to {rulefile}.\n You may want to check/edit there then restart CLI before I download artpieces with filters and settings.")
-    sys.exit()
+if new_setting:
+    with open(rulefile, 'wb') as f:
+        f.write(bytes("\n".join(rules), 'utf-8'))
 
 
 
@@ -624,7 +626,7 @@ for rule in rules:
 
 if bgcolor:
     tcolorx = ansi_color(bgcolor, fgcolor)
-sys.stdout.write(tcolorx + cls)
+    sys.stdout.write(tcolorx + cls)
 
 
 
@@ -750,7 +752,7 @@ def timer(e="", all=True):
 
 def retry(stderr):
     # Warning: urllib has slight memory leak
-    Keypress_flush[0] = False
+    Keypress_R[0] = False
     while True:
         if not Keypress_prompt[0]:
             Keypress_prompt[0] = True
@@ -761,18 +763,18 @@ def retry(stderr):
                         timer(e)
                     else:
                         echo(e)
-                    Keypress_flush[0] = True
+                    Keypress_R[0] = True
                 else:
                     title(status() + batchname)
-                    sys.stdout.write(f"{stderr} (R)etry? (A)lways (N)ext defuse antibot with (F)irefox: ")
+                    sys.stdout.write(f"{stderr} (R)etry? (A)lways (S)kip defuse antibot with (F)irefox: ")
                     sys.stdout.flush()
                     while True:
-                        if Keypress_flush[0] or Keypress_A[0]:
+                        if Keypress_R[0] or Keypress_A[0]:
                             Keypress_prompt[0] = False
                             break
-                        if Keypress_N[0]:
+                        if Keypress_S[0]:
                             Keypress_prompt[0] = False
-                            Keypress_N[0] = False
+                            Keypress_S[0] = False
                             return
                         if Keypress_F[0]:
                             Keypress_F[0] = False
@@ -785,7 +787,7 @@ def retry(stderr):
             retries[0] += 1
             Keypress_prompt[0] = False
             return True
-        elif Keypress_flush[0]:
+        elif Keypress_R[0]:
             return True
         time.sleep(0.5)
 
@@ -1263,7 +1265,7 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
         error[0] = [os.path.basename(x).split(".", 1)[0] for x in error[0]]
         new_enderread = [x for x in new_enderread if x and x.split()[0] not in error[0]]
     if paysite and not newfile:
-        print("You've got everything from this creator at tier you pledged to!")
+        print("You've got everything from this artist at tier you pledged to!")
     elif ender:
         print(f"""Ender file tripped.{" Nothing new to download." if not newfile else ""}{" There are failed downloads I will try again later." if error[0] else ""}""")
         if newfile and ender:
@@ -1414,7 +1416,20 @@ var Expander = function(e) {
   }
 };
 
+var Hover = function(e) {
+  var t = e.target;
+  if (t.hasAttribute("data-tooltip")) {
+    tooltip.style.display = "inline-block";
+    tooltip.style.left = (e.pageX + 10) + "px";
+    tooltip.style.top = (e.pageY + 10) + "px";
+    tooltip.innerHTML = t.getAttribute("data-tooltip");
+  } else {
+    tooltip.style.display = "none";
+  }
+}
+
 document.addEventListener("click", Expander);
+document.addEventListener("mousemove", Hover);
 
 Filters = {};
 Filters.tmpCtx = document.createElement('canvas').getContext('2d');
@@ -1468,6 +1483,7 @@ function quicklook(e) {
     e.preventDefault();
     var t = e.target;
     var c = {};
+    var isTainted = false;
     if(geistauge) {
       var s = new Image();
       s.src = t.parentNode.getAttribute("href");
@@ -1480,8 +1496,11 @@ function quicklook(e) {
       context = c.getContext("2d")
 
       if (geistauge == "edge") {
+        isTainted = true;
         s.onload = function () {
           edgediff(s, s.width, s.height, context);
+          isTainted = false;
+          t.removeAttribute("data-tooltip");
         }
       } else {
         var m = new Image();
@@ -1489,6 +1508,7 @@ function quicklook(e) {
         if(m.src == s.src) {
           context.fillRect(0, 0, s.width, s.height);
         } else {
+          isTainted = true;
           s.onload = function () {
             var cgl = document.createElement("canvas");
             gl = cgl.getContext("webgl2")
@@ -1499,9 +1519,17 @@ function quicklook(e) {
             } else {
               m.onload = difference(s, s.width, s.height, m, context, gl);
             }
+          isTainted = false;
+          t.removeAttribute("data-tooltip");
           }
         }
       }
+      setTimeout(function(){
+        if (isTainted) {
+          t.setAttribute("data-tooltip", `"Edge detect" and "Geistauge" are canvas features and they require Cross-Origin Resource Sharing (CORS)<br>(Google it but tl;dr: Try HTML server)`)
+          Hover(e)
+        }
+      }, 1)
       t.parentNode.appendChild(c);
     } else {
       c = document.createElement("img");
@@ -1513,6 +1541,7 @@ function quicklook(e) {
     let listener = () => {
       setTimeout(function(){t.parentNode.removeChild(c);}, 40);
       t.removeEventListener("mouseleave", listener);
+      t.removeAttribute("data-tooltip");
     }
     t.addEventListener("mouseleave", listener);
   }
@@ -1864,6 +1893,7 @@ window.onload = () => {
   for(var i=0; i<links.length; i++) {
     links[i].target = "_blank";
   }
+  var tooltip = document.getElementById("tooltip");
 }
 
 function lazyload() {
@@ -1924,7 +1954,7 @@ h2{margin:4px;}
 .postMessage{white-space:pre-wrap;}
 </style>
 <body>
-<div style="display:block; height:20px;"></div><div class="container" style="display:none;">
+<div id="tooltip" class="closebtn" style="padding:0px 8px; font-family:sans-serif; z-index:9999999; left:0px; top:0px; right:initial; pointer-events:none;"></div><div style="display:block; height:20px;"></div><div class="container" style="display:none;">
 <button class="closebtn" onclick="this.parentElement.style.display='none'">&times;</button>""" + f"""<div class="mySlides">{listurls}</div>
 <img id="expandedImg">
 </div>
@@ -1938,8 +1968,8 @@ h2{margin:4px;}
 <button class="next" onclick="resizeCell('calc(50% - 33px)')">. .</button>
 <button class="next" onclick="resizeCell('calc(33.33% - 34px)')">...</button>
 <button class="next" onclick="resizeCell('calc(25% - 35px)')">....</button>
-<button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')">Preview</button>
-<button id="ge" class="next" onclick="previewg(this, 'vs left', 'vs left <', 'vs left >', 'Find Edge')">Original</button>
+<button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel">Preview</button>
+<button id="ge" class="next" onclick="previewg(this, 'vs left', 'vs left <', 'vs left >', 'Find Edge')" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
 <button class="next" onclick="hideSources()">Sources</button>
 <input class="next" type="text" oninput="hideParts('h2', this.value, false);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Search title">
 <input class="next" type="text" oninput="hideParts('h2', this.value);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Ignore title">
@@ -2154,18 +2184,18 @@ if Patreoncookie:
         api = json.loads(resp.read().decode('utf-8'))
     except:
         kill(0, f"Patreon cookie may be outdated ({err}).", r="Patreon cookie")
-    creators = api["data"]
-    for creator in creators:
-        pledges += [creator["relationships"]["creator"]["data"]["id"]]
+    artists = api["data"]
+    for artist in artists:
+        pledges += [artist["relationships"]["creator"]["data"]["id"]]
     resp, err = fetch("https://www.patreon.com/api/stream?include=user.null&fields[post]=&fields[user]=")
     api = json.loads(resp.read().decode("utf-8"))
     if not "included" in api:
-        kill(0, "You haven't pledged to any creators on Patreon!", r="Patreon cookie")
-    for creator in api["included"]:
-       pledges += [creator["id"]]
+        kill(0, "You haven't pledged to any artists on Patreon!", r="Patreon cookie")
+    for artist in api["included"]:
+       pledges += [artist["id"]]
     pledges = list(dict.fromkeys(pledges))
     if not pledges and not favoriteispledged:
-        kill(0, "You haven't pledged to any creators on Patreon!", r="Patreon cookie")
+        kill(0, "You haven't pledged to any artists on Patreon!", r="Patreon cookie")
 if Fanboxcookie:
     referers.update({"https://api.fanbox.cc/":"https://www.fanbox.cc"})
     print("Checking your pledges on Fanbox . . .")
@@ -2174,12 +2204,12 @@ if Fanboxcookie:
         api = json.loads(resp.read().decode('utf-8'))
     except:
         kill(0, f"Fanbox cookie may be outdated ({err}).", r="Fanbox cookie")
-    creators = api["body"]
-    if not creators and not favoriteispledged:
+    artists = api["body"]
+    if not artists and not favoriteispledged:
         kill(0, "You haven't pledged to any artists on Fanbox!", r="Fanbox cookie")
     else:
-        for creator in creators:
-            pledges += [creator["user"]["userId"]]
+        for artist in artists:
+            pledges += [artist["user"]["userId"]]
 if Fantiacookie:
     print("Checking your pledges on Fantia . . .")
     resp, err = fetch("https://fantia.jp/mypage/users/plans")
@@ -2195,35 +2225,35 @@ if Fantiacookie:
 def new_part():
     return {"page":"", "campaign_id":None, "icons":[], "partition":{}}
 
-def fanbox_avatars(threadn, htmlname, CREATOR_ID):
-    api = json.loads(get(f"https://api.fanbox.cc/creator.get?userId={CREATOR_ID}", stderr=f"Broken API on Fanbox for {htmlname}", threadn=threadn).decode('utf-8'))
+def fanbox_avatars(threadn, htmlname, id):
+    api = json.loads(get(f"https://api.fanbox.cc/creator.get?userId={id}", stderr=f"Broken API on Fanbox for {htmlname}", threadn=threadn).decode('utf-8'))
     if obj := api["body"]:
         return {"page":{"link":f"""https://{obj["creatorId"]}.fanbox.cc/""", "name":obj["user"]["name"]}, "icons":[{"link":obj["user"]["iconUrl"], "name":"avatar.png", "edited":0}, {"link":obj["coverImageUrl"], "name":"cover.png", "edited":0}]}
 
-def fantia_avatars(threadn, htmlname, CREATOR_ID):
-    api = json.loads(get("https://fantia.jp/api/v1/fanclubs/" + CREATOR_ID, stderr=f"Broken API on Fantia for {htmlname}", threadn=threadn).decode('utf-8'))
+def fantia_avatars(threadn, htmlname, id):
+    api = json.loads(get("https://fantia.jp/api/v1/fanclubs/" + id, stderr=f"Broken API on Fantia for {htmlname}", threadn=threadn).decode('utf-8'))
     if obj := api["fanclub"]:
-        return {"page":{"link":f"https://fantia.jp/fanclubs/{CREATOR_ID}", "name":obj["fanclub_name_with_creator_name"]}, "icons":[{"link":obj["icon"]["original"], "name":"avatar.png", "edited":0}, {"link":obj["cover"]["original"], "name":"cover.png", "edited":0}]}
+        return {"page":{"link":f"https://fantia.jp/fanclubs/{id}", "name":obj["fanclub_name_with_creator_name"]}, "icons":[{"link":obj["icon"]["original"], "name":"avatar.png", "edited":0}, {"link":obj["cover"]["original"], "name":"cover.png", "edited":0}]}
 
-def patreon_avatars(threadn, htmlname, CREATOR_ID):
-    if not (data := get("https://www.patreon.com/api/user/" + CREATOR_ID, utf8=True, stderr=f"Broken API on Patreon while fetching profile for {htmlname}\n > Or failed at Patreon's aggressive anti-bot detection\n > To pass: provide your browser's user-agent string and cookie value for __cf_bm\n\n", threadn=threadn)).isdigit():
+def patreon_avatars(threadn, htmlname, id):
+    if not (data := get("https://www.patreon.com/api/user/" + id, utf8=True, stderr=f"Broken API on Patreon while fetching profile for {htmlname}\n > Or failed at Patreon's aggressive anti-bot detection\n > To pass: provide your browser's user-agent string and cookie value for __cf_bm\n\n", threadn=threadn)).isdigit():
         api = json.loads(data)
         if obj := api["included"][0]["attributes"]:
             return {"page":{"link":api["data"]["attributes"]["url"], "name":api["data"]["attributes"]["vanity"]}, "campaign_id":api["data"]["relationships"]["campaign"]["data"]["id"], "icons":[{"link":obj["avatar_photo_url"], "name":"avatar.png", "edited":0}, {"link":obj["cover_photo_url"], "name":"cover.png", "edited":0}]}
 
 
 
-def fanbox_assets(threadn, htmlname, CREATOR_ID):
+def fanbox_assets(threadn, htmlname, id):
     fromhtml = new_part()
-    fromhtml.update(fanbox_avatars(threadn, htmlname, CREATOR_ID))
-    url = f"https://api.fanbox.cc/post.listCreator?userId={CREATOR_ID}&limit=10"
+    fromhtml.update(fanbox_avatars(threadn, htmlname, id))
+    url = f"https://api.fanbox.cc/post.listCreator?userId={id}&limit=10"
     while True:
         api = get(url, stderr=f"Broken API on Fanbox for {htmlname}", threadn=threadn)
         if not api:
             return fromhtml
         api = json.loads(api.decode('utf-8'))
         for next_obj in api["body"]["items"]:
-            id = next_obj["id"]
+            key = next_obj["id"]
             keywords = [next_obj["title"], next_obj["updatedDatetime"].replace("T", " ").split("+", 1)[0]]
             edited = keywords[1].split(" ", 1)[0].replace("-", "")
             html = []
@@ -2239,13 +2269,13 @@ def fanbox_assets(threadn, htmlname, CREATOR_ID):
                         html += [["<p>" + hyperlink(block["text"].replace("\n", "<br>")), ""]]
                     else:
                         url = next_obj["body"]["imageMap"][block["imageId"]]["originalUrl"]
-                        html += [["<p>", {"link":url, "name":id + "." + url.rsplit("/", 1)[1], "edited":edited}]]
+                        html += [["<p>", {"link":url, "name":key + "." + url.rsplit("/", 1)[1], "edited":edited}]]
                 filelist = []
             files = []
             for file in filelist:
                 url = file["originalUrl"]
-                files += [{"link":url, "name":id + "." + url.rsplit("/", 1)[1], "edited":edited}]
-            fromhtml["partition"].update({id:{"keywords":keywords, "html":html, "files":files}})
+                files += [{"link":url, "name":key + "." + url.rsplit("/", 1)[1], "edited":edited}]
+            fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
         if api["body"]["nextUrl"]:
             url = api["body"]["nextUrl"]
         else:
@@ -2254,12 +2284,12 @@ def fanbox_assets(threadn, htmlname, CREATOR_ID):
 
 
 
-def fantia_assets(threadn, htmlname, CREATOR_ID):
+def fantia_assets(threadn, htmlname, id):
     fromhtml = new_part()
-    fromhtml.update(fantia_avatars(threadn, htmlname, CREATOR_ID))
+    fromhtml.update(fantia_avatars(threadn, htmlname, id))
     page = 1
     while True:
-        html = get(f'https://fantia.jp/fanclubs/{CREATOR_ID}/posts?page={page}', stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
+        html = get(f'https://fantia.jp/fanclubs/{id}/posts?page={page}', stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
         html = html.replace("\n", "").replace("<div class=\"post-meta\">", "\n").replace(u"\u2028"," ").splitlines()
         for part in html[1:]:
             key = part.split("href=\"/posts/", 1)[1].split("\"", 1)[0]
@@ -2268,7 +2298,7 @@ def fantia_assets(threadn, htmlname, CREATOR_ID):
     return fromhtml
 
     print(f"Yiff.party's dead, Jim.")
-    html = get('https://yiff.party/fantia/' + CREATOR_ID, stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
+    html = get('https://yiff.party/fantia/' + id, stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
     html = html.replace("\n", "").replace("style=\"background: url('", "\n").replace("yp-info-img\" src=\"", "\n").replace(u"\u2028"," ").splitlines()
     fromhtml.update({"cover":html[1].split("'", 1)[0]})
     fromhtml.update({"avatar":html[2].split("\"", 1)[0]})
@@ -2317,11 +2347,11 @@ def fantia_assets(threadn, htmlname, CREATOR_ID):
 
 
 
-def kp_fanbox_assets(threadn, htmlname, CREATOR_ID):
+def kp_fanbox_assets(threadn, htmlname, id):
     fromhtml = new_part()
     page = 0
     while True:
-        api = get(f"https://kemono.party/api/fanbox/user/{CREATOR_ID}?o={page*25}", stderr=f"Broken API on kemono.party for {htmlname}", threadn=threadn)
+        api = get(f"https://kemono.party/api/fanbox/user/{id}?o={page*25}", stderr=f"Broken API on kemono.party for {htmlname}", threadn=threadn)
         if not api:
             return fromhtml
         if not (api := json.loads(api.decode('utf-8'))):
@@ -2377,11 +2407,11 @@ def kp_fanbox_assets(threadn, htmlname, CREATOR_ID):
 
 
 
-def kp_fantia_assets(threadn, htmlname, CREATOR_ID):
+def kp_fantia_assets(threadn, htmlname, id):
     fromhtml = new_part()
     page = 0
     while True:
-        api = get(f"https://kemono.party/api/fantia/user/{CREATOR_ID}?o={page*25}", stderr=f"Broken API on kemono.party for {htmlname}", threadn=threadn)
+        api = get(f"https://kemono.party/api/fantia/user/{id}?o={page*25}", stderr=f"Broken API on kemono.party for {htmlname}", threadn=threadn)
         if not api:
             return fromhtml
         if not (api := json.loads(api.decode('utf-8'))):
@@ -2420,13 +2450,13 @@ def kp_fantia_assets(threadn, htmlname, CREATOR_ID):
 
 
 
-def kp_patreon_assets(threadn, htmlname, CREATOR_ID):
+def kp_patreon_assets(threadn, htmlname, id):
     fromhtml = new_part()
-    if Patreoncookie and (data := patreon_avatars(threadn, htmlname, CREATOR_ID)):
+    if Patreoncookie and (data := patreon_avatars(threadn, htmlname, id)):
         fromhtml.update(data)
     page = 0
     while True:
-        api = get(f"https://kemono.party/api/patreon/user/{CREATOR_ID}?o={page*25}", stderr=f"Broken API on kemono.party for {htmlname}", threadn=threadn)
+        api = get(f"https://kemono.party/api/patreon/user/{id}?o={page*25}", stderr=f"Broken API on kemono.party for {htmlname}", threadn=threadn)
         if not api:
             return fromhtml
         if not (api := json.loads(api.decode('utf-8'))):
@@ -2473,9 +2503,9 @@ def kp_patreon_assets(threadn, htmlname, CREATOR_ID):
 
 
 
-def patreon_assets(threadn, htmlname, CREATOR_ID):
+def patreon_assets(threadn, htmlname, id):
     fromhtml = new_part()
-    if data := patreon_avatars(threadn, htmlname, CREATOR_ID):
+    if data := patreon_avatars(threadn, htmlname, id):
         fromhtml.update(data)
     else:
         return
@@ -2531,27 +2561,27 @@ def patreon_assets(threadn, htmlname, CREATOR_ID):
 
 def get_assets(artworks):
     while True:
-        threadn, master, CREATOR_ID, htmlname, HOME = artworks.get()
+        threadn, master, id, htmlname, HOME = artworks.get()
         mirror_assets = []
         paysite_assets = []
         if Kemonoparty:
             if HOME == "Fanbox":
-                mirror_assets = kp_fanbox_assets(threadn, htmlname, CREATOR_ID)
+                mirror_assets = kp_fanbox_assets(threadn, htmlname, id)
             elif HOME == "Fantia":
-                mirror_assets = kp_fantia_assets(threadn, htmlname, CREATOR_ID)
+                mirror_assets = kp_fantia_assets(threadn, htmlname, id)
             elif HOME == "Patreon":
-                mirror_assets = kp_patreon_assets(threadn, htmlname, CREATOR_ID)
+                mirror_assets = kp_patreon_assets(threadn, htmlname, id)
             print(f"Fetched new data for {htmlname}")
-        if CREATOR_ID in pledges:
+        if id in pledges:
             if HOME == "Fanbox":
-                paysite_assets = fanbox_assets(threadn, htmlname, CREATOR_ID)
+                paysite_assets = fanbox_assets(threadn, htmlname, id)
             elif HOME == "Fantia":
-                paysite_assets = fantia_assets(threadn, htmlname, CREATOR_ID)
+                paysite_assets = fantia_assets(threadn, htmlname, id)
             elif HOME == "Patreon":
-                paysite_assets = patreon_assets(threadn, htmlname, CREATOR_ID)
+                paysite_assets = patreon_assets(threadn, htmlname, id)
             print(f"Fetched new data for {htmlname} ({HOME})")
-        master.update({HOME + CREATOR_ID: {"htmlname":htmlname, "m":[[], [], False], "inlinefirst": False, "mirror": mirror_assets, "paysite": paysite_assets}})
-        fromhtml = master[HOME + CREATOR_ID]
+        master.update({HOME + id: {"htmlname":htmlname, "m":[[], [], False], "inlinefirst": False, "mirror": mirror_assets, "paysite": paysite_assets}})
+        fromhtml = master[HOME + id]
         if os.path.exists(x := f"{batchname}/{htmlname}/mediocre.txt"):
             with open(x, 'r', encoding='utf-8') as f:
                 fromhtml["m"][0] = f.read().splitlines()
@@ -2602,17 +2632,17 @@ def readfile():
             break
         if not line[0].isdigit() or " seconds rarity " in line[0]:
             continue
-        CREATOR_ID = ""
+        id = ""
         for d in line:
             if d.isdigit():
-                CREATOR_ID += d
+                id += d
             else:
                 break
-        if not line.replace(CREATOR_ID, ""):
-            print(f"\nPlease append name (any name) to {CREATOR_ID} e.g. {CREATOR_ID}.name or {CREATOR_ID}name in {rulefile} then try again.\nThe name must not start with number!")
+        if not line.replace(id, ""):
+            print(f"\nPlease append name (any name) to {id} e.g. {id}.name or {id}name in {rulefile} then try again.\nThe name must not start with number!")
             return
         line = line.replace("\\", "/").rsplit("/", 1)[-1]
-        NEXTHTML += [[line, CREATOR_ID, HOME]]
+        NEXTHTML += [[line, id, HOME]]
     HTMLLIST += [NEXTHTML]
 
 
@@ -2630,15 +2660,15 @@ def readfile():
 
 
 
-        for htmlname, CREATOR_ID, HOME in NEXTHTML:
+        for htmlname, id, HOME in NEXTHTML:
             if favoriteispledged:
-                pledges += [CREATOR_ID]
-            if HOME + CREATOR_ID in queued:
+                pledges += [id]
+            if HOME + id in queued:
                 continue
-            queued += [HOME + CREATOR_ID]
+            queued += [HOME + id]
             threadn += 1
             echothreadn.append(threadn)
-            artworks.put((threadn, master, CREATOR_ID, htmlname, HOME))
+            artworks.put((threadn, master, id, htmlname, HOME))
         htmlname = batchfile
         try:
             artworks.join()
@@ -2647,8 +2677,8 @@ def readfile():
 
 
 
-        for htmlname, CREATOR_ID, HOME in NEXTHTML:
-            fromhtml = master[HOME + CREATOR_ID]
+        for htmlname, id, HOME in NEXTHTML:
+            fromhtml = master[HOME + id]
             if not os.path.exists(f"{batchname}/{htmlname}/"):
                 os.makedirs(f"{batchname}/{htmlname}/")
             if fromhtml["mirror"]:
@@ -2687,7 +2717,7 @@ def readfile():
 
 
     if not HTMLLIST[0]:
-        print(f"\n No creator list in rule file ({rulefile})! Add creator's ID per line please.")
+        print(f"\n No artist list in {rulefile}! Add artist's ID per line please.")
         help()
     else:
         if not newfilen[0]:
@@ -2700,65 +2730,41 @@ def readfile():
 
 
 
+def unrecognized(k):
+    echo("", 1)
+    echo(f"Keypress {k} unrecognized", 0, 1)
+    if not busy[0]:
+        ready_input()
+
+def pressed(k, s=True):
+    echo("", 1)
+    k[0] = s
+    if not busy[0]:
+        ready_input()
+
 def keylistener():
     while True:
         el = choice("abcdefghijklmnopqrstuvwxyz0123456789")
         if el == 1:
-            echo("", 1)
-            Keypress_A[0] = True
-            if not busy[0]:
-                ready_input()
+            pressed(Keypress_A)
         elif el == 2:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress B unrecognized", 0, 1)
-            ready_input()
+            unrecognized("B")
         elif el == 3:
-            echo("", 1)
-            Keypress_C[0] = True
-            if not busy[0]:
-                ready_input()
+            pressed(Keypress_C)
         elif el == 4:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress D unrecognized", 0, 1)
-            ready_input()
+            unrecognized("D")
         elif el == 5:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress E unrecognized", 0, 1)
-            ready_input()
+            unrecognized("E")
         elif el == 6:
-            Keypress_F[0] = True
-            if not busy[0]:
-                ready_input()
+            pressed(Keypress_F)
         elif el == 7:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress G unrecognized", 0, 1)
-            ready_input()
+            unrecognized("G")
         elif el == 8:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress H unrecognized", 0, 1)
-            ready_input()
+            unrecognized("H")
         elif el == 9:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress I unrecognized", 0, 1)
-            ready_input()
+            unrecognized("I")
         elif el == 10:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress J unrecognized", 0, 1)
-            ready_input()
+            unrecognized("J")
         elif el == 11:
             c = False
             for c in cookies:
@@ -2773,43 +2779,23 @@ def keylistener():
                 continue
             run_input[2] = True
         elif el == 13:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress M unrecognized", 0, 1)
-            ready_input()
+            unrecognized("M")
         elif el == 14:
-            echo("", 1)
-            Keypress_N[0] = True
-            if not busy[0]:
-                ready_input()
+            unrecognized("N")
         elif el == 15:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress O unrecognized", 0, 1)
-            ready_input()
+            unrecognized("O")
         elif el == 16:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            echo("Keypress P unrecognized", 0, 1)
+            help()
             ready_input()
         elif el == 17:
-            echo("", 1)
-            Keypress_A[0] = False
-            if not busy[0]:
-                ready_input()
+            pressed(Keypress_A, False)
         elif el == 18:
-            echo("", 1)
-            Keypress_flush[0] = True
-            if not busy[0]:
-                ready_input()
+            pressed(Keypress_R)
         elif el == 19:
-            echo("", 1)
-            Keypress_S[0] = True
-            if not busy[0]:
-                ready_input()
+            pressed(Keypress_S)
         elif el == 20:
             if ticks:
                 echo(f"""COOLDOWN {"DISABLED" if cooldown[0] else "ENABLED"}""", 1, 1)
@@ -2819,23 +2805,11 @@ def keylistener():
             if not busy[0]:
                 ready_input()
         elif el == 21:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress U unrecognized", 0, 1)
-            ready_input()
+            unrecognized("U")
         elif el == 22:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress V unrecognized", 0, 1)
-            ready_input()
+            unrecognized("V")
         elif el == 23:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress W unrecognized", 0, 1)
-            ready_input()
+            unrecognized("W")
         elif el == 24:
             echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if Keypress_X[0] else "RETRY"}""", 1, 1)
             Keypress_X[0] = False if Keypress_X[0] else True
@@ -2843,24 +2817,16 @@ def keylistener():
             if not busy[0]:
                 ready_input()
         elif el == 25:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress Y unrecognized", 0, 1)
-            ready_input()
+            unrecognized("Y")
         elif el == 26:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress Z unrecognized", 0, 1)
-            ready_input()
+            pressed(Keypress_CtrlC)
         elif 0 <= (n := min(el-27, 8)) < 9:
             echo(f"""MAX PARALLEL DOWNLOAD SLOT: {n} {"(pause)" if not n else ""}""", 1, 1)
             dlslot[0] = n
             if not busy[0]:
                 ready_input()
         else:
-            Keypress_CtrlC[0] = True
+            pressed(Keypress_CtrlC)
 t = Thread(target=keylistener)
 t.daemon = True
 t.start()
@@ -2871,7 +2837,7 @@ print("""
   > Press T to enable or disable cooldown during errors (reduce server strain).
   > Press K to view cookies.
   > Press 1 to 8 to set max parallel download of 8 available slots, 0 to pause.
-  > Press Ctrl + C to break and reconnect of the ongoing downloads or to end timer instantly.""")
+  > Press Ctrl + C or Z to break and reconnect of the ongoing downloads or to end timer instantly.""")
 
 
 

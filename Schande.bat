@@ -1037,14 +1037,15 @@ def retry(stderr):
                     Keypress_R[0] = True
                 else:
                     title(status() + batchname)
-                    print(f"{stderr} (R)etry? (A)lways (S)kip defuse antibot with (F)irefox")
+                    sys.stdout.write(f"{stderr} (R)etry? (A)lways (S)kip defuse antibot with (F)irefox: ")
+                    sys.stdout.flush()
                     while True:
                         if Keypress_R[0] or Keypress_A[0]:
                             Keypress_prompt[0] = False
                             break
                         if Keypress_S[0]:
-                            Keypress_S[0] = False
                             Keypress_prompt[0] = False
+                            Keypress_S[0] = False
                             return
                         if Keypress_F[0]:
                             Keypress_F[0] = False
@@ -2596,8 +2597,8 @@ var Hover = function(e) {
   var t = e.target;
   if (t.hasAttribute("data-tooltip")) {
     tooltip.style.display = "inline-block";
-    tooltip.style.left = e.pageX + "px";
-    tooltip.style.top = e.pageY + "px";
+    tooltip.style.left = (e.pageX + 10) + "px";
+    tooltip.style.top = (e.pageY + 10) + "px";
     tooltip.innerHTML = t.getAttribute("data-tooltip");
   } else {
     tooltip.style.display = "none";
@@ -3097,11 +3098,11 @@ function lazyload() {
 }
 </script>
 <style>
-html,body{background-color:#10100c; color:#088 /*cb7*/; font-family:consolas, courier; font-size:14px;}
+html,body{background-color:#10100c; color:#088 /*088 cb7*/; font-family:consolas, courier; font-size:14px;}
 a{color:#dc8 /*efdfa8*/;}
 a:visited{color:#cccccc;}
 .aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
-.carbon, .files, .time{background-color:#10100c /*07300f*/; border:3px solid #6a6a66 /*192*/; border-radius:12px;}
+.carbon, .files, .time{background-color:#10100c /*10100c 112230 07300f*/; border:3px solid #6a6a66 /*6a6a66 367 192*/; border-radius:12px;}
 .time{white-space:pre-wrap; color:#ccc; font-size:90%; line-height:1.6;}
 .cell, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
 .edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45;}
@@ -3147,7 +3148,7 @@ h2{margin:4px;}
 <button class="next" onclick="resizeCell('calc(50% - 33px)')">. .</button>
 <button class="next" onclick="resizeCell('calc(33.33% - 34px)')">...</button>
 <button class="next" onclick="resizeCell('calc(25% - 35px)')">....</button>
-<button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')" data-tooltip="Shift - fit image to screen">Preview</button>
+<button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel">Preview</button>
 <button id="ge" class="next" onclick="previewg(this, 'vs left', 'vs left <', 'vs left >', 'Find Edge')" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
 <button class="next" onclick="hideSources()">Sources</button>
 <input class="next" type="text" oninput="hideParts('h2', this.value, false);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Search title">

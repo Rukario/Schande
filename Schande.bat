@@ -3277,8 +3277,6 @@ def tohtml(subdir, htmlname, fromhtml, orphfiles):
             keywords = ", ".join(x for x in keywords[2:]) if len(keywords) > 2 else "None"
             builder += f"""<div class="time" id="{key}" style="float:right;">Part {key} ꍯ {time}\nKeywords: {keywords}</div>\n"""
         builder += title
-        # if file := part[key]["file"]:
-        #     builder += f"""<div class="carbon">\n{container(subdir[0] + file["name"], rejlist, 1)}</div>\n"""
         if part[key]["files"]:
             builder += "<div class=\"files\">\n"
             for file in part[key]["files"]:
@@ -3318,7 +3316,7 @@ def tohtml(subdir, htmlname, fromhtml, orphfiles):
                 for link in urls[1:]:
                     link = link.split("\"", 1)[0]
                     links += f"""<a href="{link}">{link}</a><br>"""
-                listurls += f"""# From <a href="#{key}">#{key}</a> :: {title}<br>{links}\n"""
+                listurls += f"""# From <a href="#{key}">#{key}</a> :: {part[key]["keywords"][0]}<br>{links}\n"""
             builder += f"{content}</div>\n"
         elif not part[key]["files"]:
             builder += "<div class=\"edits\">Rebuild HTML with a different login/tier may be required to view</div>\n"

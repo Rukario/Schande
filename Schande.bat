@@ -43,6 +43,7 @@ imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"]
 videofile = [".mkv", ".mp4", ".webm"]
 specialfile = ["gallery.html", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
 
+alerted = [False]
 busy = [False]
 cooldown = [False]
 dlslot = [1]
@@ -50,12 +51,12 @@ echothreadn = []
 error = [[]]
 htmlname = batchfile
 newfilen = [0]
-Keypress_flush = [False]
 Keypress_prompt = [False]
 Keypress_A = [False]
+Keypress_B = [False]
 Keypress_C = [False]
 Keypress_F = [False]
-Keypress_N = [False]
+Keypress_R = [False]
 Keypress_S = [False]
 Keypress_X = [False]
 Keypress_CtrlC = [False]
@@ -66,9 +67,7 @@ sf = [0]
 collisionisreal = False
 editisreal = False
 buildthumbnail = False
-# True if you want to serve pages efficiently. It'll take a while to build new thumbnails from large collection.
-shuddup = False
-personal = False
+shuddup = True
 
 
 
@@ -111,11 +110,9 @@ def mainmenu():
  + Drag'n'drop and enter image file to compare with another image, while scanning new folder, or find in database.
 
  - - - - {batchname} HTML - - - -
- + Press B to launch HTML in your favorite browser.
- | Press G to re/compile HTML from Geistauge's database (your browser will be used as comparison GUI).
+ + Press G to re/compile HTML from Geistauge's database (your browser will be used as comparison GUI).
  | Press D to delete non-exempted duplicate images immediately with a confirmation.
- |  > One first non-exempt in path alphabetically will be kept if no other duplication are exempted.
- + Press Z to split Geistauge's database to pathless version (for verification against unwanted recenty downloads).
+ +  > One first non-exempt in path alphabetically will be kept if no other duplication are exempted.
 
  - - - - Input - - - -
  + Enter file:/// or http://localhost url to enter delete mode.
@@ -123,25 +120,25 @@ def mainmenu():
  + Enter valid site to start a scraper.
 """)
 def ready_input():
-    sys.stdout.write("Enter (I)nput mode or ready to s(O)rt, (L)oad filelist from textfile, (H)elp: ")
+    sys.stdout.write("Enter (I)nput mode or ready to s(O)rt, (L)oad filelist from textfile, hel(P): ")
     sys.stdout.flush()
 def skull():
-    print("""
-              ______
-           .-"      "-.
-          /            \\
-         |'  .-.  .-.  '|
-    /\   | )(__/  \__)( |
-  _ \/   |/     /\     \|
- \_\/    (_ \   ^^   / _)   .-==/~\\
----,---,---|-|HHHHHH|-|---,\'-' {{~}
-           \          /     '-==\}/
-            '--------'
-""")
-    choice(bg="4c")
+    return """                                    
+              ______                
+           .-"      "-.             
+          /            \\            
+         |'  .-.  .-.  '|           
+    /\   | )(__/  \__)( |           
+  _ \/   |/     /\     \|           
+ \_\/    (_ \   ^^   / _)   .-==/~\\ 
+---,---,---|-|HHHHHH|-|---,\'-' {{~} 
+           \          /     '-==\}/ 
+            '--------'              
+                                    """
 def help():
     print(f"""
  {rulefile} is {batchname}'s only setting file and only place to follow your rules how files are downloaded and sorted.
+
 
  - - - - Geistauge - - - -
   Wildcard: None, non-anchored start/end.
@@ -149,8 +146,9 @@ def help():
  > Arbitrary rule (unless # commented out) in {rulefile} will become Geistauge's pattern exemption.
  > No exemption if at least one similar image doesn't have a pattern.
  > Once scan is completed, {batchname} HTML will be used to view similar images,
-   including tools to see the differences not seen by naked eyes. This is part where I come up with the name Geistauge.
+   including tools to see the differences not seen by naked eyes.
    Geistauge (German translate: ghost eye)
+
 
  - - - - Sorter - - - -
   Wildcard: UNIX-style wildcard, ? matches 1 character, * matches everything, start/end is anchored until wildcarded.
@@ -164,6 +162,7 @@ def help():
  | {tcd} can help ensure that no other rule can sort them any more (first rule = first to sort).
  + {tcd} is used for manual operation to a different directory where the folder actually exists.
 
+
  - - - - Download directory - - - -
   Wildcard: Single asterisk only, capture for prepend/append before file extension, non-anchored http ending.
  +  "...\\* for http..."       custom dir for downloads, \\{batchname}\\ if no custom dir specified.
@@ -171,11 +170,13 @@ def help():
  |  "...\\...*... for http..." and the file are also renamed (prepend/append).
  +  "...*... for http..."     and they go to \\{batchname}\\ while renamed.
 
+
  - - - - Spoofer - - - -
   Wildcard: None, non-anchored http ending.
  +  "Mozilla/5.0... for http..." visit page with user-agent.
  |  "key value for .site"     cookie for a site that requires login.
  +  "http... for http..."     visit page with referer.
+
 
  - - - - Scraper - - - -
   Wildcard: asterisks choose last, carets for right-to-left, hybrid greed median, non-anchored http ending.
@@ -236,7 +237,7 @@ def help():
  |  "...*..."         HTML-based picker.
  |  "... > ..."       API-based picker.
  |  " > 0 > " (or asterisk) to iterate a list or dictionary values, " >> " to load dictionary from QS (Query String).
- |  "key Y << X"      prefers master key.
+ |  "key Y << X"      X prefers master key Y.
  |
  | API supported pickers: key, html, expect, files, name, pages.
  | During API each file picker must be accompanied by name picker and all HTML-based name/meta pickers must descend.
@@ -254,7 +255,7 @@ def help():
  + Note: HTML-based name picker (esp. if repeated) will not respect file position made by a different file picker.
 
  + Right-to-left:
- |  > Use caret "^..." to get the right match. Do "^..*^.." or "..*^.." (greedy), don't put caret before asterisk ^*
+ |  > Use caret ^... to get the right match. Do ^..*^.. or ..*^.. (greedy), don't put caret before asterisk ^*
  |  > The final asterisk of the non-caret will be greedy and chosen. First asterisk if every asterisk has caret.
  +  > Using caret will finish with one chosen match.
 
@@ -279,8 +280,6 @@ def echolistener():
 t = Thread(target=echolistener)
 t.daemon = True
 t.start()
-
-
 
 def columns():
     return os.get_terminal_size().columns
@@ -334,11 +333,6 @@ def alert(m, s, d=False):
         sys.stdout.write("(C)ontinue")
         sys.stdout.flush()
         choice(bg="2e", persist=True)
-        Keypress_C[0] = False
-        while not Keypress_C[0]:
-            time.sleep(0.1)
-        Keypress_C[0] = False
-        choice(bg="2e")
 
 
 
@@ -384,7 +378,7 @@ done""")
     if not keys: return
     if el >= 256:
         el /= 256
-    return el
+    return int(el)
 
 
 
@@ -414,24 +408,23 @@ def input(i="Your Input: ", choices=False):
 
 
 
+def new_rules():
+    return """
+
+- - - - Spoofer - - - -
+Mozilla/5.0 for http"""
+
+
+
 if not os.path.exists(rulefile):
     open(rulefile, 'w').close()
 if os.path.getsize(rulefile) < 1:
-    rules = ["- - - - Spoofer - - - -", "Mozilla/5.0 for http"]
+    rules = new_rules().splitlines()
 else:
     with open(rulefile, 'r', encoding="utf-8") as f:
         rules = f.read().splitlines()
-def tidy(offset, append):
-    if offset == 0:
-        data = append + "\n\n" + "\n".join(rules)
-    else:
-        data = "\n".join(rules[:offset]) + "\n" + append + "\n" + "\n".join(rules[offset:])
-    with open(rulefile, 'wb') as f:
-        f.write(bytes(data, 'utf-8'))
-    return data.splitlines()
 
-
-
+new_setting = False
 offset = 0
 settings = ["Launch HTML server = ", "Browser = ", "Mail = ", "Geistauge = No", "Python = " + pythondir, "Proxy = socks5://"]
 for setting in settings:
@@ -439,9 +432,13 @@ for setting in settings:
         if offset == 0:
             setting += "Yes" if input("Launch HTML server? (Y)es/(N)o: ", "yn") == 1 else "No"
             echo("", 1, 0)
-        rules = tidy(offset, setting)
+        rules = rules.insert(offset, append)
         print(f"""Added new setting "{setting}" to {rulefile}!""")
+        new_setting = True
     offset += 1
+if new_setting:
+    with open(rulefile, 'wb') as f:
+        f.write(bytes("\n".join(rules), 'utf-8'))
 
 
 
@@ -842,14 +839,14 @@ for rule in rules:
         c = new_cookie()
         c.update({'domain': rr[1], 'name': rr[0].split(" ")[0], 'value': rr[0].split(" ")[1]})
         cookies.set_cookie(cookiejar.Cookie(**c))
-        personal = True
+        if not shuddup == 2: shuddup = False
 
 
 
     elif len(sr := rule.split(" seconds rarity ")) == 2:
         ticks += [[int(x) for x in sr[0].split("-")]]*int(sr[1].split("%")[0])
     elif rule == "shuddup":
-        shuddup = True
+        shuddup = 2
     elif rule == "collisionisreal":
         collisionisreal = True
     elif rule == "editisreal":
@@ -951,7 +948,7 @@ if Mail:
     if len(Mail) < 3:
         Mail += [getpass.getpass(prompt=f" {Mail[0]}'s password (automatic if saved as third address): ")]
         echo("", 1)
-    personal = True
+    if not shuddup == 2: shuddup = False
 else:
     print(" MAIL: NONE")
 if Geistauge:
@@ -986,11 +983,12 @@ print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 
 
 
-if personal and not shuddup:
-    print(f"\n{tcolorr} TO YOURSELF: {rulefile} contains personal information like mail, password, cookies. Edit {rulefile} before sharing!{tcolorx}")
+if not shuddup:
+    choice(bg="4c")
+    buffer = f"\n{tcolorr} TO YOURSELF: {rulefile} contains personal information like mail, password, cookies. Edit {rulefile} before sharing!"
     if HTMLserver:
-        print(f"{tcoloro} HTML SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookies{tcolorx}")
-    print(f""" Add "shuddup" to {rulefile} to dismiss this message.""")
+        buffer += f"\n{tcoloro}{skull()} HTML SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookies"
+    echo(f"""{buffer}\n{tcoloro} Add "shuddup" to {rulefile} to dismiss this message.{tcolorx}""", 0, 1)
 
 
 
@@ -1025,7 +1023,7 @@ def timer(e="", all=True):
 
 def retry(stderr):
     # Warning: urllib has slight memory leak
-    Keypress_flush[0] = False
+    Keypress_R[0] = False
     while True:
         if not Keypress_prompt[0]:
             Keypress_prompt[0] = True
@@ -1036,17 +1034,17 @@ def retry(stderr):
                         timer(e)
                     else:
                         echo(e)
-                    Keypress_flush[0] = True
+                    Keypress_R[0] = True
                 else:
                     title(status() + batchname)
-                    print(f"{stderr} (R)etry? (A)lways (N)ext defuse antibot with (F)irefox")
+                    print(f"{stderr} (R)etry? (A)lways (S)kip defuse antibot with (F)irefox")
                     while True:
-                        if Keypress_flush[0] or Keypress_A[0]:
+                        if Keypress_R[0] or Keypress_A[0]:
                             Keypress_prompt[0] = False
                             break
-                        if Keypress_N[0]:
+                        if Keypress_S[0]:
+                            Keypress_S[0] = False
                             Keypress_prompt[0] = False
-                            Keypress_N[0] = False
                             return
                         if Keypress_F[0]:
                             Keypress_F[0] = False
@@ -1059,7 +1057,7 @@ def retry(stderr):
             retries[0] += 1
             Keypress_prompt[0] = False
             return True
-        elif Keypress_flush[0]:
+        elif Keypress_R[0]:
             return True
         time.sleep(0.5)
 
@@ -1948,7 +1946,7 @@ def pick_in_page(scraper):
     while True:
         data = ""
         url = ""
-        threadn, pick, start, page, more_pages, fromhtml = scraper.get()
+        threadn, pick, start, page, more_pages, alerted_pages, fromhtml = scraper.get()
         htmlpart = fromhtml["partition"][threadn]
         folder = fromhtml["folder"]
         pg[0] += 1
@@ -1977,14 +1975,20 @@ def pick_in_page(scraper):
             page = redir
         db = ""
         if pick["dict"]:
-            if not data and (x := get_data(threadn, page, url, pick)):
-                data, part = x
+            if not data:
+                if x := get_data(threadn, page, url, pick):
+                    data, part = x
+            else:
+                break
             for y in pick["dict"]:
                 if len(c := carrots(part, y)) == 2:
                     data = c[0][1]
         if pick["expect"]:
-            if not data and (x := get_data(threadn, page, url, pick)):
-                data, part = x
+            if not data:
+                if x := get_data(threadn, page, url, pick):
+                    data, part = x
+                else:
+                    break
             pos = 0
             for y in pick["expect"]:
                 for z, cw, a in y[1:]:
@@ -2000,17 +2004,24 @@ def pick_in_page(scraper):
                         if not pick["dismiss"] and Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)
                         alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "As expected", pick["dismiss"])
+                        alerted_pages += [[start, page]]
+                        alerted[0] = True
                     elif not y[0]["alt"] and not result:
                         if not pick["dismiss"] and Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)
                         alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "Not any longer", pick["dismiss"])
+                        alerted_pages += [[start, page]]
+                        alerted[0] = True
                     else:
                         more_pages += [[start, page]]
                         timer("Not quite as expected! ", False)
         if not folder:
             if pick["folder"]:
-                if not data and (x := get_data(threadn, page, url, pick)):
-                    data, part = x
+                if not data:
+                    if x := get_data(threadn, page, url, pick):
+                        data, part = x
+                    else:
+                        break
                 for y in pick["folder"]:
                     name_err = True
                     for z, cw, a in y[1:]:
@@ -2040,8 +2051,11 @@ def pick_in_page(scraper):
             if x := pick["savelink"]:
                 fromhtml["page"] = {"link":page, "name":saint(x), "edited":0}
         if pick["pages"]:
-            if not data and (x := get_data(threadn, page, url, pick)):
-                data, part = x
+            if not data:
+                if x := get_data(threadn, page, url, pick):
+                    data, part = x
+                else:
+                    break
             for y in pick["pages"]:
                 for z, cw, a in y[1:]:
                     if a:
@@ -2078,8 +2092,11 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                 elif y[1][1]:
                     p, _, a = peanut(y[1][1], [], False)
                     if a:
-                        if not data and (x := get_data(threadn, page, url, pick)):
-                            data, part = x
+                        if not data:
+                            if x := get_data(threadn, page, url, pick):
+                                data, part = x
+                            else:
+                                break
                         if not db:
                             db = opendb(data)
                         x = tree(db, [p[0], [[p[1], 0, 0, 0, 0]]])[-1][0]
@@ -2089,8 +2106,11 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
             more_pages += [[start, new]]
         filelist_html = []
         if pick["html"]:
-            if not data and (x := get_data(threadn, page, url, pick)):
-                data, part = x
+            if not data:
+                if x := get_data(threadn, page, url, pick):
+                    data, part = x
+                else:
+                    break
             fromhtml["makehtml"] = True
             k_html = []
             if pick["key"] and pick["key"][0]:
@@ -2202,8 +2222,11 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                     htmlpart.update(new_p(z))
                 htmlpart[z]["keywords"] += [rp(y, pick["replace"]) for y in keywords[z]]
         if pick["icon"]:
-            if not data and (x := get_data(threadn, page, url, pick)):
-                data, part = x
+            if not data:
+                if x := get_data(threadn, page, url, pick):
+                    data, part = x
+                else:
+                    break
             pos = 0
             for y in pick["icon"]:
                 if len(fromhtml["icons"]) < pos + 1:
@@ -2227,8 +2250,11 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                                 fromhtml["icons"] += [{"link":url, "name":f"""icon{" " + str(pos) if pos else ""}{ext}""", "edited":0}]
                 pos += 1
         if pick["file"] or pick["file_after"]:
-            if not data and (x := get_data(threadn, page, url, pick)):
-                data, part = x
+            if not data:
+                if x := get_data(threadn, page, url, pick):
+                    data, part = x
+                else:
+                    break
             pos = 0
             filelist = []
             if pick["file"]:
@@ -2280,6 +2306,7 @@ def scrape(startpages):
     threadn = 0
     pages = [["", x] for x in startpages]
     visited = set()
+    alerted_pages = []
     while True:
         more_pages = []
         for start, page in pages:
@@ -2298,7 +2325,7 @@ def scrape(startpages):
             else:
                 fromhtml = shelf[start]
                 fromhtml["partition"].update({threadn:new_p("0")})
-            scraper.put((threadn, pick, start, page, more_pages, fromhtml))
+            scraper.put((threadn, pick, start, page, more_pages, alerted_pages, fromhtml))
         try:
             scraper.join()
         except KeyboardInterrupt:
@@ -2309,9 +2336,17 @@ def scrape(startpages):
             if page in visited and not visited.add(page):
                 print(f"{tcolorr}Already visited {page} loophole warning{tcolorx}")
                 # more_pages.remove(page)
-        if not more_pages:
+        if not more_pages and not alerted_pages:
             break
         pages = more_pages
+        if alerted[0]:
+            if not more_pages:
+                time.sleep(1)
+            if Keypress_C[0]:
+                Keypress_C[0] = False
+                pages += alerted_pages
+                alerted_pages = []
+            choice(bg="2e")
     title(status() + batchfile)
 
     for p in shelf.keys():
@@ -2347,13 +2382,16 @@ def scrape(startpages):
                                     stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
                             stdout += "\n"
                     echo(stdout + tcolorx)
-                echo(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue """, 0, 1)
+                echo(f""" ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or (B)ack to main menu: """, 0, 1)
+                Keypress_B[0] = False
                 Keypress_C[0] = False
-                while not Keypress_C[0]:
+                while not Keypress_B[0] and not Keypress_C[0]:
                     time.sleep(0.1)
                 Keypress_C[0] = False
+                if Keypress_B[0]:
+                    Keypress_B[0] = False
+                    return
             downloadtodisk(shelf[p], makedirs=True)
-    return True
 
 
 
@@ -2554,7 +2592,20 @@ var Expander = function(e) {
   }
 };
 
+var Hover = function(e) {
+  var t = e.target;
+  if (t.hasAttribute("data-tooltip")) {
+    tooltip.style.display = "inline-block";
+    tooltip.style.left = e.pageX + "px";
+    tooltip.style.top = e.pageY + "px";
+    tooltip.innerHTML = t.getAttribute("data-tooltip");
+  } else {
+    tooltip.style.display = "none";
+  }
+}
+
 document.addEventListener("click", Expander);
+document.addEventListener("mousemove", Hover);
 
 Filters = {};
 Filters.tmpCtx = document.createElement('canvas').getContext('2d');
@@ -2608,6 +2659,7 @@ function quicklook(e) {
     e.preventDefault();
     var t = e.target;
     var c = {};
+    var isTainted = false;
     if(geistauge) {
       var s = new Image();
       s.src = t.parentNode.getAttribute("href");
@@ -2620,8 +2672,11 @@ function quicklook(e) {
       context = c.getContext("2d")
 
       if (geistauge == "edge") {
+        isTainted = true;
         s.onload = function () {
           edgediff(s, s.width, s.height, context);
+          isTainted = false;
+          t.removeAttribute("data-tooltip");
         }
       } else {
         var m = new Image();
@@ -2629,6 +2684,7 @@ function quicklook(e) {
         if(m.src == s.src) {
           context.fillRect(0, 0, s.width, s.height);
         } else {
+          isTainted = true;
           s.onload = function () {
             var cgl = document.createElement("canvas");
             gl = cgl.getContext("webgl2")
@@ -2639,9 +2695,17 @@ function quicklook(e) {
             } else {
               m.onload = difference(s, s.width, s.height, m, context, gl);
             }
+          isTainted = false;
+          t.removeAttribute("data-tooltip");
           }
         }
       }
+      setTimeout(function(){
+        if (isTainted) {
+          t.setAttribute("data-tooltip", `"Edge detect" and "Geistauge" are canvas features and they require Cross-Origin Resource Sharing (CORS)<br>(Google it but tl;dr: Try HTML server)`)
+          Hover(e)
+        }
+      }, 1)
       t.parentNode.appendChild(c);
     } else {
       c = document.createElement("img");
@@ -2653,6 +2717,7 @@ function quicklook(e) {
     let listener = () => {
       setTimeout(function(){t.parentNode.removeChild(c);}, 40);
       t.removeEventListener("mouseleave", listener);
+      t.removeAttribute("data-tooltip");
     }
     t.addEventListener("mouseleave", listener);
   }
@@ -2820,6 +2885,9 @@ function swap(e) {
       tc.style = cs;
     }
     let d = document.getElementById("fi");
+    if (d.classList.contains("next")) {
+      d.setAttribute("data-html-original", d.innerHTML);
+    }
     d.classList = "previous";
     d.innerHTML = "Preview [ ]"
     document.addEventListener("mouseover", quicklook);
@@ -3004,6 +3072,7 @@ window.onload = () => {
   for(var i=0; i<links.length; i++) {
     links[i].target = "_blank";
   }
+  var tooltip = document.getElementById("tooltip");
 }
 
 function lazyload() {
@@ -3064,7 +3133,7 @@ h2{margin:4px;}
 .postMessage{white-space:pre-wrap;}
 </style>
 <body>
-<div style="display:block; height:20px;"></div><div class="container" style="display:none;">
+<div id="tooltip" class="closebtn" style="padding:0px 8px; font-family:sans-serif; z-index:9999999; left:0px; top:0px; right:initial; pointer-events:none;"></div><div style="display:block; height:20px;"></div><div class="container" style="display:none;">
 <button class="closebtn" onclick="this.parentElement.style.display='none'">&times;</button>""" + f"""<div class="mySlides">{listurls}</div>
 <img id="expandedImg">
 </div>
@@ -3078,8 +3147,8 @@ h2{margin:4px;}
 <button class="next" onclick="resizeCell('calc(50% - 33px)')">. .</button>
 <button class="next" onclick="resizeCell('calc(33.33% - 34px)')">...</button>
 <button class="next" onclick="resizeCell('calc(25% - 35px)')">....</button>
-<button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')">Preview</button>
-<button id="ge" class="next" onclick="previewg(this, 'vs left', 'vs left <', 'vs left >', 'Find Edge')">Original</button>
+<button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')" data-tooltip="Shift - fit image to screen">Preview</button>
+<button id="ge" class="next" onclick="previewg(this, 'vs left', 'vs left <', 'vs left >', 'Find Edge')" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
 <button class="next" onclick="hideSources()">Sources</button>
 <input class="next" type="text" oninput="hideParts('h2', this.value, false);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Search title">
 <input class="next" type="text" oninput="hideParts('h2', this.value);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Ignore title">
@@ -3282,7 +3351,7 @@ def label(m, s, html=False):
 
 
 
-def tohtml_g(delete=False):
+def tohtml_geistauge(delete=False):
     start = time.time()
     print(f"\n Now compiling duplicates to {batchname} HTML . . . kill this CLI to cancel.\n")
     builder = ""
@@ -3486,7 +3555,8 @@ def delmode(m):
                         os.remove(dfile)
                     except:
                         continue
-                skull()
+                echo(skull(), 0, 1)
+                choice(bg="4c")
                 delfile = []
                 return
         elif os.path.exists(file):
@@ -3760,41 +3830,27 @@ busy[0] = False
 
 
 
+def unrecognized(k):
+    echo("", 1)
+    echo(f"Keypress {k} unrecognized", 0, 1)
+    if not busy[0]:
+        ready_input()
+
+def pressed(k, s=True):
+    echo("", 1)
+    k[0] = s
+    if not busy[0]:
+        ready_input()
+
 def keylistener():
     while True:
         el = choice("abcdefghijklmnopqrstuvwxyz0123456789")
         if el == 1:
-            echo("", 1)
-            Keypress_A[0] = True
-            if not busy[0]:
-                ready_input()
+            pressed(Keypress_A)
         elif el == 2:
-            if not Browser:
-                choice(bg=True)
-                print(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""")
-            elif HTMLserver:
-                os.system(f"""start "" "{Browser}" "http://localhost:8886/{batchname} 1.html" """)
-            else:
-                os.system(f"""start "" "{Browser}" "{batchdir}{batchname} 1.html" """)
-            print("""
- Browser key listener (Not here!):
-  > W - Edge detect
-  > A - Geistauge: compare to left
-  > S - Geistauge: bright both
-  > D - Geistauge: compare to right (this)
-  > Shift - Fit image to screen
- Enable preview from toolbar then mouse-over an image while holding a key to see effects.
-
- "Edge detect" and "Geistauge" are canvas features and they require Cross-Origin Resource Sharing (CORS)
- (Google it but tl;dr: Try HTML server)
-""")
-            if not busy[0]:
-                ready_input()
+            pressed(Keypress_B)
         elif el == 3:
-            echo("", 1)
-            Keypress_C[0] = True
-            if not busy[0]:
-                ready_input()
+            pressed(Keypress_C)
         elif el == 4:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -3805,19 +3861,14 @@ def keylistener():
             else:
                 choice(bg="4c")
                 if input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "").replace("\\", "/") == f"{batchdir}{sav}":
-                    skull()
-                    tohtml_g(delete=True)
+                    echo(skull(), 0, 1)
+                    choice(bg="4c")
+                    tohtml_geistauge(True)
             ready_input()
         elif el == 5:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress E unrecognized", 0, 1)
-            ready_input()
+            unrecognized("E")
         elif el == 6:
-            Keypress_F[0] = True
-            if not busy[0]:
-                ready_input()
+            pressed(Keypress_F)
         elif el == 7:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -3826,40 +3877,20 @@ def keylistener():
                 choice(bg=True)
                 print(" GEISTAUGE: Maybe not.")
             else:
-                tohtml_g()
+                tohtml_geistauge()
             ready_input()
         elif el == 8:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            el = input("Open (H)elp unless you mean (I)nput mode for (HTTP...): ", ["h", "v", "i"])
-            if not el:
-                kill(0)
-            elif el == 1:
-                help()
-                ready_input()
-            elif el == 2:
-                source_view()
-            elif el == 3:
-                if not read_input(input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "")):
-                    echo("", 1, 0)
-                    echo("", 1, 0)
-                    echo("", 1, 0)
-                    ready_input()
+            unrecognized("H")
         elif el == 9:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             if not read_input(input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "")):
-                echo("", 1, 0)
-                echo("", 1, 0)
+                echo("", 1)
+                echo("", 1)
                 ready_input()
         elif el == 10:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress J unrecognized", 0, 1)
-            ready_input()
+            unrecognized("J")
         elif el == 11:
             c = False
             for c in cookies:
@@ -3877,13 +3908,14 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            echo("Keypress M unrecognized", 0, 1)
+            if not Geistauge:
+                choice(bg=True)
+                print(" GEISTAUGE: Maybe not.")
+            else:
+                updsav()
             ready_input()
         elif el == 14:
-            echo("", 1)
-            Keypress_N[0] = True
-            if not busy[0]:
-                ready_input()
+            unrecognized("N")
         elif el == 15:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -3894,23 +3926,14 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            echo("Keypress P unrecognized", 0, 1)
+            help()
             ready_input()
         elif el == 17:
-            echo("", 1)
-            Keypress_A[0] = False
-            if not busy[0]:
-                ready_input()
+            pressed(Keypress_A, False)
         elif el == 18:
-            echo("", 1)
-            Keypress_flush[0] = True
-            if not busy[0]:
-                ready_input()
+            pressed(Keypress_R)
         elif el == 19:
-            echo("", 1)
-            Keypress_S[0] = True
-            if not busy[0]:
-                ready_input()
+            pressed(Keypress_S)
         elif el == 20:
             if ticks:
                 echo(f"""COOLDOWN {"DISABLED" if cooldown[0] else "ENABLED"}""", 1, 1)
@@ -3920,19 +3943,11 @@ def keylistener():
             if not busy[0]:
                 ready_input()
         elif el == 21:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress U unrecognized", 0, 1)
-            ready_input()
+            unrecognized("U")
         elif el == 22:
             source_view()
         elif el == 23:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress W unrecognized", 0, 1)
-            ready_input()
+            unrecognized("W")
         elif el == 24:
             echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if Keypress_X[0] else "RETRY"}""", 1, 1)
             Keypress_X[0] = False if Keypress_X[0] else True
@@ -3940,28 +3955,16 @@ def keylistener():
             if not busy[0]:
                 ready_input()
         elif el == 25:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo("Keypress Y unrecognized", 0, 1)
-            ready_input()
+            unrecognized("Y")
         elif el == 26:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            if not Geistauge:
-                choice(bg=True)
-                print(" GEISTAUGE: Maybe not.")
-            else:
-                updsav()
-            ready_input()
+            pressed(Keypress_CtrlC)
         elif 0 <= (n := min(el-27, 8)) < 9:
             echo(f"""MAX PARALLEL DOWNLOAD SLOT: {n} {"(pause)" if not n else ""}""", 1, 1)
             dlslot[0] = n
             if not busy[0]:
                 ready_input()
         else:
-            Keypress_CtrlC[0] = True
+            pressed(Keypress_CtrlC)
 t = Thread(target=keylistener)
 t.daemon = True
 t.start()
@@ -3972,7 +3975,7 @@ print("""
   > Press T to enable or disable cooldown during errors (reduce server strain).
   > Press K to view cookies.
   > Press 1 to 8 to set max parallel download of 8 available slots, 0 to pause.
-  > Press Ctrl + C to break and reconnect of the ongoing downloads or to end timer instantly.""")
+  > Press Ctrl + C or Z to break and reconnect of the ongoing downloads or to end timer instantly.""")
 
 
 
@@ -4003,8 +4006,8 @@ while True:
     try:
         time.sleep(0.1)
     except KeyboardInterrupt:
-        echo("Ctrl + C")
-        skull()
+        echo(f"Ctrl + C{skull()}", 0, 1)
+        choice(bg="4c")
         ready_input()
 
 

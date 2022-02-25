@@ -97,7 +97,7 @@ else:
     tcolorx = ansi_color("005A80", "6")
     os.system("")
 if sys.platform == "linux":
-    dlslot[1] = 1
+    dlslot[0] = 1
     os.system("cat /dev/location > /dev/null &")
 title(batchfile)
 sys.stdout.write("Non-ANSI-compliant Command Prompt/Terminal (expect lot of visual glitches): Upgrade to Windows 10 if you're on Windows.")
@@ -1072,7 +1072,7 @@ def ren(filename, append):
 
 
 
-def get_cd(file, rejlist, makedirs=False, preview=False, subdir=""):
+def get_cd(file, rejlist, log, makedirs=False, preview=False, subdir=""):
     link = file["link"] if preview else file.pop("link")
     todisk = file["name"].replace("\\", "/")
     if rule := [v for k, v in customdir.items() if k in link]:
@@ -1087,7 +1087,6 @@ def get_cd(file, rejlist, makedirs=False, preview=False, subdir=""):
         prepend, append = rule[0]
         todisk = f"{folder}{prepend}{name}{append}{ext}".replace("\\", "/") # "\\" in file["name"] can work like folder after prepend
         dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
-        tdir = "\\" + dir.replace("/", "\\")
         if isrej(todisk, rejlist):
             link = ""
         elif not preview and not os.path.exists(dir):
@@ -1095,14 +1094,15 @@ def get_cd(file, rejlist, makedirs=False, preview=False, subdir=""):
                 try:
                     os.makedirs(dir)
                 except:
-                    kill(f"Can't make folder {tdir} because there's a file using that name, I must exit!")
+                    buffer = "\\" + dir.replace("/", "\\")
+                    kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
             else:
+                log.append(f"&gt; Error downloading (dir): {link}")
                 print(f" Error downloading (dir): {link}")
                 error[0] += [todisk]
                 link = ""
     elif not preview:
         dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
-        tdir = "\\" + dir.replace("/", "\\")
         if isrej(todisk, rejlist):
             link = ""
     if not preview:
@@ -1110,58 +1110,56 @@ def get_cd(file, rejlist, makedirs=False, preview=False, subdir=""):
             try:
                 os.makedirs(dir)
             except:
-                kill(f"Can't make folder {tdir} because there's a file using that name, I must exit!")
+                buffer = "\\" + dir.replace("/", "\\")
+                kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
         file.update({"name":todisk, "edited":file["edited"]})
     return [link, todisk, file["edited"]]
 
 
 
 def downloadtodisk(fromhtml, paysite=False, makedirs=False):
+    error[0] = []
     rejlist = fromhtml["m"]
     filelist = []
     filelisthtml = []
     fromhtml_pm = fromhtml["paysite" if paysite else "mirror"]
     htmlpart = fromhtml_pm["partition"]
     htmlname = fromhtml["htmlname"]
+    html = []
+    log = []
     for key in htmlpart.keys():
         for file in htmlpart[key]["files"]:
             if not file["name"]:
                 print(f""" I don't have a scraper for {file["link"]}""")
             else:
-                if (x := get_cd(file, rejlist, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
+                if (x := get_cd(file, rejlist, log, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
                     filelist += [x]
         for array in htmlpart[key]["html"]:
             if len(array) == 2 and array[1]:
                 if not array[1]["name"]:
                     print(f""" I don't have a scraper for {array[1]["link"]}""")
                 else:
-                    if (x := get_cd(array[1], rejlist, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
+                    if (x := get_cd(array[1], rejlist, log, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
                         filelisthtml += [x]
     if fromhtml["inlinefirst"]:
         filelist = filelisthtml + filelist
     else:
         filelist += filelisthtml
     if error[0]:
-        print(f"""\n There is at least one of the bad custom dir rules (non-existent dir).""")
-        done = []
-        for x in error[0]:
-            d = os.path.split(x)[0] + "\\"
-            if d in done:
-                continue
-            else:
-                done += [d]
-            print(f"  {d}")
-        print("\n Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs.")
+        buffer = "\n There is at least one of the bad custom dir rules (non-existent dir).\n"
+        echoed = []
+        for e in error[0]:
+            if not (e := os.path.split(e)[0].replace("/", "\\") + "\\") in echoed:
+                echoed += [e]
+                buffer += f"  {e}\n"
+        echo(f"{buffer} Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs.", 0, 2)
 
     if not filelist:
         if fromhtml_pm["makehtml"]:
             tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml_pm, [], rejlist)
         else:
             print("Filelist is empty!")
-        error[0] = []
         return
-    html = []
-    log = []
     if len(filelist) == 1:
         echothreadn.append(0)
         download.put((0, [], [], filelist[0][1], [filelist[0][0]]))
@@ -1201,7 +1199,7 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
         if not new_ender:
             new_ender = os.path.splitext(filename)[0] + ".ender"
         if line := [x for x in enderread if part_id in x]:
-            if not onserver or isrej(filename, rejlist):
+            if not onserver:
                 continue
             if int(edited) > 0 and int(edited) > int(line[0].rsplit(" ", 1)[-1]):
                 if os.path.exists(ondisk):
@@ -1228,7 +1226,7 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
 
 
 
-        if not onserver or isrej(filename, rejlist):
+        if not onserver:
             continue
         if conflict := [k for k in queued.keys() if ondisk.lower() == k.lower()]:
             ondisk = conflict[0]
@@ -1282,7 +1280,6 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
                 patrol.put((patrolthreadn, folder, rejlist, total, file, log))
             patrol.join()
             print(" PATROL MEDIOCRE: 100%")
-    error[0] = []
 
     html.sort()
     htmldata[0] += [('\n'.join(html) + "\n<br>" if html else "") + '\n<br>'.join(log)]

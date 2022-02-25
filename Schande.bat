@@ -97,7 +97,7 @@ else:
     tcolorx = ansi_color("005A80", "6")
     os.system("")
 if sys.platform == "linux":
-    dlslot[1] = 1
+    dlslot[0] = 1
     os.system("cat /dev/location > /dev/null &")
 title(batchfile)
 sys.stdout.write("Non-ANSI-compliant Command Prompt/Terminal (expect lot of visual glitches): Upgrade to Windows 10 if you're on Windows.")

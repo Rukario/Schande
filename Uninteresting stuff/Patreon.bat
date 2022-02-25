@@ -45,7 +45,7 @@ specialfile = ["magnificent.txt", "mediocre.txt", ".ender"]
 alerted = [False]
 busy = [False]
 cooldown = [False]
-dlslot = [1]
+dlslot = [8]
 echothreadn = []
 error = [[]]
 htmlname = batchfile
@@ -97,6 +97,7 @@ else:
     tcolorx = ansi_color("005A80", "6")
     os.system("")
 if sys.platform == "linux":
+    dlslot[1] = 1
     os.system("cat /dev/location > /dev/null &")
 title(batchfile)
 sys.stdout.write("Non-ANSI-compliant Command Prompt/Terminal (expect lot of visual glitches): Upgrade to Windows 10 if you're on Windows.")
@@ -290,7 +291,7 @@ https://www.fanbox.cc for https://api.fanbox.cc
 * for https://c10.patreonusercontent.com
 * for https://kemono.party/
 * for https://data.kemono.party/
-Uninteresting stuff/* for https://
+Update me/* for https://
 
 # Whitelist - File types to download (blank or comment out all to download any).
 .gif
@@ -1266,17 +1267,17 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
         if os.path.exists(f"{batchname}/{htmlname}.html"):
             os.remove(f"{batchname}/{htmlname}.html")
     if not (x := os.path.exists(f"{batchname}/{htmlname}.html")) or Patrol:
-        orphfiles = []
+        orphan_files = []
         for file in next(os.walk(f"{batchname}/{htmlname}/"))[2]:
             if not file.endswith(tuple(specialfile)):
-                orphfiles += [file]
+                orphan_files += [file]
         if not x:
-            tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml_pm, set(orphfiles).difference(x[1].rsplit("/", 1)[-1] for x in filelist), rejlist)
+            tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml_pm, set(orphan_files).difference(x[1].rsplit("/", 1)[-1] for x in filelist), rejlist)
         if Patrol:
             print()
-            total = len(orphfiles)
+            total = len(orphan_files)
             patrolthreadn = 0
-            for file in orphfiles:
+            for file in orphan_files:
                 patrolthreadn += 1
                 patrol.put((patrolthreadn, folder, rejlist, total, file, log))
             patrol.join()
@@ -1990,7 +1991,7 @@ def hyperlink(html):
 
 
 
-def tohtml(subdir, htmlname, fromhtml, orphfiles, rejlist):
+def tohtml(subdir, htmlname, fromhtml, orphan_files, rejlist):
     builder = ""
     listurls = ""
     htmlpart = fromhtml["partition"]
@@ -2055,16 +2056,16 @@ def tohtml(subdir, htmlname, fromhtml, orphfiles, rejlist):
 
 
 
-    for file in orphfiles:
+    for file in orphan_files:
         if file.endswith(tuple(specialfile)) or file.startswith("icon"):
             continue
         key = file.split(".", 1)[0]
         if not key in part.keys():
             key = "0"
-        if "orphfiles" in part[key]:
-            part[key]["orphfiles"] += [file]
+        if "orphan_files" in part[key]:
+            part[key]["orphan_files"] += [file]
         else:
-            part[key]["orphfiles"] = [file]
+            part[key]["orphan_files"] = [file]
     if buildthumbnail:
         echo("Building thumbnails . . .")
 
@@ -2073,8 +2074,8 @@ def tohtml(subdir, htmlname, fromhtml, orphfiles, rejlist):
     for key in part.keys():
         keywords = part[key]["keywords"]
         if key == "0":
-            if "orphfiles" in part[key]:
-                title = "Unsorted"
+            if "orphan_files" in part[key]:
+                title = "<h2>Unsorted</h2>"
                 content = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really orphans.\n"
             else:
                 continue
@@ -2094,9 +2095,9 @@ def tohtml(subdir, htmlname, fromhtml, orphfiles, rejlist):
             for file in part[key]["files"]:
                 builder += container(subdir + file, rejlist, 1)
             builder += "</div>\n"
-        if "orphfiles" in part[key]:
+        if "orphan_files" in part[key]:
             builder += "<div class=\"edits\">\n"
-            for file in part[key]["orphfiles"]:
+            for file in part[key]["orphan_files"]:
                 # os.rename(subdir + file, subdir + "Orphaned files/" + file)
                 builder += container(subdir + file, rejlist, 1)
             builder += "<br><br>orphaned file(s)\n</div>\n"
@@ -2721,8 +2722,6 @@ def readfile():
  | 1092867.b@commission
  | # Appended names are for you to identify, they can be renamed (please also make your changes symmetrical to existing folders).
  + # Artists from different paysites in rule file can be grouped by paysite name headings ("Fanbox", "Fantia", "Patreon"). Without them, {batchfile} will assume everyone is from Patreon.""")
-
-
     else:
         if not newfilen[0]:
             print(f"""\n Today download result HTML "{htmlfile}" {"updated with scan result" if Patrol else "will not be made at this time"}. There are 0 new pictures.""")
@@ -2836,7 +2835,7 @@ print("""
   > Press S to skip next error once during downloading files.
   > Press T to enable or disable cooldown during errors (reduce server strain).
   > Press K to view cookies.
-  > Press 1 to 8 to set max parallel download of 8 available slots, 0 to pause (for this session).
+  > Press 1 to 8 to set max parallel download of 8 available slots, 0 to pause.
   > Press Z or CtrlC to break and reconnect of the ongoing downloads or to end timer instantly.""")
 
 

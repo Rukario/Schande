@@ -72,13 +72,15 @@ Kemonoparty = False
 
 
 def ansi(c):
+    if len(c) == 3:
+        c = "".join(x*2 for x in c)
     return ";".join(str(int(x, 16)) for x in [c[0:2], c[2:4], c[4:6]])
 
 def ansi_color(b=False, f="3"):
     if not b:
         return "\033[0m"
-    b = "48;2;" + ansi(b) if len(b) == 6 else f"4{b}"
-    f = "38;2;" + ansi(f) if len(f) == 6 else f"9{f}"
+    b = f"4{b}" if len(b) == 1 else "48;2;" + ansi(b)
+    f = f"9{f}" if len(f) == 1 else "38;2;" + ansi(f)
     return f"\033[{b};{f}m"
 
 
@@ -103,6 +105,7 @@ title(batchfile)
 sys.stdout.write("Non-ANSI-compliant Command Prompt/Terminal (expect lot of visual glitches): Upgrade to Windows 10 if you're on Windows.")
 
 
+
 def mainmenu():
     print("""
  Delete the ender file if:
@@ -113,19 +116,18 @@ def ready_input():
     sys.stdout.write(f"Ready to (L)oad your favorite artists from {textfile}: ")
     sys.stdout.flush()
 def skull():
-    print("""
-              ______
-           .-"      "-.
-          /            \\
-         |'  .-.  .-.  '|
-    /\   | )(__/  \__)( |
-  _ \/   |/     /\     \|
- \_\/    (_ \   ^^   / _)   .-==/~\\
----,---,---|-|HHHHHH|-|---,\'-' {{~}
-           \          /     '-==\}/
-            '--------'
-""")
-    choice(bg="4c")
+    return """                                    
+              ______                
+           .-"      "-.             
+          /            \\            
+         |'  .-.  .-.  '|           
+    /\   | )(__/  \__)( |           
+  _ \/   |/     /\     \|           
+ \_\/    (_ \   ^^   / _)   .-==/~\\ 
+---,---,---|-|HHHHHH|-|---,\'-' {{~} 
+           \          /     '-==\}/ 
+            '--------'              
+                                    """
 
 
 
@@ -635,7 +637,7 @@ Patrol = y(rules[2], True)
 proxy = y(rules[4])
 if HTMLserver:
     port = 8885
-    directories = [batchname]
+    directories = [os.getcwd()]
     for directory in directories:
         port += 1
         t = Thread(target=startserver, args=(port,directory,))
@@ -2632,12 +2634,15 @@ def readfile():
         if not line.replace(id, ""):
             print(f"\nPlease append name (any name) to {id} e.g. {id}.name or {id}name in {rulefile} then try again.\nThe name must not start with number!")
             return
-        line = line.replace("\\", "/").rsplit("/", 1)[-1]
-        NEXTHTML += [[line, id, HOME]]
-    HTMLLIST += [NEXTHTML]
+        htmlname = line.replace("\\", "/").rsplit("/", 1)[-1]
+        NEXTHTML += [[htmlname, id, HOME]]
+    return HTMLLIST + [NEXTHTML]
 
 
 
+def scrape():
+    if not (HTMLLIST := readfile()):
+        return
     resume = False
     htmldata[0] = []
     for NEXTHTML in HTMLLIST:
@@ -2842,7 +2847,7 @@ ready_input()
 while True:
     if run_input[2]:
         busy[0] = True
-        readfile()
+        scrape()
         run_input[2] = False
         busy[0] = False
         print()
@@ -2850,7 +2855,8 @@ while True:
     try:
         time.sleep(0.1)
     except KeyboardInterrupt:
-        skull()
+        echo(skull(), 0, 1)
+        choice(bg="4c")
 
 
 

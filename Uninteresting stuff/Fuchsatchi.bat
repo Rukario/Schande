@@ -557,6 +557,7 @@ mozilla = {}
 exempt = []
 dir = ""
 ticks = []
+ready = True
 inline_m = [[], []]
 for rule in rules:
     if not rule or rule.startswith("#"):
@@ -594,6 +595,8 @@ for rule in rules:
         editisreal = True
     elif rule == "buildthumbnail":
         buildthumbnail = True
+    elif rule == "headonly":
+        ready = False
     elif rule == "shuddup":
         shuddup = 2
     elif rule == "favoriteispledged":
@@ -1147,7 +1150,6 @@ def get_cd(file, rejlist, log, makedirs=False, preview=False, subdir=""):
 
 def downloadtodisk(fromhtml, paysite=False, makedirs=False):
     error[0] = []
-    rejlist = fromhtml["m"]
     filelist = []
     filelisthtml = []
     fromhtml_pm = fromhtml["paysite" if paysite else "mirror"]
@@ -1160,14 +1162,14 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
             if not file["name"]:
                 print(f""" I don't have a scraper for {file["link"]}""")
             else:
-                if (x := get_cd(file, rejlist, log, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
+                if (x := get_cd(file, fromhtml["m"], log, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
                     filelist += [x]
         for array in htmlpart[key]["html"]:
             if len(array) == 2 and array[1]:
                 if not array[1]["name"]:
                     print(f""" I don't have a scraper for {array[1]["link"]}""")
                 else:
-                    if (x := get_cd(array[1], rejlist, log, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
+                    if (x := get_cd(array[1], fromhtml["m"], log, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
                         filelisthtml += [x]
     if fromhtml["inlinefirst"]:
         filelist = filelisthtml + filelist
@@ -1184,7 +1186,7 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
 
     if not filelist:
         if fromhtml_pm["makehtml"]:
-            tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml_pm, [], rejlist)
+            tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml_pm, [], fromhtml["m"])
         else:
             print("Filelist is empty!")
         return
@@ -1298,14 +1300,14 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
             if not file.endswith(tuple(specialfile)):
                 orphan_files += [file]
         if not x:
-            tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml_pm, set(orphan_files).difference(x[1].rsplit("/", 1)[-1] for x in filelist), rejlist)
+            tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml_pm, set(orphan_files).difference(x[1].rsplit("/", 1)[-1] for x in filelist), fromhtml["m"])
         if Patrol:
             print()
             total = len(orphan_files)
             patrolthreadn = 0
             for file in orphan_files:
                 patrolthreadn += 1
-                patrol.put((patrolthreadn, folder, rejlist, total, file, log))
+                patrol.put((patrolthreadn, folder, fromhtml["m"], total, file, log))
             patrol.join()
             print(" PATROL MEDIOCRE: 100%")
 
@@ -2561,7 +2563,7 @@ def kp_patreon_assets(threadn, htmlname, id):
                         html += [[next_obj[0], {"link":"https://kemono.party" + url, "name":saint(name), "edited":edited}]]
                     else:
                         break
-                html += [[next_obj[0] + embed]]
+                html += [[next_obj[0] + embed, ""]]
             fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
         page += 1
     return fromhtml
@@ -2606,7 +2608,7 @@ def patreon_assets(threadn, htmlname, id):
                         html += [[next_obj[0], {"link":url, "name":name, "edited":edited[key]}]]
                     else:
                         break
-                html += [[next_obj[0] + embed]]
+                html += [[next_obj[0] + embed, ""]]
             fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
         for attachment in api["included"]:
             if attachment["type"] == "attachment":
@@ -2625,7 +2627,7 @@ def patreon_assets(threadn, htmlname, id):
 
 def get_assets(artworks):
     while True:
-        threadn, master, id, htmlname, HOME = artworks.get()
+        threadn, shelf, id, htmlname, HOME = artworks.get()
         mirror_assets = []
         paysite_assets = []
         if Kemonoparty:
@@ -2644,8 +2646,8 @@ def get_assets(artworks):
             elif HOME == "Patreon":
                 paysite_assets = patreon_assets(threadn, htmlname, id)
             print(f"Fetched new data for {htmlname} ({HOME})")
-        master.update({HOME + id: {"htmlname":htmlname, "m":[[], [], False], "inlinefirst": False, "mirror": mirror_assets, "paysite": paysite_assets}})
-        fromhtml = master[HOME + id]
+        shelf.update({HOME + id: {"htmlname":htmlname, "m":[[], [], False], "inlinefirst": False, "mirror": mirror_assets, "paysite": paysite_assets}})
+        fromhtml = shelf[HOME + id]
         if os.path.exists(x := f"{batchname}/{htmlname}/mediocre.txt"):
             with open(x, 'r', encoding='utf-8') as f:
                 fromhtml["m"][0] = f.read().splitlines()
@@ -2656,6 +2658,8 @@ def get_assets(artworks):
                 fromhtml["m"][2] = True
         echothreadn.remove(threadn)
         artworks.task_done()
+    echothreadn.remove(threadn)
+    artworks.task_done()
 
 
 
@@ -2667,15 +2671,104 @@ for i in range(8):
 
 
 
+def nextshelf(fromhtml, paysite=False):
+    if not ready:
+        fromhtml_pm = fromhtml["paysite" if paysite else "mirror"]
+        htmlpart = fromhtml_pm["partition"]
+        stdout = ""
+        for k in htmlpart.keys():
+            for file in htmlpart[k]["files"]:
+                x = get_cd(file, [], fromhtml["m"], preview=True)
+                stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + "\n"
+            for h in htmlpart[k]["html"]:
+                if h[1]:
+                    x = get_cd(h[1], [], fromhtml["m"], preview=True)
+                    stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + "\n"
+        stdout += f"{tcolorx}\n Then create {tcolorg}{batchname}\\{htmlname}.html{tcolorx} with\n"
+        if x := fromhtml_pm["icons"]:
+            stdout += f"""{tcolorg}█{"█ █".join([i["name"] for i in x])}█\n"""
+        if x := fromhtml_pm["page"]:
+            stdout += f"""{tcoloro}<h2><a href="{x["link"]}">{x["name"]}</a></h2>\n"""
+        for k in htmlpart.keys():
+            if k == "0" and not htmlpart[k]["files"]:
+                continue
+            stdout += tcolorx + k + tcolor + "\n"
+            if x := htmlpart[k]["keywords"]:
+                keywords = ", ".join(f"{kw}" for kw in x[2:])
+                stdout += tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 and x[1] else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + "\n"
+            for file in htmlpart[k]["files"]:
+                stdout += tcolorg + file["name"].rsplit("\\")[-1] + "\n"
+            if html := htmlpart[k]["html"]:
+                for h in html:
+                    if h[0]:
+                        stdout += tcoloro + h[0]
+                    if h[1]:
+                        stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
+                stdout += "\n"
+        echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or (B)ack to main menu: """, 0, 1)
+        Keypress_B[0] = False
+        Keypress_C[0] = False
+        while not Keypress_B[0] and not Keypress_C[0]:
+            time.sleep(0.1)
+        Keypress_C[0] = False
+        if Keypress_B[0]:
+            Keypress_B[0] = False
+            return
+    downloadtodisk(fromhtml, paysite)
+
+
+
 htmldata = [[]]
+def scrape(pages):
+    shelf = {}
+    queued = []
+    threadn = 0
+
+    for htmlname, id, HOME in pages:
+        if favoriteispledged:
+            pledges += [id]
+        if HOME + id in queued:
+            continue
+        queued += [HOME + id]
+        threadn += 1
+        echothreadn.append(threadn)
+        artworks.put((threadn, shelf, id, htmlname, HOME))
+    htmlname = batchfile
+    try:
+        artworks.join()
+    except KeyboardInterrupt:
+        pass # Ctrl + C
+
+    for htmlname, id, HOME in pages:
+        if not os.path.exists(f"{batchname}/{htmlname}/"):
+            os.makedirs(f"{batchname}/{htmlname}/")
+        if shelf[HOME + id]["mirror"]:
+            print(f"\n - - - - {htmlname} - - - -")
+            title(status() + htmlname)
+            htmldata[0] += [f"<p>- - - - {htmlname} - - - -</p>"]
+            nextshelf(shelf[HOME + id])
+        if shelf[HOME + id]["paysite"]:
+            print(f"\n - - - - {htmlname} (only on {HOME}) - - - -")
+            title(f"{status()}{htmlname} (only on {HOME})")
+            htmldata[0] += [f"<p>- - - - {htmlname} (only on {HOME}) - - - -</p>"]
+            nextshelf(shelf[HOME + id], True)
+
+
+
 run_input = ["", "", False]
+def read_input(m):
+    return
+
+
 
 def readfile():
+    if not os.path.exists(textfile):
+        open(textfile, 'w').close()
     print(f"Reading {textfile} . . .")
     with open(textfile, 'r', encoding="utf-8") as f:
         textread = f.read().splitlines()
-    HTMLLIST = []
-    NEXTHTML = []
+    pages = []
+    nextpages = []
     HOME = "Patreon"
     for line in textread[6:]:
         if not line:
@@ -2690,11 +2783,12 @@ def readfile():
             HOME = "Patreon"
             continue
         elif line == "then":
-            HTMLLIST += [NEXTHTML]
-            NEXTHTML = []
+            nextpages += [pages]
+            pages = []
+            continue
         elif line == "end":
             break
-        if not line[0].isdigit() or " seconds rarity " in line[0]:
+        if not line[0].isdigit() or " seconds rarity " in line:
             continue
         id = ""
         for d in line:
@@ -2706,60 +2800,18 @@ def readfile():
             print(f"\nPlease append name (any name) to {id} e.g. {id}.name or {id}name in {rulefile} then try again.\nThe name must not start with number!")
             return
         htmlname = line.replace("\\", "/").rsplit("/", 1)[-1]
-        NEXTHTML += [[htmlname, id, HOME]]
-    return HTMLLIST + [NEXTHTML]
+        pages += [[htmlname, id, HOME]]
+    nextpages + [pages]
 
-
-
-def scrape():
-    if not (HTMLLIST := readfile()):
-        return
-    resume = False
-    htmldata[0] = []
-    for NEXTHTML in HTMLLIST:
-        if resume:
-            print("\n Resuming next favorites")
-        else:
-            resume = True
-        master = {}
-        queued = []
-        threadn = 0
-
-
-
-        for htmlname, id, HOME in NEXTHTML:
-            if favoriteispledged:
-                pledges += [id]
-            if HOME + id in queued:
-                continue
-            queued += [HOME + id]
-            threadn += 1
-            echothreadn.append(threadn)
-            artworks.put((threadn, master, id, htmlname, HOME))
-        htmlname = batchfile
-        try:
-            artworks.join()
-        except KeyboardInterrupt:
-            pass
-
-
-
-        for htmlname, id, HOME in NEXTHTML:
-            fromhtml = master[HOME + id]
-            if not os.path.exists(f"{batchname}/{htmlname}/"):
-                os.makedirs(f"{batchname}/{htmlname}/")
-            if fromhtml["mirror"]:
-                print(f"\n - - - - {htmlname} - - - -")
-                title(status() + htmlname)
-                htmldata[0] += [f"<p>- - - - {htmlname} - - - -</p>"]
-                downloadtodisk(fromhtml)
-            if fromhtml["paysite"]:
-                print(f"\n - - - - {htmlname} (only on {HOME}) - - - -")
-                title(f"{status()}{htmlname} (only on {HOME})")
-                htmldata[0] += [f"<p>- - - - {htmlname} (only on {HOME}) - - - -</p>"]
-                downloadtodisk(fromhtml, paysite=True)
-
-
+    if nextpages:
+        resume = False
+        htmldata[0] = []
+        for pages in nextpages:
+            if resume:
+                print("\n Resuming next favorites")
+            else:
+                resume = True
+            scrape(pages)
 
     if newfilen[0] or not os.path.exists(htmlfile) or Patrol:
         with open(htmlfile, 'wb') as f:
@@ -2781,11 +2833,9 @@ def scrape():
         with open(batchname + "/" + "index.html", 'wb') as f:
             f.write(bytes(new_html(builder, "Index", "", 100), 'utf-8'))
 
-
-
-    if not HTMLLIST[0]:
+    if not nextpages[0]:
         print(f"""
- No artist list in {rulefile}! Add artist ID and their name per line please.
+ No favorite artists in {rulefile}! Add artist ID and their name per line please.
 
  + To add new artists, find their ID, then append each with their name, please do not backspace or continue number after ID. E.G.
  | 312424/Adam Wan
@@ -2919,7 +2969,7 @@ ready_input()
 while True:
     if run_input[2]:
         busy[0] = True
-        scrape()
+        readfile()
         run_input[2] = False
         busy[0] = False
         print()

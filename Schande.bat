@@ -1,10 +1,10 @@
 @echo off && goto loaded
 
-import os, sys, getpass, smtplib, ssl, socket, time, zlib, json, inspect, hashlib
+import os, sys, ssl, time, json, zlib, inspect, smtplib, hashlib
 from datetime import datetime
 from fnmatch import fnmatch
 from http import cookiejar
-from http.server import SimpleHTTPRequestHandler, HTTPServer
+from http.server import SimpleHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 from queue import Queue
 from socketserver import ThreadingMixIn
 from threading import Thread
@@ -72,13 +72,15 @@ shuddup = True
 
 
 def ansi(c):
+    if len(c) == 3:
+        c = "".join(x*2 for x in c)
     return ";".join(str(int(x, 16)) for x in [c[0:2], c[2:4], c[4:6]])
 
 def ansi_color(b=False, f="3"):
     if not b:
         return "\033[0m"
-    b = "48;2;" + ansi(b) if len(b) == 6 else f"4{b}"
-    f = "38;2;" + ansi(f) if len(f) == 6 else f"9{f}"
+    b = f"4{b}" if len(b) == 1 else "48;2;" + ansi(b)
+    f = f"9{f}" if len(f) == 1 else "38;2;" + ansi(f)
     return f"\033[{b};{f}m"
 
 
@@ -105,7 +107,7 @@ sys.stdout.write("Non-ANSI-compliant Command Prompt/Terminal (expect lot of visu
 
 
 def mainmenu():
-    print(f"""
+    return f"""
  - - - - Drag'n'drop / Input - - - -
  + Drag'n'drop and enter folder to add to Geistauge's database.
  + Drag'n'drop and enter image file to compare with another image, while scanning new folder, or find in database.
@@ -119,7 +121,7 @@ def mainmenu():
  + Enter file:/// or http://localhost url to enter delete mode.
  | Enter http(s):// to download file. Press V for page source viewing.
  + Enter valid site to start a scraper.
-""")
+"""
 def ready_input():
     sys.stdout.write("Enter (I)nput mode or ready to s(O)rt, (L)oad filelist from textfile, hel(P): ")
     sys.stdout.flush()
@@ -137,7 +139,7 @@ def skull():
             '--------'              
                                     """
 def help():
-    print(f"""
+    return f"""
  {rulefile} is {batchname}'s only setting file and only place to follow your rules how files are downloaded and sorted.
 
 
@@ -264,7 +266,7 @@ def help():
  |  "X # letters" (# or #-#) after any picker (before "customize with") so the match is expected to be that amount.
  |  "X ends/starts with X" after any picker (before "customize with"). "not" for opposition.
  + Use replace picker to discard what you don't need before complicating pickers with many asterisks or carets.
-""")
+"""
 
 
 
@@ -417,6 +419,8 @@ Mozilla/5.0 for http"""
 
 
 
+sys.stdout.write(tcolorx + cls)
+
 if not os.path.exists(rulefile):
     open(rulefile, 'w').close()
 if os.path.getsize(rulefile) < 1:
@@ -433,7 +437,7 @@ for setting in settings:
         if offset == 0:
             setting += "Yes" if input("Launch HTML server? (Y)es/(N)o: ", "yn") == 1 else "No"
             echo("", 1, 0)
-        rules = rules.insert(offset, append)
+        rules.insert(offset, setting)
         print(f"""Added new setting "{setting}" to {rulefile}!""")
         new_setting = True
     offset += 1
@@ -497,6 +501,12 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
         if '?' in self.path:
             self.path = self.path.split('?')[0]
         SimpleHTTPRequestHandler.do_GET(self)
+
+    def do_POST(self):
+        if (x := int(self.headers['Content-Length'])) < 200:
+            x = self.rfile.read(x).decode('utf-8').replace("/", "\\")
+            print(f"{os.getcwd()}\{x}")
+            # self.wfile.write(bytes(f"GET request for {self.path}", 'utf-8'))
 
     def send_head(self):
         self.range = (0, 0)
@@ -596,8 +606,8 @@ def startserver(port, directory):
 
 
 
-cookies = cookiejar.MozillaCookieJar("cookies.txt")
-if os.path.exists("cookies.txt"):
+cookies = cookiejar.MozillaCookieJar(batchname + "/cookies.txt")
+if os.path.exists(batchname + "/cookies.txt"):
     cookies.load()
 def new_cookie():
     return {'port_specified':False, 'domain_specified':False, 'domain_initial_dot':False, 'path_specified':True, 'version':0, 'port':None, 'path':'/', 'secure':False, 'expires':None, 'comment':None, 'comment_url':None, 'rest':{"HttpOnly": None}, 'rfc2109':False, 'discard':True, 'domain':None, 'name':None, 'value':None}
@@ -622,8 +632,6 @@ def met(p, n):
     if n[0] and p.endswith(n[0]) or n[1] and not p.endswith(n[1]) or n[2] and p.startswith(n[2]) or n[3] and not p.startswith(n[3]) or n[4] and not n[4][0] <= len(p) <= n[4][1]:
         return
     return True
-
-
 
 def conditions(x):
     n = [""]*5
@@ -651,8 +659,6 @@ def conditions(x):
                 x = y[0]
     return [x, n]
 
-
-
 def peanut(z, cw, a):
     if len(z := z.rsplit(" customize with ", 1)) == 2:
         cw = z[1].rsplit("*", 1)
@@ -668,8 +674,6 @@ def peanut(z, cw, a):
             z = ["0"] + conditions(z.split("0", 1)[1]) if z.startswith("0") else [""] + conditions(z)
         a = True
     return [z, cw, a]
-
-
 
 def at(s, r, cw=[], alt=0, key=False, name=False, meta=False):
     n, r = r.split(" ", 1) if " " in r else [r, ""]
@@ -801,7 +805,7 @@ def picker(s, rule):
 
 
 
-# Loading referer, sort, and custom dir rules, pickers, and global file rejection by file types from rulefile
+# Loading referer, sort, and custom dir rules, pickers, and inline file rejection by file types from rulefile
 bgcolor = False
 fgcolor = "3"
 customdir = {}
@@ -811,11 +815,12 @@ referers = {}
 hydras = {}
 mozilla = {}
 exempt = []
+dir = ""
+ticks = []
+inline_m = [[], []]
 pickers = {"void":new_picker()}
 site = "void"
 total_names = [0]
-dir = ""
-ticks = []
 for rule in rules:
     if not rule or rule.startswith("#"):
         continue
@@ -846,18 +851,22 @@ for rule in rules:
 
     elif len(sr := rule.split(" seconds rarity ")) == 2:
         ticks += [[int(x) for x in sr[0].split("-")]]*int(sr[1].split("%")[0])
-    elif rule == "shuddup":
-        shuddup = 2
     elif rule == "collisionisreal":
         collisionisreal = True
     elif rule == "editisreal":
         editisreal = True
     elif rule == "buildthumbnail":
         buildthumbnail = True
+    elif rule == "shuddup":
+        shuddup = 2
     elif rule.startswith('bgcolor '):
         bgcolor = rule.replace("bgcolor ", "")
     elif rule.startswith('fgcolor '):
         fgcolor = rule.replace("fgcolor ", "")
+    elif rule.startswith('!.'):
+        inline_m[0] += [rule.replace("!.", ".", 1)]
+    elif rule.startswith('.'):
+        inline_m[1] += [rule]
     elif rule.startswith("\\"):
         dir = rule.split("\\", 1)[1]
         if dir.endswith("\\"):
@@ -904,7 +913,7 @@ for n in range(total_names[0]):
 
 if bgcolor:
     tcolorx = ansi_color(bgcolor, fgcolor)
-sys.stdout.write(tcolorx + cls)
+    sys.stdout.write(tcolorx + cls)
 
 
 
@@ -947,6 +956,7 @@ if Mail:
         print(" MAIL: Please add your two email addresses (sender/receiver)\n\n TRY AGAIN!")
         sys.exit()
     if len(Mail) < 3:
+        import getpass
         Mail += [getpass.getpass(prompt=f" {Mail[0]}'s password (automatic if saved as third address): ")]
         echo("", 1)
     if not shuddup == 2: shuddup = False
@@ -964,13 +974,11 @@ else:
     print(" GEISTAUGE: OFF")
 if "socks5://" in proxy and proxy[10:]:
     if not ":" in proxy[10:]:
-        print(" PROXY: Invalid socks5:// address, it must be socks5://X.X.X.X:port OR socks5://user:pass@X.X.X.X:port\n\n TRY AGAIN!")
-        sys.exit()
+        kill(" PROXY: Invalid socks5:// address, it must be socks5://X.X.X.X:port OR socks5://user:pass@X.X.X.X:port\n\n TRY AGAIN!")
     try:
-        import socks
+        import socket, socks
     except:
-        print(f" PROXY: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install PySocks")
-        sys.exit()
+        kill(f" PROXY: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install PySocks")
     if "@" in proxy[10:]:
         usr, pw, address, port = proxy.replace("socks5:","").replace("/","").replace("@",":").split(":")
         socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port), username=usr, password=pw)
@@ -1306,32 +1314,33 @@ def get_cd(file, makedirs=False, preview=False, subdir=""):
         prepend, append = rule[0]
         todisk = f"{folder}{prepend}{name}{append}{ext}".replace("\\", "/") # "\\" in file["name"] can work like folder after prepend
         dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
-        tdir = "\\" + dir.replace("/", "\\")
         if not preview:
             if not os.path.exists(dir):
                 if makedirs or [ast(x) for x in exempt if ast(x) == dir.replace("/", "\\")]:
                     try:
                         os.makedirs(dir)
                     except:
-                        kill(f"Can't make folder {tdir} because there's a file using that name, I must exit!")
+                        buffer = "\\" + dir.replace("/", "\\")
+                        kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
                 else:
                     print(f" Error downloading (dir): {link}")
                     error[0] += [todisk]
                     link = ""
     elif not preview:
         dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
-        tdir = "\\" + dir.replace("/", "\\")
         if not os.path.exists(batchname + "/"):
             try:
                 os.makedirs(batchname + "/")
             except:
-                kill(f"Can't make folder {tdir} because there's a file using that name, I must exit!")
+                buffer = "\\" + dir.replace("/", "\\")
+                kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
     if not preview:
         if makedirs and not os.path.exists(dir):
             try:
                 os.makedirs(dir)
             except:
-                kill(f"Can't make folder {tdir} because there's a file using that name, I must exit!")
+                buffer = "\\" + dir.replace("/", "\\")
+                kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
         file.update({"name":todisk, "edited":file["edited"]})
     return [link, todisk, file["edited"]]
 
@@ -1500,11 +1509,11 @@ def firefox(url):
             return
     firefox_running[0].get(url)
     # ff_login()
-    echo("(C)ontinue when finished defusing.")
-    Keypress_C[0] = False
-    while not Keypress_C[0]:
-        time.sleep(0.1)
-    Keypress_C[0] = False
+    # echo("(C)ontinue when finished defusing.")
+    # Keypress_C[0] = False
+    # while not Keypress_C[0]:
+    #     time.sleep(0.1)
+    # Keypress_C[0] = False
     for bc in firefox_running[0].get_cookies():
         if "httpOnly" in bc: del bc["httpOnly"]
         if "expiry" in bc: del bc["expiry"]
@@ -2556,14 +2565,77 @@ def container_c(ondisk, label):
 
 
 
-def new_html(builder, htmlname, listurls, imgsize=200):
+def new_html(builder, htmlname, listurls):
     if not listurls:
         listurls = "Maybe in another page."
     return """<!DOCTYPE html>
 <html>
-<meta charset="utf-8"/>
+<meta charset="UTF-8"/>
+<meta name="format-detection" content="telephone=no">
 """ + f"<title>{htmlname}</title>" + """
+<style>
+html,body{background-color:#10100c; color:#088 /*088 cb7*/; font-family:consolas, courier; font-size:14px;}
+a{color:#dc8 /*efdfa8*/;}
+a:visited{color:#cccccc;}
+.aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
+.carbon, .files, .time{background-color:#10100c /*10100c 112230 07300f*/; border:3px solid #6a6a66 /*6a6a66 367 192*/; border-radius:12px;}
+.time{white-space:pre-wrap; color:#ccc; font-size:90%; line-height:1.6;}
+.cell, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
+.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45;}
+.previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
+.next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
+.closebtn{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
+
+.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45; padding:12px; margin:6px; word-wrap:break-word;}
+.frame{display:inline-block; vertical-align:top; position:relative;}
+.previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
+.reverse{background-color:#63c; color:#d9f; border:none; border-radius:10px; cursor:pointer;}
+.tangerine{background-color:#c60; color:#fc3; border:none; border-radius:10px; cursor:pointer;}
+.edge{background-color:#261; color:#8c4; border:none; border-radius:10px; cursor:pointer;}
+.next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
+.sources{font-size:80%; width:200px;}
+
+img{vertical-align:top;}
+.container{display:block; position:relative;}
+.frame{display:inline-block; vertical-align:top;}
+.sources{font-size:80%; width:200px;}
+.aqua{display:inline-block; vertical-align:top; padding:12px; word-wrap:break-word;}
+.carbon, .time, .files, .edits{display:inline-block; vertical-align:top;}
+.carbon, .time, .cell, .mySlides, .files, .edits{padding:8px; margin:6px; word-wrap:break-word;}
+.mySlides{white-space:pre-wrap; padding-right:32px;}
+.closebtn{position:absolute; top:15px; right:15px;}
+.carbon, .files, .edits{margin-right:12px;}
+.cell{overflow:auto; width:calc(100% - 30px); display:inline-block; vertical-align:text-top;}
+h2{margin:4px;}
+.postMessage{white-space:pre-wrap;}
+[contenteditable]:focus {outline: none;}
+::selection { background: transparent; }
+.menu {color:#9b859d; background-color:#110c13;}
+.exitmenu {color:#f45; background-color:#2d0710;}
+.stdout {white-space:pre-wrap; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
+.schande{opacity:0.5; position:absolute; top:150px; text-align:center; line-height:40px; height:40px; margin:3px; cursor:pointer; min-width:50px; border:2px solid #f66; background-color:#602; color:#f45;}
+.saint{border:2px solid #6f6; background-color:#260; color:#4f5;}
+</style>
 <script>
+var xhr = new XMLHttpRequest();
+function send(b){
+  xhr.open("POST", '', true);
+  xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+  xhr.send(b);
+}
+
+function plaintext(elem, e) {
+  e.preventDefault();
+  var text = e.clipboardData.getData('text/plain');
+  window.document.execCommand('insertText', false, text);
+}
+
+function echo(B, b) {
+  if (!b) B = "\\n" + B
+  if (b) B = " " + B
+  stdout.innerHTML += B;
+}
+
 var Expand = function(c, t) {
   if(!c.naturalWidth) {
     return setTimeout(Expand, 10, c, t);
@@ -2574,40 +2646,79 @@ var Expand = function(c, t) {
   t.style.opacity = "";
 };
 
-var Expander = function(e) {
+var FFclick = function(e) {
   var t = e.target;
-  if(t.parentNode.classList.contains("fileThumb")) {
+  var a = t.parentNode;
+  if (t.hasAttribute("data-saint")) {
+    send(t.getAttribute("data-saint"));
+  } else if (t.hasAttribute("data-schande")) {
+    send(t.getAttribute("data-schande"));
+  } else if (a.classList.contains("fileThumb")) {
     e.preventDefault();
     if(t.hasAttribute("data-src")) {
       var c = document.createElement("img");
-      c.setAttribute("src", t.parentNode.getAttribute("href"));
+      c.setAttribute("src", a.getAttribute("href"));
       c.style.display = "none";
-      t.parentNode.appendChild(c);
+      a.appendChild(c);
       t.style.opacity = "0.75";
       setTimeout(Expand, 10, c, t);
     } else {
-      var a = t.parentNode;
       a.firstChild.style.display = "";
       a.removeChild(t);
-      a.offsetTop < window.pageYOffset && a.scrollIntoView({top: 0, behavior: "smooth"});
+      a.offsetTop < window.pageYOffset && a.scrollIntoView({block: "start", behavior: "smooth"});
     }
   }
 };
 
-var Hover = function(e) {
+var FFmove = function(e) {
   var t = e.target;
   if (t.hasAttribute("data-tooltip")) {
-    tooltip.style.display = "inline-block";
     tooltip.style.left = (e.pageX + 10) + "px";
     tooltip.style.top = (e.pageY + 10) + "px";
+    tooltip.style.display = "inline-block";
     tooltip.innerHTML = t.getAttribute("data-tooltip");
   } else {
     tooltip.style.display = "none";
   }
 }
 
-document.addEventListener("click", Expander);
-document.addEventListener("mousemove", Hover);
+var FFover = function(e) {
+  var t = e.target;
+  if(t.classList.contains("lazy") && !t.hasAttribute("busy")) {
+    var d = document.createElement("div");
+    d.innerHTML = "<div class='schande saint' style='display:none;'>Saint</div><div class='schande' style='/*left:54px;*/'>Schande!</div>";
+    var a = t.parentNode.parentNode;
+    a.appendChild(d);
+    let isover = function(g) {
+      g.target.style.opacity = 1
+      if (g.target.classList.contains("saint")) {
+        g.target.setAttribute("data-schande", t.getAttribute("data-src"))
+      } else {
+        g.target.setAttribute("data-saint", t.getAttribute("data-src"))
+      }
+      g.target.removeEventListener("mouseover", isover);
+      let left = () => {
+        g.target.style.opacity = 0.5
+        g.target.removeEventListener("mouseleave", left);
+      }
+      g.target.addEventListener("mouseleave", left);
+    }
+    d.addEventListener("mouseover", isover);
+    let left = () => {
+      setTimeout(function(){
+        a.removeChild(d);
+      }, 1)
+      t.removeAttribute("busy")
+      a.removeEventListener("mouseleave", left);
+    }
+    t.setAttribute("busy", true)
+    a.addEventListener("mouseleave", left);
+  }
+}
+
+document.addEventListener("click", FFclick);
+document.addEventListener("mousemove", FFmove);
+document.addEventListener("mouseover", FFover);
 
 Filters = {};
 Filters.tmpCtx = document.createElement('canvas').getContext('2d');
@@ -2705,7 +2816,7 @@ function quicklook(e) {
       setTimeout(function(){
         if (isTainted) {
           t.setAttribute("data-tooltip", `"Edge detect" and "Geistauge" are canvas features and they require Cross-Origin Resource Sharing (CORS)<br>(Google it but tl;dr: Try HTML server)`)
-          Hover(e)
+          FFmove(e)
         }
       }, 1)
       t.parentNode.appendChild(c);
@@ -2716,12 +2827,14 @@ function quicklook(e) {
       c.setAttribute("src", t.parentNode.getAttribute("href"));
       t.parentNode.appendChild(c);
     }
-    let listener = () => {
-      setTimeout(function(){t.parentNode.removeChild(c);}, 40);
-      t.removeEventListener("mouseleave", listener);
+    let left = () => {
+      setTimeout(function(){
+        t.parentNode.removeChild(c);
+      }, 40);
+      t.removeEventListener("mouseleave", left);
       t.removeAttribute("data-tooltip");
     }
-    t.addEventListener("mouseleave", listener);
+    t.addEventListener("mouseleave", left);
   }
 }
 
@@ -2831,51 +2944,49 @@ var fit = false;
 var slideIndex = 1;
 function swap(e) {
   var t = e.target;
+  let d = document.getElementById("ge");
+  let a = d.getAttribute("data-sel").split(", ");
   if(e.which == 83 && !geistauge) {
     geistauge = true;
-    let d = document.getElementById("ge");
     d.classList = "previous";
-    d.innerHTML = "vs left"
+    d.innerHTML = a[1];
     t.addEventListener("keyup", function(k) {
       if(k.which == 83) {
         d.classList = "next";
-        d.innerHTML = "Original"
+        d.innerHTML = a[0];
         geistauge = false;
       }
     });
   } else if(e.which == 65 && !geistauge) {
     geistauge = "reverse";
-    let d = document.getElementById("ge");
     d.classList = "reverse";
-    d.innerHTML = "vs left <"
+    d.innerHTML = a[2];
     t.addEventListener("keyup", function(k) {
       if(k.which == 65) {
         d.classList = "next";
-        d.innerHTML = "Original"
+        d.innerHTML = a[0];
         geistauge = false;
       }
     });
   } else if(e.which == 68 && !geistauge) {
     geistauge = "tangerine";
-    let d = document.getElementById("ge");
     d.classList = "tangerine";
-    d.innerHTML = "vs left >"
+    d.innerHTML = a[3];
     t.addEventListener("keyup", function(k) {
       if(k.which == 68) {
         d.classList = "next";
-        d.innerHTML = "Original"
+        d.innerHTML = a[0];
         geistauge = false;
       }
     });
   } else if(e.which == 87 && !geistauge) {
     geistauge = "edge";
-    let d = document.getElementById("ge");
     d.classList = "edge";
-    d.innerHTML = "Find Edge"
+    d.innerHTML = a[4];
     t.addEventListener("keyup", function(k) {
       if(k.which == 87) {
         d.classList = "next";
-        d.innerHTML = "Original"
+        d.innerHTML = a[0];
         geistauge = false;
       }
     });
@@ -2887,16 +2998,14 @@ function swap(e) {
       tc.style = cs;
     }
     let d = document.getElementById("fi");
-    if (d.classList.contains("next")) {
-      d.setAttribute("data-html-original", d.innerHTML);
-    }
+    let a = d.getAttribute("data-sel").split(", ");
     d.classList = "previous";
-    d.innerHTML = "Preview [ ]"
+    d.innerHTML = a[1];
     document.addEventListener("mouseover", quicklook);
     t.addEventListener("keyup", function(k) {
       if(k.which == 16) {
         d.classList = "tangerine";
-        d.innerHTML = "Preview 1:1"
+        d.innerHTML = a[2];
         cs = co
         let tc = document.getElementById("quicklook")
         if(tc) {
@@ -2910,73 +3019,53 @@ function swap(e) {
 
 document.addEventListener("keydown", swap);
 
-function previewg(e, a, r=false, t=false, x=false) {
+function previewg(e) {
+  let a = e.getAttribute("data-sel").split(", ");
   if (e.classList.contains("next")) {
     e.classList = "previous";
-    e.setAttribute("data-html-original", e.innerHTML);
-    e.innerHTML = a;
+    e.innerHTML = a[1];
     geistauge = true;
   } else if(e.classList.contains("previous")) {
-    if(r) {
-      e.classList = "reverse";
-      e.innerHTML = r;
-      geistauge = "reverse";
-    } else {
-      e.classList = "next";
-      e.innerHTML = e.getAttribute("data-html-original");
-      geistauge = false;
-    }
+    e.classList = "reverse";
+    e.innerHTML = a[2];
+    geistauge = "reverse";
   } else if(e.classList.contains("reverse")) {
-    if(t) {
-      e.classList = "tangerine";
-      e.innerHTML = t;
-      geistauge = "tangerine";
-    } else {
-      e.classList = "next";
-      e.innerHTML = e.getAttribute("data-html-original");
-      geistauge = false;
-    }
+    e.classList = "tangerine";
+    e.innerHTML = a[3];
+    geistauge = "tangerine";
   } else if(e.classList.contains("tangerine")) {
-    if(x) {
-      e.classList = "edge";
-      e.innerHTML = x;
-      geistauge = "edge";
-    } else {
-      e.classList = "next";
-      e.innerHTML = e.getAttribute("data-html-original");
-      geistauge = false;
-    }
+    e.classList = "edge";
+    e.innerHTML = a[4];
+    geistauge = "edge";
   } else {
     e.classList = "next";
-    e.innerHTML = e.getAttribute("data-html-original");
+    e.innerHTML = a[0];
     geistauge = false;
   }
 }
 
-function preview(e, a, f=false) {
+function preview(e) {
+  let a = e.getAttribute("data-sel").split(", ");
   if (e.classList.contains("next")) {
     e.classList = "previous";
-    e.setAttribute("data-html-original", e.innerHTML);
-    e.innerHTML = a;
+    e.innerHTML = a[1];
     document.addEventListener("mouseover", quicklook);
     fit = true;
     cs = cf
   } else if(e.classList.contains("previous")) {
-    if(f) {
-        e.classList = "tangerine";
-        e.innerHTML = f;
-        cs = co
-        fit = false;
-    } else {
-        e.classList = "next";
-        e.innerHTML = e.getAttribute("data-html-original");
-        cs = co
-        document.removeEventListener("mouseover", quicklook);
-        fit = false;
-    }
+    e.classList = "tangerine";
+    e.innerHTML = a[2];
+    cs = co
+    fit = false;
+  } else if(e.classList.contains("tangerine")) {
+    e.classList = "next";
+    e.innerHTML = a[0];
+    cs = co
+    document.removeEventListener("mouseover", quicklook);
+    fit = false;
   } else {
     e.classList = "next";
-    e.innerHTML = e.getAttribute("data-html-original");
+    e.innerHTML = a[0];
     cs = co
     document.removeEventListener("mouseover", quicklook);
     fit = false;
@@ -3074,7 +3163,11 @@ window.onload = () => {
   for(var i=0; i<links.length; i++) {
     links[i].target = "_blank";
   }
-  var tooltip = document.getElementById("tooltip");
+  stdout = document.getElementById("stdout");
+  if(!stdout.isContentEditable){
+    stdout.setAttribute("onpaste", "plaintext(this, event)");
+    stdout.setAttribute("contenteditable", "true");
+  }
 }
 
 function lazyload() {
@@ -3092,65 +3185,29 @@ function lazyload() {
   });
 
   lazyloadImages.forEach(function(image) {
-    """ + f"""image.style.height = "{imgsize}""" + """px"
+    image.style.height = "200px"
     image.style.width = "auto"
     imageObserver.observe(image);
   });
 }
 </script>
-<style>
-html,body{background-color:#10100c; color:#088 /*088 cb7*/; font-family:consolas, courier; font-size:14px;}
-a{color:#dc8 /*efdfa8*/;}
-a:visited{color:#cccccc;}
-.aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
-.carbon, .files, .time{background-color:#10100c /*10100c 112230 07300f*/; border:3px solid #6a6a66 /*6a6a66 367 192*/; border-radius:12px;}
-.time{white-space:pre-wrap; color:#ccc; font-size:90%; line-height:1.6;}
-.cell, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
-.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45;}
-.previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
-.next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
-.closebtn{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
-
-.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45; padding:12px; margin:6px; word-wrap:break-word;}
-.frame{display:inline-block; vertical-align:top; position:relative;}
-.previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
-.reverse{background-color:#63c; color:#d9f; border:none; border-radius:10px; cursor:pointer;}
-.tangerine{background-color:#c60; color:#fc3; border:none; border-radius:10px; cursor:pointer;}
-.edge{background-color:#261; color:#8c4; border:none; border-radius:10px; cursor:pointer;}
-.next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
-.sources{font-size:80%; width:200px;}
-
-img{vertical-align:top;}
-.container{display:block; position:relative;}
-.frame{display:inline-block; vertical-align:top;}
-.sources{font-size:80%; width:200px;}
-.aqua{display:inline-block; vertical-align:top; padding:12px; word-wrap:break-word;}
-.carbon, .time, .files, .edits{display:inline-block; vertical-align:top;}
-.carbon, .time, .cell, .mySlides, .files, .edits{padding:8px; margin:6px; word-wrap:break-word;}
-.mySlides{white-space:pre-wrap; padding-right:32px;}
-.closebtn{position:absolute; top:15px; right:15px;}
-.carbon, .files, .edits{margin-right:12px;}
-.cell{overflow:auto; width:calc(100% - 30px); display:inline-block; vertical-align:text-top;}
-h2{margin:4px;}
-.postMessage{white-space:pre-wrap;}
-</style>
 <body>
-<div id="tooltip" class="closebtn" style="padding:0px 8px; font-family:sans-serif; z-index:9999999; left:0px; top:0px; right:initial; pointer-events:none;"></div><div style="display:block; height:20px;"></div><div class="container" style="display:none;">
+<div id="tooltip" class="closebtn" style="padding:0px 8px; font-family:sans-serif; z-index:9999999; left:0px; top:0px; right:initial; pointer-events:none;"></div><div style="display:block; height:20px;"></div><p class="stdout" id="stdout" style="display:none;" onpaste="plaintext(this, event);" contenteditable="plaintext-only" spellcheck=false><div class="container" style="display:none;">
 <button class="closebtn" onclick="this.parentElement.style.display='none'">&times;</button>""" + f"""<div class="mySlides">{listurls}</div>
 <img id="expandedImg">
 </div>
 <div style="display:block; height:10px;"></div><div style="background:#0c0c0c; height:20px; border-radius: 0 0 12px 0; position:fixed; padding:6px; top:0px; z-index:1;">
 <button class="next" onclick="showDivs(slideIndex = 1)">Links in this HTML</button>
-<button class="next" onclick="resizeImg('{imgsize}px')">1x</button>
-<button class="next" onclick="resizeImg('{imgsize*2}px')">2x</button>
-<button class="next" onclick="resizeImg('{imgsize*4}px')">4x</button>
+<button class="next" onclick="resizeImg('200px')">1x</button>
+<button class="next" onclick="resizeImg('400px')">2x</button>
+<button class="next" onclick="resizeImg('800px')">4x</button>
 <button class="next" onclick="resizeImg('auto')">1:1</button>
 <button class="next" onclick="resizeCell('calc(100% - 30px)')">&nbsp;.&nbsp;</button>
 <button class="next" onclick="resizeCell('calc(50% - 33px)')">. .</button>
 <button class="next" onclick="resizeCell('calc(33.33% - 34px)')">...</button>
 <button class="next" onclick="resizeCell('calc(25% - 35px)')">....</button>
-<button id="fi" class="next" onclick="preview(this, 'Preview [ ]', 'Preview 1:1')" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel">Preview</button>
-<button id="ge" class="next" onclick="previewg(this, 'vs left', 'vs left <', 'vs left >', 'Find Edge')" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
+<button id="fi" class="next" onclick="preview(this)" data-sel="Preview, Preview [ ], Preview 1:1" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel">Preview</button>
+<button id="ge" class="next" onclick="previewg(this)" data-sel="Original, vs left, vs left &lt;, vs left &gt;, Find Edge" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
 <button class="next" onclick="hideSources()">Sources</button>
 <input class="next" type="text" oninput="hideParts('h2', this.value, false);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Search title">
 <input class="next" type="text" oninput="hideParts('h2', this.value);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Ignore title">
@@ -3179,7 +3236,7 @@ def hyperlink(html):
 
 
 
-def tohtml(subdir, htmlname, fromhtml, orphfiles):
+def tohtml(subdir, htmlname, fromhtml, orphan_files):
     builder = ""
     listurls = ""
     htmlpart = fromhtml["partition"]
@@ -3244,16 +3301,16 @@ def tohtml(subdir, htmlname, fromhtml, orphfiles):
 
 
 
-    for file in orphfiles:
+    for file in orphan_files:
         if file.endswith(tuple(specialfile)) or file.startswith("icon"):
             continue
         key = file.split(".", 1)[0]
         if not key in part.keys():
             key = "0"
-        if "orphfiles" in part[key]:
-            part[key]["orphfiles"] += [file]
+        if "orphan_files" in part[key]:
+            part[key]["orphan_files"] += [file]
         else:
-            part[key]["orphfiles"] = [file]
+            part[key]["orphan_files"] = [file]
     if buildthumbnail:
         echo("Building thumbnails . . .")
 
@@ -3262,8 +3319,8 @@ def tohtml(subdir, htmlname, fromhtml, orphfiles):
     for key in part.keys():
         keywords = part[key]["keywords"]
         if key == "0":
-            if "orphfiles" in part[key]:
-                title = "Unsorted"
+            if "orphan_files" in part[key]:
+                title = "<h2>Unsorted</h2>"
                 content = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really orphans.\n"
             else:
                 continue
@@ -3283,9 +3340,9 @@ def tohtml(subdir, htmlname, fromhtml, orphfiles):
             for file in part[key]["files"]:
                 builder += container(subdir, file)
             builder += "</div>\n"
-        if "orphfiles" in part[key]:
+        if "orphan_files" in part[key]:
             builder += "<div class=\"edits\">\n"
-            for file in part[key]["orphfiles"]:
+            for file in part[key]["orphan_files"]:
                 # os.rename(subdir + file, subdir + "Orphaned files/" + file)
                 builder += container(subdir, file)
             builder += "<br><br>orphaned file(s)\n</div>\n"
@@ -3398,10 +3455,22 @@ def tohtml_geistauge(delete=False):
             if m[3] == s[3] and delete:
                 if not any(word in file2 for word in exempt):
                     if os.path.exists(file2):
-                        os.remove(file2)
+                        f = os.path.splitext(file2)
+                        trashdir = f"{f[0]} Trash/"
+                        if not os.path.exists(trashdir):
+                            while True:
+                                input(f"Developer note: {trashdir} {f[1]}")
+                            os.makedirs(trashdir)
+                        os.rename(file2, trashdir + f[1])
                 elif not any(word in file for word in exempt):
                     if os.path.exists(file):
-                        os.remove(file)
+                        f = os.path.splitext(file)
+                        trashdir = f"{f[0]} Trash/"
+                        if not os.path.exists(trashdir):
+                            while True:
+                                input(f"Developer note: {trashdir} {f[1]}")
+                            os.makedirs(trashdir)
+                        os.rename(file, trashdir + f[1])
                     file = file2
                 if file2 := next(v, None):
                     continue
@@ -3435,40 +3504,14 @@ def tohtml_geistauge(delete=False):
 
 
 
-def updsav():
-    echo("Split mode: (D)elete (P)revent from redownload or e(X)it", 0, 1)
-    mode = choice("dpx")
-    if mode == 0 or mode == 3:
-        return
-    old_sav = opensav(sav).splitlines()
-    new_sav = []
-    old_savx = opensav(savx).splitlines()
-    new_savx = []
-    if mode == 2:
-        new_savm = opensav(savm).splitlines()
-        new_savp = opensav(savp).splitlines()
-    for line in old_sav:
-        phash, file = line.split(" ", 1)
-        if os.path.exists(file):
-            new_sav += [line]
-        elif mode == 2:
-            new_savp += [phash]
-    for line in old_savx:
-        if os.path.exists(line.split(" ", 5)[4]):
-            new_savx += line
-        elif mode == 2:
-            new_savm += [" ".join(line.split(" ", 4)[:4])]
-    if mode == 2:
-        with open(savm, 'wb') as f:
-            f.write(bytes("\n".join(new_savm), 'utf-8'))
-        with open(savp, 'wb') as f:
-            f.write(bytes("\n".join(new_savp), 'utf-8'))
-    print(f"I'd overwrite {sav} and {savx} with new ones.")
+
+def splitmode():
+    choice(bg="4c")
+    if input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "").replace("\\", "/") == f"{batchdir}{sav}":
+        echo(skull(), 0, 1)
+        choice(bg="4c")
+        tohtml_geistauge(True)
     return
-    with open(sav, 'wb') as f:
-        f.write(bytes("\n".join(new_sav), 'utf-8'))
-    with open(savx, 'wb') as f:
-        f.write(bytes("\n".join(new_savx), 'utf-8'))
 
 
 
@@ -3551,8 +3594,14 @@ def delmode(m):
             print("(D)elete again to confirm (A)bort")
             if choice("da") == 1:
                 for dfile in delfiles:
+                    f = os.path.splitext(dfile)
+                    trashdir = f"{f[0]} Trash/"
+                    if not os.path.exists(trashdir):
+                        while True:
+                            input(f"Developer note: {trashdir} {f[1]}")
+                        os.makedirs(trashdir)
                     try:
-                        os.remove(dfile)
+                        os.rename(dfile, trashdir + f[1])
                     except:
                         continue
                 echo(skull(), 0, 1)
@@ -3859,11 +3908,7 @@ def keylistener():
                 choice(bg=True)
                 print(" GEISTAUGE: Maybe not.")
             else:
-                choice(bg="4c")
-                if input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "").replace("\\", "/") == f"{batchdir}{sav}":
-                    echo(skull(), 0, 1)
-                    choice(bg="4c")
-                    tohtml_geistauge(True)
+                splitmode()
             ready_input()
         elif el == 5:
             unrecognized("E")
@@ -3905,15 +3950,7 @@ def keylistener():
                 continue
             run_input[2] = True
         elif el == 13:
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            if not Geistauge:
-                choice(bg=True)
-                print(" GEISTAUGE: Maybe not.")
-            else:
-                updsav()
-            ready_input()
+            unrecognized("M")
         elif el == 14:
             unrecognized("N")
         elif el == 15:
@@ -3926,7 +3963,7 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            help()
+            echo(help(), 0, 1)
             ready_input()
         elif el == 17:
             pressed(Keypress_A, False)
@@ -3975,11 +4012,11 @@ print("""
   > Press T to enable or disable cooldown during errors (reduce server strain).
   > Press K to view cookies.
   > Press 1 to 8 to set max parallel download of 8 available slots, 0 to pause.
-  > Press Ctrl + C or Z to break and reconnect of the ongoing downloads or to end timer instantly.""")
+  > Press Z or CtrlC to break and reconnect of the ongoing downloads or to end timer instantly.""")
 
 
 
-mainmenu()
+echo(mainmenu(), 0, 1)
 ready_input()
 while True:
     if run_input[0]:
@@ -4006,9 +4043,8 @@ while True:
     try:
         time.sleep(0.1)
     except KeyboardInterrupt:
-        echo(f"Ctrl + C{skull()}", 0, 1)
+        echo(skull(), 0, 1)
         choice(bg="4c")
-        ready_input()
 
 
 

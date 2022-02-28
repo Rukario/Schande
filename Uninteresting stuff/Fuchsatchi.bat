@@ -203,6 +203,7 @@ def choice(keys="", bg=False, persist=False):
         if bg: os.system(f"""color {"%stopcolor%" if bg == True else bg}""")
         if keys: el = os.system(f"choice /c:{keys} /n")
         if bg and not persist: os.system("color %color%")
+        echo(tcolorx)
     else:
         if keys: el = os.system("""while true; do
 read -s -n 1 el || break
@@ -210,8 +211,9 @@ case $el in
 """ + "\n".join([f"{k} ) exit {e+1};;" for e, k in enumerate(keys)]) + """
 esac
 done""")
-    echo(tcolorx)
-    if not keys: return
+        echo(tcolorx, 0, 1)
+    if not keys:
+        return
     if el >= 256:
         el /= 256
     return int(el)
@@ -1218,6 +1220,7 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
 
 
 
+
     for onserver, filename, edited, key in filelist:
         ondisk = f"{batchname}/{htmlname}/{filename}"
 
@@ -1225,7 +1228,6 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
 
         # Ender (2/3)
         part_key = filename.rsplit("/", 1)[-1].split(".", 1)[0]
-
         if not new_ender:
             new_ender = os.path.splitext(filename)[0].split(".", 1)[0] + ".ender"
         if line := [x for x in enderread if part_key in x]:
@@ -2801,7 +2803,7 @@ def readfile():
             return
         htmlname = line.replace("\\", "/").rsplit("/", 1)[-1]
         pages += [[htmlname, id, HOME]]
-    nextpages + [pages]
+    nextpages += [pages]
 
     if nextpages:
         resume = False

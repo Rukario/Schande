@@ -12,19 +12,20 @@ from urllib import parse, request
 from urllib.error import HTTPError, URLError
 from random import random
 
-if len(sys.argv) > 3:
-    filelist = list(filter(None, sys.argv[1].split("//")))
-    pythondir = sys.argv[2].replace("\\\\", "\\")
-    # batchdir = sys.argv[3].replace("\\\\", "\\") # grabs "start in" argument
-else:
-    filelist = []
-    pythondir = ""
-batchdir = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
-if "/" in batchdir and not batchdir.endswith("/"): batchdir += "/"
-elif not batchdir.endswith("\\"): batchdir += "\\"
-batchdirx = batchdir.replace("\\", "\\\\") + "\\\\"
 batchfile = os.path.basename(__file__)
 batchname = os.path.splitext(batchfile)[0]
+batchdir = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
+filelist = []
+savefiles = [[]]
+delfiles = [[]]
+pythondir = ""
+
+if len(sys.argv) > 3:
+    filelist = list(filter(None, sys.argv[1].split("//")))
+    pythondir = sys.argv[2].replace("\\\\", "\\").replace("\\", "/")
+    batchdir = sys.argv[3].replace("\\\\", "\\").replace("\\", "/") # grabs "start in" argument
+if "/" in batchdir and not batchdir.endswith("/"):
+    batchdir += "/"
 os.chdir(batchdir)
 
 date = datetime.now().strftime('%Y') + "-" + datetime.now().strftime('%m') + "-XX"
@@ -33,15 +34,14 @@ tcd = "\\" + batchname + " cd\\"
 htmlfile = batchname + ".html"
 rulefile = batchname + ".txt" # ".cd"
 sav = batchname + ".sav"
-savm = batchname + ".savm"
-savp = batchname + ".savp"
+savs = batchname + ".savs"
 savx = batchname + ".savx"
 textfile = batchname + ".txt"
 
 archivefile = [".7z", ".rar", ".zip"]
 imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"]
 videofile = [".mkv", ".mp4", ".webm"]
-specialfile = ["magnificent.txt", "mediocre.txt", ".ender"]
+specialfile = ["magnificent.txt", "mediocre.txt", "autosave.txt"]
 
 alerted = [False]
 busy = [False]
@@ -49,7 +49,7 @@ cooldown = [False]
 dlslot = [8]
 echothreadn = []
 error = [[]]
-htmlname = batchfile
+echoname = [batchfile]
 newfilen = [0]
 Keypress_prompt = [False]
 Keypress_A = [False]
@@ -110,12 +110,12 @@ sys.stdout.write("Non-ANSI-compliant Command Prompt/Terminal (expect lot of visu
 
 def mainmenu():
     return """
- Delete the ender file if:
+ Delete the autosave file if:
   > You need files that was rejected by your filter list in the past.
   > The deleted files you want them back.
 """
 def ready_input():
-    sys.stdout.write("Ready to (L)oad your favorite artists from textfile: ")
+    sys.stdout.write(f"Ready to (L)oad your favorite artists from {textfile}: ")
     sys.stdout.flush()
 def skull():
     return """                                    
@@ -239,7 +239,8 @@ def input(i="Your Input: ", choices=False):
                     echo(c, 0, 0)
                     return el
             else:
-                echo(str(i) + choices[el-1], 1, 1)
+                echo("", 1)
+                echo(f"{str(i)} {choices[el-1].upper()}", 0, 1)
                 return el
     else:
         return sys.stdin.readline().replace("\n", "")
@@ -270,8 +271,15 @@ fanbox
 
 - - - - Probably useless settings - - - -
 Do not edit uneducated.
+
+# blue CLI
 bgcolor 005A80
 fgcolor 6
+
+# red CLI
+# bgcolor 300710
+# fgcolor 1
+
 # collisionisreal
 # editisreal
 # buildthumbnail
@@ -352,8 +360,9 @@ for setting in settings:
     if not rules[offset].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if offset == 0:
             setting += "Yes" if input(f"Launch HTML server? (Y)es/(N)o: ", "yn") == 1 else "No"
-            echo("", 1, 0)
-            echo(f" Inline tutorial and download filters were added to {rulefile}.\n You may want to check/edit there before I download artpieces with filters and settings.", 0, 2)
+            echo("", 1)
+            echo("", 0, 1)
+            echo(f" Inline tutorial and download filters were added to {rulefile}.\n You may want to check/edit there before I download artpieces with filters and settings.", 0, 1)
         rules.insert(offset, setting)
         print(f"""Added new setting "{setting}" to {rulefile}!""")
         new_setting = True
@@ -379,7 +388,7 @@ def echoMBs(threadn, Bytes, ff):
     s = time.time()
     if echofriction[0] < int(s*eps):
         echofriction[0] = int(s*eps)
-        stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {htmlname} {''.join(fx[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
+        stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {echoname[0]} {''.join(fx[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
     else:
         echofriction[0] = int(s*eps)
     if Bstime[0] < int(s):
@@ -404,12 +413,12 @@ def monitor():
     tm[min][sec] = tp[pg[0]] if pg[0] < pr else tp[pr]
     ts = [x.copy() for x in tm]
     ts[min][sec] = "|"
-    return f""" ꊱ {" ꊱ ".join(["".join(x) for x in ts])} ꊱ"""
+    return f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {echoname[0]} ꊱ {" ꊱ ".join(["".join(x) for x in ts])} ꊱ"""
 
 
 
 def status():
-    return f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] """
+    return f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {echoname[0]}"""
 
 
 
@@ -421,9 +430,25 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         if (x := int(self.headers['Content-Length'])) < 200:
-            x = self.rfile.read(x).decode('utf-8').replace("/", "\\")
-            print(f"{os.getcwd()}\{x}")
-            # self.wfile.write(bytes(f"GET request for {self.path}", 'utf-8'))
+            x = self.rfile.read(x).decode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain; charset=utf-8')
+            self.end_headers()
+            if x.startswith("Save "):
+                x = saint(x.split(" ", 1)[1]).replace("\\", "/")
+                x = f"""{batchdir.rstrip("/")}{x}"""
+                echo(f"Save {x}", 0, 1)
+                savefiles[0] += [x]
+                self.wfile.write(bytes(f"Save list updated", 'utf-8'))
+            elif x.startswith("Schande! "):
+                x = saint(x.split(" ", 1)[1]).replace("\\", "/")
+                x = f"""{batchdir.rstrip("/")}{x}"""
+                echo(f"Schande! {x}", 0, 1)
+                delfiles[0] += [x]
+                self.wfile.write(bytes(f"Schande list updated", 'utf-8'))
+            else:
+                print(f"Stray POST data: {x}")
+                self.wfile.write(bytes(f"Stray POST data sent", 'utf-8'))
 
     def send_head(self):
         self.range = (0, 0)
@@ -513,13 +538,11 @@ def handler(directory):
     def _init(self, *args, **kwargs):
         return RangeHTTPRequestHandler.__init__(self, *args, directory=self.directory, **kwargs)
     return type(f'RangeHTTPRequestHandler<{directory}>', (RangeHTTPRequestHandler,), {'__init__': _init, 'directory': directory})
-class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
-    pass
 def startserver(port, directory):
-    d = os.path.basename(directory)
-    d = f"\\{d}\\" if d else "current drive"
+    d = directory.rsplit("/", 2)[1]
+    d = f"\\{d}\\" if d else f"""DRIVE {directory.replace("/", "")}\\"""
     print(f""" HTML SERVER: Serving {d} at port {port}""")
-    ThreadedHTTPServer(("", port), handler(directory)).serve_forever()
+    ThreadingHTTPServer(("", port), handler(directory)).serve_forever()
 
 
 
@@ -663,7 +686,7 @@ Patrol = y(rules[2], True)
 proxy = y(rules[4])
 if HTMLserver:
     port = 8885
-    directories = [os.getcwd()]
+    directories = [batchdir]
     for directory in directories:
         port += 1
         t = Thread(target=startserver, args=(port,directory,))
@@ -740,7 +763,7 @@ if not Patreoncookie and not Fanboxcookie and not Fantiacookie and not Kemonopar
 
 tn = [len(ticks)]
 ticking = [False]
-def timer(e="", all=True):
+def timer(e="", all=True, listen=[[True]], notlisten=[[False]]):
     if not ticks:
         ticks.append([4, 8])
         tn[0] = len(ticks)
@@ -756,9 +779,11 @@ def timer(e="", all=True):
             if pgtime[0] < int(time.time()/5):
                 pgtime[0] = int(time.time()/5)
                 pg[0] = 0
-                title(batchfile + monitor())
+                title(monitor())
             if Keypress_CtrlC[0]:
                 Keypress_CtrlC[0] = False
+                break
+            if any(not x[0] for x in listen) or any(x[0] for x in notlisten):
                 break
         ticking[0] = False
     elif all:
@@ -772,18 +797,18 @@ def retry(stderr):
     Keypress_R[0] = False
     while True:
         if not Keypress_prompt[0]:
-            Keypress_prompt[0] = True
+            Keypress_prompt[0] = f"{stderr} (R)etry (A)lways (S)kip once (X)auto defuse antibot with (F)irefox: "
             if stderr:
                 if Keypress_A[0]:
-                    e = f"{retries[0]} retries (Q)uit trying "
+                    e = f"{retries[0]} retries (P)ause (S)kip once "
                     if cooldown[0]:
-                        timer(e)
+                        timer(e, listen=[Keypress_A], notlisten=[Keypress_S])
                     else:
                         echo(e)
-                    Keypress_R[0] = True
-                else:
-                    title(status() + batchname)
-                    sys.stdout.write(f"{stderr} (R)etry? (A)lways (S)kip defuse antibot with (F)irefox: ")
+                    Keypress_R[0] = True if Keypress_A[0] else False
+                if not Keypress_R[0]:
+                    title(monitor())
+                    sys.stdout.write(Keypress_prompt[0])
                     sys.stdout.flush()
                     while True:
                         if Keypress_R[0] or Keypress_A[0]:
@@ -794,14 +819,13 @@ def retry(stderr):
                             return
                         if Keypress_F[0]:
                             Keypress_F[0] = False
-                            Keypress_prompt[0] = False
                             return 2
                         time.sleep(0.1)
             else:
                 echo(f"{retries[0]} retries (S)kip one, wait it out, or press X to quit trying . . . ")
             time.sleep(0.1)
             retries[0] += 1
-            title(status() + batchname)
+            title(monitor())
             Keypress_prompt[0] = False
             return True
         elif Keypress_R[0]:
@@ -833,7 +857,7 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
                 return 0, str(e.code)
         except URLError as e:
             if stderr or Keypress_X[0] and not Keypress_S[0]:
-                if not retry(f"{stderr} (e.reason)"):
+                if not retry(f"{stderr} ({e.reason})"):
                     return 0, e.reason
             else:
                 Keypress_S[0] = False
@@ -936,6 +960,9 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
                     Keypress_CtrlC[0] = False
         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
         os.rename(todisk + ".part", todisk)
+        if Keypress_prompt[0]:
+            sys.stdout.write(Keypress_prompt[0])
+            sys.stdout.flush()
         stdout[0] = ""
         stdout[1] = ""
         return 1
@@ -962,6 +989,9 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
                                         with open(todisk, 'wb') as f:
                                             f.write(data);
                                         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
+                                    if Keypress_prompt[0]:
+                                        sys.stdout.write(Keypress_prompt[0])
+                                        sys.stdout.flush()
                                     return
                         else:
                             return data
@@ -1063,9 +1093,9 @@ def isrej(filename, rejlist):
     origin = ""
     if "/" in filename:
         dir, filename = filename.rsplit("/", 1)
-        dir = f"{batchname}/{htmlname}/{dir}/"
+        dir = f"{batchname}/{echoname[0]}/{dir}/"
     else:
-        dir = f"{batchname}/{htmlname}/"
+        dir = f"{batchname}/{echoname[0]}/"
     if mediocre:
         origin = "mediocre.txt"
         rejected = check(filename, mediocre)
@@ -1154,9 +1184,8 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
     error[0] = []
     filelist = []
     filelisthtml = []
-    fromhtml_pm = fromhtml["paysite" if paysite else "mirror"]
-    htmlpart = fromhtml_pm["partition"]
-    htmlname = fromhtml["htmlname"]
+    htmlname = fromhtml["name"]
+    htmlpart = fromhtml["partition"]
     html = []
     log = []
     for key in htmlpart.keys():
@@ -1184,13 +1213,13 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
             if not (e := os.path.split(e)[0].replace("/", "\\") + "\\") in echoed:
                 echoed += [e]
                 buffer += f"  {e}\n"
+        echo("", 0, 1)
         echo(f"{buffer} Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs.", 0, 2)
 
     if not filelist:
-        if fromhtml_pm["makehtml"]:
-            tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml_pm, [], fromhtml["m"])
-        else:
-            print("Filelist is empty!")
+        if fromhtml["makehtml"]:
+            tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml, [], fromhtml["m"])
+        print("Filelist is empty!")
         return
     if len(filelist) == 1:
         echothreadn.append(0)
@@ -1205,19 +1234,14 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
 
 
 
-    # Ender (1/3)
-    ender = False
+    # Autosave (1/3)
+    ender_key = 0
     enderread = []
-    last_key = 0
-    new_ender = ""
     new_enderread = set([])
-    for file in next(os.walk(f"{batchname}/{htmlname}/"))[2]:
-        if file.endswith(".ender"):
-            ender = file
-            with open(f"{batchname}/{htmlname}/{ender}", 'r') as f:
-                enderread = f.read().splitlines()
-            new_enderread.update(enderread)
-
+    if os.path.exists(ender := f"{batchname}/{htmlname}/autosave.txt"):
+        with open(ender, 'r') as f:
+            enderread = f.read().splitlines()
+        new_enderread.update(enderread)
 
 
 
@@ -1226,10 +1250,8 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
 
 
 
-        # Ender (2/3)
+        # Autosave (2/3)
         part_key = filename.rsplit("/", 1)[-1].split(".", 1)[0]
-        if not new_ender:
-            new_ender = os.path.splitext(filename)[0].split(".", 1)[0] + ".ender"
         if line := [x for x in enderread if part_key in x]:
             if not onserver:
                 continue
@@ -1242,11 +1264,11 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
                         if os.path.exists(thumbnail):
                             os.rename(thumbnail, ren(thumbnail, old))
                     else:
-                        last_key = part_key
+                        ender_key = part_key
                         print(f"  Edited on server: {ondisk}")
                         continue
-                if not part_key == last_key:
-                    last_key = part_key
+                if not part_key == ender_key:
+                    ender_key = part_key
                     new_enderread.remove(line[0])
                     new_enderread.add(f"{part_key} {edited}")
             else:
@@ -1278,7 +1300,7 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
 
 
 
-    # Ender (3/3) and rebuild HTML
+    # Autosave (3/3) and rebuild HTML
     newfile = False if lastfilen == newfilen[0] else True
     new_enderread = sorted(new_enderread)
     if error[0]:
@@ -1286,23 +1308,18 @@ def downloadtodisk(fromhtml, paysite=False, makedirs=False):
         new_enderread = [x for x in new_enderread if x and x.split()[0] not in error[0]]
     if paysite and not newfile:
         print("You've got everything from this artist at tier you pledged to!")
-    elif ender:
+    elif os.path.exists(ender):
         print(f"""Ender file tripped.{" Nothing new to download." if not newfile else ""}{" There are failed downloads I will try again later." if error[0] else ""}""")
-        if newfile and ender:
-            os.remove(f"{batchname}/{htmlname}/{ender}")
-            ender = False
-    if not ender:
-        with open(f"{batchname}/{htmlname}/{new_ender}", 'w') as f:
+    else:
+        with open(ender, 'w') as f:
             f.write("\n".join(new_enderread))
-        if os.path.exists(f"{batchname}/{htmlname}.html"):
-            os.remove(f"{batchname}/{htmlname}.html")
-    if not (x := os.path.exists(f"{batchname}/{htmlname}.html")) or Patrol:
+    if newfile or Patrol or not (x := os.path.exists(f"{batchname}/{htmlname}.html")):
         orphan_files = []
         for file in next(os.walk(f"{batchname}/{htmlname}/"))[2]:
             if not file.endswith(tuple(specialfile)):
                 orphan_files += [file]
         if not x:
-            tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml_pm, set(orphan_files).difference(x[1].rsplit("/", 1)[-1] for x in filelist), fromhtml["m"])
+            tohtml(f"{batchname}/{htmlname}/", htmlname, fromhtml, set(orphan_files).difference(x[1].rsplit("/", 1)[-1] for x in filelist), fromhtml["m"])
         if Patrol:
             print()
             total = len(orphan_files)
@@ -1346,7 +1363,6 @@ def firefox(url):
         else:
             return
     firefox_running[0].get(url)
-    time.sleep(1)
     # ff_login()
     # echo("(C)ontinue when finished defusing.")
     # Keypress_C[0] = False
@@ -1446,15 +1462,22 @@ h2{margin:4px;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 .stdout {white-space:pre-wrap; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
-.schande{opacity:0.5; position:absolute; top:150px; text-align:center; line-height:40px; height:40px; margin:3px; cursor:pointer; min-width:50px; border:2px solid #f66; background-color:#602; color:#f45;}
-.saint{border:2px solid #6f6; background-color:#260; color:#4f5;}
+.schande{opacity:0.5; position:absolute; top:""" + f"{imgsize - 50}" + """px; text-align:center; line-height:40px; height:40px; margin:3px; cursor:pointer; min-width:50px; border:2px solid #f66; background-color:#602; color:#f45;}
+.save{border:2px solid #6f6; background-color:#260; color:#4f5;}
 </style>
 <script>
 var xhr = new XMLHttpRequest();
-function send(b){
+function send(b, e){
   xhr.open("POST", '', true);
   xhr.setRequestHeader('Content-Type', 'application/octet-stream');
   xhr.send(b);
+  xhr.responseType = "arraybuffer";
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      e.target.setAttribute("data-tooltip", new TextDecoder().decode(xhr.response));
+      FFmove(e);
+    }
+  }
 }
 
 function plaintext(elem, e) {
@@ -1482,10 +1505,8 @@ var Expand = function(c, t) {
 var FFclick = function(e) {
   var t = e.target;
   var a = t.parentNode;
-  if (t.hasAttribute("data-saint")) {
-    send(t.getAttribute("data-saint"));
-  } else if (t.hasAttribute("data-schande")) {
-    send(t.getAttribute("data-schande"));
+  if (t.hasAttribute("data-schande")) {
+    send(t.innerHTML + " " + location.pathname.split('/').slice(0, -1).join('/') + "/" + t.getAttribute("data-schande"), e);
   } else if (a.classList.contains("fileThumb")) {
     e.preventDefault();
     if(t.hasAttribute("data-src")) {
@@ -1519,15 +1540,13 @@ var FFover = function(e) {
   var t = e.target;
   if(t.classList.contains("lazy") && !t.hasAttribute("busy")) {
     var d = document.createElement("div");
-    d.innerHTML = "<div class='schande saint' style='display:none;'>Saint</div><div class='schande' style='/*left:54px;*/'>Schande!</div>";
+    d.innerHTML = "<div class='schande save' style='display:none;'>Save</div><div class='schande' style='/*left:54px;*/'>Schande!</div>";
     var a = t.parentNode.parentNode;
     a.appendChild(d);
     let isover = function(g) {
       g.target.style.opacity = 1
-      if (g.target.classList.contains("saint")) {
+      if (g.target.classList.contains("schande")) {
         g.target.setAttribute("data-schande", t.getAttribute("data-src"))
-      } else {
-        g.target.setAttribute("data-saint", t.getAttribute("data-src"))
       }
       g.target.removeEventListener("mouseover", isover);
       let left = () => {
@@ -1625,8 +1644,13 @@ function quicklook(e) {
           t.removeAttribute("data-tooltip");
         }
       } else {
-        var m = new Image();
-        m.src = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0].getAttribute("href");
+        let m = new Image();
+        let p = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0];
+        if (p == undefined || p.nodeName != "A") {
+          m.src = s.src;
+        } else {
+          m.src = p.getAttribute("href");
+        }
         if(m.src == s.src) {
           context.fillRect(0, 0, s.width, s.height);
         } else {
@@ -2025,7 +2049,7 @@ function lazyload() {
 }
 </script>
 <body>
-<div id="tooltip" class="closebtn" style="padding:0px 8px; font-family:sans-serif; z-index:9999999; left:0px; top:0px; right:initial; pointer-events:none;"></div><div style="display:block; height:20px;"></div><p class="stdout" id="stdout" style="display:none;" onpaste="plaintext(this, event);" contenteditable="plaintext-only" spellcheck=false><div class="container" style="display:none;">
+<div id="tooltip" class="closebtn" style="padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial; pointer-events:none;"></div><div style="display:block; height:20px;"></div><p class="stdout" id="stdout" style="display:none;" onpaste="plaintext(this, event);" contenteditable="plaintext-only" spellcheck=false><div class="container" style="display:none;">
 <button class="closebtn" onclick="this.parentElement.style.display='none'">&times;</button>""" + f"""<div class="mySlides">{listurls}</div>
 <img id="expandedImg">
 </div>
@@ -2298,7 +2322,7 @@ def new_p(z):
 
 def new_part(threadn=0):
     new = {threadn:new_p("0")} if threadn else new_p("0")
-    return {"ready":True, "page":"", "folder":"", "makehtml":False, "campaign_id":None, "icons":[], "inlinefirst":True, "partition":new}
+    return {"ready":ready, "page":"", "name":"", "folder":"", "makehtml":True, "campaign_id":None, "m":[[], [], False], "icons":[], "inlinefirst":True, "partition":new}
 
 def fanbox_avatars(threadn, htmlname, id):
     api = json.loads(get(f"https://api.fanbox.cc/creator.get?userId={id}", stderr=f"Broken API on Fanbox for {htmlname}", threadn=threadn).decode('utf-8'))
@@ -2639,7 +2663,11 @@ def get_assets(artworks):
                 mirror_assets = kp_fantia_assets(threadn, htmlname, id)
             elif HOME == "Patreon":
                 mirror_assets = kp_patreon_assets(threadn, htmlname, id)
-            print(f"Fetched new data for {htmlname}")
+            if mirror_assets:
+                print(f"Fetched new data for {htmlname}")
+            else:
+                print("Error fetching new data for {htmlname}")
+            shelf.update({HOME + id + "mirror": mirror_assets})
         if id in pledges:
             if HOME == "Fanbox":
                 paysite_assets = fanbox_assets(threadn, htmlname, id)
@@ -2647,17 +2675,24 @@ def get_assets(artworks):
                 paysite_assets = fantia_assets(threadn, htmlname, id)
             elif HOME == "Patreon":
                 paysite_assets = patreon_assets(threadn, htmlname, id)
-            print(f"Fetched new data for {htmlname} ({HOME})")
-        shelf.update({HOME + id: {"htmlname":htmlname, "m":[[], [], False], "inlinefirst": False, "mirror": mirror_assets, "paysite": paysite_assets}})
-        fromhtml = shelf[HOME + id]
+            if paysite_assets:
+                print(f"Fetched new data for {htmlname} ({HOME})")
+            else:
+                print("Error fetching new data for {htmlname} ({HOME})")
+            shelf.update({HOME + id + "paysite": paysite_assets})
+        m = [[], [], False]
         if os.path.exists(x := f"{batchname}/{htmlname}/mediocre.txt"):
             with open(x, 'r', encoding='utf-8') as f:
-                fromhtml["m"][0] = f.read().splitlines()
+                 m[0] = f.read().splitlines()
         if os.path.exists(x := f"{batchname}/{htmlname}/magnificent.txt"):
             with open(x, 'r', encoding='utf-8') as f:
-                fromhtml["m"][1] = f.read().splitlines()
-            if "inherit" in fromhtml["m"][1]:
-                fromhtml["m"][2] = True
+                 m[1] = f.read().splitlines()
+            if "inherit" in m[1]:
+                 m[2] = True
+        for src in ["mirror", "paysite"]:
+            if HOME + id + src in shelf:
+                shelf[HOME + id + src]["name"] = htmlname
+                shelf[HOME + id + src]["m"] = m
         echothreadn.remove(threadn)
         artworks.task_done()
     echothreadn.remove(threadn)
@@ -2674,9 +2709,9 @@ for i in range(8):
 
 
 def nextshelf(fromhtml, paysite=False):
-    if not ready:
-        fromhtml_pm = fromhtml["paysite" if paysite else "mirror"]
-        htmlpart = fromhtml_pm["partition"]
+    if not fromhtml["ready"]:
+        htmlname = fromhtml["name"]
+        htmlpart = fromhtml["partition"]
         stdout = ""
         for k in htmlpart.keys():
             for file in htmlpart[k]["files"]:
@@ -2686,27 +2721,28 @@ def nextshelf(fromhtml, paysite=False):
                 if h[1]:
                     x = get_cd(h[1], [], fromhtml["m"], preview=True)
                     stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + "\n"
-        stdout += f"{tcolorx}\n Then create {tcolorg}{batchname}\\{htmlname}.html{tcolorx} with\n"
-        if x := fromhtml_pm["icons"]:
-            stdout += f"""{tcolorg}█{"█ █".join([i["name"] for i in x])}█\n"""
-        if x := fromhtml_pm["page"]:
-            stdout += f"""{tcoloro}<h2><a href="{x["link"]}">{x["name"]}</a></h2>\n"""
-        for k in htmlpart.keys():
-            if k == "0" and not htmlpart[k]["files"]:
-                continue
-            stdout += tcolorx + k + tcolor + "\n"
-            if x := htmlpart[k]["keywords"]:
-                keywords = ", ".join(f"{kw}" for kw in x[2:])
-                stdout += tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 and x[1] else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + "\n"
-            for file in htmlpart[k]["files"]:
-                stdout += tcolorg + file["name"].rsplit("\\")[-1] + "\n"
-            if html := htmlpart[k]["html"]:
-                for h in html:
-                    if h[0]:
-                        stdout += tcoloro + h[0]
-                    if h[1]:
-                        stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
-                stdout += "\n"
+        if fromhtml["makehtml"]:
+            stdout += f"{tcolorx}\n Then create {tcolorg}{batchname}\\{htmlname}.html{tcolorx} with\n"
+            if x := fromhtml["icons"]:
+                stdout += f"""{tcolorg}█{"█ █".join([i["name"] for i in x])}█\n"""
+            if x := fromhtml["page"]:
+                stdout += f"""{tcoloro}<h2><a href="{x["link"]}">{x["name"]}</a></h2>\n"""
+            for k in htmlpart.keys():
+                if k == "0" and not htmlpart[k]["files"]:
+                    continue
+                stdout += tcolorx + k + tcolor + "\n"
+                if x := htmlpart[k]["keywords"]:
+                    keywords = ", ".join(f"{kw}" for kw in x[2:])
+                    stdout += tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 and x[1] else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + "\n"
+                for file in htmlpart[k]["files"]:
+                    stdout += tcolorg + file["name"].rsplit("\\")[-1] + "\n"
+                if html := htmlpart[k]["html"]:
+                    for h in html:
+                        if h[0]:
+                            stdout += tcoloro + h[0]
+                        if h[1]:
+                            stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
+                    stdout += "\n"
         echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or (B)ack to main menu: """, 0, 1)
         Keypress_B[0] = False
         Keypress_C[0] = False
@@ -2735,7 +2771,6 @@ def scrape(pages):
         threadn += 1
         echothreadn.append(threadn)
         artworks.put((threadn, shelf, id, htmlname, HOME))
-    htmlname = batchfile
     try:
         artworks.join()
     except KeyboardInterrupt:
@@ -2744,16 +2779,14 @@ def scrape(pages):
     for htmlname, id, HOME in pages:
         if not os.path.exists(f"{batchname}/{htmlname}/"):
             os.makedirs(f"{batchname}/{htmlname}/")
-        if shelf[HOME + id]["mirror"]:
-            print(f"\n - - - - {htmlname} - - - -")
-            title(status() + htmlname)
-            htmldata[0] += [f"<p>- - - - {htmlname} - - - -</p>"]
-            nextshelf(shelf[HOME + id])
-        if shelf[HOME + id]["paysite"]:
-            print(f"\n - - - - {htmlname} (only on {HOME}) - - - -")
-            title(f"{status()}{htmlname} (only on {HOME})")
-            htmldata[0] += [f"<p>- - - - {htmlname} (only on {HOME}) - - - -</p>"]
-            nextshelf(shelf[HOME + id], True)
+        echoname[0] = htmlname
+        for src in ["mirror", "paysite"]:
+            if HOME + id + src in shelf:
+                p = " (only on {HOME})" if src == "paysite" else ""
+                print(f"\n - - - - {htmlname}{p} - - - -")
+                title(status() + p)
+                htmldata[0] += [f"<p>- - - - {htmlname}{p} - - - -</p>"]
+                nextshelf(shelf[HOME + id + src], p)
 
 
 
@@ -2814,6 +2847,8 @@ def readfile():
             else:
                 resume = True
             scrape(pages)
+            echoname[0] = batchfile
+            title(status())
 
     if newfilen[0] or not os.path.exists(htmlfile) or Patrol:
         with open(htmlfile, 'wb') as f:
@@ -2855,7 +2890,7 @@ def readfile():
             print(f"""\n Today download result HTML "{htmlfile}" updated! You can view {newfilen[0]} new picture(s) in browser.""")
         else:
             print(f"""\n Today download result HTML "{htmlfile}" updated! It might be hard for browser to handle {newfilen[0]} new pictures!""")
-    title(status() + batchfile)
+    title(status())
 
 
 
@@ -2914,9 +2949,9 @@ def keylistener():
         elif el == 15:
             unrecognized("O")
         elif el == 16:
-            unrecognized("P")
-        elif el == 17:
             pressed(Keypress_A, False)
+        elif el == 17:
+            unrecognized("Q")
         elif el == 18:
             pressed(Keypress_R)
         elif el == 19:

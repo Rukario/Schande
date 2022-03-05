@@ -19,6 +19,7 @@ filelist = []
 savefiles = [[]]
 delfiles = [[]]
 pythondir = ""
+thumbnail_dir = ""
 
 if len(sys.argv) > 3:
     filelist = list(filter(None, sys.argv[1].split("//")))
@@ -53,9 +54,9 @@ echoname = [batchfile]
 newfilen = [0]
 Keypress_prompt = [False]
 Keypress_A = [False]
-Keypress_B = [False]
 Keypress_C = [False]
 Keypress_F = [False]
+Keypress_M = [False]
 Keypress_R = [False]
 Keypress_S = [False]
 Keypress_X = [False]
@@ -68,6 +69,8 @@ collisionisreal = False
 editisreal = False
 buildthumbnail = False
 shuddup = True
+showpreview = False
+verifyondisk = False
 
 
 
@@ -113,16 +116,17 @@ def mainmenu():
  + Drag'n'drop and enter image file to compare with another image, while scanning new folder, or find in database.
 
  - - - - {batchname} HTML - - - -
- + Press G to re/compile HTML from Geistauge's database (your browser will be used as comparison GUI).
+ + Press B to launch HTML in your favorite browser.
+ | Press G to re/compile HTML from Geistauge's database (your browser will be used as comparison GUI).
  + Press D to open delete mode.
 
  - - - - Input - - - -
- + Enter file:/// or http://localhost url to enter delete mode.
+ + Enter partition.json to rebuild HTML.
  | Enter http(s):// to download file. Press V for page source viewing.
  + Enter valid site to start a scraper.
 """
 def ready_input():
-    sys.stdout.write(f"Enter (I)nput mode or ready to s(O)rt, (L)oad filelist from {textfile}, hel(P): ")
+    sys.stdout.write(f"Enter (I)nput mode or ready to s(O)rt, (L)oad filelist from {textfile}, h(E)lp: ")
     sys.stdout.flush()
 def skull():
     return """                                    
@@ -378,12 +382,14 @@ case $el in
 """ + "\n".join([f"{k} ) exit {e+1};;" for e, k in enumerate(keys)]) + """
 esac
 done""")
-        echo(tcolorx, 0, 1)
+        if el >= 256:
+            el /= 256
+        el = int(el)
+        sys.stdout.write(f"{keys[el-1].upper()}\n")
+        sys.stdout.flush()
     if not keys:
         return
-    if el >= 256:
-        el /= 256
-    return int(el)
+    return el
 
 
 
@@ -406,7 +412,6 @@ def input(i="Your Input: ", choices=False):
                     echo(c, 0, 0)
                     return el
             else:
-                echo(f"{str(i)} {choices[el-1].upper()}", 0, 2)
                 return el
     else:
         return sys.stdin.readline().replace("\n", "")
@@ -503,7 +508,12 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if '?' in self.path:
             self.path = self.path.split('?')[0]
-        SimpleHTTPRequestHandler.do_GET(self)
+        f = self.send_head()
+        if f:
+            try:
+                self.copyfile(f, self.wfile)
+            finally:
+                f.close()
 
     def do_POST(self):
         if (x := int(self.headers['Content-Length'])) < 200:
@@ -524,7 +534,7 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
                 delfiles[0] += [x]
                 self.wfile.write(bytes(f"Schande list updated", 'utf-8'))
             else:
-                print(f"Stray POST data: {x}")
+                echo(f"Stray POST data: {x}", 0, 1)
                 self.wfile.write(bytes(f"Stray POST data sent", 'utf-8'))
 
     def send_head(self):
@@ -588,7 +598,7 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             return f
         except:
-            print("DISCONNECTED")
+            echo("DISCONNECTED", 0, 1)
 
     def copyfile(self, source, outputfile):
         dl = self.range[0]
@@ -603,9 +613,9 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
                 dl += Bytes
                 echoMBs(-thread, -Bytes, -int(dl/total*256) if total else 0)
                 outputfile.write(buf)
-            print("DONE")
+            echo("DONE", 0, 1)
         except:
-            print("DISCONNECTED")
+            echo("DISCONNECTED", 0, 1)
         echothreadn.remove(-thread)
 
 
@@ -716,7 +726,7 @@ def at(s, r, cw=[], alt=0, key=False, name=False, meta=False):
 
 
 def new_picker():
-    return {"replace":[], "send":[], "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "owner":[], "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "send":[], "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "m":[[], [], False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
 
 
 
@@ -740,6 +750,8 @@ def picker(s, rule):
             s["inlinefirst"] = False
     elif rule.startswith("icon"):
         at(s["icon"], rule.split("icon", 1)[1])
+    elif rule.startswith("inline"):
+        s["m"][2] = True
     elif rule.startswith("links"):
         at(s["links"], rule.split("links", 1)[1])
     elif rule.startswith("key"):
@@ -771,8 +783,6 @@ def picker(s, rule):
     elif rule.startswith("relfiles "):
         at(s[file_pos[0]], rule.split("relfiles", 1)[1])
         s["files"] = True
-    elif rule.startswith("owner "):
-        s["owner"] += [rule.split("owner ", 1)[1]]
     elif rule.startswith("name"):
         at(s["name"], rule.split("name", 1)[1], ["", ""], 1, name=True)
     elif rule.startswith("meta"):
@@ -834,9 +844,8 @@ mozilla = {}
 exempt = []
 dir = ""
 ticks = []
-inline_m = [[], []]
-pickers = {"void":new_picker()}
-site = "void"
+site = "inline"
+pickers = {site:new_picker()}
 total_names = [0]
 for rule in rules:
     if not rule or rule.startswith("#"):
@@ -874,16 +883,20 @@ for rule in rules:
         editisreal = True
     elif rule == "buildthumbnail":
         buildthumbnail = True
+    elif rule == "showpreview":
+        showpreview = True
+    elif rule == "verifyondisk":
+        verifyondisk = True
     elif rule == "shuddup":
         shuddup = 2
     elif rule.startswith('bgcolor '):
         bgcolor = rule.replace("bgcolor ", "")
     elif rule.startswith('fgcolor '):
         fgcolor = rule.replace("fgcolor ", "")
-    elif rule.startswith('!.'):
-        inline_m[0] += [rule.replace("!.", ".", 1)]
+    elif rule.startswith('!'):
+        pickers[site]["pattern"][1 if rule.startswith("!!") else 0] += [rule.lstrip("!")]
     elif rule.startswith('.'):
-        inline_m[1] += [rule]
+        pickers[site]["pattern"][1] += [rule]
     elif rule.startswith("\\"):
         dir = rule.split("\\", 1)[1]
         if dir.endswith("\\"):
@@ -987,7 +1000,11 @@ if Geistauge:
         print(" GEISTAUGE: ON")
     except:
         kill(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install pillow\n{sys.exec_prefix}\Scripts\pip.exe install numpy\n{sys.exec_prefix}\Scripts\pip.exe install opencv-python")
-else:    
+elif verifyondisk:
+    kill(f""" GEISTAUGE: I must be enabled for "verifyondisk" declared in {rulefile}.""")
+elif buildthumbnail:
+    kill(f""" GEISTAUGE: I must be enabled for "buildthumbnail" declared in {rulefile}.""")
+else:
     print(" GEISTAUGE: OFF")
 if "socks5://" in proxy and proxy[10:]:
     if not ":" in proxy[10:]:
@@ -1049,12 +1066,13 @@ def timer(e="", all=True, listen=[[True]], notlisten=[[False]]):
 
 
 
+Keypress_err = ["Some error happened. (R)etry (A)lways (S)kip once (X)auto defuse antibot with (F)irefox: "]
 def retry(stderr):
     # Warning: urllib has slight memory leak
     Keypress_R[0] = False
     while True:
         if not Keypress_prompt[0]:
-            Keypress_prompt[0] = f"{stderr} (R)etry (A)lways (S)kip once (X)auto defuse antibot with (F)irefox: "
+            Keypress_prompt[0] = True
             if stderr:
                 if Keypress_A[0]:
                     e = f"{retries[0]} retries (P)ause (S)kip once "
@@ -1065,7 +1083,8 @@ def retry(stderr):
                     Keypress_R[0] = True if Keypress_A[0] else False
                 if not Keypress_R[0]:
                     title(monitor())
-                    sys.stdout.write(Keypress_prompt[0])
+                    Keypress_err[0] = f"{stderr} (R)etry (A)lways (S)kip once (X)auto defuse antibot with (F)irefox: "
+                    sys.stdout.write(Keypress_err[0])
                     sys.stdout.flush()
                     while True:
                         if Keypress_R[0] or Keypress_A[0]:
@@ -1086,6 +1105,7 @@ def retry(stderr):
             Keypress_prompt[0] = False
             return True
         elif Keypress_R[0]:
+            time.sleep(0.1) # so I don't return too soon to turn off another Keypress_R used to turn off Keypress_prompt.
             return True
         time.sleep(0.1)
 
@@ -1121,7 +1141,11 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
                 return 0, e.reason
         except:
             if stderr or Keypress_X[0] and not Keypress_S[0]:
-                if not retry(f"{stderr} (closed by host)"):
+                el = retry(f"{stderr} (closed by host)")
+                if el == 2:
+                    echo(" FIREFOX: Maybe not.", 0, 1)
+                    Keypress_prompt[0] = False
+                elif not el:
                     return 0, "closed by host"
             else:
                 Keypress_S[0] = False
@@ -1136,7 +1160,9 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
 request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookies)))
 # cookies.save()
 
-def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=False, stderr="", threadn=0):
+def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=False, stderr="", sleep=0, threadn=0):
+    if sleep:
+        time.sleep(sleep)
     dl = 0
     if todisk:
         echo(threadn, f"{threadn:>3} Downloading 0 / 0 MB {url}", clamp='█')
@@ -1144,7 +1170,6 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
             dl = os.path.getsize(todisk + ".part")
     else:
         echo(threadn, "0 MB")
-    Keypress_S[0] = False
     Keypress_CtrlC[0] = False
     while echothreadn and echothreadn.index(threadn) >= dlslot[0]:
         time.sleep(0.1)
@@ -1218,7 +1243,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
         os.rename(todisk + ".part", todisk)
         if Keypress_prompt[0]:
-            sys.stdout.write(Keypress_prompt[0])
+            sys.stdout.write(Keypress_err[0])
             sys.stdout.flush()
         stdout[0] = ""
         stdout[1] = ""
@@ -1247,7 +1272,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
                                             f.write(data);
                                         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
                                     if Keypress_prompt[0]:
-                                        sys.stdout.write(Keypress_prompt[0])
+                                        sys.stdout.write(Keypress_err[0])
                                         sys.stdout.flush()
                                     return
                         else:
@@ -1293,7 +1318,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
 
 def echolinks(download):
     while True:
-        threadn, html, log, todisk, onserver = download.get()
+        threadn, errorhtml, todisk, onserver, sleep = download.get()
         conflict = [[], []]
         for n in range(len(onserver)):
             if n and not collisionisreal:
@@ -1306,13 +1331,13 @@ def echolinks(download):
                 conflict[0] += [todisk]
             if os.path.exists(todisk):
                 echo(f"{threadn:>3} Already downloaded: {todisk}", 0, 1)
-            elif (err := get(url, todisk=todisk, conflict=conflict, threadn=threadn)) == 1:
+            elif (err := get(url, todisk=todisk, conflict=conflict, threadn=threadn, sleep=sleep)) == 1:
                 newfilen[0] += 1
-                html.append("<a href=\"" + todisk.replace("#", "%23") + "\"><img src=\"" + todisk.replace("#", "%23") + "\" height=200px></a>")
+                errorhtml[0] += ["<a href=\"" + todisk.replace("#", "%23") + "\"><img src=\"" + todisk.replace("#", "%23") + "\" height=200px></a>"]
             else:
                 error[0] += [todisk]
                 echo(f"{threadn:>3} Error downloading ({err}): {url}", 0, 1)
-                log.append(f"&gt; Error downloading ({err}): {url}")
+                errorhtml[1] += [f"&gt; Error downloading ({err}): {url}"]
         echothreadn.remove(threadn)
         download.task_done()
 download = Queue()
@@ -1323,7 +1348,7 @@ for i in range(8):
 
 
 
-def get_cd(file, log=[], makedirs=False, preview=False, subdir=""):
+def get_cd(file, fromhtml, errorhtml, makedirs=False, preview=False, subdir=""):
     link = file["link"] if preview else file.pop("link")
     todisk = batchname + "/" + file["name"].replace("\\", "/")
     if rule := [v for k, v in customdir.items() if k in link]:
@@ -1346,7 +1371,7 @@ def get_cd(file, log=[], makedirs=False, preview=False, subdir=""):
                     buffer = "\\" + dir.replace("/", "\\")
                     kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
             else:
-                log.append(f"&gt; Error downloading (dir): {link}")
+                errorhtml[1] += [f"&gt; Error downloading (dir): {link}"]
                 print(f" Error downloading (dir): {link}")
                 error[0] += [todisk]
                 link = ""
@@ -1370,45 +1395,59 @@ def get_cd(file, log=[], makedirs=False, preview=False, subdir=""):
 
 
 
-def downloadtodisk(fromhtml, makedirs=False):
+def downloadtodisk(fromhtml, oncomplete, makedirs=False):
+    if not fromhtml:
+        threadn = 0
+        while True:
+            threadn += 1
+            echothreadn.append(threadn)
+            download.put((threadn, [[], []], "Key listener test", ["Key listener test"], random()*0.5))
+            if threadn == 200:
+                break
+        try:
+            download.join()
+        except KeyboardInterrupt:
+            pass
+        return
     error[0] = []
+    errorhtml = [[], []]
     filelist = []
     filelisthtml = []
     htmlname = fromhtml["name"]
     htmlpart = fromhtml["partition"]
-    html = []
-    log = []
     for key in htmlpart.keys():
         for file in htmlpart[key]["files"]:
             if not file["name"]:
                 print(f""" I don't have a scraper for {file["link"]}""")
             else:
-                if (x := get_cd(file, log, makedirs) + [key])[0]:
+                if (x := get_cd(file, fromhtml, errorhtml, makedirs) + [key])[0]:
                     filelist += [x]
         for array in htmlpart[key]["html"]:
             if len(array) == 2 and array[1]:
                 if not array[1]["name"]:
                     print(f""" I don't have a scraper for {array[1]["link"]}""")
                 else:
-                    if (x := get_cd(array[1], log, makedirs) + [key])[0]:
+                    if (x := get_cd(array[1], fromhtml, errorhtml, makedirs) + [key])[0]:
                         filelisthtml += [x]
     if fromhtml["inlinefirst"]:
         filelist = filelisthtml + filelist
     else:
         filelist += filelisthtml
     if error[0]:
-        buffer = "\n There is at least one of the bad custom dir rules (non-existent dir).\n"
+        buffer = " There is at least one of the bad custom dir rules (non-existent dir).\n"
         echoed = []
         for e in error[0]:
             if not (e := os.path.split(e)[0].replace("/", "\\") + "\\") in echoed:
                 echoed += [e]
                 buffer += f"  {e}\n"
         echo("", 0, 1)
-        echo(f"{buffer} Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs.", 0, 1)
+        echo(f"{buffer} Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs.", 0, 2)
+
+
 
     if not filelist:
         if fromhtml["makehtml"]:
-            x = get_cd({"link":fromhtml["page"], "name":fromhtml["folder"], "edited":0}, log, makedirs)[1]
+            x = get_cd({"link":fromhtml["page"], "name":fromhtml["folder"], "edited":0}, fromhtml, errorhtml, makedirs)[1]
             tohtml(x, x.split("/")[-2], fromhtml, [])
         else:
             echo("Filelist is empty!", 0, 1)
@@ -1416,7 +1455,7 @@ def downloadtodisk(fromhtml, makedirs=False):
         return
     if len(filelist) == 1:
         echothreadn.append(0)
-        download.put((0, [], [], filelist[0][1], [filelist[0][0]]))
+        download.put((0, [[], []], filelist[0][1], [filelist[0][0]], 0))
         try:
             download.join()
         except KeyboardInterrupt:
@@ -1465,7 +1504,7 @@ def downloadtodisk(fromhtml, makedirs=False):
     for ondisk, onserver in queued.items():
         threadn += 1
         echothreadn.append(threadn)
-        download.put((threadn, html, log, ondisk, onserver))
+        download.put((threadn, errorhtml, ondisk, onserver, 0))
     try:
         download.join()
     except KeyboardInterrupt:
@@ -1490,6 +1529,10 @@ def downloadtodisk(fromhtml, makedirs=False):
                 for file in next(os.walk(dir))[2]:
                     if not file.endswith(tuple(specialfile)) and not file.startswith("icon"):
                         orphfiles += [file]
+                for icon in fromhtml["icons"]:
+                    if not os.path.exists(dir + thumbnail_dir + icon["name"]):
+                        if not (err := get(icon["link"], subdir + thumbnail_dir + icon["name"])) == 1:
+                            echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
                 tohtml(dir, dir.split("/")[-2], fromhtml, set(orphfiles).difference([x[1].rsplit("/", 1)[-1] for x in filelist]))
     for dir in htmldirs.keys():
         if x := fromhtml["page"]:
@@ -2304,10 +2347,10 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                 stdout = ""
                 x = ""
                 for file in filelist:
-                    x = get_cd(file[1], preview=True)
+                    x = get_cd(file[1], fromhtml, [[], []], preview=True)
                     stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + "\n"
                 for file in filelist_html:
-                    x = get_cd(file, preview=True)
+                    x = get_cd(file, fromhtml, [[], []], preview=True)
                     stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + "\n"
                 if not x:
                     stdout += f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference." + "\n"
@@ -2372,16 +2415,16 @@ def nextshelf(fromhtml):
                         if h[1]:
                             stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
                     stdout += "\n"
-        echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or (B)ack to main menu: """, 0, 1)
-        Keypress_B[0] = False
+        echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or return to (M)ain menu: """, 0, 1)
+        Keypress_M[0] = False
         Keypress_C[0] = False
-        while not Keypress_B[0] and not Keypress_C[0]:
+        while not Keypress_M[0] and not Keypress_C[0]:
             time.sleep(0.1)
         Keypress_C[0] = False
-        if Keypress_B[0]:
-            Keypress_B[0] = False
+        if Keypress_M[0]:
+            Keypress_M[0] = False
             return
-    downloadtodisk(fromhtml, makedirs=True)
+    downloadtodisk(fromhtml, "Autosave declared completion.", makedirs=True)
 
 
 
@@ -2657,7 +2700,12 @@ function send(b, e){
   xhr.responseType = "arraybuffer";
   xhr.onreadystatechange = function() {
     if (xhr.readyState === 4) {
-      e.target.setAttribute("data-tooltip", new TextDecoder().decode(xhr.response));
+      let r = new TextDecoder().decode(xhr.response);
+      if (r.length <= 100){
+        e.target.setAttribute("data-tooltip", r);
+      } else {
+        e.target.setAttribute("data-tooltip", "Please connect to the HTML server");
+      }
       FFmove(e);
     }
   }
@@ -3276,42 +3324,48 @@ def hyperlink(html):
 
 
 
-def tohtml(subdir, htmlname, fromhtml, orphan_files):
+def tohtml(subdir, htmlname, fromhtml, stray_files, rebuild=False):
     builder = ""
     listurls = ""
     htmlpart = fromhtml["partition"]
-    thumbnail_dir = ""
+    if "0" in htmlpart and not htmlpart["0"]["html"] and not htmlpart["0"]["files"]:
+        del htmlpart["0"]
     if not os.path.exists(subdir + thumbnail_dir):
         os.makedirs(subdir + thumbnail_dir)
     new_relics = htmlpart.copy()
 
 
 
-    for icon in fromhtml["icons"]:
-        if not os.path.exists(subdir + thumbnail_dir + icon["name"]):
-            if not (err := get(icon["link"], subdir + thumbnail_dir + icon["name"])) == 1:
-                echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
-        builder += f"""<img src="{thumbnail_dir}{icon["name"]}" height="100px">\n"""
-    if x := fromhtml["page"]:
-        builder += f"""<h2><a href="{x["link"]}">{x["name"]}</a></h2>"""
+    n = 0
+    while True:
+        n += 1
+        icon = "icon.png" if n == 1 else f"icon {n}.png"
+        if os.path.exists(f"{subdir}{thumbnail_dir}{icon}"):
+            builder += f"""<img src="{thumbnail_dir}{icon}" height="100px">\n"""
+        else:
+            break
+    if os.path.exists(x := subdir + htmlname + ".URL"):
+        with open(x, 'r') as f:
+            builder += f"""<h2><a href="{f.splitlines()[1].replace("URL=", "")}">{htmlname}</a></h2>"""
 
 
 
-    for key in new_relics.keys():
-        new_relics[key] = htmlpart[key].copy()
-        files = []
-        duplicates = set()
-        for file in htmlpart[key]["files"]:
-            if not file["name"] in duplicates and not duplicates.add(file["name"]):
-                files += [file["name"].rsplit("/", 1)[-1]]
-        new_relics[key]["files"] = files
-        for array in new_relics[key]["html"]:
-            if len(array) == 2 and array[1]:
-                array[1]["name"] = array[1]["name"].rsplit("/", 1)[-1]
+    if not rebuild:
+        for key in new_relics.keys():
+            new_relics[key] = htmlpart[key].copy()
+            files = []
+            duplicates = set()
+            for file in htmlpart[key]["files"]:
+                if not file["name"] in duplicates and not duplicates.add(file["name"]):
+                    files += [file["name"].rsplit("/", 1)[-1]]
+            new_relics[key]["files"] = files
+            for array in new_relics[key]["html"]:
+                if len(array) == 2 and array[1]:
+                    array[1]["name"] = array[1]["name"].rsplit("/", 1)[-1]
 
 
 
-    partfile = subdir + thumbnail_dir + "partition.json"
+    partfile = f"{subdir}{thumbnail_dir}partition.json"
     gallery_is = "updated"
     if not os.path.exists(partfile):
         gallery_is = "created"
@@ -3319,38 +3373,37 @@ def tohtml(subdir, htmlname, fromhtml, orphan_files):
             f.write(json.dumps(new_relics))
     with open(partfile, 'r', encoding="utf-8") as f:
         relics = json.loads(f.read())
-    orphan_keys = iter(relics.keys())
+    stray_keys = iter(relics.keys())
     part = {}
     for key in new_relics.keys():
         if not key in relics:
             part.update({key:new_relics[key]})
             continue
-        for orphan_key in orphan_keys:
-            if not key == orphan_key:
-                part.update({orphan_key:relics[orphan_key]})
+        for stray_key in stray_keys:
+            if not key == stray_key:
+                part.update({stray_key:relics[stray_key]})
             else:
                 break
         if not relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
             part.update({key:new_relics[key]})
         else:
             part.update({key:relics[key]})
-    with open(partfile, 'w') as f:
-        f.write(json.dumps(part))
-    buffer = partfile.replace("/", "\\")
-    print(f" File {gallery_is}: {buffer}")
+    if not rebuild:
+        with open(partfile, 'w') as f:
+            f.write(json.dumps(part))
+        buffer = partfile.replace("/", "\\")
+        print(f" File {gallery_is}: {buffer}")
 
 
 
-    for file in orphan_files:
-        if file.endswith(tuple(specialfile)) or file.startswith("icon"):
-            continue
+    for file in stray_files:
         key = file.split(".", 1)[0]
         if not key in part.keys():
             key = "0"
-        if "orphan_files" in part[key]:
-            part[key]["orphan_files"] += [file]
+        if "stray_files" in part[key]:
+            part[key]["stray_files"] += [file]
         else:
-            part[key]["orphan_files"] = [file]
+            part[key]["stray_files"] = [file]
     if buildthumbnail:
         echo("Building thumbnails . . .")
 
@@ -3359,9 +3412,9 @@ def tohtml(subdir, htmlname, fromhtml, orphan_files):
     for key in part.keys():
         keywords = part[key]["keywords"]
         if key == "0":
-            if "orphan_files" in part[key]:
+            if "stray_files" in part[key]:
                 title = "<h2>Unsorted</h2>"
-                content = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really orphans.\n"
+                content = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really strays.\n"
             else:
                 continue
         else:
@@ -3380,12 +3433,12 @@ def tohtml(subdir, htmlname, fromhtml, orphan_files):
             for file in part[key]["files"]:
                 builder += container(subdir, file)
             builder += "</div>\n"
-        if "orphan_files" in part[key]:
+        if "stray_files" in part[key]:
             builder += "<div class=\"edits\">\n"
-            for file in part[key]["orphan_files"]:
+            for file in part[key]["stray_files"]:
                 # os.rename(subdir + file, subdir + "Orphaned files/" + file)
                 builder += container(subdir, file)
-            builder += "<br><br>orphaned file(s)\n</div>\n"
+            builder += "<br><br>File(s) not on server\n</div>\n"
         if html := part[key]["html"]:
             builder += """<div class="postMessage">"""
             for array in html:
@@ -3544,32 +3597,29 @@ def tohtml_geistauge(delete=False):
 
 
 
-def savclean(bye=False):
-    print("Developer note: returned to main menu because incomplete")
-    return
-    old_sav = opensav(sav).splitlines()
+def savclean(delete=False):
+    if os.path.exists(sav):
+        old_sav = opensav(sav).splitlines()
+    else:
+        return
+    if os.path.exists(savx):
+        old_savx = opensav(savx).splitlines()
+    else:
+        return
     new_sav = []
-    old_savx = opensav(savx).splitlines()
     new_savx = []
-    if el == 2:
-        new_savp = opensav(savp).splitlines()
-        new_savm = opensav(savm).splitlines()
+    new_savs = opensav(savs).splitlines() if os.path.exists(savs) else []
     for line in old_sav:
         phash, file = line.split(" ", 1)
         if os.path.exists(file):
             new_sav += [line]
-        elif el == 2:
             new_savs += [phash]
     for line in old_savx:
         if os.path.exists(line.split(" ", 5)[4]):
-            new_savx += line
-        elif el == 2:
-            new_savm += [" ".join(line.split(" ", 4)[:4])]
-    if el == 2:
-        with open(savm, 'wb') as f:
-            f.write(bytes("\n".join(new_savm), 'utf-8'))
-        with open(savp, 'wb') as f:
-            f.write(bytes("\n".join(new_savp), 'utf-8'))
+            new_savx += [line]
+            new_savs += [" ".join(line.split(" ", 4)[:4])]
+    with open(savs, 'wb') as f:
+        f.write(bytes("\n".join(new_savs), 'utf-8'))
     print(f"I'd overwrite {sav} and {savx} with new ones.")
     return
     with open(sav, 'wb') as f:
@@ -3581,22 +3631,29 @@ def savclean(bye=False):
 
 def delnow():
     buffer = ""
-    trashlist = []
+    trashlist = {}
     for file in delfiles[0]:
         if os.path.exists(file):
             f = file.rsplit("/", 1)
-            trashlist += [[f[0], f"{f[0]} Trash/", f[1]]]
+            if not f[0] in trashlist:
+                trashlist.update({f[0]:[]})
+            trashlist[f[0]] += [f[1]]
             dir = f[0].replace("/", "\\")
             buffer += f"{tcolorb}{dir}\\{f[1]}{tcolorr} -> {tcolorg}{dir} Trash\\{f[1]}{tcolorx}\n"
+    if not trashlist:
+        echo("No schande'd files!", 0, 2)
+        return
     echo(buffer, 0, 1)
-    if input("(D)elete again to confirm (A)bort:", "da") == 1:
-        for x in trashlist:
-            if not os.path.exists(x[1]):
-                os.makedirs(x[1])
-            os.rename(f"{x[0]}/{x[2]}", f"{x[1]}/{x[2]}")
-        echo(skull(), 0, 1)
-        choice(bg="4c")
-        delfiles[0] = []
+    if input(" Press D again to confirm or return to (M)ain menu: ", "dm") == 1:
+        for dir in trashlist.keys():
+            trashdir = dir + " Trash/"
+            if not os.path.exists(trashdir):
+                os.makedirs(trashdir)
+            for file in trashlist[dir]:
+                os.rename(f"{dir}/{file}", f"{trashdir}/{file}")
+            echo(skull(), 0, 1)
+            choice(bg="4c")
+            delfiles[0] = []
 
 
 
@@ -3605,16 +3662,20 @@ def delmode():
  + (G)eistauge auto: delete non-exempted duplicate images immediately with a confirmation.
  |   > One first non-exempt in path alphabetically will be kept if no other duplication are exempted.
  |   > Rebuild Geistauge HTML without/less identical images.
- | (D)elete schande'd files, formerly inputting file:// and http://localhost via main menu input mode
+ | (D) - View files to be taken to \\.. Trash\\
  | (S)ave - "seen" files in best quality and there won't be inferior similarities again (SAVS creation PH + MD5)
  |   > I think the Save button in browser will be the input.
- | (M) - never want to see them again (SAVS creation PH only)
- +   > ...what kind of input? Stray PHs while splitting SAV?
+ | (T) - never want to see them again (SAVS creation PH only)
+ +   > ...what kind of input? \\..Trash\\. Stray PHs + check if trashed file exists while splitting SAV.
 """)
-    el = input("(B)ack to main menu:", "gdsmb")
-    if el == 0:
+    el = input("Return to (M)ain menu: ", "gdstm")
+    if not el:
         kill(0)
     elif el == 1:
+        if not Geistauge:
+            choice(bg=True)
+            print(" GEISTAUGE: Maybe not.")
+            return
         choice(bg="4c")
         if input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "").replace("\\", "/") == f"{batchdir}{sav}":
             echo(skull(), 0, 1)
@@ -3630,6 +3691,7 @@ def delmode():
         savclean()
         return
     elif el == 4:
+        echo("", 1, 0)
         savclean(True)
         return
     elif el == 5:
@@ -3818,7 +3880,7 @@ def syntax(html, api=False):
 
 
 
-run_input = ["", "", False]
+run_input = [False]*4
 def read_input(m):
     if not m:
         return
@@ -3833,7 +3895,10 @@ def read_input(m):
             run_input[1] = m
         return True
     elif os.path.exists(m):
-        if not Geistauge:
+        if m.endswith("partition.json"):
+            with open(m, 'r') as f:
+                tohtml(m.rsplit("/", 1)[0] + "/", m.rsplit("/")[-2], {"partition":json.loads(f.read())}, [], True)
+        elif not Geistauge:
             choice(bg=True)
             print(" GEISTAUGE: Maybe not.")
         elif os.path.isdir(m):
@@ -3876,7 +3941,7 @@ def readfile():
             fromhtml["partition"]["0"]["files"] += [{"link":line, "name":saint(name), "edited":0}]
     nextpages += [pages]
     if fromhtml["partition"]["0"]["files"]:
-        downloadtodisk(fromhtml)
+        downloadtodisk(fromhtml, "Autosave declared completion.")
     elif nextpages:
         resume = False
         for pages in nextpages:
@@ -3953,16 +4018,15 @@ busy[0] = True
 if filelist:
     m = filelist[0]
     if len(filelist) > 1:
-        print(f"""
+        kill(f"""
  Only one input at a time is allowed! It's a good indication that you should reorganize better
  if there are too many folders to input and you don't want to use input's parent.{'''
 
  Geistauge is also disabled which can be a reminder that this is not the setup to run Geistauge.
  May I suggest having another copy of this script with Geistauge enabled in different directory?''' if not Geistauge else ""}""")
-        sys.exit()
     print(f"""\nLoading featuring {"folder" if os.path.isdir(m) else "image"} successful: "{m}" """)
     if not Geistauge:
-        print("\n GEISTAUGE: Maybe not.")
+        echo("\n GEISTAUGE: Maybe not.", 0, 1)
         sys.exit()
     if os.path.isdir(m):
         todb(m)
@@ -3989,22 +4053,34 @@ def keylistener():
         el = choice("abcdefghijklmnopqrstuvwxyz0123456789")
         if el == 1:
             pressed(Keypress_A)
+            Keypress_X[0] = True
         elif el == 2:
-            pressed(Keypress_B)
+            if sys.platform == "win32":
+                if not Browser:
+                    choice(bg=True)
+                    echo(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""", 0, 1)
+                elif HTMLserver:
+                    os.system(f"""start "" "{Browser}" "http://localhost:8886/" """)
+                else:
+                    echo(" HTML SERVER: Maybe not.", 0, 1)
+            else:
+                echo(" BROWSER: Maybe not.", 0, 1)
+            if not busy[0]:
+                ready_input()
         elif el == 3:
             pressed(Keypress_C)
         elif el == 4:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            if not Geistauge:
-                choice(bg=True)
-                print(" GEISTAUGE: Maybe not.")
-            else:
-                delmode()
+            delmode()
             ready_input()
         elif el == 5:
-            unrecognized("E")
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            echo(help(), 0, 1)
+            ready_input()
         elif el == 6:
             pressed(Keypress_F)
         elif el == 7:
@@ -4013,7 +4089,7 @@ def keylistener():
                 continue
             if not Geistauge:
                 choice(bg=True)
-                print(" GEISTAUGE: Maybe not.")
+                echo(" GEISTAUGE: Maybe not.", 0, 1)
             else:
                 tohtml_geistauge()
             ready_input()
@@ -4023,7 +4099,7 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            if not read_input(input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "")):
+            if not read_input(input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "").replace("\\", "/")):
                 echo("", 1)
                 echo("", 1)
                 ready_input()
@@ -4043,7 +4119,7 @@ def keylistener():
                 continue
             run_input[2] = True
         elif el == 13:
-            unrecognized("M")
+            pressed(Keypress_M)
         elif el == 14:
             unrecognized("N")
         elif el == 15:
@@ -4053,13 +4129,12 @@ def keylistener():
             finish_sort()
             ready_input()
         elif el == 16:
+            pressed(Keypress_A, False)
+        elif el == 17:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            echo(help(), 0, 1)
-            ready_input()
-        elif el == 17:
-            pressed(Keypress_A, False)
+            run_input[3] = True
         elif el == 18:
             pressed(Keypress_R)
         elif el == 19:
@@ -4123,7 +4198,7 @@ while True:
         busy[0] = True
         x = new_part()
         x["partition"]["0"]["files"] = [{"link":run_input[1], "name":saint(parse.unquote(run_input[1].split("/")[-1])), "edited":0}]
-        downloadtodisk(x)
+        downloadtodisk(x, "Autosave declared completion.")
         run_input[1] = ""
         busy[0] = False
         print()
@@ -4132,6 +4207,13 @@ while True:
         readfile()
         run_input[2] = False
         print()
+        ready_input()
+    if run_input[3]:
+        busy[0] = True
+        downloadtodisk(False, "Key listener test")
+        run_input[3] = False
+        busy[0] = False
+        echo("", 0, 1)
         ready_input()
     try:
         time.sleep(0.1)

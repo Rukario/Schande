@@ -68,9 +68,11 @@ sf = [0]
 collisionisreal = False
 editisreal = False
 buildthumbnail = False
+shuddup = True
+showpreview = False
+verifyondisk = False
 favoriteispledged = False
 Kemonoparty = False
-shuddup = True
 
 
 
@@ -114,9 +116,6 @@ def mainmenu():
  - - - - {batchname} HTML - - - -
  + Press B to launch HTML in your favorite browser.
  + Press D to open delete mode.
-
- - - - - Input - - - -
- + Enter partition.json to rebuild HTML.
 
  Delete the autosave file if:
   > You need files that was rejected by your filter list in the past.
@@ -219,12 +218,14 @@ case $el in
 """ + "\n".join([f"{k} ) exit {e+1};;" for e, k in enumerate(keys)]) + """
 esac
 done""")
-        echo(tcolorx, 0, 1)
+        if el >= 256:
+            el /= 256
+        el = int(el)
+        sys.stdout.write(f"{keys[el-1].upper()}\n")
+        sys.stdout.flush()
     if not keys:
         return
-    if el >= 256:
-        el /= 256
-    return int(el)
+    return el
 
 
 
@@ -247,8 +248,6 @@ def input(i="Your Input: ", choices=False):
                     echo(c, 0, 0)
                     return el
             else:
-                echo("", 1)
-                echo(f"{str(i)}{choices[el-1].upper()}", 0, 1)
                 return el
     else:
         return sys.stdin.readline().replace("\n", "")
@@ -628,8 +627,6 @@ dir = ""
 ticks = []
 site = "inline"
 pickers = {site:new_picker()}
-showpreview = False
-verifyondisk = False
 for rule in rules:
     if not rule or rule.startswith("#"):
         continue
@@ -654,7 +651,7 @@ for rule in rules:
         c = new_cookie()
         c.update({'domain': rr[1], 'name': rr[0].split(" ")[0], 'value': rr[0].split(" ")[1]})
         cookies.set_cookie(cookiejar.Cookie(**c))
-        personal = True
+        if not shuddup == 2: shuddup = False
 
 
 
@@ -754,11 +751,18 @@ if Browser:
     print(" BROWSER: " + Browser.replace("\\", "/").rsplit("/", 1)[-1])
 else:
     print(" BROWSER: NONE")
-sevenz = Geistauge if os.path.isfile(Geistauge) and Geistauge.endswith("7z.exe") else ""
 if Geistauge:
-    print(f""" GEISTAUGE: {"ON (7-Zip armed)" if sevenz else "ON (7-Zip for archive scan support, but no path to it is provided)"}""")
+    try:
+        from PIL import Image
+        Image.MAX_IMAGE_PIXELS = 400000000
+        import subprocess
+        print(" GEISTAUGE: ON")
+    except:
+        kill(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install pillow")
 elif verifyondisk:
     kill(f""" GEISTAUGE: I must be enabled for "verifyondisk" declared in {rulefile}.""")
+elif buildthumbnail:
+    kill(f""" GEISTAUGE: I must be enabled for "buildthumbnail" declared in {rulefile}.""")
 else:
     print(" GEISTAUGE: OFF")
 if "socks5://" in proxy and proxy[10:]:
@@ -778,13 +782,6 @@ if "socks5://" in proxy and proxy[10:]:
     # The following line prevents DNS leaks. https://stackoverflow.com/questions/13184205/dns-over-proxy
     socket.getaddrinfo = lambda *args: [(socket.AF_INET, socket.SOCK_STREAM, 6, '', (args[0], args[1]))]
 print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
-if Geistauge or buildthumbnail:
-    try:
-        from PIL import Image
-        Image.MAX_IMAGE_PIXELS = 400000000
-        import subprocess
-    except:
-        kill(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install pillow")
 
 
 
@@ -1256,7 +1253,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         while True:
             threadn += 1
             echothreadn.append(threadn)
-            download.put((threadn, [], [], "Key listener test", ["Key listener test"], random()*0.5))
+            download.put((threadn, [[], []], "Key listener test", ["Key listener test"], random()*0.5))
             if threadn == 200:
                 break
         try:
@@ -1275,14 +1272,14 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
             if not file["name"]:
                 print(f""" I don't have a scraper for {file["link"]}""")
             else:
-                if (x := get_cd(file, fromhtml, html, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
+                if (x := get_cd(file, fromhtml, errorhtml, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
                     filelist += [x]
         for array in htmlpart[key]["html"]:
             if len(array) == 2 and array[1]:
                 if not array[1]["name"]:
                     print(f""" I don't have a scraper for {array[1]["link"]}""")
                 else:
-                    if (x := get_cd(array[1], fromhtml, html, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
+                    if (x := get_cd(array[1], fromhtml, errorhtml, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
                         filelisthtml += [x]
     if fromhtml["inlinefirst"]:
         filelist = filelisthtml + filelist
@@ -1298,14 +1295,16 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         echo("", 0, 1)
         echo(f"{buffer} Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs.", 0, 2)
 
+
+
     if not filelist:
         if fromhtml["makehtml"]:
             tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml, [])
-        print("Filelist is empty!")
+        echo("Filelist is empty!", 0, 1)
         return
     if len(filelist) == 1:
         echothreadn.append(0)
-        download.put((0, [], [], filelist[0][1], [filelist[0][0]], 0))
+        download.put((0, [[], []], filelist[0][1], [filelist[0][0]], 0))
         try:
             download.join()
         except KeyboardInterrupt:
@@ -1377,7 +1376,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
     for ondisk, onserver in queued.items():
         threadn += 1
         echothreadn.append(threadn)
-        download.put((threadn, html, ondisk, onserver, 0))
+        download.put((threadn, errorhtml, ondisk, onserver, 0))
     try:
         download.join()
     except KeyboardInterrupt:
@@ -2189,7 +2188,7 @@ def hyperlink(html):
 
 
 
-def tohtml(subdir, htmlname, fromhtml, stray_files):
+def tohtml(subdir, htmlname, fromhtml, stray_files, rebuild=False):
     builder = ""
     listurls = ""
     htmlpart = fromhtml["partition"]
@@ -2211,17 +2210,18 @@ def tohtml(subdir, htmlname, fromhtml, stray_files):
 
 
 
-    for key in new_relics.keys():
-        new_relics[key] = htmlpart[key].copy()
-        files = []
-        duplicates = set()
-        for file in htmlpart[key]["files"]:
-            if not file["name"] in duplicates and not duplicates.add(file["name"]):
-                files += [file["name"].rsplit("/", 1)[-1]]
-        new_relics[key]["files"] = files
-        for array in new_relics[key]["html"]:
-            if len(array) == 2 and array[1]:
-                array[1]["name"] = array[1]["name"].rsplit("/", 1)[-1]
+    if not rebuild:
+        for key in new_relics.keys():
+            new_relics[key] = htmlpart[key].copy()
+            files = []
+            duplicates = set()
+            for file in htmlpart[key]["files"]:
+                if not file["name"] in duplicates and not duplicates.add(file["name"]):
+                    files += [file["name"].rsplit("/", 1)[-1]]
+            new_relics[key]["files"] = files
+            for array in new_relics[key]["html"]:
+                if len(array) == 2 and array[1]:
+                    array[1]["name"] = array[1]["name"].rsplit("/", 1)[-1]
 
 
 
@@ -2248,10 +2248,11 @@ def tohtml(subdir, htmlname, fromhtml, stray_files):
             part.update({key:new_relics[key]})
         else:
             part.update({key:relics[key]})
-    with open(partfile, 'w') as f:
-        f.write(json.dumps(part))
-    buffer = partfile.replace("/", "\\")
-    print(f" File {gallery_is}: {buffer}")
+    if not rebuild:
+        with open(partfile, 'w') as f:
+            f.write(json.dumps(part))
+        buffer = partfile.replace("/", "\\")
+        print(f" File {gallery_is}: {buffer}")
 
 
 
@@ -2348,7 +2349,7 @@ def gethread(ge_q):
             except:
                 print(f" Corrupted on disk: {ondisk}")
                 errorhtml[1] += [f"&gt; Corrupted on disk: {ondisk}"]
-        elif sevenz and file.endswith(tuple(archivefile)):
+        elif False and file.endswith(tuple(archivefile)):
             if subprocess.call(f'"{sevenz}" t -pBadPassword "{ondisk}"', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL):
                 print(f" Corrupted on disk: {ondisk}")
                 errorhtml[1] += [f"&gt; Corrupted on disk: {ondisk}"]
@@ -2775,7 +2776,6 @@ def get_assets(artworks):
             else:
                 print("Error fetching new data for {htmlname} ({HOME})")
             shelf.update({HOME + id + "paysite": paysite_assets})
-        m = [[], [], False]
         if os.path.exists(m := f"{batchname}/{htmlname}/mediocre.txt"):
             with open(m, 'r', encoding='utf-8') as f:
                  pickers[htmlname]["pattern"][0] += f.read().splitlines()

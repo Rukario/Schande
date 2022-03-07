@@ -457,20 +457,21 @@ if new_setting:
 
 Bs = [0]
 Bstime = [int(time.time())]
-fp = "▹"
+Ba = "▹"
+Barray = [[Ba[0]]*8]
 MBs = [0]
 for n in range(256):
     h = f"{n:02x}"
     h0 = int(h[0],16)
     h1 = int(h[1],16)
-    fp += chr(10240+h1+int(h0/2)*16+int(h1/8)*64+int(h0/8)*64+(h0%2)*8-int(h1/8)*8)
-def echoMBs(threadn, Bytes, ff):
-    if not threadn or (x := echothreadn.index(threadn)) < len(fx[0]):
-        fx[0][x if threadn else 0] = fp[ff%257]
+    Ba += chr(10240+h1+int(h0/2)*16+int(h1/8)*64+int(h0/8)*64+(h0%2)*8-int(h1/8)*8)
+def echoMBs(threadn, Bytes, total):
+    if not threadn or (x := echothreadn.index(threadn)) < len(Barray[0]):
+        Barray[0][x if threadn else 0] = Ba[total%257]
     s = time.time()
     if echofriction[0] < int(s*eps):
         echofriction[0] = int(s*eps)
-        stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {echoname[0]} {''.join(fx[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
+        stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {echoname[0]} {''.join(Barray[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
     else:
         echofriction[0] = int(s*eps)
     if Bstime[0] < int(s):
@@ -479,7 +480,6 @@ def echoMBs(threadn, Bytes, ff):
         Bs[0] = Bytes
     else:
         Bs[0] += Bytes
-fx = [[fp[0]]*8]
 
 
 
@@ -1927,13 +1927,13 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
         return
     for file in files:
         f_key = file[1 if file[0] == "0" else 0]
-        m = []
+        fp = []
         for x in meta:
             for y, cwf in x:
                 if len(c := carrots([[file[2], ""]], y, cwf, False)) == 2 and c[-2][1]:
-                    m += [c[-2][1]]
+                    fp += [c[-2][1]]
                     break
-        name = "".join([x if not x == 1 else m.pop(0) if m else "" for x in file[3:]] + off_branch_name)
+        name = "".join([x if not x == 1 else fp.pop(0) if fp else "" for x in file[3:]] + off_branch_name)
         if e := pick["extfix"]:
             if len(ext := carrots([[file[2], ""]], e, [".", ""], False)) == 2 and not name.endswith(ext := ext[-2][1]):
                 name += ext
@@ -2506,7 +2506,10 @@ def phthread(ph_q):
         threadn, total, file, filevs, accu = ph_q.get()
         try:
             hash = ph(file)
-            accu.append(f"{hash} {file}")
+            f = file.rsplit("/", 1)
+            if f[0].endswith(" Trash"):
+                f[0] = f[0].rsplit(" Trash", 1)[0]
+            accu.append(f"{hash} {f[0]}/{f[1]}")
             if filevs and filevs == hash:
                 print(f"{file}\nSame file found! (C)ontinue")
                 choice("c", "2e")
@@ -2538,18 +2541,18 @@ def scanthread(filelist, filevs, savwrite):
 
 
 
-def todb(m, filevs=""):
-    m = m.replace("\\", "/")
+def tosav(fp, filevs=""):
+    fp = fp.replace("\\", "/")
     savread = opensav(sav)
     savwrite = open(sav, 'ab')
     filelist = []
     error[0] = []
     title("Top directory")
     print("\n - - - - Top - - - -")
-    for file in next(os.walk(m))[2]:
+    for file in next(os.walk(fp))[2]:
         if not file.lower().endswith(tuple(imagefile)):
             continue
-        if (file := f"{m}/{file}") in savread:
+        if (file := f"{fp}/{file}") in savread:
             continue
         else:
             filelist += [file]
@@ -2557,12 +2560,14 @@ def todb(m, filevs=""):
 
 
 
-    for subfolder in next(os.walk(m))[1]:
+    for subfolder in next(os.walk(fp))[1]:
+        if subfolder.endswith(" Trash 2"):
+            continue
         filelist = []
         title(subfolder)
         print("\n - - - - " + subfolder + " - - - -")
-        for dir, folders, files in os.walk(f"{m}/{subfolder}"):
-            dir = m + "/" + os.path.relpath(dir, m).replace("\\", "/") + "/"
+        for dir, folders, files in os.walk(f"{fp}/{subfolder}"):
+            dir = fp + "/" + os.path.relpath(dir, fp).replace("\\", "/") + "/"
             for file in files:
                 if not file.lower().endswith(tuple(imagefile)):
                     continue
@@ -2875,14 +2880,14 @@ function quicklook(e) {
           t.removeAttribute("data-tooltip");
         }
       } else {
-        let m = new Image();
+        let fp = new Image();
         let p = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0];
         if (p == undefined || p.nodeName != "A") {
-          m.src = s.src;
+          fp.src = s.src;
         } else {
-          m.src = p.getAttribute("href");
+          fp.src = p.getAttribute("href");
         }
-        if(m.src == s.src) {
+        if(fp.src == s.src) {
           context.fillRect(0, 0, s.width, s.height);
         } else {
           isTainted = true;
@@ -2890,11 +2895,11 @@ function quicklook(e) {
             var cgl = document.createElement("canvas");
             gl = cgl.getContext("webgl2")
             if (geistauge == "reverse") {
-              m.onload = difference(m, s.width, s.height, s, context, gl, side=true);
+              fp.onload = difference(fp, s.width, s.height, s, context, gl, side=true);
             } else if (geistauge == "tangerine") {
-              m.onload = difference(s, s.width, s.height, m, context, gl, side=true);
+              fp.onload = difference(s, s.width, s.height, fp, context, gl, side=true);
             } else {
-              m.onload = difference(s, s.width, s.height, m, context, gl);
+              fp.onload = difference(s, s.width, s.height, fp, context, gl);
             }
           isTainted = false;
           t.removeAttribute("data-tooltip");
@@ -3011,10 +3016,10 @@ function darkdiff(a, b) {
 
 var rgb, rgb2;
 
-function difference(s, cw, ch, m, context, gl, side=false) {
+function difference(s, cw, ch, fp, context, gl, side=false) {
   context.drawImage(s, 0, 0, cw, ch);
   rgb = context.getImageData(0, 0, cw, ch);
-  context.drawImage(m, 0, 0, cw, ch);
+  context.drawImage(fp, 0, 0, cw, ch);
   rgb2 = context.getImageData(0, 0, cw, ch);
   if(side){
     darkside(rgb.data, rgb2.data)
@@ -3219,26 +3224,26 @@ function hideParts(e, t='', a=true) {
     c = true
   }
   for (var i=0; i < x.length; i++) {
-    var m = '';
+    var fp = '';
     if (c){
-      m = x[i].getElementsByClassName(e[0])
-      if (m.length > 0){
-        m = m[0].textContent;
+      fp = x[i].getElementsByClassName(e[0])
+      if (fp.length > 0){
+        fp = fp[0].textContent;
       } else {
         x[i].style.display = 'none';
         continue
       }
     } else {
-      m = x[i].getElementsByTagName(e[0])
-      if (m.length > 0){
-        m = m[0].textContent;
+      fp = x[i].getElementsByTagName(e[0])
+      if (fp.length > 0){
+        fp = fp[0].textContent;
       } else {
         x[i].style.display = 'none';
         continue
       }
     }
-    m = m.toLowerCase().includes(t);
-    if (!a && !m && t || a && m && t) {
+    fp = fp.toLowerCase().includes(t);
+    if (!a && !fp && t || a && fp && t) {
       x[i].style.display = 'none';
     } else {
       x[i].style.display = 'inline-block';
@@ -3514,67 +3519,67 @@ def tohtml_geistauge(delete=False):
         datagroup.setdefault(phash, [])
         datagroup[phash].append(file)
     new_savx = opensav(savx).splitlines()
-    for v in datagroup.values():
-        if len(v := [x for x in v if os.path.exists(x)]) < 2:
+    savsread = opensav(savs).splitlines()
+    for phash in datagroup.keys():
+        fplist = datagroup[phash]
+        if phash in savsread and delete:
+            for file in fplist:
+                if os.path.exists(file):
+                    f = file.rsplit("/", 1)
+                    trashdir = f"{f[0]} Trash 2/"
+                    if not os.path.exists(trashdir):
+                        os.makedirs(trashdir)
+                    os.rename(file, trashdir + f[1])
+                    # os.remove(file)
+            continue
+        if len(fplist := [x for x in fplist if os.path.exists(x)]) < 2:
             continue
         Perfectexemption = True
-        for file in v:
+        for file in fplist:
             if not any(word in file for word in exempt):
                 Perfectexemption = False
         if Perfectexemption:
             continue
-        v = iter(v)
+        fplist = iter(fplist)
         builder2 = ""
-        m = [0, 0, 0, 0]
-        file = next(v)
-        file2 = next(v)
+        fp = [0, 0, 0, 0]
+        file = next(fplist)
+        file2 = next(fplist)
         while True:
-            s = [0, 0, 0, 0]
+            fp2 = [0, 0, 0, 0]
             for line in new_savx:
                 if file2 in line:
-                    s = list(map(int, line.split(" ", 3)[:3])) + [line.split(" ", 4)[3]]
+                    fp2 = list(map(int, line.split(" ", 3)[:3])) + [line.split(" ", 4)[3]]
                     break
-            if not s[3]:
-                s = whsm(file2)
-                new_savx += [" ".join([str(x) for x in s]) + f" {file2}"]
-            if not m[3]:
+            if not fp2[3]:
+                fp2 = whsm(file2)
+                new_savx += [" ".join([str(x) for x in fp2]) + f" {file2}"]
+            if not fp[3]:
                 for line in new_savx:
                     if file in line:
-                        m = list(map(int, line.split(" ", 3)[:3])) + [line.split(" ", 4)[3]]
+                        fp = list(map(int, line.split(" ", 3)[:3])) + [line.split(" ", 4)[3]]
                         break
-                if not m[3]:
-                    m = whsm(file)
-                    new_savx += [" ".join([str(x) for x in m]) + f" {file}"]
-            if m[3] == s[3] and delete:
+                if not fp[3]:
+                    fp = whsm(file)
+                    new_savx += [" ".join([str(x) for x in fp]) + f" {file}"]
+            if fp[3] == fp2[3] and delete:
                 if not any(word in file2 for word in exempt):
                     if os.path.exists(file2):
-                        f = os.path.splitext(file2)
-                        trashdir = f"{f[0]} Trash/"
-                        if not os.path.exists(trashdir):
-                            while True:
-                                input(f"Developer note: {trashdir} {f[1]}")
-                            os.makedirs(trashdir)
-                        os.rename(file2, trashdir + f[1])
+                        os.remove(file2)
                 elif not any(word in file for word in exempt):
                     if os.path.exists(file):
-                        f = os.path.splitext(file)
-                        trashdir = f"{f[0]} Trash/"
-                        if not os.path.exists(trashdir):
-                            while True:
-                                input(f"Developer note: {trashdir} {f[1]}")
-                            os.makedirs(trashdir)
-                        os.rename(file, trashdir + f[1])
+                        os.remove(file)
                     file = file2
-                if file2 := next(v, None):
+                if file2 := next(fplist, None):
                     continue
                 else:
                     break
-            builder2 += container_c(file2, label(m, s, html=True))
-            if not (file2 := next(v, None)):
+            builder2 += container_c(file2, label(fp, fp2, html=True))
+            if not (file2 := next(fplist, None)):
                 break
         if builder2:
             builder += f"""<div class="container">
-{container_c(file, f"{m[0]} x {m[1]}")}{builder2}</div>
+{container_c(file, f"{fp[0]} x {fp[1]}")}{builder2}</div>
 
 """
             counter += 1
@@ -3597,35 +3602,54 @@ def tohtml_geistauge(delete=False):
 
 
 
-def savclean(delete=False):
+def savenow(trashdir=False):
     if os.path.exists(sav):
-        old_sav = opensav(sav).splitlines()
+        savread = opensav(sav).splitlines()
     else:
         return
     if os.path.exists(savx):
-        old_savx = opensav(savx).splitlines()
+        savxread = opensav(savx).splitlines()
     else:
         return
-    new_sav = []
-    new_savx = []
-    new_savs = opensav(savs).splitlines() if os.path.exists(savs) else []
-    for line in old_sav:
-        phash, file = line.split(" ", 1)
-        if os.path.exists(file):
-            new_sav += [line]
-            new_savs += [phash]
-    for line in old_savx:
-        if os.path.exists(line.split(" ", 5)[4]):
-            new_savx += [line]
-            new_savs += [" ".join(line.split(" ", 4)[:4])]
-    with open(savs, 'wb') as f:
-        f.write(bytes("\n".join(new_savs), 'utf-8'))
-    print(f"I'd overwrite {sav} and {savx} with new ones.")
-    return
-    with open(sav, 'wb') as f:
-        f.write(bytes("\n".join(new_sav), 'utf-8'))
-    with open(savx, 'wb') as f:
-        f.write(bytes("\n".join(new_savx), 'utf-8'))
+    new_savs = []
+
+    if trashdir:
+        dir = trashdir.rsplit(" Trash", 1)[0] + "/"
+        for file in next(os.walk(trashdir))[2]:
+            new = [[], []]
+            ondisk = dir + file
+            for line in savread:
+                if ondisk in line:
+                    new[0] = line
+                    break
+            for ondisk in savxread:
+                if ondisk in line:
+                    new[1] = line
+                    break
+            if new[0]:
+                savread.remove(new[0])
+                new_savs += [new[0].split(" ", 1)[0]]
+            if new[1]:
+                savxread.remove(new[1])
+        # with open(sav, 'wb') as f:
+        #     f.write(bytes("\n".join(savread) + "\n", 'utf-8'))
+        # with open(savx, 'wb') as f:
+        #     f.write(bytes("\n".join(savxread) + "\n", 'utf-8'))
+    else:
+        for ondisk in savefiles[0]:
+            new = [[], []]
+            for line in savread:
+                if ondisk in line:
+                    new[0] = line
+                    break
+            for line in savxread:
+                if ondisk in line:
+                    new[1] = line
+                    break
+            if all(new):
+                new_savs += [new[0].split(" ", 1)[0] + " " + " ".join(new[1].split(" ", 4)[:4])]
+    with open(savs, 'ab') as f:
+        f.write(bytes("\n".join(new_savs) + "\n", 'utf-8'))
 
 
 
@@ -3641,7 +3665,7 @@ def delnow():
             dir = f[0].replace("/", "\\")
             buffer += f"{tcolorb}{dir}\\{f[1]}{tcolorr} -> {tcolorg}{dir} Trash\\{f[1]}{tcolorx}\n"
     if not trashlist:
-        echo("No schande'd files!", 0, 2)
+        echo("No schande'd files!", 0, 1)
         return
     echo(buffer, 0, 1)
     if input(" Press D again to confirm or return to (M)ain menu: ", "dm") == 1:
@@ -3651,55 +3675,68 @@ def delnow():
                 os.makedirs(trashdir)
             for file in trashlist[dir]:
                 os.rename(f"{dir}/{file}", f"{trashdir}/{file}")
-            echo(skull(), 0, 1)
-            choice(bg="4c")
-            delfiles[0] = []
+        echo(skull(), 0, 1)
+        choice(bg="4c")
+        delfiles[0] = []
+    return True
 
 
 
 def delmode():
     print("""
- + (G)eistauge auto: delete non-exempted duplicate images immediately with a confirmation.
- |   > One first non-exempt in path alphabetically will be kept if no other duplication are exempted.
- |   > Rebuild Geistauge HTML without/less identical images.
- | (D) - View files to be taken to \\.. Trash\\
- | (S)ave - "seen" files in best quality and there won't be inferior similarities again (SAVS creation PH + MD5)
- |   > I think the Save button in browser will be the input.
- | (T) - never want to see them again (SAVS creation PH only)
- +   > ...what kind of input? \\..Trash\\. Stray PHs + check if trashed file exists while splitting SAV.
+ Press D again to view files to be taken to \\.. Trash\\
+
+ (G)eistauge auto - delete non-exempted duplicate images immediately with a confirmation.
+   > One first non-exempt in path alphabetically will be kept if no other duplication are exempted.
+   > Rebuild Geistauge HTML without/less identical images.
+
+ (S)ave - "seen" files in best quality and there must not be inferior similarities again.
+   > Developer note: This feature is unimplemented!
+   > Use this only if what you think is unique and best quality available.
+   > Use the Save button in browser to select files you want to save.
+
+ (T)rash - "seen" trash files, input an trash folder to start.
+   > Useful for files you don't like but kept haunting you.
+   > Delete/move files from \\.. Trash\\ beforehand if you think you might change your mind later.
+   > Then for the next time they will be moved to \\.. Trash 2\\ during (G)eistauge auto.
 """)
-    el = input("Return to (M)ain menu: ", "gdstm")
-    if not el:
-        kill(0)
-    elif el == 1:
-        if not Geistauge:
-            choice(bg=True)
-            print(" GEISTAUGE: Maybe not.")
-            return
-        choice(bg="4c")
-        if input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "").replace("\\", "/") == f"{batchdir}{sav}":
-            echo(skull(), 0, 1)
+    while True:
+        el = input("Return to (M)ain menu: ", "dgstm")
+        if not el:
+            kill(0)
+        elif el == 1:
+            if delnow():
+                return
+        elif el == 2:
+            if not Geistauge:
+                choice(bg=True)
+                print(" GEISTAUGE: Maybe not.")
+                return
             choice(bg="4c")
-            tohtml_geistauge(True)
-        return
-    elif el == 2:
-        delnow()
-        return
-    elif el == 3:
-        for sfile in savefiles[0]:
-            print(sfile)
-        savclean()
-        return
-    elif el == 4:
-        echo("", 1, 0)
-        savclean(True)
-        return
-    elif el == 5:
-        echo("", 1, 0)
-        return
+            if input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "").replace("\\", "/") == f"{batchdir}{sav}":
+                echo(skull(), 0, 1)
+                choice(bg="4c")
+                tohtml_geistauge(True)
+            return
+        elif el == 3:
+            echo("", 1, 0)
+            savenow()
+            return
+        elif el == 4:
+            echo("", 1, 0)
+            trashdir = input("Trash dir: ").rstrip().replace("\"", "").replace("\\", "/")
+            if os.path.isdir(trashdir) and trashdir.endswith(" Trash"):
+                echo(skull(), 0, 1)
+                choice(bg="4c")
+                savenow(trashdir)
+            return
+        elif el == 5:
+            echo("", 1, 0)
+            return
 
 
 
+# Inherit the remove function
 def delmode_old(m):
     print("\n This is my shortcut to delete the file alongside browser.\n Enter another file:/// local url then/or (V)iew/(R)emove/(D)elete/E(X)it\n Nothing is really deleted until you enter D twice.\n")
     while True:
@@ -3728,9 +3765,9 @@ def delmode_old(m):
 
 
 
-def compare(m):
+def compare(fp):
     try:
-        hash = ph(m)
+        hash = ph(fp)
     except:
         print(" Featuring image is corrupted.")
         return
@@ -3744,7 +3781,7 @@ def compare(m):
         for line in db:
             hash2, s = line.split(" ", 1)
             if hash == hash2:
-                if m != s:
+                if fp != s:
                     if os.path.exists(s):
                         print(f"{hash2} {s} (still exists)")
                     else:
@@ -3757,11 +3794,11 @@ def compare(m):
         elif not found:
             print(f" {tcolorg}Featuring image is unique! Nothing like it in database!{tcolorx}")
         else:
-            print(f"{hash} {m} (featuring image)\nSame file found! (C)ontinue")
+            print(f"{hash} {fp} (featuring image)\nSame file found! (C)ontinue")
             choice("c", "2e")
     elif os.path.isdir(s):
-        m = s
-        todb(m, hash)
+        fp = s
+        tosav(fp, hash)
     else:
         try:
             hash2 = ph(s)
@@ -3769,8 +3806,8 @@ def compare(m):
             print(f"\n {tcolorr}Reference image is corrupted.{tcolorx}")
             return
         if hash == hash2:
-            m = whsm(m)
-            print(f"\n Featuring: {m[0]} x {m[1]}\n Reference: {label(m, whsm(s))}")
+            fp = whsm(fp)
+            print(f"\n Featuring: {fp[0]} x {fp[1]}\n Reference: {label(m, whsm(s))}")
         else:
             print(f"\n {tcolorg}Use your eyes, they're different{tcolorx}")
     print(f"total runtime: {time.time()-start}")
@@ -3790,9 +3827,9 @@ def finish_sort():
                 with open(ondisk, 'rb') as f:
                     s = f.read()
                 ext = os.path.splitext(ondisk)[1].lower()
-                m = hashlib.md5(s).hexdigest()
-                file = m + ext
-                if not os.path.exists(m + ext):
+                fp = hashlib.md5(s).hexdigest()
+                file = fp + ext
+                if not os.path.exists(fp + ext):
                     os.rename(ondisk, batchname + "/" + file)
                 else:
                     print(f"I want to (D)elete {ondisk} because {file} already exists.")
@@ -3880,31 +3917,90 @@ def syntax(html, api=False):
 
 
 
-run_input = [False]*4
-def read_input(m):
-    if not m:
+savepage = [{}]
+def source_view():
+    if busy[0]:
+        echo("Please wait for another operation to finish", 1, 1)
         return
-    if any(word for word in pickers.keys() if m.startswith(word)):
-        run_input[0] = m
+    while True:
+        fp = input("Enter URL to view source, append URL with key > s > to read it as dictionary, enter nothing to exit: ").rstrip()
+        if fp.startswith("http"):
+            fp = fp.split(" ", 1)
+            if not fp[0] in savepage[0]:
+                data = get(fp[0], utf8=True)
+                savepage[0] = {fp[0]:data, "part":[]}
+            else:
+                data = savepage[0][fp[0]]
+            if not data.isdigit():
+                if len(fp) == 2:
+                    z, _, a = peanut(fp[1], [], False)
+                    if a:
+                        if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0, 0]]]):
+                            for y in x:
+                                print(syntax(y[0], True))
+                                savepage[0]["part"] += [y[0]]
+                        else:
+                            print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}\n")
+                    else:
+                        part = []
+                        for x in carrots([[data, ""]], z):
+                            print(x[1])
+                            savepage[0]["part"] += [x[1]]
+                else:
+                    data = ''.join([s.strip() if s.strip() else "" for s in data.splitlines()])
+                    print(syntax(data))
+                    print()
+            else:
+                print(f"Error or dead (update cookie or referer if these are required to view: {data})\n")
+        elif not fp:
+            echo("", 1)
+            echo("", 1)
+            break
+        else:
+            z, _, a = peanut(fp, [], False)
+            part = savepage[0]["part"]
+            savepage[0]["part"] = []
+            for data in part:
+                if a:
+                    if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0, 0]]]):
+                        for y in x:
+                            print(syntax(y[0], True))
+                            savepage[0]["part"] += [y[0]]
+                    else:
+                        print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}\n")
+                else:
+                    for x in carrots([[data, ""]], z):
+                        print(x[1])
+                        savepage[0]["part"] += [x[1]]
+    ready_input()
+
+
+
+run_input = [False]*4
+def read_input(fp):
+    if not fp:
+        return
+    if any(word for word in pickers.keys() if fp.startswith(word)):
+        run_input[0] = fp
         return True
-    elif m.startswith("http") and not m.startswith("http://localhost"):
-        if m.endswith("/"):
+    elif fp.startswith("http") and not fp.startswith("http://localhost"):
+        if fp.endswith("/"):
             choice(bg=True)
             print(" I don't have a scraper for that!")
         else:
-            run_input[1] = m
+            run_input[1] = fp
         return True
-    elif os.path.exists(m):
-        if m.endswith("partition.json"):
-            with open(m, 'r') as f:
-                tohtml(m.rsplit("/", 1)[0] + "/", m.rsplit("/")[-2], {"partition":json.loads(f.read())}, [], True)
+    elif os.path.exists(fp):
+        if fp.endswith("partition.json"):
+            with open(fp, 'r') as f:
+                tohtml(fp.rsplit("/", 1)[0] + "/", fp.rsplit("/")[-2], {"partition":json.loads(f.read())}, [], True)
         elif not Geistauge:
             choice(bg=True)
             print(" GEISTAUGE: Maybe not.")
-        elif os.path.isdir(m):
-            todb(m)
+        elif os.path.isdir(fp):
+            tosav(fp)
         else:
-            compare(m)
+            compare(fp)
     else:
         print("Invalid input or not on disk")
         choice(bg=True)
@@ -3955,68 +4051,8 @@ def readfile():
 
 
 
-savepage = [{}]
-def source_view():
-    if busy[0]:
-        echo("Please wait for another operation to finish", 1, 1)
-        return
-    while True:
-        m = input("Enter URL to view source, append URL with key > s > to read it as dictionary, enter nothing to exit: ").rstrip()
-        if m.startswith("http"):
-            m = m.split(" ", 1)
-            if not m[0] in savepage[0]:
-                data = get(m[0], utf8=True)
-                savepage[0] = {m[0]:data, "part":[]}
-            else:
-                data = savepage[0][m[0]]
-            if not data.isdigit():
-                if len(m) == 2:
-                    z, _, a = peanut(m[1], [], False)
-                    if a:
-                        if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0, 0]]]):
-                            for y in x:
-                                print(syntax(y[0], True))
-                                savepage[0]["part"] += [y[0]]
-                        else:
-                            print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}\n")
-                    else:
-                        part = []
-                        for x in carrots([[data, ""]], z):
-                            print(x[1])
-                            savepage[0]["part"] += [x[1]]
-                else:
-                    data = ''.join([s.strip() if s.strip() else "" for s in data.splitlines()])
-                    print(syntax(data))
-                    print()
-            else:
-                print(f"Error or dead (update cookie or referer if these are required to view: {data})\n")
-        elif not m:
-            echo("", 1)
-            echo("", 1)
-            break
-        else:
-            z, _, a = peanut(m, [], False)
-            part = savepage[0]["part"]
-            savepage[0]["part"] = []
-            for data in part:
-                if a:
-                    if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0, 0]]]):
-                        for y in x:
-                            print(syntax(y[0], True))
-                            savepage[0]["part"] += [y[0]]
-                    else:
-                        print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}\n")
-                else:
-                    for x in carrots([[data, ""]], z):
-                        print(x[1])
-                        savepage[0]["part"] += [x[1]]
-    ready_input()
-
-
-
 busy[0] = True
 if filelist:
-    m = filelist[0]
     if len(filelist) > 1:
         kill(f"""
  Only one input at a time is allowed! It's a good indication that you should reorganize better
@@ -4024,14 +4060,15 @@ if filelist:
 
  Geistauge is also disabled which can be a reminder that this is not the setup to run Geistauge.
  May I suggest having another copy of this script with Geistauge enabled in different directory?''' if not Geistauge else ""}""")
-    print(f"""\nLoading featuring {"folder" if os.path.isdir(m) else "image"} successful: "{m}" """)
+    fp = filelist[0]
+    print(f"""\nLoading featuring {"folder" if os.path.isdir(fp) else "image"} successful: "{fp}" """)
     if not Geistauge:
         echo("\n GEISTAUGE: Maybe not.", 0, 1)
         sys.exit()
-    if os.path.isdir(m):
-        todb(m)
+    if os.path.isdir(fp):
+        tosav(fp)
     else:
-        compare(m)
+        compare(fp)
 busy[0] = False
 
 
@@ -4220,7 +4257,6 @@ while True:
     except KeyboardInterrupt:
         echo(skull(), 0, 1)
         choice(bg="4c")
-
 
 
 

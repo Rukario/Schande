@@ -1127,6 +1127,7 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
                 if el == 2:
                     firefox(saint(url=url))
                     Keypress_prompt[0] = False
+                    Keypress_R[0] = True
                 elif not el:
                     return 0, str(e.code)
             else:
@@ -1134,7 +1135,7 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
                 return 0, str(e.code)
         except URLError as e:
             if stderr or Keypress_X[0] and not Keypress_S[0]:
-                if not retry(f"{stderr} (e.reason)"):
+                if not retry(f"{stderr} ({e.reason})"):
                     return 0, e.reason
             else:
                 Keypress_S[0] = False
@@ -1145,6 +1146,7 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
                 if el == 2:
                     echo(" FIREFOX: Maybe not.", 0, 1)
                     Keypress_prompt[0] = False
+                    Keypress_R[0] = True
                 elif not el:
                     return 0, "closed by host"
             else:
@@ -1154,11 +1156,13 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
 
 
 
+request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookies)))
+# cookies.save()
+
+# ssl._create_default_https_context = ssl._create_unverified_context
 # context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 # context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
 # request.install_opener(request.build_opener(request.HTTPSHandler(context=context)))
-request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookies)))
-# cookies.save()
 
 def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=False, stderr="", sleep=0, threadn=0):
     if sleep:
@@ -1552,12 +1556,14 @@ def new_firefox():
         try:
             from selenium import webdriver
         except:
-            echo(f"\nSELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install selenium", 0, 2)
+            echo("", 0, 1)
+            echo(f" SELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install selenium", 0, 2)
         options = webdriver.FirefoxOptions()
         # options.add_argument("--headless")
         return webdriver.Firefox(options=options)
     else:
-        echo(f"\n Download and extract the latest win64 package from https://github.com/mozilla/geckodriver/releases and then try again.", 0, 2)
+        echo("", 0, 1)
+        echo(f" FIREFOX: Download and extract the latest win64 package from https://github.com/mozilla/geckodriver/releases and then try again.", 0, 2)
 def ff_login():
     revisit = False
     for c in cookies:
@@ -2689,12 +2695,20 @@ img{vertical-align:top;}
 h2{margin:4px;}
 .postMessage{white-space:pre-wrap;}
 [contenteditable]:focus {outline: none;}
-::selection { background: transparent; }
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 .stdout {white-space:pre-wrap; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
-.schande{opacity:0.5; position:absolute; top:""" + f"{imgsize - 50}" + """px; text-align:center; line-height:40px; height:40px; margin:3px; cursor:pointer; min-width:50px; border:2px solid #f66; background-color:#602; color:#f45;}
+.schande{opacity:0.5; position:absolute; top:""" + f"{imgsize - 50}" + """px; text-align:center; line-height:40px; height:40px; margin:3px; cursor:pointer; min-width:40px; border:2px solid #f66; background-color:#602; color:#f45;}
 .save{border:2px solid #6f6; background-color:#260; color:#4f5;}
+.spinner {position:absolute; border-top:8px solid #6f6; height:6px; width:3px; top:155px; left:24px; animation-name:spin; animation-duration: 1000ms; animation-timing-function: linear;}
+@keyframes spin {
+  from {
+    transform:rotate(0deg);
+  }
+  to {
+    transform:rotate(360deg);
+  }
+}
 </style>
 <script>
 var xhr = new XMLHttpRequest();
@@ -2738,12 +2752,31 @@ var Expand = function(c, t) {
   t.style.opacity = "";
 };
 
-var FFclick = function(e) {
+var FFdown = function(e) {
   var t = e.target;
   var a = t.parentNode;
   if (t.hasAttribute("data-schande")) {
-    send(t.innerHTML + " " + location.pathname.split('/').slice(0, -1).join('/') + "/" + t.getAttribute("data-schande"), e);
-  } else if (a.classList.contains("fileThumb")) {
+    var b = t.innerHTML + " " + location.pathname.split('/').slice(0, -1).join('/') + "/" + t.getAttribute("data-schande");
+    if (t.classList.contains("save")){
+      var d = document.createElement("div");
+      d.classList.add("spinner");
+      a.appendChild(d);
+      var timeoutID = setTimeout(function() {
+        send(b, e);
+      }.bind(t.addEventListener('mouseup', function() {
+        clearTimeout(timeoutID);
+        d.classList.remove("spinner");
+      })), 1000);
+    } else {
+      send(b, e);
+    }
+  }
+}
+
+var FFclick = function(e) {
+  var t = e.target;
+  var a = t.parentNode;
+  if (a.classList.contains("fileThumb")) {
     e.preventDefault();
     if(t.hasAttribute("data-src")) {
       var c = document.createElement("img");
@@ -2776,7 +2809,7 @@ var FFover = function(e) {
   var t = e.target;
   if(t.classList.contains("lazy") && !t.hasAttribute("busy")) {
     var d = document.createElement("div");
-    d.innerHTML = "<div class='schande save' style='display:none;'>Save</div><div class='schande' style='/*left:54px;*/'>Schande!</div>";
+    d.innerHTML = "<div class='schande save'>Save</div><div class='schande' style='left:44px;'>Schande!</div>";
     var a = t.parentNode.parentNode;
     a.appendChild(d);
     let isover = function(g) {
@@ -2805,6 +2838,7 @@ var FFover = function(e) {
 }
 
 document.addEventListener("click", FFclick);
+document.addEventListener("mousedown", FFdown);
 document.addEventListener("mousemove", FFmove);
 document.addEventListener("mouseover", FFover);
 
@@ -3691,12 +3725,12 @@ def delmode():
    > Rebuild Geistauge HTML without/less identical images.
 
  (S)ave - "seen" files in best quality and there must not be inferior similarities again.
-   > Developer note: This feature is unimplemented!
    > Use this only if what you think is unique and best quality available.
    > Use the Save button in browser to select files you want to save.
+   > Developer note: Useless feature for now!
 
  (T)rash - "seen" trash files, input an trash folder to start.
-   > Useful for files you don't like but kept haunting you.
+   > Useful for files you don't like but kept coming back to haunt you.
    > Delete/move files from \\.. Trash\\ beforehand if you think you might change your mind later.
    > Then for the next time they will be moved to \\.. Trash 2\\ during (G)eistauge auto.
 """)

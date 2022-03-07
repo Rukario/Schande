@@ -804,8 +804,8 @@ for c in cookies:
         Fanboxcookie =True
         buffer += "\n  > Fanbox"
     elif c.domain == ".fantia.jp" and c.name == "_session_id":
-        if not len(c.value) == 32:
-            kill("  > Fantia: cookie value must fit 32 characters in length.\n\n TRY AGAIN!")
+        if not len(c.value) == 64:
+            kill("  > Fantia: cookie value must fit 64 characters in length.\n\n TRY AGAIN!")
         Fantiacookie = True
         buffer == "\n  > Fantia"
 if not Patreoncookie:
@@ -941,11 +941,13 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
 
 
 
+request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookies)))
+# cookies.save()
+
+ssl._create_default_https_context = ssl._create_unverified_context
 # context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 # context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
 # request.install_opener(request.build_opener(request.HTTPSHandler(context=context)))
-request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookies)))
-# cookie.save()
 
 def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=False, stderr="", sleep=0, threadn=0):
     if sleep:
@@ -1551,12 +1553,20 @@ img{vertical-align:top;}
 h2{margin:4px;}
 .postMessage{white-space:pre-wrap;}
 [contenteditable]:focus {outline: none;}
-::selection { background: transparent; }
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 .stdout {white-space:pre-wrap; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
-.schande{opacity:0.5; position:absolute; top:""" + f"{imgsize - 50}" + """px; text-align:center; line-height:40px; height:40px; margin:3px; cursor:pointer; min-width:50px; border:2px solid #f66; background-color:#602; color:#f45;}
+.schande{opacity:0.5; position:absolute; top:""" + f"{imgsize - 50}" + """px; text-align:center; line-height:40px; height:40px; margin:3px; cursor:pointer; min-width:40px; border:2px solid #f66; background-color:#602; color:#f45;}
 .save{border:2px solid #6f6; background-color:#260; color:#4f5;}
+.spinner {position:absolute; border-top:9px solid #6f6; height:6px; width:3px; top:155px; left:24px; animation-name:spin; animation-duration: 1000ms; animation-timing-function: linear;}
+@keyframes spin {
+  from {
+    transform:rotate(0deg);
+  }
+  to {
+    transform:rotate(360deg);
+  }
+}
 </style>
 <script>
 var xhr = new XMLHttpRequest();
@@ -1600,12 +1610,31 @@ var Expand = function(c, t) {
   t.style.opacity = "";
 };
 
-var FFclick = function(e) {
+var FFdown = function(e) {
   var t = e.target;
   var a = t.parentNode;
   if (t.hasAttribute("data-schande")) {
-    send(t.innerHTML + " " + location.pathname.split('/').slice(0, -1).join('/') + "/" + t.getAttribute("data-schande"), e);
-  } else if (a.classList.contains("fileThumb")) {
+    var b = t.innerHTML + " " + location.pathname.split('/').slice(0, -1).join('/') + "/" + t.getAttribute("data-schande");
+    if (t.classList.contains("save")){
+      var d = document.createElement("div");
+      d.classList.add("spinner");
+      a.appendChild(d);
+      var timeoutID = setTimeout(function() {
+        send(b, e);
+      }.bind(t.addEventListener('mouseup', function() {
+        clearTimeout(timeoutID);
+        d.classList.remove("spinner");
+      })), 1000);
+    } else {
+      send(b, e);
+    }
+  }
+}
+
+var FFclick = function(e) {
+  var t = e.target;
+  var a = t.parentNode;
+  if (a.classList.contains("fileThumb")) {
     e.preventDefault();
     if(t.hasAttribute("data-src")) {
       var c = document.createElement("img");
@@ -1638,7 +1667,7 @@ var FFover = function(e) {
   var t = e.target;
   if(t.classList.contains("lazy") && !t.hasAttribute("busy")) {
     var d = document.createElement("div");
-    d.innerHTML = "<div class='schande save' style='display:none;'>Save</div><div class='schande' style='/*left:54px;*/'>Schande!</div>";
+    d.innerHTML = "<div class='schande save'>Save</div><div class='schande' style='left:44px;'>Schande!</div>";
     var a = t.parentNode.parentNode;
     a.appendChild(d);
     let isover = function(g) {
@@ -1667,6 +1696,7 @@ var FFover = function(e) {
 }
 
 document.addEventListener("click", FFclick);
+document.addEventListener("mousedown", FFdown);
 document.addEventListener("mousemove", FFmove);
 document.addEventListener("mouseover", FFover);
 
@@ -2367,46 +2397,47 @@ for i in range(8):
 
 
 
-pledges = []
+pledges = [[]]
 if Patreoncookie:
     print("Checking your pledges on Patreon . . .")
     resp, err = fetch("https://www.patreon.com/api/pledges?include=creator.null&fields[pledge]=&fields[user]=")
-    try:
+    if resp:
         api = json.loads(resp.read().decode('utf-8'))
-    except:
+    else:
         kill(0, f"Patreon cookie may be outdated ({err}).", r="Patreon cookie")
     artists = api["data"]
     for artist in artists:
-        pledges += [artist["relationships"]["creator"]["data"]["id"]]
+        pledges[0] += [artist["relationships"]["creator"]["data"]["id"]]
     resp, err = fetch("https://www.patreon.com/api/stream?include=user.null&fields[post]=&fields[user]=")
     api = json.loads(resp.read().decode("utf-8"))
     if not "included" in api:
         kill(0, "You haven't pledged to any artists on Patreon!", r="Patreon cookie")
     for artist in api["included"]:
-       pledges += [artist["id"]]
-    pledges = list(dict.fromkeys(pledges))
-    if not pledges and not favoriteispledged:
+       pledges[0] += [artist["id"]]
+    pledges[0] = list(dict.fromkeys(pledges[0]))
+    if not pledges[0] and not favoriteispledged:
         kill(0, "You haven't pledged to any artists on Patreon!", r="Patreon cookie")
 if Fanboxcookie:
     referers.update({"https://api.fanbox.cc/":"https://www.fanbox.cc"})
     print("Checking your pledges on Fanbox . . .")
     resp, err = fetch("https://api.fanbox.cc/plan.listSupporting")
-    try:
+    if resp:
         api = json.loads(resp.read().decode('utf-8'))
-    except:
+    else:
         kill(0, f"Fanbox cookie may be outdated ({err}).", r="Fanbox cookie")
     artists = api["body"]
     if not artists and not favoriteispledged:
         kill(0, "You haven't pledged to any artists on Fanbox!", r="Fanbox cookie")
     else:
         for artist in artists:
-            pledges += [artist["user"]["userId"]]
-if Fantiacookie:
+            pledges[0] += [artist["user"]["userId"]]
+if False and Fantiacookie:
     print("Checking your pledges on Fantia . . .")
     resp, err = fetch("https://fantia.jp/mypage/users/plans")
-    try:
+    if resp:
         html = resp.read().decode('utf-8')
-    except:
+        print(html)
+    else:
         kill(0, f"Fantia cookie may be outdated ({err}).", r="Fantia cookie")
     if not html:
         kill(0, "You haven't pledged to any artists on Fantia!", r="Fantia cookie")
@@ -2487,15 +2518,44 @@ def fantia_assets(threadn, htmlname, id):
     fromhtml.update(fantia_avatars(threadn, htmlname, id))
     page = 1
     while True:
-        html = get(f'https://fantia.jp/fanclubs/{id}/posts?page={page}', stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
-        html = html.replace("\n", "").replace("<div class=\"post-meta\">", "\n").replace(u"\u2028"," ").splitlines()
-        for part in html[1:]:
+        data = get(f'https://fantia.jp/fanclubs/{id}/posts?page={page}', stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
+        data = data.replace("\n", "").replace("<div class=\"post-meta\">", "\n").replace(u"\u2028"," ").splitlines()
+        for part in data[1:]:
             key = part.split("href=\"/posts/", 1)[1].split("\"", 1)[0]
-            assets = get("https://fantia.jp/posts/" + key, stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
+            api = get("https://fantia.jp/api/v1/posts/" + key, stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
+            if not api:
+                return fromhtml
+            api = json.loads(api.decode('utf-8'))
+            for next_obj in api["post"]:
+                key = next_obj["id"]
+                edited = next_obj["converted_at"]
+                keywords = [next_obj["title"], edited]
+                html = next_obj["comment"] # type html4
+                files = []
+                for file in next_obj["thumb"]:
+                    files += [new_link(file["original"], f"""{next_obj["id"]}.""", edited)]
+
+                for sub_obj in next_obj["post_contents"]:
+                    keywords = [sub_obj["title"], next_obj["converted_at"]]
+                    html = sub_obj["comment"] # type html4
+                    files = [new_link("https://fantia.jp/" + sub_obj["download_uri"], f"""{next_obj["id"]}.{sub_obj["filename"]}""", edited)]
+
+                    for s_obj in sub_obj["post_content_photos"]:
+                        # belongs to the sub_obj["id"]
+                        files = [new_link(s_obj["url"]["original"], f"""{next_obj["id"]}.{s_obj["id"]}.""", edited)]
+
+                # meta2 ^/*?
+                # meta2 ^/* ends with .png
+                # meta2 ^/* ends with .jpg
+                # meta2 ^/* ends with .jpeg
+                # meta2 ^/* ends with .gif
         page += 1
+        fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":[]}})
     return fromhtml
 
     print(f"Yiff.party's dead, Jim.")
+    return fromhtml
+
     html = get('https://yiff.party/fantia/' + id, stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
     html = html.replace("\n", "").replace("style=\"background: url('", "\n").replace("yp-info-img\" src=\"", "\n").replace(u"\u2028"," ").splitlines()
     fromhtml.update({"cover":html[1].split("'", 1)[0]})
@@ -2767,11 +2827,9 @@ def get_assets(artworks):
             else:
                 print("Error fetching new data for {htmlname}")
             shelf.update({HOME + id + "mirror": mirror_assets})
-        if id in pledges:
+        if id in pledges[0]:
             if HOME == "Fanbox":
                 paysite_assets = fanbox_assets(threadn, htmlname, id)
-            elif HOME == "Fantia":
-                paysite_assets = fantia_assets(threadn, htmlname, id)
             elif HOME == "Patreon":
                 paysite_assets = patreon_assets(threadn, htmlname, id)
             if paysite_assets:
@@ -2779,6 +2837,8 @@ def get_assets(artworks):
             else:
                 print("Error fetching new data for {htmlname} ({HOME})")
             shelf.update({HOME + id + "paysite": paysite_assets})
+        elif HOME == "Fantia":
+            paysite_assets = fantia_assets(threadn, htmlname, id)
         if os.path.exists(m := f"{batchname}/{htmlname}/mediocre.txt"):
             with open(m, 'r', encoding='utf-8') as f:
                  pickers[htmlname]["pattern"][0] += f.read().splitlines()
@@ -2866,7 +2926,7 @@ def scrape(pages):
 
     for htmlname, id, HOME in pages:
         if favoriteispledged:
-            pledges += [id]
+            pledges[0] += [id]
         if HOME + id in queued:
             continue
         queued += [HOME + id]

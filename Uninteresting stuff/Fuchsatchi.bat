@@ -912,6 +912,7 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
                 if el == 2:
                     firefox(saint(url=url))
                     Keypress_prompt[0] = False
+                    Keypress_R[0] = True
                 elif not el:
                     return 0, str(e.code)
             else:
@@ -930,6 +931,7 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
                 if el == 2:
                     echo(" FIREFOX: Maybe not.", 0, 1)
                     Keypress_prompt[0] = False
+                    Keypress_R[0] = True
                 elif not el:
                     return 0, "closed by host"
             else:

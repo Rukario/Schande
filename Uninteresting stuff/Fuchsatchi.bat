@@ -286,7 +286,7 @@ fgcolor 6
 # showpreview
 # Show files you haven't downloaded because of a filter.
 
-verifyondisk
+# verifyondisk
 # Find corrupted files on disk.
 
 
@@ -334,8 +334,8 @@ Update me/* for https://
 !.webm
 
 # Per-artist filter how-to:
-# Add pattern to mediocre.txt in artist folder to blacklist for this artist, this will incorporate with inline filters above. No possible operators.
-# Add pattern under an artist here to whitelist (or blacklist) for this artist, this will override inline filters above. Possible operators: .filetype, !.filetype, !pattern, !!pattern.
+# Add patterns to mediocre.txt in artist folder to blacklist for this artist, this will incorporate with inline filters above. No possible operators.
+# Add patterns under an artist here to whitelist (or blacklist) for this artist, this will override inline filters above. Possible operators: .filetype, !.filetype, !pattern, !!pattern.
 # Write "inherit" under an artist to let whitelist "incorporate" with inline filters above, adding flexibility. Illustrated example:
 
 #                    inline's !.zip = all but .zip
@@ -343,6 +343,7 @@ Update me/* for https://
 # .zip + "inherit" + inline's !.zip = all
 
 # Filters are case insensitive.
+# Filters before any artists will be your "general" filters. Filters under an artist will be for this artist.
 # Filters start/end are non-anchored, asterisk (*) will be literal and unnecessary.
 # Anchored ending if there's a period at the beginning, to avoid matching pattern of an extension name in file names.
 # !! is our "irony" operator used for readability and to avoid strings potentially starting with numbers for artist ID.
@@ -355,7 +356,7 @@ end
 # To add new artists, find their ID, then append each with their name, please do not backspace or continue number after ID. E.G.
 312424.zaush
 312424/Adam Wan
-# Insert a slash to use ending as folder E.G. \\Adam Wan\\ for Zaush.
+# Choose one of the above you may like better. The slash inserted will use ending as folder E.G. \\Adam Wan\\ for Zaush.
 
 then
 # resume next artists
@@ -2934,7 +2935,7 @@ def delmode():
 
 
 
-run_input = [False]*3
+run_input = [False]*4
 def read_input(m):
     return
 
@@ -3015,18 +3016,7 @@ def readfile():
             f.write(bytes(new_html(builder, "Index", "", 100), 'utf-8'))
 
     if not nextpages[0]:
-        print(f"""
- No favorite artists in {rulefile}! Add artist ID and their name per line please.
-
- + To add new artists, find their ID, then append each with their name, please do not backspace or continue number after ID. E.G.
- | 312424/Adam Wan
- | # Insert a slash to use ending as folder E.G. \\Adam Wan\\ for Zaush.
- |
- | fanbox
- | 1092867.b@commission
- | # Appended names are for you to identify, they can be renamed (please also make your changes symmetrical to existing folders).
- + # Artists from different paysites in rule file can be grouped by paysite name headings ("Fanbox", "Fantia", "Patreon").
-     Without them, {batchfile} will assume everyone is from Patreon.""")
+        print(f"\n No favorite artists in {rulefile}! Add artist ID and their name per line please.")
     else:
         if not newfilen[0]:
             print(f"""\n Today download result HTML "{htmlfile}" will not be made at this time. There are 0 new pictures.""")
@@ -3114,7 +3104,7 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            run_input[1] = True
+            run_input[3] = True
         elif el == 18:
             pressed(Keypress_R)
         elif el == 19:
@@ -3167,17 +3157,17 @@ print("""
 echo(mainmenu(), 0, 1)
 ready_input()
 while True:
-    if run_input[1]:
-        busy[0] = True
-        downloadtodisk(False, "Key listener test")
-        run_input[1] = False
-        busy[0] = False
-        echo("", 0, 1)
-        ready_input()
     if run_input[2]:
         busy[0] = True
         readfile()
         run_input[2] = False
+        busy[0] = False
+        echo("", 0, 1)
+        ready_input()
+    if run_input[3]:
+        busy[0] = True
+        downloadtodisk(False, "Key listener test")
+        run_input[3] = False
         busy[0] = False
         echo("", 0, 1)
         ready_input()

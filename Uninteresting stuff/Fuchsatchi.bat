@@ -49,7 +49,7 @@ busy = [False]
 cooldown = [False]
 dlslot = [8]
 echothreadn = []
-error = [[]]
+error = [[]]*4
 echoname = [batchfile]
 newfilen = [0]
 Keypress_prompt = [False]
@@ -62,6 +62,7 @@ Keypress_S = [False]
 Keypress_X = [False]
 Keypress_CtrlC = [False]
 retries = [0]
+run_input = [False]*4
 sf = [0]
 
 # Probably useless settings
@@ -115,6 +116,7 @@ def mainmenu():
     return f"""
  - - - - {batchname} HTML - - - -
  + Press B to launch HTML in your favorite browser.
+ + Press G to rebuild HTMLs from partition.json.
  + Press D to open delete mode.
 
  Delete the autosave file if:
@@ -212,17 +214,18 @@ def choice(keys="", bg=False, persist=False):
         if bg and not persist: os.system("color %color%")
         echo(tcolorx)
     else:
-        if keys: el = os.system("""while true; do
+        if keys:
+            el = os.system("""while true; do
 read -s -n 1 el || break
 case $el in
 """ + "\n".join([f"{k} ) exit {e+1};;" for e, k in enumerate(keys)]) + """
 esac
 done""")
-        if el >= 256:
-            el /= 256
-        el = int(el)
-        sys.stdout.write(f"{keys[el-1].upper()}\n")
-        sys.stdout.flush()
+            if el >= 256:
+                el /= 256
+            el = int(el)
+            sys.stdout.write(f"{keys[el-1].upper()}\n")
+            sys.stdout.flush()
     if not keys:
         return
     return el
@@ -285,6 +288,9 @@ fgcolor 6
 
 # showpreview
 # Show files you haven't downloaded because of a filter.
+
+# theyfuckedup
+# They (Fantia probably) fucked up deploying their certificate. Less secure, but this will bypass "certificate verify failed" fetch errors.
 
 # verifyondisk
 # Find corrupted files on disk.
@@ -575,6 +581,12 @@ def startserver(port, directory):
     d = f"\\{d}\\" if d else f"""DRIVE {directory.replace("/", "")}\\"""
     print(f""" HTML SERVER: Serving {d} at port {port}""")
     ThreadingHTTPServer(("", port), handler(directory)).serve_forever()
+try:
+    import certifi
+    context = ssl.create_default_context(cafile=certifi.where())
+except:
+    context = None
+# context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
 
 
 
@@ -668,6 +680,8 @@ for rule in rules:
         showpreview = True
     elif rule == "verifyondisk":
         verifyondisk = True
+    elif rule == "theyfuckedup":
+        ssl._create_default_https_context = ssl._create_unverified_context
     elif rule == "shuddup":
         shuddup = 2
     elif rule == "favoriteispledged":
@@ -919,6 +933,12 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
                 Keypress_S[0] = False
                 return 0, str(e.code)
         except URLError as e:
+            if "CERTIFICATE_VERIFY_FAILED" in str(e.reason):
+                echo("", 0, 1)
+                if context:
+                    kill(f""" {e.reason}\n\n They fucked up deploying their certificates (probably).\n Add "theyfuckedup" to {rulefile} to bypass this kind of error if you're willing to take risks.""")
+                else:
+                    kill(f""" {e.reason}\n\n Either they fucked up deploying their certificates or this Python is just having shitty certificate validator.\n Try execute optional prerequisites in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install certifi""")
             if stderr or Keypress_X[0] and not Keypress_S[0]:
                 if not retry(f"{stderr} ({e.reason})"):
                     return 0, e.reason
@@ -941,13 +961,9 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
 
 
 
-request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookies)))
 # cookies.save()
-
-ssl._create_default_https_context = ssl._create_unverified_context
-# context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 # context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
-# request.install_opener(request.build_opener(request.HTTPSHandler(context=context)))
+request.install_opener(request.build_opener(request.HTTPSHandler(context=context), request.HTTPCookieProcessor(cookies)))
 
 def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=False, stderr="", sleep=0, threadn=0):
     if sleep:
@@ -1107,7 +1123,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
 
 def echolinks(download):
     while True:
-        threadn, errorhtml, todisk, onserver, sleep = download.get()
+        threadn, todisk, onserver, sleep = download.get()
         conflict = [[], []]
         for n in range(len(onserver)):
             if n and not collisionisreal:
@@ -1122,11 +1138,11 @@ def echolinks(download):
                 echo(f"{threadn:>3} Already downloaded: {todisk}", 0, 1)
             elif (err := get(url, todisk=todisk, conflict=conflict, threadn=threadn, sleep=sleep)) == 1:
                 newfilen[0] += 1
-                errorhtml[0] += [container(todisk)]
+                error[0] += [container(todisk)]
             else:
-                error[0] += [todisk]
+                error[1] += [todisk]
+                error[2] += [f"&gt; Error downloading ({err}): {url}"]
                 echo(f"{threadn:>3} Error downloading ({err}): {url}", 0, 1)
-                errorhtml[1] += [f"&gt; Error downloading ({err}): {url}"]
         echothreadn.remove(threadn)
         download.task_done()
 download = Queue()
@@ -1156,11 +1172,8 @@ def check(string, patterns, whitelist=False):
 
 
 
-def isrej(filename, fromhtml=False):
-    if not fromhtml:
-        return
+def isrej(filename, pattern):
     inline = pickers["inline"]["pattern"]
-    pattern = fromhtml["pattern"]
     rejected = ""
     origin = ""
     if "/" in filename:
@@ -1201,7 +1214,7 @@ def ren(filename, append):
 
 
 
-def get_cd(file, fromhtml, errorhtml, makedirs=False, preview=False, subdir=""):
+def get_cd(subdir, file, pattern, makedirs=False, preview=False):
     link = file["link"]
     todisk = file["name"].replace("\\", "/")
     if rule := [v for k, v in customdir.items() if k in link]:
@@ -1216,7 +1229,7 @@ def get_cd(file, fromhtml, errorhtml, makedirs=False, preview=False, subdir=""):
         prepend, append = rule[0]
         todisk = f"{folder}{prepend}{name}{append}{ext}".replace("\\", "/") # "\\" in file["name"] can work like folder after prepend
         dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
-        if isrej(todisk, fromhtml):
+        if isrej(todisk, pattern):
             link = ""
         elif not preview and not os.path.exists(dir):
             if makedirs or [ast(x) for x in exempt if ast(x) == dir.replace("/", "\\")]:
@@ -1226,13 +1239,13 @@ def get_cd(file, fromhtml, errorhtml, makedirs=False, preview=False, subdir=""):
                     buffer = "\\" + dir.replace("/", "\\")
                     kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
             else:
-                errorhtml[1] += [f"&gt; Error downloading (dir): {link}"]
+                error[1] += [todisk]
+                error[2] += [f"&gt; Error downloading (dir): {link}"]
                 print(f" Error downloading (dir): {link}")
-                error[0] += [todisk]
                 link = ""
     elif not preview:
         dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
-        if isrej(todisk, fromhtml):
+        if isrej(todisk, pattern):
             link = ""
         if not os.path.exists(batchname + "/"):
             try:
@@ -1267,44 +1280,49 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
             pass
         return
     error[0] = []
-    errorhtml = [[], []]
-    filelist = []
-    filelisthtml = []
+    error[1] = []
+    error[2] = []
     htmlname = fromhtml["name"]
     htmlpart = fromhtml["partition"]
+    pattern = fromhtml["pattern"]
+    subdir = f"{batchname}/{htmlname}/"
+    queued = {}
+    lastfilen = newfilen[0]
+
+
+
+    # Partition and rebuild HTML
+    filelist = [[], []]
     for key in htmlpart.keys():
         for file in htmlpart[key]["files"]:
             if not file["name"]:
                 print(f""" I don't have a scraper for {file["link"]}""")
             else:
-                if (x := get_cd(file, fromhtml, errorhtml, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
-                    filelist += [x]
+                if (x := get_cd(subdir, file, pattern, makedirs) + [key])[0]:
+                    filelist[0] += [x]
         for array in htmlpart[key]["html"]:
             if len(array) == 2 and array[1]:
                 if not array[1]["name"]:
                     print(f""" I don't have a scraper for {array[1]["link"]}""")
                 else:
-                    if (x := get_cd(array[1], fromhtml, errorhtml, makedirs, subdir=f"{batchname}/{htmlname}/") + [key])[0]:
-                        filelisthtml += [x]
+                    if (x := get_cd(subdir, array[1], pattern, makedirs) + [key])[0]:
+                        filelist[1] += [x]
     if fromhtml["inlinefirst"]:
-        filelist = filelisthtml + filelist
+        filelist = filelist[1] + filelist[0]
     else:
-        filelist += filelisthtml
-    if error[0]:
+        filelist = filelist[0] + filelist[1]
+
+    if error[1]:
         buffer = " There is at least one of the bad custom dir rules (non-existent dir).\n"
         echoed = []
-        for e in error[0]:
+        for e in error[1]:
             if not (e := os.path.split(e)[0].replace("/", "\\") + "\\") in echoed:
                 echoed += [e]
                 buffer += f"  {e}\n"
         echo("", 0, 1)
         echo(f"{buffer} Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs.", 0, 2)
 
-
-
     if not filelist:
-        if fromhtml["makehtml"]:
-            tohtml(batchname + "/" + htmlname + "/", htmlname, fromhtml, [])
         echo("Filelist is empty!", 0, 1)
         return
     if len(filelist) == 1:
@@ -1315,13 +1333,34 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         except KeyboardInterrupt:
             pass
         return
-    queued = {}
-    lastfilen = newfilen[0]
+
+
+
+    for icon in fromhtml["icons"]:
+        if not os.path.exists(subdir + thumbnail_dir + icon["name"]):
+            if not (err := get(icon["link"], subdir + thumbnail_dir + icon["name"])) == 1:
+                echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
+
+    if page := fromhtml["page"]:
+        file = subdir + page["name"] + ".URL"
+        if not os.path.exists(file):
+            with open(file, 'w') as f:
+                f.write(f"""[InternetShortcut]
+URL={page["link"]}""")
+            page = "\\" + file.replace("/", "\\")
+            echo(f" File created: {page}", 0, 1)
+
+
+
+    if not os.path.exists(subdir + thumbnail_dir):
+        os.makedirs(subdir + thumbnail_dir)
+    if (part := frompart(f"{subdir}{thumbnail_dir}partition.json", htmlpart)) or verifyondisk:
+        parttohtml(subdir, htmlname, part, filelist, pattern)
 
 
 
     # Autosave (1/3)
-    ender = f"{batchname}/{htmlname}/autosave.txt"
+    ender = f"{subdir}autosave.txt"
     ender_is = "created"
     ender_key = 0
     enderread = []
@@ -1335,7 +1374,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
 
 
     for onserver, filename, edited, key in filelist:
-        ondisk = f"{batchname}/{htmlname}/{filename}"
+        ondisk = f"{subdir}{filename}"
 
 
 
@@ -1348,8 +1387,8 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
                 if os.path.exists(ondisk):
                     if editisreal:
                         old = ".old_file_" + line[0].split(" ")[1]
-                        os.rename(ondisk, f"{batchname}/{htmlname}/{ren(filename, old)}")
-                        thumbnail = f"{batchname}/{htmlname}/{thumbnail_dir}" + ren(filename, append="_small")
+                        os.rename(ondisk, f"{subdir}{ren(filename, old)}")
+                        thumbnail = f"{subdir}{thumbnail_dir}" + ren(filename, append="_small")
                         if os.path.exists(thumbnail):
                             os.rename(thumbnail, ren(thumbnail, old))
                     else:
@@ -1381,7 +1420,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
     for ondisk, onserver in queued.items():
         threadn += 1
         echothreadn.append(threadn)
-        download.put((threadn, errorhtml, ondisk, onserver, 0))
+        download.put((threadn, ondisk, onserver, 0))
     try:
         download.join()
     except KeyboardInterrupt:
@@ -1389,12 +1428,26 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
 
 
 
-    # Autosave (3/3) and rebuild HTML
+    # Autosave (3/3), build thumbnails and errorHTML
+    if buildthumbnail:
+        echo("Building thumbnails . . .")
+        thumbnail = f"{subdir}{thumbnail_dir}".join(ren(file, "_small").rsplit("/", 1))
+        if not os.path.exists(thumbnail):
+            try:
+                img = Image.open(f"{subdir}{thumbnail_dir}{file}")
+                w, h = img.size
+                if h > 200:
+                    img.resize((int(w*(200/h)), 200), Image.ANTIALIAS).save(thumbnail, subsampling=0, quality=100)
+                else:
+                    img.save(thumbnail)
+            except:
+                pass
+
     newfile = False if lastfilen == newfilen[0] else True
     new_enderread = sorted(new_enderread)
-    if error[0]:
-        error[0] = [os.path.basename(x).split(".", 1)[0] for x in error[0]]
-        new_enderread = [x for x in new_enderread if x and x.split()[0] not in error[0]]
+    if error[1]:
+        error[1] = [os.path.basename(x).split(".", 1)[0] for x in error[1]]
+        new_enderread = [x for x in new_enderread if x and x.split()[0] not in error[1]]
     stdout = ""
     if not newfile and ender_is == "updated":
         stdout += oncomplete
@@ -1402,33 +1455,13 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         with open(ender, 'w') as f:
             f.write("\n".join(new_enderread))
         buffer = ender.replace("/", "\\")
-        stdout += f" File {ender_is}: {buffer}"
-    if error[0]:
+        stdout += f" File {ender_is}: \\{batchname}\\{buffer}"
+    if error[1]:
         stdout += "\nThere are failed downloads I will try again later."
     echo(stdout, 0, 1)
-    if not (htmlx := os.path.exists(f"{batchname}/{htmlname}.html")) or newfile or verifyondisk:
-        files = []
-        for file in next(os.walk(f"{batchname}/{htmlname}/"))[2]:
-            if not file.endswith(tuple(specialfile)) or file.startswith("icon"):
-                files += [file]
-        stray_files = set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist)
-        if newfile or not htmlx:
-            tohtml(f"{batchname}/{htmlname}/", htmlname, fromhtml, stray_files)
-        gethreadn = 0
-        for file in stray_files:
-            if not file.endswith(tuple(specialfile)) and isrej(file, fromhtml):
-                ondisk = f"{batchname}/{htmlname}/{file}".replace("/", "\\")
-                echo(f"Blacklisted file saved on disk: {ondisk}", 0, 1)
-                errorhtml[1] += [f"&gt; Blacklisted file saved on disk: {ondisk}"]
-            elif verifyondisk:
-                gethreadn += 1
-                ge_q.put((gethreadn, htmlname, len(stray_files), file, errorhtml))
-        if verifyondisk:
-            ge_q.join()
-            echo(" GEISTAUGE: 100%", 0, 1)
 
-    errorhtml[0].sort()
-    htmldata[0] += [('\n'.join(errorhtml[0]) + "\n<br>" if errorhtml[0] else "") + '\n<br>'.join(errorhtml[1])]
+    error[0].sort()
+    htmldata[0] += [('\n'.join(error[0]) + "\n<br>" if error[0] else "") + '\n<br>'.join(error[2])]
 
 
 
@@ -1438,12 +1471,14 @@ def new_firefox():
         try:
             from selenium import webdriver
         except:
-            echo(f"\nSELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install selenium", 0, 2)
+            echo("", 0, 1)
+            echo(f" SELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install selenium", 0, 2)
         options = webdriver.FirefoxOptions()
         # options.add_argument("--headless")
         return webdriver.Firefox(options=options)
     else:
-        echo(f"\n Download and extract the latest win64 package from https://github.com/mozilla/geckodriver/releases and then try again.", 0, 2)
+        echo("", 0, 1)
+        echo(f" FIREFOX: Download and extract the latest win64 package from https://github.com/mozilla/geckodriver/releases and then try again.", 0, 2)
 def ff_login():
     revisit = False
     for c in cookies:
@@ -1473,14 +1508,16 @@ def firefox(url):
         c = new_cookie()
         c.update(bc)
         cookies.set_cookie(cookiejar.Cookie(**c))
+    echo("", 0, 1)
+    echo(f" FIREFOX: Gave cookie(s) to {batchname}", 0, 1)
     return True
 
 
 
-def container(ondisk, fromhtml=False, depth=0):
+def container(ondisk, pattern=False, depth=0):
     filename = ondisk.rsplit("/", 1)[-1]
     relfile = ondisk.split("/", depth)[-1]
-    if fromhtml and isrej(filename, fromhtml):
+    if pattern and isrej(filename, pattern):
         return f"""<div class="frame"><div class="aqua">🦦 -( Mediocre )</div><div class="sources">{filename}</div></div>\n"""
     else:
         if filename.lower().endswith(tuple(videofile)):
@@ -1488,16 +1525,6 @@ def container(ondisk, fromhtml=False, depth=0):
         elif filename.lower().endswith(tuple(imagefile)):
             if buildthumbnail and not f"/{thumbnail_dir}" in relfile:
                 thumb = f"/{thumbnail_dir}".join(ren(relfile, "_small").rsplit("/", 1))
-                if not os.path.exists(batchname + "/" + thumb):
-                    try:
-                        img = Image.open(ondisk)
-                        w, h = img.size
-                        if h > 200:
-                            img.resize((int(w*(200/h)), 200), Image.ANTIALIAS).save(batchname + "/" + thumb, subsampling=0, quality=100)
-                        else:
-                            img.save(batchname + "/" + thumb)
-                    except:
-                        pass
             else:
                 thumb = relfile
             data = f"""<div class="frame"><a class="fileThumb" href="{relfile.replace("#", "%23")}"><img class="lazy" data-src="{thumb.replace("#", "%23")}"></a><div class="sources">{filename}</div></div>\n"""
@@ -1519,30 +1546,31 @@ def new_html(builder, htmlname, listurls, imgsize=200):
 """ + f"<title>{htmlname}</title>" + """
 <style>
 html,body{background-color:#10100c; color:#088 /*088 cb7*/; font-family:consolas, courier; font-size:14px;}
-a{color:#dc8 /*efdfa8*/;}
-a:visited{color:#cccccc;}
+a{color:#6cb /*efdfa8*/;}
+a:visited{color:#bfe;}
+.external{color:#db6;}
+.external:visited{color:#ed9;}
+
+img {vertical-align:top;}
+h2 {margin:4px;}
+button {padding:1px 4px;}
+[contenteditable]:focus {outline: none;}
+
 .aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
 .carbon, .files, .time{background-color:#10100c /*10100c 112230 07300f*/; border:3px solid #6a6a66 /*6a6a66 367 192*/; border-radius:12px;}
 .time{white-space:pre-wrap; color:#ccc; font-size:90%; line-height:1.6;}
 .cell, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
-.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45;}
+.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45; padding:12px; margin:6px; word-wrap:break-word;}
 .previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
 .next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
 .closebtn{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
-
-.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45; padding:12px; margin:6px; word-wrap:break-word;}
-.frame{display:inline-block; vertical-align:top; position:relative;}
-.previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
 .reverse{background-color:#63c; color:#d9f; border:none; border-radius:10px; cursor:pointer;}
 .tangerine{background-color:#c60; color:#fc3; border:none; border-radius:10px; cursor:pointer;}
 .edge{background-color:#261; color:#8c4; border:none; border-radius:10px; cursor:pointer;}
-.next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
-.sources{font-size:80%; width:200px;}
 
-img{vertical-align:top;}
-.container{display:block; position:relative;}
-.frame{display:inline-block; vertical-align:top;}
 .sources{font-size:80%; width:200px;}
+.container{display:block; position:relative;}
+.frame{display:inline-block; vertical-align:top; position:relative;}
 .aqua{display:inline-block; vertical-align:top; padding:12px; word-wrap:break-word;}
 .carbon, .time, .files, .edits{display:inline-block; vertical-align:top;}
 .carbon, .time, .cell, .mySlides, .files, .edits{padding:8px; margin:6px; word-wrap:break-word;}
@@ -1550,15 +1578,15 @@ img{vertical-align:top;}
 .closebtn{position:absolute; top:15px; right:15px;}
 .carbon, .files, .edits{margin-right:12px;}
 .cell{overflow:auto; width:calc(100% - 30px); display:inline-block; vertical-align:text-top;}
-h2{margin:4px;}
 .postMessage{white-space:pre-wrap;}
-[contenteditable]:focus {outline: none;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 .stdout {white-space:pre-wrap; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
-.schande{opacity:0.5; position:absolute; top:""" + f"{imgsize - 50}" + """px; text-align:center; line-height:40px; height:40px; margin:3px; cursor:pointer; min-width:40px; border:2px solid #f66; background-color:#602; color:#f45;}
-.save{border:2px solid #6f6; background-color:#260; color:#4f5;}
-.spinner {position:absolute; border-top:9px solid #6f6; height:6px; width:3px; top:155px; left:24px; animation-name:spin; animation-duration: 1000ms; animation-timing-function: linear;}
+.schande{opacity:0.5; position:absolute; top:158px; text-align:center; line-height:34px; height:34px; cursor:pointer; min-width:40px; border:2px solid transparent; background-clip: padding-box; box-shadow:inset 0 0 0 2px #c44; padding:2px; background-color:#602; color:#f45; -webkit-user-select:none;}
+.save{box-shadow:inset 0 0 0 2px #367; background-color:#142434; color:#2a9;}
+.spinner {position:absolute; border-top:9px solid #6cc; height:6px; width:3px; top:162px; left:24px; pointer-events:none; animation-name:spin; animation-duration: 1000ms; animation-timing-function: linear;}
+.left {position:absolute; border-bottom:2px solid #f66; border-left:2px solid #f66; height:5px; width:5px; transform:rotate(45deg); top:166px; left:86px; pointer-events:none;}
+.right {position:absolute; border-bottom:2px solid #6cc; border-left:2px solid #6cc; height:5px; width:5px; transform:rotate(225deg); top:166px; left:21px; pointer-events:none;}
 @keyframes spin {
   from {
     transform:rotate(0deg);
@@ -1615,18 +1643,54 @@ var FFdown = function(e) {
   var a = t.parentNode;
   if (t.hasAttribute("data-schande")) {
     var b = t.innerHTML + " " + location.pathname.split('/').slice(0, -1).join('/') + "/" + t.getAttribute("data-schande");
+    var d = document.createElement("div");
+    a.appendChild(d);
+    t.addEventListener('touchmove', function(e) {e.preventDefault()});
     if (t.classList.contains("save")){
-      var d = document.createElement("div");
       d.classList.add("spinner");
-      a.appendChild(d);
       var timeoutID = setTimeout(function() {
-        send(b, e);
-      }.bind(t.addEventListener('mouseup', function() {
+        if (isTouch){
+          d.classList.remove("spinner");
+          d.classList.add("right");
+          var X = e.pageX;
+          var Y = e.pageY;
+          t.addEventListener('touchend', function(z) {
+            if (-20 < (Y - z.pageY) && (Y - z.pageY) < 20 && (z.pageX - X) > 50){
+              d.classList.remove("right");
+              send(b, e);
+            }
+          });
+          t.addEventListener('mouseleave', function() {d.classList.remove("right")})
+        } else {
+          send(b, e)
+        }
+      }.bind(t.addEventListener('click', function() {
+        clearTimeout(timeoutID);
+        d.classList.remove("spinner");
+      })).bind(t.addEventListener('mouseleave', function() {
+        clearTimeout(timeoutID);
+        d.classList.remove("spinner");
+      })).bind(t.addEventListener('touchmove', function() {
         clearTimeout(timeoutID);
         d.classList.remove("spinner");
       })), 1000);
     } else {
-      send(b, e);
+      if (isTouch){
+        d.classList.add("left");
+        var X = e.pageX;
+        var Y = e.pageY;
+        t.addEventListener('touchend', function(z) {
+          if (-20 < (Y - z.pageY) && (Y - z.pageY) < 20 && (X - z.pageX) > 50){
+            d.classList.remove("left");
+            send(b, e);
+          }
+        });
+        t.addEventListener('mouseleave', function() {d.classList.remove("left")})
+      } else {
+        t.addEventListener('mouseup', function() {
+          send(b, e)
+        });
+      }
     }
   }
 }
@@ -1634,7 +1698,7 @@ var FFdown = function(e) {
 var FFclick = function(e) {
   var t = e.target;
   var a = t.parentNode;
-  if (a.classList.contains("fileThumb")) {
+  if (a.classList != undefined && a.classList.contains("fileThumb")) {
     e.preventDefault();
     if(t.hasAttribute("data-src")) {
       var c = document.createElement("img");
@@ -1665,10 +1729,11 @@ var FFmove = function(e) {
 
 var FFover = function(e) {
   var t = e.target;
-  if(t.classList.contains("lazy") && !t.hasAttribute("busy")) {
+  var a = t.parentNode;
+  if(a.classList != undefined && a.classList.contains("fileThumb") && !a.parentNode.hasAttribute("busy")) {
+    a = a.parentNode;
     var d = document.createElement("div");
-    d.innerHTML = "<div class='schande save'>Save</div><div class='schande' style='left:44px;'>Schande!</div>";
-    var a = t.parentNode.parentNode;
+    d.innerHTML = "<div class='schande save'>Save</div><div class='schande' style='left:48px;'>Schande!</div>";
     a.appendChild(d);
     let isover = function(g) {
       g.target.style.opacity = 1
@@ -1687,15 +1752,16 @@ var FFover = function(e) {
       setTimeout(function(){
         a.removeChild(d);
       }, 1)
-      t.removeAttribute("busy")
+      a.removeAttribute("busy")
       a.removeEventListener("mouseleave", left);
     }
-    t.setAttribute("busy", true)
+    a.setAttribute("busy", true)
     a.addEventListener("mouseleave", left);
   }
 }
 
 document.addEventListener("click", FFclick);
+document.addEventListener("touchstart", FFdown);
 document.addEventListener("mousedown", FFdown);
 document.addEventListener("mousemove", FFmove);
 document.addEventListener("mouseover", FFover);
@@ -1772,14 +1838,14 @@ function quicklook(e) {
           t.removeAttribute("data-tooltip");
         }
       } else {
-        let m = new Image();
+        let fp = new Image();
         let p = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0];
         if (p == undefined || p.nodeName != "A") {
-          m.src = s.src;
+          fp.src = s.src;
         } else {
-          m.src = p.getAttribute("href");
+          fp.src = p.getAttribute("href");
         }
-        if(m.src == s.src) {
+        if(fp.src == s.src) {
           context.fillRect(0, 0, s.width, s.height);
         } else {
           isTainted = true;
@@ -1787,11 +1853,11 @@ function quicklook(e) {
             var cgl = document.createElement("canvas");
             gl = cgl.getContext("webgl2")
             if (geistauge == "reverse") {
-              m.onload = difference(m, s.width, s.height, s, context, gl, side=true);
+              fp.onload = difference(fp, s.width, s.height, s, context, gl, side=true);
             } else if (geistauge == "tangerine") {
-              m.onload = difference(s, s.width, s.height, m, context, gl, side=true);
+              fp.onload = difference(s, s.width, s.height, fp, context, gl, side=true);
             } else {
-              m.onload = difference(s, s.width, s.height, m, context, gl);
+              fp.onload = difference(s, s.width, s.height, fp, context, gl);
             }
           isTainted = false;
           t.removeAttribute("data-tooltip");
@@ -1908,10 +1974,10 @@ function darkdiff(a, b) {
 
 var rgb, rgb2;
 
-function difference(s, cw, ch, m, context, gl, side=false) {
+function difference(s, cw, ch, fp, context, gl, side=false) {
   context.drawImage(s, 0, 0, cw, ch);
   rgb = context.getImageData(0, 0, cw, ch);
-  context.drawImage(m, 0, 0, cw, ch);
+  context.drawImage(fp, 0, 0, cw, ch);
   rgb2 = context.getImageData(0, 0, cw, ch);
   if(side){
     darkside(rgb.data, rgb2.data)
@@ -2116,26 +2182,26 @@ function hideParts(e, t='', a=true) {
     c = true
   }
   for (var i=0; i < x.length; i++) {
-    var m = '';
+    var fp = '';
     if (c){
-      m = x[i].getElementsByClassName(e[0])
-      if (m.length > 0){
-        m = m[0].textContent;
+      fp = x[i].getElementsByClassName(e[0])
+      if (fp.length > 0){
+        fp = fp[0].textContent;
       } else {
         x[i].style.display = 'none';
         continue
       }
     } else {
-      m = x[i].getElementsByTagName(e[0])
-      if (m.length > 0){
-        m = m[0].textContent;
+      fp = x[i].getElementsByTagName(e[0])
+      if (fp.length > 0){
+        fp = fp[0].textContent;
       } else {
         x[i].style.display = 'none';
         continue
       }
     }
-    m = m.toLowerCase().includes(t);
-    if (!a && !m && t || a && m && t) {
+    fp = fp.toLowerCase().includes(t);
+    if (!a && !fp && t || a && fp && t) {
       x[i].style.display = 'none';
     } else {
       x[i].style.display = 'inline-block';
@@ -2143,11 +2209,17 @@ function hideParts(e, t='', a=true) {
   }
 }
 
+var isTouch;
+var dir = location.href.substring(0, location.href.lastIndexOf('/')) + "/";
 window.onload = () => {
   var links = document.getElementsByTagName('a');
   for(var i=0; i<links.length; i++) {
-    links[i].target = "_blank";
+    if (!links[i].href.startsWith(dir)){
+      links[i].classList.add("external");
+      links[i].target = "_blank";
+    }
   }
+  if('ontouchstart' in window){isTouch = true;};
   stdout = document.getElementById("stdout");
   if(!stdout.isContentEditable){
     stdout.setAttribute("onpaste", "plaintext(this, event)");
@@ -2221,84 +2293,105 @@ def hyperlink(html):
 
 
 
-def tohtml(subdir, htmlname, fromhtml, stray_files, rebuild=False):
-    builder = ""
-    listurls = ""
-    htmlpart = fromhtml["partition"]
+def frompart(partfile, htmlpart):
     if "0" in htmlpart and not htmlpart["0"]["html"] and not htmlpart["0"]["files"]:
         del htmlpart["0"]
-    if not os.path.exists(subdir + thumbnail_dir):
-        os.makedirs(subdir + thumbnail_dir)
+
     new_relics = htmlpart.copy()
+    for key in new_relics.keys():
+        new_relics[key] = htmlpart[key].copy()
+        files = []
+        duplicates = set()
+        for file in htmlpart[key]["files"]:
+            if not file["name"] in duplicates and not duplicates.add(file["name"]):
+                files += [file["name"].rsplit("/", 1)[-1]]
+        new_relics[key]["files"] = files
+        for array in new_relics[key]["html"]:
+            if len(array) == 2 and array[1]:
+                array[1] = array[1]["name"].rsplit("/", 1)[-1]
 
-
-
-    for icon in fromhtml["icons"]:
-        if not os.path.exists(subdir + thumbnail_dir + icon["name"]):
-            if not (err := get(icon["link"], subdir + thumbnail_dir + icon["name"])) == 1:
-                echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
-        builder += f"""<img src="{htmlname}/{thumbnail_dir}{icon["name"]}" height="100px">\n"""
-    if x := fromhtml["page"]:
-        builder += f"""<h2>Paysite: <a href="{x["link"]}">{x["name"]}</a></h2>"""
-
-
-
-    if not rebuild:
-        for key in new_relics.keys():
-            new_relics[key] = htmlpart[key].copy()
-            files = []
-            duplicates = set()
-            for file in htmlpart[key]["files"]:
-                if not file["name"] in duplicates and not duplicates.add(file["name"]):
-                    files += [file["name"].rsplit("/", 1)[-1]]
-            new_relics[key]["files"] = files
-            for array in new_relics[key]["html"]:
-                if len(array) == 2 and array[1]:
-                    array[1]["name"] = array[1]["name"].rsplit("/", 1)[-1]
-
-
-
-    partfile = f"{subdir}{thumbnail_dir}partition.json"
-    gallery_is = "updated"
+    part_is = False
     if not os.path.exists(partfile):
-        gallery_is = "created"
         with open(partfile, 'w') as f:
             f.write(json.dumps(new_relics))
-    with open(partfile, 'r', encoding="utf-8") as f:
-        relics = json.loads(f.read())
-    stray_keys = iter(relics.keys())
-    part = {}
-    for key in new_relics.keys():
-        if not key in relics:
-            part.update({key:new_relics[key]})
-            continue
-        for stray_key in stray_keys:
-            if not key == stray_key:
-                part.update({stray_key:relics[stray_key]})
+        part_is = "created"
+        part = new_relics
+    else:
+        with open(partfile, 'r', encoding="utf-8") as f:
+            relics = json.loads(f.read())
+        stray_keys = iter(relics.keys())
+        part = {}
+        for key in new_relics.keys():
+            if not key in relics:
+                part.update({key:new_relics[key]})
+                continue
+            for stray_key in stray_keys:
+                if not key == stray_key:
+                    part.update({stray_key:relics[stray_key]})
+                else:
+                    break
+            if not relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
+                part.update({key:new_relics[key]})
+                part_is = "updated"
             else:
-                break
-        if not relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
-            part.update({key:new_relics[key]})
-        else:
-            part.update({key:relics[key]})
-    if not rebuild:
+                part.update({key:relics[key]})
+    if part_is:
         with open(partfile, 'w') as f:
             f.write(json.dumps(part))
         buffer = partfile.replace("/", "\\")
-        print(f" File {gallery_is}: {buffer}")
+        print(f" File {part_is}: \\{buffer}")
+        return part
 
 
+
+def parttohtml(subdir, htmlname, part, filelist, pattern, rebuild=False):
+    files = []
+    for file in next(os.walk(subdir))[2]:
+        if not file.endswith(tuple(specialfile)) and not file.startswith("icon"):
+            files += [file]
+    stray_files = sorted(set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
+
+    if verifyondisk:
+        gethreadn = 0
+        for file in files:
+            gethreadn += 1
+            ge_q.put((gethreadn, htmlname, len(files), file))
+        ge_q.join()
+        echo(" GEISTAUGE: 100%", 0, 1)
 
     for file in stray_files:
         key = file.split(".", 1)[0]
         if not key in part.keys():
+            if not "0" in part.keys():
+                part.update(new_p("0"))
             key = "0"
         if "stray_files" in part[key]:
             part[key]["stray_files"] += [file]
         else:
             part[key]["stray_files"] = [file]
-    if buildthumbnail:
-        echo("Building thumbnails . . .")
+
+    tohtml(subdir, part, htmlname, pattern)
+
+    for file in stray_files:
+        if not file.endswith(tuple(specialfile)) and isrej(file, pattern):
+            ondisk = f"{subdir}{file}".replace("/", "\\")
+            echo(f"Blacklisted file saved on disk: {ondisk}", 0, 1)
+            error[2] += [f"&gt; Blacklisted file saved on disk: {ondisk}"]
+
+
+
+def tohtml(subdir, part, htmlname, pattern):
+    builder = ""
+    listurls = ""
+
+
+
+    for icon in ["avatar.png", "cover.png"]:
+        if os.path.exists(f"{subdir}{thumbnail_dir}{icon}"):
+            builder += f"""<img src="{htmlname}/{thumbnail_dir}{icon}" height="100px">\n"""
+    if os.path.exists(page := f"{subdir}{thumbnail_dir}{htmlname}.URL"):
+        with open(page, 'r') as f:
+            builder += f"""<h2>Paysite: <a href="{f.splitlines()[1].replace("URL=", "")}">{htmlname}</a></h2>"""
 
 
 
@@ -2324,13 +2417,13 @@ def tohtml(subdir, htmlname, fromhtml, stray_files, rebuild=False):
         if part[key]["files"]:
             builder += "<div class=\"files\">\n"
             for file in part[key]["files"]:
-                builder += container(subdir + file, fromhtml, 1)
+                builder += container(subdir + file, pattern, 1)
             builder += "</div>\n"
         if "stray_files" in part[key]:
             builder += "<div class=\"edits\">\n"
             for file in part[key]["stray_files"]:
                 # os.rename(subdir + file, subdir + "Stray files/" + file)
-                builder += container(subdir + file, fromhtml, 1)
+                builder += container(subdir + file, pattern, 1)
             builder += "<br><br>File(s) not on server\n</div>\n"
         if html := part[key]["html"]:
             builder += """<div class="postMessage">"""
@@ -2341,7 +2434,7 @@ def tohtml(subdir, htmlname, fromhtml, stray_files, rebuild=False):
                         end_container = True
                         new_container = False
                     if array[1]:
-                        content += f"""{array[0]}{container(subdir + array[1]["name"], fromhtml, 1)}"""
+                        content += f"""{array[0]}{container(subdir + array[1], pattern, 1)}"""
                     else:
                         content += array[0]
                 elif end_container:
@@ -2365,15 +2458,18 @@ def tohtml(subdir, htmlname, fromhtml, stray_files, rebuild=False):
         elif not part[key]["files"]:
             builder += "<div class=\"edits\">Rebuild HTML with a different login/tier may be required to view</div>\n"
         builder += "</div>\n\n"
+    gallery_is = "created"
+    if os.path.exists(f"{batchname}/{htmlname}.html"):
+        gallery_is = "updated"
     with open(f"{batchname}/{htmlname}.html", 'wb') as f:
         f.write(bytes(new_html(builder, htmlname, listurls), "utf-8"))
-    print(f" File {gallery_is}: {batchname}\\{htmlname}.html ")
+    print(f" File {gallery_is}: \\{batchname}\\{htmlname}.html ")
 
 
 
 def gethread(ge_q):
     while True:
-        gethreadn, htmlname, total, file, errorhtml = ge_q.get()
+        gethreadn, htmlname, total, file = ge_q.get()
         ondisk = f"{batchname}/{htmlname}/{file}"
         if file.endswith(tuple(imagefile)):
             try:
@@ -2381,11 +2477,11 @@ def gethread(ge_q):
                 image.verify()
             except:
                 print(f" Corrupted on disk: {ondisk}")
-                errorhtml[1] += [f"&gt; Corrupted on disk: {ondisk}"]
+                error[2] += [f"&gt; Corrupted on disk: {ondisk}"]
         elif False and file.endswith(tuple(archivefile)):
             if subprocess.call(f'"{sevenz}" t -pBadPassword "{ondisk}"', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL):
                 print(f" Corrupted on disk: {ondisk}")
-                errorhtml[1] += [f"&gt; Corrupted on disk: {ondisk}"]
+                error[2] += [f"&gt; Corrupted on disk: {ondisk}"]
         if gethreadn%8 == 0:
             echo(" GEISTAUGE: " + str(int((gethreadn / total) * 100)) + "%")
         ge_q.task_done()
@@ -2447,12 +2543,11 @@ if False and Fantiacookie:
 def new_p(z):
     return {z:{"html":[], "keywords":[], "files":[]}}
 
-def new_part(threadn=0):
-    new = {threadn:new_p("0")} if threadn else new_p("0")
-    return {"ready":False if showpreview else True, "page":"", "name":"", "folder":"", "makehtml":True, "campaign_id":None, "pattern":[[], [], False], "icons":[], "inlinefirst":True, "partition":new}
+def new_part(pagen=0):
+    return {"ready":False if showpreview else True, "page":"", "name":"", "folder":"", "makehtml":True, "campaign_id":None, "pattern":[[], [], False], "icons":[], "inlinefirst":True, "partition":{pagen:new_p("0")}}
 
-def new_link(l, n, e, h=[]):
-    return {"link":l, "name":saint(n), "hash":h, "edited":e}
+def new_link(l, n, e):
+    return {"link":l, "name":saint(n), "edited":e}
 
 def fanbox_avatars(threadn, htmlname, id):
     api = json.loads(get(f"https://api.fanbox.cc/creator.get?userId={id}", stderr=f"Broken API on Fanbox for {htmlname}", threadn=threadn).decode('utf-8'))
@@ -2472,380 +2567,335 @@ def patreon_avatars(threadn, htmlname, id):
 
 
 
-def fanbox_assets(threadn, htmlname, id):
-    fromhtml = new_part()
-    fromhtml.update(fanbox_avatars(threadn, htmlname, id))
-    url = f"https://api.fanbox.cc/post.listCreator?userId={id}&limit=10"
-    while True:
-        api = get(url, stderr=f"Broken API on Fanbox for {htmlname}", threadn=threadn)
-        if not api:
-            return fromhtml
-        api = json.loads(api.decode('utf-8'))
-        for next_obj in api["body"]["items"]:
-            key = next_obj["id"]
-            keywords = [next_obj["title"], next_obj["updatedDatetime"].replace("T", " ").split("+", 1)[0]]
-            edited = keywords[1].split(" ", 1)[0].replace("-", "")
-            html = []
-            filelist = []
-            if not next_obj["body"]:
-                filelist = []
-            elif "text" in next_obj["body"]:
-                html = [[hyperlink(next_obj["body"]["text"].replace("\n", "<br>")), ""]]
-                filelist += next_obj["body"]["images"] if "images" in next_obj["body"] else []
-            elif "blocks" in next_obj["body"]:
-                for block in next_obj["body"]["blocks"]:
-                    if "text" in block:
-                        html += [["<p>" + hyperlink(block["text"].replace("\n", "<br>")), ""]]
-                    else:
-                        url = next_obj["body"]["imageMap"][block["imageId"]]["originalUrl"]
-                        html += [["<p>", new_link(url, key + "." + url.rsplit("/", 1)[1], edited)]]
-                filelist = []
-            files = []
-            for file in filelist:
+def fanbox(next_obj, htmlpart):
+    key = next_obj["id"]
+    keywords = [next_obj["title"], next_obj["updatedDatetime"].replace("T", " ").split("+", 1)[0]]
+    edited = keywords[1].split(" ", 1)[0].replace("-", "")
+    html = []
+    files = []
+    if next_obj["body"] and "text" in next_obj["body"]:
+        html += [[hyperlink(next_obj["body"]["text"].replace("\n", "<br>")), ""]]
+        if "images" in next_obj["body"]:
+            for file in next_obj["body"]["images"]:
                 url = file["originalUrl"]
-                files += [new_link(url, key + "." + url.rsplit("/", 1)[1], edited)]
-            fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
-        if api["body"]["nextUrl"]:
-            url = api["body"]["nextUrl"]
-        else:
-            break
-    return fromhtml
+                name = url.rsplit("/", 1)[1]
+                name = f"{key}.{name}"
+                files += [new_link(url, name, edited)]
+    elif next_obj["body"] and "blocks" in next_obj["body"]:
+        for block in next_obj["body"]["blocks"]:
+            if "text" in block:
+                html += [["<p>" + hyperlink(block["text"].replace("\n", "<br>")), ""]]
+            else:
+                url = next_obj["body"]["imageMap"][block["imageId"]]["originalUrl"]
+                name = url.rsplit("/", 1)[1]
+                name = f"""{key}.{name}"""
+                html += [["<p>", new_link(url, name, edited)]]
+    htmlpart.update({key:{"keywords":keywords, "html":html, "files":files}})
 
 
 
-def fantia_assets(threadn, htmlname, id):
-    fromhtml = new_part()
-    fromhtml.update(fantia_avatars(threadn, htmlname, id))
-    page = 1
-    while True:
-        data = get(f'https://fantia.jp/fanclubs/{id}/posts?page={page}', stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
-        data = data.replace("\n", "").replace("<div class=\"post-meta\">", "\n").replace(u"\u2028"," ").splitlines()
-        for part in data[1:]:
-            key = part.split("href=\"/posts/", 1)[1].split("\"", 1)[0]
-            api = get("https://fantia.jp/api/v1/posts/" + key, stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
-            if not api:
-                return fromhtml
-            api = json.loads(api.decode('utf-8'))
-            for next_obj in api["post"]:
-                key = next_obj["id"]
-                edited = next_obj["converted_at"]
-                keywords = [next_obj["title"], edited]
-                html = next_obj["comment"] # type html4
-                files = []
-                for file in next_obj["thumb"]:
-                    files += [new_link(file["original"], f"""{next_obj["id"]}.""", edited)]
+def fantia(next_obj, htmlpart):
+    # pos = 0
+    key = next_obj["id"]
+    keywords = [next_obj["title"], datetime.strptime(next_obj["converted_at"], "%Y-%m-%dT%H:%M:%S.%f%z").isoformat(" ").split("+", 1)[0]]
+    # desired result is "YYYY-MM-DD HH:MM:SS"
+    edited = keywords[1].split(" ", 1)[0].replace("-", "")
+    html = []
+    files = []
+    if "comment" in next_obj and next_obj["comment"]:
+        html = [[hyperlink(next_obj["comment"]), ""]]
+    if file := next_obj["thumb"]:
+        # pos += 1
+        url = file["original"]
+        name = url.rsplit("?")[0]
+        # ext = name.rsplit(".", 1)[-1]
+        # name = f"{key}.{pos:03}.{ext}"
+        name = f"{key}.{name}"
+        files = [new_link(url, name, edited)]
+    htmlpart.update({key:{"keywords":keywords, "html":html, "files":files}})
 
-                for sub_obj in next_obj["post_contents"]:
-                    keywords = [sub_obj["title"], next_obj["converted_at"]]
-                    html = sub_obj["comment"] # type html4
-                    files = [new_link("https://fantia.jp/" + sub_obj["download_uri"], f"""{next_obj["id"]}.{sub_obj["filename"]}""", edited)]
-
-                    for s_obj in sub_obj["post_content_photos"]:
-                        # belongs to the sub_obj["id"]
-                        files = [new_link(s_obj["url"]["original"], f"""{next_obj["id"]}.{s_obj["id"]}.""", edited)]
-
-                # meta2 ^/*?
-                # meta2 ^/* ends with .png
-                # meta2 ^/* ends with .jpg
-                # meta2 ^/* ends with .jpeg
-                # meta2 ^/* ends with .gif
-        page += 1
-        fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":[]}})
-    return fromhtml
-
-    print(f"Yiff.party's dead, Jim.")
-    return fromhtml
-
-    html = get('https://yiff.party/fantia/' + id, stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
-    html = html.replace("\n", "").replace("style=\"background: url('", "\n").replace("yp-info-img\" src=\"", "\n").replace(u"\u2028"," ").splitlines()
-    fromhtml.update({"cover":html[1].split("'", 1)[0]})
-    fromhtml.update({"avatar":html[2].split("\"", 1)[0]})
-    html = html[2].split("<div class=\"container\">")[1]
-    html = html.replace("<a href=\"/fantia/posts/", "\n").splitlines()[1:]
-    edited = 0
-    for part in html:
-        key = part.split("\"", 1)[0]
-        assets = get('https://yiff.party/fantia/posts/' + key, stderr=f"Error reading posts for {htmlname} on Fantia", threadn=threadn).decode("utf-8")
-        assets = assets.replace(u"\u2028","\n").replace("\n ", "\n").replace("\n", "\\n").replace("col s12 l9\">\\n", "\nheader", 1).replace("<div class=\"yp-post-content\">\\n", "\ncontent").replace("<div class=\"col s12 l3\">", "\n").splitlines()
-        files = []
+    for sub_obj in next_obj["post_contents"]:
+        sub_key = sub_obj["id"]
         html = []
-        keywords = ["Untitled"]
-        for asset in assets[1:]:
-            if asset.startswith("header"):
-                asset = asset.replace("header", "", 1)
-                if asset.startswith("<a href=\""):
-                    url = asset.split("\"", 2)[1]
-                    name = key + "." + url.rsplit(".", 1)[1]
-                    files += [new_link(url, name, edited)]
-                keywords[0], header = asset.split("<h2>")[1].split("</h2>\\n", 1)
-                html += [[header.replace("\\n", "<br>").replace("<p class=\"preline\">", "", 1)]]
-            elif asset.startswith("content"):
-                asset = asset.replace("content", "", 1).replace("<div class=\"yp-post-gallery\">\\n<div class=\"row\">\\n", "\n").splitlines()
-                if len(asset) == 2:
-                    html += [[asset[0].replace("\\n", "<br>"), ""]]
-                    asset = asset[1].rsplit("\\n</div>", 2)[0].replace("\\n", "").replace("<div class=\"col s12 m6\"><a href=\"", "\nimagefile\"").splitlines()
-                    for gallery in asset:
-                        if gallery.startswith("imagefile"):
-                            url = gallery.split("\"", 2)[1]
-                            name =  key + " " + url.rsplit("/", 3)[1] + "." + url.rsplit("/", 2)[1] + "." + url.rsplit(".", 1)[1]
-                            html += [["", new_link(url, name, edited)]]
-                else:
-                    asset = asset[0].split("</div>", 1)[0].replace("\\n", "<br>").replace("<p class=\"preline\">", "").replace("</p>", "")
-                    if "<div class=\"yp-post-download\">" in asset:
-                        asset, download = asset.rsplit("<a href=\"", 1)
-                        url, name = download.split("\" download=\"")
-                        name = key + " " + url.rsplit("/", 2)[1] + "." + name.split("\"", 1)[0]
-                        html += [[asset, ""]]
-                        html += [["", new_link(url, name, edited)]]
+        files = []
+        keywords = [sub_obj["title"]]
+        if "comment" in sub_obj and sub_obj["comment"]:
+            html += [[hyperlink(sub_obj["comment"]), ""]]
+        if "download_uri" in sub_obj:
+            # pos += 1
+            url = "https://fantia.jp/" + sub_obj["download_uri"]
+            name = url.rsplit("?")[0]
+            # ext = name.rsplit(".", 1)[-1]
+            # name = f"{key}.{sub_key}.{pos:03}.{ext}"
+            name = f"{key}.{sub_key}.{name}"
+            files += [new_link(url, name, edited)]
+
+        if "post_content_photos" in sub_obj:
+            for s_obj in sub_obj["post_content_photos"]:
+                # pos += 1
+                url = s_obj["url"]["original"]
+                name = url.rsplit("?")[0]
+                # ext = name.rsplit(".", 1)[-1]
+                # name = f"{key}.{sub_key}.{pos:03}.{ext}"
+                name = f"{key}.{sub_key}.{name}"
+                files += [new_link(url, name, edited)]
+        if keywords[0] or html or files:
+            htmlpart.update({sub_key:{"keywords":keywords, "html":html, "files":files}})
+
+
+
+def kp_fanbox(api, htmlpart):
+    for next_obj in api:
+        # pos = 0
+        key = next_obj["id"]
+        keywords = [next_obj["title"], datetime.strptime(next_obj["published"], "%a, %d %b %Y %H:%M:%S GMT").isoformat(" ")]
+        # desired result is "YYYY-MM-DD HH:MM:SS"
+        edited = keywords[1].split(" ", 1)[0].replace("-", "")
+        files = []
+        if file := next_obj["file"]:
+            ext = file["name"].rsplit(".", 1)
+            if ext[-1] == "jpe":
+                ext[-1] = "jpeg"
+            # name = f"{key}.{pos:03}.{ext}"
+            name = f"{key}.{'.'.join(ext)}"
+            files += [new_link("https://kemono.party" + file["path"], name, edited)]
+        if attachments := next_obj["attachments"]:
+            for file in attachments:
+                # pos += 1
+                ext = file["name"].rsplit(".", 1)
+                if ext[-1] == "jpe":
+                    ext[-1] = "jpeg"
+                # name = f"{key}.{pos:03}.{ext}"
+                name = f"{key}.{'.'.join(ext)}"
+                files += [new_link("https://kemono.party" + file["path"], name, edited)]
+        html = []
+        if next_obj["content"]:
+            next_obj = next_obj["content"].replace("\n", "").replace("<p>", "").replace("<br></p>", "").replace("</p>", "").split("<br>")
+            if len(next_obj) > 1:
+                for block in next_obj:
+                    block = block.split("<img src=\"/")
+                    if len(block) > 1:
+                        # pos += 1
+                        url = "https://kemono.party/" + block[1].split("\"")[0]
+                        ext = url.rsplit("/", 1)[1].rsplit(".", 1)
+                        if ext[-1] == "jpe":
+                            ext[-1] = "jpeg"
+                        # name = f"{key}.{pos:03}.{ext}"
+                        name = f"{key}.{'.'.join(ext)}"
+                        html += [["<p>", new_link(url, name, edited)]]
                     else:
-                        html += [[asset, ""]]
-                html += [[""]]
-        fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":[]}})
-    return fromhtml
-
-
-
-def kp_fanbox_assets(threadn, htmlname, id):
-    fromhtml = new_part()
-    page = 0
-    while True:
-        if (api := get(f"https://kemono.party/api/fanbox/user/{id}?o={page*25}", stderr=f"Broken API on kemono.party for {htmlname}\n > Or failed at Kemono's aggressive anti-bot detection\n > To pass: provide your browser's user-agent string and cookie value for __ddg1\n\n", threadn=threadn)).isdigit():
-            return
-        if not (api := json.loads(api.decode('utf-8'))):
-            break
-        for next_obj in api:
-            pos = 0
-            key = next_obj["id"]
-            keywords = [next_obj["title"], datetime.strptime(next_obj["published"], "%a, %d %b %Y %H:%M:%S GMT").isoformat(" ")]
-            # desired result is "YYYY-MM-DD HH:MM:SS"
-            edited = keywords[1].split(" ", 1)[0].replace("-", "")
-            files = []
-            if file := next_obj["file"]:
-                ext = file["name"].rsplit(".", 1)[-1]
-                if ext == "jpe":
-                    ext = "jpeg"
-                files += [new_link("https://kemono.party" + file["path"], f"{key}.{pos:03}.{ext}", edited, [{"kemono":file["path"].rsplit("/", 1)[1].split(".", 1)[0]}])]
-            if attachments := next_obj["attachments"]:
-                for file in attachments:
-                    pos += 1
-                    ext = file["name"].rsplit(".", 1)[-1]
-                    if ext == "jpe":
-                        ext = "jpeg"
-                    files += [new_link("https://kemono.party" + file["path"], f"{key}.{pos:03}.{ext}", edited, [{"kemono":file["path"].rsplit("/", 1)[1].split(".", 1)[0]}])]
-            html = []
-            if next_obj["content"]:
-                next_obj = next_obj["content"].replace("\n", "").replace("<p>", "").replace("<br></p>", "").replace("</p>", "").split("<br>")
-                if len(next_obj) > 1:
-                    for block in next_obj:
-                        block = block.split("<img src=")
+                        block = block[0].split("<a href=\"/")
                         if len(block) > 1:
-                            pos += 1
-                            url = "https://kemono.party" + block[1].split("\"")[1]
-                            ext = url.rsplit("/", 1)[1].rsplit(".", 1)[-1]
-                            if ext == "jpe":
-                                ext = "jpeg"
-                            html += [["<p>", new_link(url, f"{key}.{pos:03}.{ext}", edited, [{"kemono":url.rsplit("/", 1)[1].split(".", 1)[0]}])]]
+                            # pos += 1
+                            url = "https://kemono.party/" + block[1].split("\"")[0]
+                            ext = url.rsplit("/", 1)[1].rsplit(".", 1)
+                            if ext[-1] == "jpe":
+                                ext[-1] = "jpeg"
+                            # name = f"{key}.{pos:03}.{ext}"
+                            name = f"{key}.{'.'.join(ext)}"
+                            html += [["<p>", new_link(url, name, edited)]]
                         else:
-                            block = block[0].split("<a href=")
-                            if len(block) > 1:
-                                pos += 1
-                                url = "https://kemono.party" + block[1].split("\"")[1]
-                                ext = url.rsplit("/", 1)[1].rsplit(".", 1)[-1]
-                                if ext == "jpe":
-                                    ext = "jpeg"
-                                html += [["<p>", new_link(url, f"{key}.{pos:03}.{ext}", edited, [{"kemono":url.rsplit("/", 1)[1].split(".", 1)[0]}])]]
-                            else:
-                                html += [["<p>" + hyperlink(block[0]), ""]]
+                            html += [["<p>" + hyperlink(block[0]), ""]]
+            else:
+                html += [[hyperlink(next_obj[0].replace("<br />", "<br>")), ""]]
+        htmlpart.update({key:{"keywords":keywords, "html":html, "files":files}})
+
+
+
+def kp_fantia(api, htmlpart):
+    for next_obj in api:
+        # pos = 0
+        key = next_obj["id"]
+        keywords = [next_obj["title"], datetime.strptime(next_obj["published"], "%a, %d %b %Y %H:%M:%S GMT").isoformat(" ")]
+        # desired result is "YYYY-MM-DD HH:MM:SS"
+        edited = keywords[1].split(" ", 1)[0].replace("-", "")
+        files = []
+        if file := next_obj["file"]:
+            # pos += 1
+            ext = file["name"].rsplit(".", 1)
+            if ext[-1] == "jpe":
+                ext[-1] = "jpeg"
+            # name = f"{key}.{pos:03}.{ext}"
+            name = f"{key}.{'.'.join(ext)}"
+            files += [new_link("https://kemono.party" + file["path"], name, edited)]
+        if attachments := next_obj["attachments"]:
+            for file in attachments:
+                # pos += 1
+                ext = file["name"].rsplit(".", 1)
+                if ext[-1] == "jpe":
+                    ext[-1] = "jpeg"
+                # name = f"{key}.{pos:03}.{ext}"
+                name = f"{key}.{'.'.join(ext)}"
+                files += [new_link("https://kemono.party" + file["path"], name, edited)]
+        html = []
+        if next_obj["content"]:
+            sub_obj = next_obj["content"].split("\n")
+            if len(sub_obj) > 1:
+                for block in sub_obj:
+                    html += [[hyperlink(block[0]), ""]]
+            else:
+                html += [[hyperlink(sub_obj[0]), ""]]
+        htmlpart.update({key:{"keywords":keywords, "html":html, "files":files}})
+
+
+
+def kp_patreon(api, htmlpart):
+    for next_obj in api:
+        key = next_obj["id"]
+        keywords = [next_obj["title"], datetime.strptime(next_obj["published"], "%a, %d %b %Y %H:%M:%S GMT").isoformat(" ")]
+        # desired result is "YYYY-MM-DD HH:MM:SS"
+        edited = keywords[1].split(" ", 1)[0].replace("-", "")
+        files = []
+        if file := next_obj["file"]:
+            files += [new_link("https://kemono.party" + file["path"], key + "." + file["name"], edited)]
+        if attachments := next_obj["attachments"]:
+            for file in attachments:
+                files += [new_link("https://kemono.party" + file["path"], key + "." + file["name"], edited)]
+        html = []
+        embed = ""
+        if next_obj["embed"]:
+            url = next_obj["embed"]["url"]
+            embed = f"""<p><a href="{url}">{url}</a></p>"""
+        if next_obj["content"]:
+            next_obj = ["", next_obj["content"]]
+            while True:
+                next_obj = next_obj[1].split("<img data-media-id=\"", 1)
+                if len(next_obj) == 2:
+                    image, next_obj[1] = next_obj[1].split(">", 1)
+                    name, url = image.split("\" src=\"")
+                    url = url.split("\"", 1)[0]
+                    try:
+                        ext = url.rsplit("/", 1)[1].split("?")[0].split(".")[1]
+                        name = f"""{key}.{name}.{ext}"""
+                    except:
+                        name = url
+                    html += [[next_obj[0], new_link("https://kemono.party" + url, name, edited)]]
                 else:
-                    html += [[hyperlink(next_obj[0].replace("<br />", "<br>")), ""]]
-            fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
-        page += 1
-    return fromhtml
+                    break
+            html += [[next_obj[0] + embed, ""]]
+        htmlpart.update({key:{"keywords":keywords, "html":html, "files":files}})
 
 
 
-def kp_fantia_assets(threadn, htmlname, id):
-    fromhtml = new_part()
-    page = 0
-    while True:
-        if (api := get(f"https://kemono.party/api/fantia/user/{id}?o={page*25}", stderr=f"Broken API on kemono.party for {htmlname}\n > Or failed at Kemono's aggressive anti-bot detection\n > To pass: provide your browser's user-agent string and cookie value for __ddg1\n\n", threadn=threadn)).isdigit():
-            return
-        if not (api := json.loads(api.decode('utf-8'))):
-            break
-        for next_obj in api:
-            pos = 0
-            key = next_obj["id"]
-            keywords = [next_obj["title"], datetime.strptime(next_obj["published"], "%a, %d %b %Y %H:%M:%S GMT").isoformat(" ")]
-            # desired result is "YYYY-MM-DD HH:MM:SS"
-            edited = keywords[1].split(" ", 1)[0].replace("-", "")
-            files = []
-            if file := next_obj["file"]:
-                pos += 1
-                ext = file["name"].rsplit(".", 1)[-1]
-                if ext == "jpe":
-                    ext = "jpeg"
-                files += [new_link("https://kemono.party" + file["path"], f"{key}.{pos:03}.{ext}", edited, [{"kemono":file["path"].rsplit("/", 1)[1].split(".", 1)[0]}])]
-            if attachments := next_obj["attachments"]:
-                for file in attachments:
-                    pos += 1
-                    ext = file["name"].rsplit(".", 1)[-1]
-                    if ext == "jpe":
-                        ext = "jpeg"
-                    files += [new_link("https://kemono.party" + file["path"], f"{key}.{pos:03}.{ext}", edited, [{"kemono":file["path"].rsplit("/", 1)[1].split(".", 1)[0]}])]
-            html = []
-            if next_obj["content"]:
-                next_obj = next_obj["content"].split("\n")
-                if len(next_obj) > 1:
-                    for block in next_obj:
-                        html += [[hyperlink(block[0]), ""]]
-                else:
-                    html += [[hyperlink(next_obj[0]), ""]]
-            fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
-        page += 1
-    return fromhtml
-
-
-
-def kp_patreon_assets(threadn, htmlname, id):
-    fromhtml = new_part()
-    if Patreoncookie and (data := patreon_avatars(threadn, htmlname, id)):
-        fromhtml.update(data)
-    page = 0
-    while True:
-        if (api := get(f"https://kemono.party/api/patreon/user/{id}?o={page*25}", stderr=f"Broken API on kemono.party for {htmlname}\n > Or failed at Kemono's aggressive anti-bot detection\n > To pass: provide your browser's user-agent string and cookie value for __ddg1\n\n", threadn=threadn)).isdigit():
-            return
-        if not (api := json.loads(api.decode('utf-8'))):
-            break
-        for next_obj in api:
-            key = next_obj["id"]
-            keywords = [next_obj["title"], datetime.strptime(next_obj["published"], "%a, %d %b %Y %H:%M:%S GMT").isoformat(" ")]
-            # desired result is "YYYY-MM-DD HH:MM:SS"
-            edited = keywords[1].split(" ", 1)[0].replace("-", "")
-            files = []
-            if file := next_obj["file"]:
-                files += [new_link("https://kemono.party" + file["path"], key + "." + file["name"], edited, [{"kemono":file["path"].rsplit("/", 1)[1].split(".", 1)[0]}])]
-            if attachments := next_obj["attachments"]:
-                for file in attachments:
-                    files += [new_link("https://kemono.party" + file["path"], key + "." + file["name"], edited, [{"kemono":file["path"].rsplit("/", 1)[1].split(".", 1)[0]}])]
-            html = []
-            embed = ""
+def patreon(api, htmlpart):
+    edited = {}
+    for next_obj in api["data"]:
+        key = next_obj["id"]
+        next_obj = next_obj["attributes"]
+        keywords = [next_obj["title"], next_obj["edited_at"].replace("T", " ").split(".", 1)[0] if next_obj["edited_at"] else "0"]
+        edited.update({key:keywords[1].split(" ", 1)[0].replace("-", "")})
+        html = []
+        files = []
+        embed = ""
+        if next_obj["current_user_can_view"]:
+            if file := next_obj["post_file"]:
+                files += [new_link(file["url"], key + "." + file["name"], edited[key])]
             if next_obj["embed"]:
                 url = next_obj["embed"]["url"]
                 embed = f"""<p><a href="{url}">{url}</a></p>"""
-            if next_obj["content"]:
-                next_obj = ["", next_obj["content"]]
-                while True:
-                    next_obj = next_obj[1].split("<img data-media-id=\"", 1)
-                    if len(next_obj) == 2:
-                        image, next_obj[1] = next_obj[1].split(">", 1)
-                        name, url = image.split("\" src=\"")
-                        url = url.split("\"", 1)[0]
-                        try:
-                            ext = url.rsplit("/", 1)[1].split("?")[0].split(".")[1]
-                            name = f"""{key}.{name}.{ext}"""
-                        except:
-                            name = url
-                        html += [[next_obj[0], new_link("https://kemono.party" + url, name, edited)]]
-                    else:
-                        break
-                html += [[next_obj[0] + embed, ""]]
-            fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
-        page += 1
-    return fromhtml
-
-
-
-def patreon_assets(threadn, htmlname, id):
-    fromhtml = new_part()
-    if data := patreon_avatars(threadn, htmlname, id):
-        fromhtml.update(data)
-    else:
-        return
-    url = "https://www.patreon.com/api/posts?include=attachments%2Cimages.null%2Caudio.null&fields[post]=content%2Ccurrent_user_can_view%2Cedited_at%2Cembed%2Cpost_file%2Cpost_type%2Ctitle&fields[media]=download_url%2Cfile_name%2Cowner_id&sort=-published_at&filter[campaign_id]=" + fromhtml["campaign_id"]
-    while True:
-        if (api := get(url, stderr=f"Broken API on Patreon while fetching posts for {htmlname}\n > Or failed at Patreon's aggressive anti-bot detection\n > To pass: provide your browser's user-agent string and cookie values for __cf_bm and __cfuid\n\n", threadn=threadn)).isdigit():
-            return
-        api = json.loads(api.decode('utf-8'))
-        if not "included" in api or not "data" in api:
-            break
-        edited = {}
-        for next_obj in api["data"]:
-            key = next_obj["id"]
-            next_obj = next_obj["attributes"]
-            keywords = [next_obj["title"], next_obj["edited_at"].replace("T", " ").split(".", 1)[0] if next_obj["edited_at"] else "0"]
-            edited.update({key:keywords[1].split(" ", 1)[0].replace("-", "")})
-            html = []
-            files = []
-            embed = ""
-            if next_obj["current_user_can_view"]:
-                if file := next_obj["post_file"]:
-                    files += [new_link(file["url"], key + "." + file["name"], edited[key])]
-                if next_obj["embed"]:
-                    url = next_obj["embed"]["url"]
-                    embed = f"""<p><a href="{url}">{url}</a></p>"""
-                next_obj = ["", next_obj["content"]]
-                while True:
-                    next_obj = next_obj[1].split("<img data-media-id=\"", 1)
-                    if len(next_obj) == 2:
-                        image, next_obj[1] = next_obj[1].split("\">", 1)
-                        name, url = image.split("\" src=\"")
-                        name = f"""{key}.{name}.{url.rsplit("/", 1)[1].split("?")[0].split(".")[1]}"""
-                        html += [[next_obj[0], new_link(url, name, edited[key])]]
-                    else:
-                        break
-                html += [[next_obj[0] + embed, ""]]
-            fromhtml["partition"].update({key:{"keywords":keywords, "html":html, "files":files}})
-        for attachment in api["included"]:
-            if attachment["type"] == "attachment":
-                key = attachment["relationships"]["post"]["data"]["id"]
-                fromhtml["partition"][key]["files"] += [new_link(attachment["attributes"]["url"], f"""{key}.{attachment["attributes"]["name"]}""", edited[key])]
-            if "type" in attachment and attachment["type"] == "media" and "download_url" in attachment["attributes"]:
-                key = attachment["attributes"]["owner_id"]
-                fromhtml["partition"][key]["files"] += [new_link(attachment["attributes"]["download_url"], f"""{key}.{attachment["attributes"]["file_name"].rsplit("/", 1)[-1]}""", edited[key])]
-        if "links" in api and "next" in api["links"]:
-            url = api["links"]["next"]
-        else:
-            break
-    return fromhtml
+            next_obj = ["", next_obj["content"]]
+            while True:
+                next_obj = next_obj[1].split("<img data-media-id=\"", 1)
+                if len(next_obj) == 2:
+                    image, next_obj[1] = next_obj[1].split("\">", 1)
+                    name, url = image.split("\" src=\"")
+                    name = f"""{key}.{name}.{url.rsplit("/", 1)[1].split("?")[0].split(".")[1]}"""
+                    html += [[next_obj[0], new_link(url, name, edited[key])]]
+                else:
+                    break
+            html += [[next_obj[0] + embed, ""]]
+        htmlpart.update({key:{"keywords":keywords, "html":html, "files":files}})
+    for attachment in api["included"]:
+        if attachment["type"] == "attachment":
+            key = attachment["relationships"]["post"]["data"]["id"]
+            htmlpart[key]["files"] += [new_link(attachment["attributes"]["url"], f"""{key}.{attachment["attributes"]["name"]}""", edited[key])]
+        if "type" in attachment and attachment["type"] == "media" and "download_url" in attachment["attributes"]:
+            key = attachment["attributes"]["owner_id"]
+            htmlpart[key]["files"] += [new_link(attachment["attributes"]["download_url"], f"""{key}.{attachment["attributes"]["file_name"].rsplit("/", 1)[-1]}""", edited[key])]
+    if "links" in api and "next" in api["links"]:
+        return api["links"]["next"]
 
 
 
 def get_assets(artworks):
     while True:
-        threadn, shelf, id, htmlname, HOME = artworks.get()
-        mirror_assets = []
-        paysite_assets = []
-        if Kemonoparty:
-            if HOME == "Fanbox":
-                mirror_assets = kp_fanbox_assets(threadn, htmlname, id)
-            elif HOME == "Fantia":
-                mirror_assets = kp_fantia_assets(threadn, htmlname, id)
-            elif HOME == "Patreon":
-                mirror_assets = kp_patreon_assets(threadn, htmlname, id)
-            if mirror_assets:
-                print(f"Fetched new data for {htmlname}")
+        threadn, HOME, id, htmlname, next_url, pagen, more_pages, fromhtml = artworks.get()
+        htmlpart = fromhtml["partition"][threadn]
+        if showpreview:
+            echo(f" Visiting {next_url}", 0, 1)
+        if HOME.startswith("kp_"):
+            next_page = True
+            service = HOME.split("kp_", 1)[-1]
+            if (api := get(next_url, stderr=f"Broken API on kemono.party for {htmlname}\n > Or failed at Kemono's aggressive anti-bot detection\n > To pass: provide your browser's user-agent string and cookie value for __ddg1\n\n", threadn=threadn)).isdigit():
+                echo("Error fetching new data for {htmlname}", 0, 1)
+                # if fromhtml["partition"]:
+                #     echo("I will process partial pages", 0, 1)
+                next_page = False
+            elif not (api := json.loads(api.decode('utf-8'))):
+                echo(f"Fetched new data for {htmlname}", 0, 1)
+                next_page = False
+            elif service == "fanbox":
+                kp_fanbox(api, htmlpart)
+            elif service == "fantia":
+                kp_fantia(api, htmlpart)
+            elif service == "patreon":
+                kp_patreon(api, htmlpart)
+            if next_page:
+                p = pgs[0] + 1
+                if p < 1:
+                    p = 1
+                p = int(-(-p//1.5))
+                for _ in range(p):
+                    pgs[0] -= 1
+                    pagen[0] += 1
+                    more_pages += [[HOME, id, htmlname, f"https://kemono.party/api/{service}/user/{id}?o={pagen[0] * 25}", pagen]]
+        elif HOME == "fanbox" and id in pledges[0]:
+            if next_url.startswith("https://api.fanbox.cc/post.listCreator"):
+                if (api := get(next_url, stderr=f"Broken API on Fanbox for {htmlname}", threadn=threadn)).isdigit():
+                    echo("Error fetching new data for {htmlname}", 0, 1)
+                else:
+                    api = json.loads(api.decode('utf-8'))
+                    for next_obj in api["body"]["items"]:
+                        key = next_obj["id"]
+                        more_pages += [[HOME, id, htmlname, f"https://api.fanbox.cc/post.info?postId={key}", pagen]]
+                    if api["body"]["nextUrl"]:
+                        more_pages += [[HOME, id, htmlname, api["body"]["nextUrl"], pagen]]
+                    else:
+                        print(f"Fetched new data for {htmlname} ({HOME})")
             else:
-                print("Error fetching new data for {htmlname}")
-            shelf.update({HOME + id + "mirror": mirror_assets})
-        if id in pledges[0]:
-            if HOME == "Fanbox":
-                paysite_assets = fanbox_assets(threadn, htmlname, id)
-            elif HOME == "Patreon":
-                paysite_assets = patreon_assets(threadn, htmlname, id)
-            if paysite_assets:
-                print(f"Fetched new data for {htmlname} ({HOME})")
-            else:
+                if (api := get(next_url, stderr=f"Broken API on Fanbox for {htmlname}", threadn=threadn)).isdigit():
+                    echo("Error fetching new data for {htmlname}", 0, 1)
+                else:
+                    api = json.loads(api.decode('utf-8'))
+                    fanbox(api["body"], htmlpart)
+        elif HOME == "patreon" and id in pledges[0]:
+            if (api := get(next_url, stderr=f"Broken API on Patreon while fetching posts for {htmlname}\n > Or failed at Patreon's aggressive anti-bot detection\n > To pass: provide your browser's user-agent string and cookie values for __cf_bm and __cfuid\n\n", threadn=threadn)).isdigit():
                 print("Error fetching new data for {htmlname} ({HOME})")
-            shelf.update({HOME + id + "paysite": paysite_assets})
-        elif HOME == "Fantia":
-            paysite_assets = fantia_assets(threadn, htmlname, id)
-        if os.path.exists(m := f"{batchname}/{htmlname}/mediocre.txt"):
-            with open(m, 'r', encoding='utf-8') as f:
-                 pickers[htmlname]["pattern"][0] += f.read().splitlines()
-        for src in ["mirror", "paysite"]:
-            if HOME + id + src in shelf:
-                shelf[HOME + id + src]["name"] = htmlname
-                shelf[HOME + id + src]["pattern"] = pickers[htmlname]["pattern"]
+            else:
+                api = json.loads(api.decode('utf-8'))
+                if "included" in api or "data" in api:
+                    if page := patreon(api, htmlpart):
+                        more_pages += [[HOME, id, htmlname, page, pagen]]
+                    else:
+                        print(f"Fetched new data for {htmlname} ({HOME})")
+        elif HOME == "fantia" and Fantiacookie:
+            if next_url.startswith("https://fantia.jp/fanclubs/"):
+                if (data := get(next_url, stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn)).isdigit():
+                    print("Error fetching new data for {htmlname} ({HOME})")
+                else:
+                    data = data.decode("utf-8").replace("\n", "").replace("<a class=\"link-block\" href=\"/posts/", "\n/posts/").replace("<a rel=\"next\" class=\"page-link\" href=\"/fanclubs/", "\n/fanclubs/").splitlines()
+                    next_page = False
+                    for part in data[1:]:
+                        if part.startswith("/posts/"):
+                            more_pages += [[HOME, id, htmlname, "https://fantia.jp/api/v1" + part.split("\"", 1)[0], pagen]]
+                        if part.startswith("/fanclubs/") and "<i class=\"fa fa-angle-right\"></i></a>" in part:
+                            next_page = True
+                            more_pages += [[HOME, id, htmlname, "https://fantia.jp" + part.split("\"", 1)[0], pagen]]
+                    if not next_page:
+                        print(f"Fetched new data for {htmlname} ({HOME})")
+            else:
+                if not (api := get(next_url, stderr=f"Error getting new page for {htmlname} on Fantia", threadn=threadn)).isdigit():
+                    fantia(json.loads(api.decode('utf-8'))["post"], htmlpart)
         echothreadn.remove(threadn)
         artworks.task_done()
     echothreadn.remove(threadn)
@@ -2862,18 +2912,29 @@ for i in range(8):
 
 
 def nextshelf(fromhtml, oncomplete):
+    sort_part = {}
+    threadn = list(fromhtml["partition"].keys())
+    threadn.sort()
+    for t in threadn:
+        sort_part.update(fromhtml["partition"][t])
+    fromhtml["partition"] = sort_part
+
     if not fromhtml["ready"]:
         htmlname = fromhtml["name"]
         htmlpart = fromhtml["partition"]
+        pattern = fromhtml["pattern"]
+        subdir = f"{batchname}/{htmlname}/"
         stdout = ""
         for k in htmlpart.keys():
             for file in htmlpart[k]["files"]:
-                x = get_cd(file, fromhtml, [], preview=True)
-                stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + "\n"
+                x = get_cd(subdir, file, pattern, preview=True)
+                buffer = x[1].replace("/", "\\")
+                stdout += f"""{tcolorb}{x[0]}{tcolorr} -> {tcolorg}{buffer}\n"""
             for h in htmlpart[k]["html"]:
                 if h[1]:
-                    x = get_cd(h[1], fromhtml, [], preview=True)
-                    stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + "\n"
+                    x = get_cd(subdir, h[1], pattern, preview=True)
+                    buffer = x[1].replace("/", "\\")
+                    stdout += f"""{tcolorb}{x[0]}{tcolorr} -> {tcolorg}{buffer}\n"""
         echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - (C)ontinue to HTML building preview or return to (M)ain menu: """, 0, 1)
         Keypress_M[0] = False
         Keypress_C[0] = False
@@ -2892,12 +2953,16 @@ def nextshelf(fromhtml, oncomplete):
             for k in htmlpart.keys():
                 if k == "0" and not htmlpart[k]["files"]:
                     continue
-                stdout += tcolorx + k + tcolor + "\n"
+                stdout += f"{tcolorx}{k}{tcolor}\n"
                 if x := htmlpart[k]["keywords"]:
                     keywords = ", ".join(f"{kw}" for kw in x[2:])
-                    stdout += tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 and x[1] else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + "\n"
+                    buffer = x[0] if len(x) > 0 and x[0] else f"No title for {k}"
+                    buffer2 = x[1] if len(x) > 1 and x[1] else "No timestamp"
+                    buffer3 = keywords if keywords else "None"
+                    stdout += f"""{tcolorb}{buffer}{tcolor} Timestamp: {buffer2}{tcolorr} Keywords: {buffer3}\n"""
                 for file in htmlpart[k]["files"]:
-                    stdout += tcolorg + file["name"].rsplit("\\")[-1] + "\n"
+                    buffer = file["name"].rsplit("\\")[-1]
+                    stdout += f"{tcolorg}{buffer}\n"
                 if html := htmlpart[k]["html"]:
                     for h in html:
                         if h[0]:
@@ -2919,36 +2984,78 @@ def nextshelf(fromhtml, oncomplete):
 
 
 htmldata = [[]]
-def scrape(pages):
+pgs = [8]
+def scrape(startpages):
     shelf = {}
-    queued = []
     threadn = 0
+    visited = set()
+    pages = startpages
+    while True:
+        more_pages = []
+        for HOME, id, htmlname, page, pagen in pages:
+            pgs[0] -= 1
+            threadn += 1
+            echothreadn.append(threadn)
 
-    for htmlname, id, HOME in pages:
-        if favoriteispledged:
-            pledges[0] += [id]
-        if HOME + id in queued:
+            if not page:
+                shelf.update({HOME + id: new_part(threadn)})
+                fromhtml = shelf[HOME + id]
+                fromhtml["name"] = htmlname
+                fromhtml["pattern"] = pickers[htmlname]["pattern"]
+                if os.path.exists(m := f"{batchname}/{htmlname}/mediocre.txt"):
+                    with open(m, 'r', encoding='utf-8') as f:
+                         fromhtml["pattern"][0] += f.read().splitlines()
+                if HOME.startswith("kp_"):
+                    service = HOME.split("kp_", 1)[-1]
+                    page = f"https://kemono.party/api/{service}/user/{id}?o=0"
+                elif HOME == "fanbox" and id in pledges[0]:
+                    page = f"https://api.fanbox.cc/post.listCreator?userId={id}&limit=100"
+                    fromhtml.update(fanbox_avatars(threadn, htmlname, id))
+                elif HOME == "patreon" and id in pledges[0]:
+                    page = "https://www.patreon.com/api/posts?include=attachments%2Cimages.null%2Caudio.null&fields[post]=content%2Ccurrent_user_can_view%2Cedited_at%2Cembed%2Cpost_file%2Cpost_type%2Ctitle&fields[media]=download_url%2Cfile_name%2Cowner_id&sort=-published_at&filter[campaign_id]=" + fromhtml["campaign_id"]
+                    if data := patreon_avatars(threadn, htmlname, id):
+                        fromhtml.update(data)
+                    else:
+                        page = ""
+                        print("Error fetching new data for {htmlname} ({HOME})")
+                elif HOME == "fantia" and Fantiacookie:
+                    fromhtml.update(fantia_avatars(threadn, htmlname, id))
+                    page = f"https://fantia.jp/fanclubs/{id}/posts?page=1"
+            else:
+                fromhtml = shelf[HOME + id]
+                fromhtml["partition"].update({threadn:new_p("0")})
+            if page:
+                artworks.put((threadn, HOME, id, htmlname, page, pagen, more_pages, fromhtml))
+        try:
+            artworks.join()
+        except KeyboardInterrupt:
+            pass # Keypress_CtrlC
+        pgs[0] = 8
+        seen = set()
+        more_pages = [x for x in more_pages if not x[3] in seen and not seen.add(x[3])]
+        for _, _, _, page, _ in more_pages:
+            if page in visited and not visited.add(page):
+                print(f"{tcolorr}Already visited {page} loophole warning{tcolorx}")
+                # more_pages.remove(page)
+        if not more_pages:
+            break
+        pages = more_pages
+
+    for HOME, id, htmlname, page, pagen in startpages:
+        if not HOME + id in shelf:
             continue
-        queued += [HOME + id]
-        threadn += 1
-        echothreadn.append(threadn)
-        artworks.put((threadn, shelf, id, htmlname, HOME))
-    try:
-        artworks.join()
-    except KeyboardInterrupt:
-        pass # Keypress_CtrlC
-
-    for htmlname, id, HOME in pages:
         if not os.path.exists(f"{batchname}/{htmlname}/"):
             os.makedirs(f"{batchname}/{htmlname}/")
         echoname[0] = htmlname
-        for src in ["mirror", "paysite"]:
-            if HOME + id + src in shelf:
-                p = " (only on {HOME})" if src == "paysite" else ""
-                print(f"\n - - - - {htmlname}{p} - - - -")
-                title(status() + p)
-                htmldata[0] += [f"<p>- - - - {htmlname}{p} - - - -</p>"]
-                nextshelf(shelf[HOME + id + src], "You've got everything from this artist at tier you pledged to!" if src == "paysite" else "Autosave declared completion.")
+
+        paysite = True
+        if HOME.startswith("kp_"):
+            paysite = False
+        buffer = f"""- - - - {htmlname}{f" (only on {HOME})" if paysite else ""} - - - -"""
+        echo(f"\n {buffer}", 0, 1)
+        title(status())
+        htmldata[0] += [f"<p>{buffer}</p>"]
+        nextshelf(shelf[HOME + id], "You've got everything from this artist at tier you pledged to!" if paysite else "Autosave declared completion.")
 
 
 
@@ -2961,8 +3068,8 @@ def delnow():
             if not f[0] in trashlist:
                 trashlist.update({f[0]:[]})
             trashlist[f[0]] += [f[1]]
-            dir = f[0].replace("/", "\\")
-            buffer += f"{tcolorb}{dir}\\{f[1]}{tcolorr} -> {tcolorg}{dir} Trash\\{f[1]}{tcolorx}\n"
+            stdout = f[0].replace("/", "\\")
+            buffer += f"{tcolorb}{stdout}\\{f[1]}{tcolorr} -> {tcolorg}{stdout} Trash\\{f[1]}{tcolorx}\n"
     if not trashlist:
         echo("No schande'd files!", 0, 2)
         return
@@ -2973,13 +3080,13 @@ def delnow():
             if not os.path.exists(trashdir):
                 os.makedirs(trashdir)
             for file in trashlist[dir]:
-                os.rename(f"{dir}/{file}", f"{trashdir}/{file}")
+                os.rename(f"{dir}/{file}", f"{trashdir}{file}")
             with open(f"{dir}/mediocre.txt", 'ab') as f:
                 f.write(bytes("\n" + "\n".join(trashlist[dir]), 'utf-8'))
-            echo("Added file names to Mediocre.txt so they won't be downloaded again. Please consider trimming pattern for a blanket effect.", 0, 1)
-            echo(skull(), 0, 1)
-            choice(bg="4c")
-            delfiles[0] = []
+        echo("Added file names to Mediocre.txt so they won't be downloaded again. Please consider trimming pattern for a blanket effect.", 0, 1)
+        echo(skull(), 0, 1)
+        choice(bg="4c")
+        delfiles[0] = []
 
 
 
@@ -2997,36 +3104,36 @@ def delmode():
 
 
 
-run_input = [False]*4
 def read_input(m):
     return
 
 
 
-def readfile():
+def readfile(rebuild=False):
     if not os.path.exists(textfile):
         open(textfile, 'w').close()
     print(f"Reading {textfile} . . .")
     with open(textfile, 'r', encoding="utf-8") as f:
         textread = f.read().splitlines()
-    pages = []
+    startpages = []
     nextpages = []
+    queued = []
     HOME = "Patreon"
     for line in textread[6:]:
         if not line:
             continue
         elif line.lower() == "fanbox":
-            HOME = "Fanbox"
+            HOME = "fanbox"
             continue
         elif line.lower() == "fantia":
-            HOME = "Fantia"
+            HOME = "fantia"
             continue
         elif line.lower() == "patreon":
-            HOME = "Patreon"
+            HOME = "patreon"
             continue
         elif line == "then":
-            nextpages += [pages]
-            pages = []
+            nextpages += [startpages]
+            startpages = []
             continue
         elif line == "end":
             break
@@ -3041,19 +3148,54 @@ def readfile():
         if not line.replace(id, ""):
             print(f"\nPlease append name (any name) to {id} e.g. {id}.name or {id}name in {rulefile} then try again.\nThe name must not start with number!")
             return
+        if HOME + id in queued:
+            continue
+        queued += [HOME + id]
         htmlname = line.replace("\\", "/").rsplit("/", 1)[-1]
-        pages += [[htmlname, id, HOME]]
-    nextpages += [pages]
+        if Kemonoparty:
+            startpages += [["kp_" + HOME, id, htmlname, "", [0]]]
+        if favoriteispledged:
+            pledges[0] += [id]
+        if id in pledges[0]:
+            startpages += [[HOME, id, htmlname, "", [0]]]
+    nextpages += [startpages]
 
     if nextpages:
         resume = False
         htmldata[0] = []
-        for pages in nextpages:
+        for startpages in nextpages:
             if resume:
                 print("\n Resuming next favorites")
             else:
                 resume = True
-            scrape(pages)
+            if rebuild:
+                for HOME, id, htmlname, _, _ in startpages:
+                    subdir = f"{batchname}/{htmlname}/"
+                    if not os.path.exists(fp := f"{subdir}{thumbnail_dir}partition.json"):
+                        continue
+                    echoname[0] = htmlname
+                    echo(f"\n - - - - {htmlname} (rebuild HTML) - - - -", 0, 1)
+                    title(status())
+                    htmldata[0] += [f"<p>{buffer}</p>"]
+                    pattern = pickers[htmlname]["pattern"]
+                    if os.path.exists(m := f"{subdir}mediocre.txt"):
+                        with open(m, 'r', encoding='utf-8') as f:
+                             pattern[0] += f.read().splitlines()
+                    with open(fp, 'r') as f:
+                        htmlpart = json.loads(f.read())
+
+                    filelist = []
+                    for key in htmlpart.keys():
+                        for file in htmlpart[key]["files"]:
+                            if not isrej(file, pattern):
+                                filelist += [["", file]]
+                        for array in htmlpart[key]["html"]:
+                            if len(array) == 2 and array[1]:
+                                if not isrej(array[1], pattern):
+                                    filelist += [["", array[1]]]
+                    parttohtml(subdir, htmlname, htmlpart, filelist, pattern, True)
+            else:
+                scrape(startpages)
             echoname[0] = batchfile
             title(status())
 
@@ -3134,7 +3276,16 @@ def keylistener():
         elif el == 6:
             pressed(Keypress_F)
         elif el == 7:
-            unrecognized("G")
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            if not Geistauge:
+                choice(bg=True)
+                echo(" GEISTAUGE: Maybe not.", 0, 1)
+            else:
+                readfile(True)
+                # Rebuild HTML
+            ready_input()
         elif el == 8:
             unrecognized("H")
         elif el == 9:

@@ -10,7 +10,7 @@ shuddup
 
 
 - - - - Spoofer - - - -
-Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0 for http
+Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:99.0) Gecko/20100101 Firefox/99.0 for http
 4-8 seconds rarity 75%
 12-24 seconds rarity 23%
 # 64-128 seconds rarity 2%
@@ -26,6 +26,9 @@ session_id ... for .patreon.com
 PHPSESSID ... for .pixiv.net
 FANBOXSESSID ... for .fanbox.cc
 _session_id ... for .fantia.jp
+
+__ddg1 ... for .kemono.party
+__ddg2 ... for .kemono.party
 __cf_bm ... for .patreon.com
 
 # Amazon cookies if necessary
@@ -112,28 +115,15 @@ https://www.youtube.com/watch?v=
 # urlfix https://www.youtube.com/watch?v=* with https://youtube.com/get_video_info?video_id=*&el=detailpage&ps=default&eurl=&gl=US&hl=en&html5=1&c=TVHTML5&cver=7.20201028
 dict var ytInitialPlayerResponse = *;var
 choose streamingData > adaptiveFormats > 0 > itag = 299 > 298 > 137 > 136
+# 308 for 1440p60
 file streamingData > adaptiveFormats > 0 > url
 name videoDetails > title
-choose  streamingData > adaptiveFormats > 0 > itag = 140
+choose streamingData > adaptiveFormats > 0 > itag = 140
 file streamingData > adaptiveFormats > 0 > url
 name videoDetails > title customize with * (audio)
 choose captions > playerCaptionsTracklistRenderer > captionTracks > 0 > name > simpleText = English > English - CC (English)
 file captions > playerCaptionsTracklistRenderer > captionTracks > 0 > baseUrl customize with *&fmt=vtt
 name videoDetails > title
-meta1 &mime=*%2F*& customize with .*
-meta1 ^&fmt=* customize with .*
-
-https://www.youtube.com/watch?v=GONE
-urlfix https://www.youtube.com/watch?v=* with https://youtube.com/get_video_info?video_id=*&el=detailpage&ps=default&eurl=&gl=US&hl=en&html5=1&c=TVHTML5&cver=7.20201028
-choose player_response >> streamingData > adaptiveFormats > 0 > itag = 308 > 299 > 298 > 137 > 136
-file player_response >> streamingData > adaptiveFormats > 0 > url
-name player_response >> videoDetails > title
-choose player_response >> streamingData > adaptiveFormats > 0 > itag = 140
-file player_response >> streamingData > adaptiveFormats > 0 > url
-name player_response >> videoDetails > title customize with * (audio)
-choose player_response >> captions > playerCaptionsTracklistRenderer > captionTracks > 0 > name > simpleText = English > English - CC (English)
-file player_response >> captions > playerCaptionsTracklistRenderer > captionTracks > 0 > baseUrl customize with *&fmt=vtt
-name player_response >> videoDetails > title
 meta1 &mime=*%2F*& customize with .*
 meta1 ^&fmt=* customize with .*
 
@@ -221,25 +211,29 @@ meta ^/*
 
 https://www.fanbox.cc/@
 title /fanbox/public/images/creator/*/cover/
-pages /fanbox/public/images/creator/*/cover/ customize with https://api.fanbox.cc/post.listCreator?userId=*&limit=300
+pages /fanbox/public/images/creator/*/cover/ customize with https://api.fanbox.cc/post.listCreator?userId=*&limit=100
 savelink FANBOX
 
-https://api.fanbox.cc/post.listCreator
-key body > items > 0 > id
-key1 body > items > 0 > title
-key2 body > items > 0 > updatedDatetime
-html4 body > items > 0 > body > text
-html5 body > items > 0 > body > blocks > 0 > text
-key body > items > 0 > id << body > items > 0 > body > blocks > 0 > type
-files body > items > 0 > body > imageMap > * > originalUrl
-name1 body > items > 0 > body > imageMap > * > id
-name2 body > items > 0 > body > imageMap > * > extension customize with .*
-key body > items > 0 > id << body > items > 0 > body > imageMap > * > id
-files body > items > 0 > body > images > 0 > originalUrl
-name1 body > items > 0 > body > images > 0 > id
-name2 body > items > 0 > body > images > 0 > extension customize with .*
-key body > items > 0 > id << body > items > 0 > body > images > 0 > id
+
+https://api.fanbox.cc/post.info?postId=
+key body > id
+key1 body > title
+key2 body > updatedDatetime
+html4 body > body > text
+html5 body > body > blocks > 0 > text
+key body > id << body > body > blocks > 0 > type
+files body > body > imageMap > * > originalUrl
+name1 body > body > imageMap > * > id
+name2 body > body > imageMap > * > extension customize with .*
+key body > id << body > body > imageMap > * > id
+files body > body > images > 0 > originalUrl
+name1 body > body > images > 0 > id
+name2 body > body > images > 0 > extension customize with .*
+key body > id << body > body > images > 0 > id
 meta ^/*^/ customize with *.
+
+https://api.fanbox.cc/post.listCreator
+pages body > items > 0 > id customize with https://api.fanbox.cc/post.info?postId=*
 pages body > nextUrl
 
 https://api.fanbox.cc/post.listComments
@@ -269,6 +263,7 @@ name1
 
 key post > post_contents > 0 > id
 key1 post > post_contents > 0 > title
+key2 post > converted_at
 html4 post > post_contents > 0 > comment
 files post > post_contents > 0 > download_uri customize with https://fantia.jp/*
 name post > id customize with *.

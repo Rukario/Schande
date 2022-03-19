@@ -49,9 +49,10 @@ busy = [False]
 cooldown = [False]
 dlslot = [8]
 echothreadn = []
-error = [[]]
+error = [[]]*4
 echoname = [batchfile]
 newfilen = [0]
+run_input = [False]*4
 Keypress_prompt = [False]
 Keypress_A = [False]
 Keypress_C = [False]
@@ -79,7 +80,7 @@ def ansi(c):
         c = "".join(x*2 for x in c)
     return ";".join(str(int(x, 16)) for x in [c[0:2], c[2:4], c[4:6]])
 
-def ansi_color(b=False, f="3"):
+def ansi_color(b=False, f="F9F1A5"):
     if not b:
         return "\033[0m"
     b = f"4{b}" if len(b) == 1 else "48;2;" + ansi(b)
@@ -111,14 +112,14 @@ sys.stdout.write("Non-ANSI-compliant Command Prompt/Terminal (expect lot of visu
 
 def mainmenu():
     return f"""
- - - - - Drag'n'drop / Input - - - -
- + Drag'n'drop and enter folder to add to Geistauge's database.
- + Drag'n'drop and enter image file to compare with another image, while scanning new folder, or find in database.
-
  - - - - {batchname} HTML - - - -
  + Press B to launch HTML in your favorite browser.
  | Press G to re/compile HTML from Geistauge's database (your browser will be used as comparison GUI).
  + Press D to open delete mode.
+
+ - - - - Drag'n'drop / Input - - - -
+ + Drag'n'drop and enter folder to add to Geistauge's database.
+ + Drag'n'drop and enter image file to compare with another image, while scanning new folder, or find in database.
 
  - - - - Input - - - -
  + Enter partition.json to rebuild HTML.
@@ -376,17 +377,18 @@ def choice(keys="", bg=False, persist=False):
         if bg and not persist: os.system("color %color%")
         echo(tcolorx)
     else:
-        if keys: el = os.system("""while true; do
+        if keys:
+            el = os.system("""while true; do
 read -s -n 1 el || break
 case $el in
 """ + "\n".join([f"{k} ) exit {e+1};;" for e, k in enumerate(keys)]) + """
 esac
 done""")
-        if el >= 256:
-            el /= 256
-        el = int(el)
-        sys.stdout.write(f"{keys[el-1].upper()}\n")
-        sys.stdout.flush()
+            if el >= 256:
+                el /= 256
+            el = int(el)
+            sys.stdout.write(f"{keys[el-1].upper()}\n")
+            sys.stdout.flush()
     if not keys:
         return
     return el
@@ -422,7 +424,11 @@ def new_rules():
     return """
 
 - - - - Spoofer - - - -
-Mozilla/5.0 for http"""
+Mozilla/5.0 for http
+4-8 seconds rarity 75%
+# 12-24 seconds rarity 23%
+# 64-128 seconds rarity 2%
+"""
 
 
 
@@ -630,6 +636,12 @@ def startserver(port, directory):
     d = f"\\{d}\\" if d else f"""DRIVE {directory.replace("/", "")}\\"""
     print(f""" HTML SERVER: Serving {d} at port {port}""")
     ThreadingHTTPServer(("", port), handler(directory)).serve_forever()
+try:
+    import certifi
+    context = ssl.create_default_context(cafile=certifi.where())
+except:
+    context = None
+# context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
 
 
 
@@ -726,7 +738,7 @@ def at(s, r, cw=[], alt=0, key=False, name=False, meta=False):
 
 
 def new_picker():
-    return {"replace":[], "send":[], "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "m":[[], [], False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "send":[], "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "pattern":[[], [], False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
 
 
 
@@ -750,8 +762,8 @@ def picker(s, rule):
             s["inlinefirst"] = False
     elif rule.startswith("icon"):
         at(s["icon"], rule.split("icon", 1)[1])
-    elif rule.startswith("inline"):
-        s["m"][2] = True
+    elif rule.startswith("inherit"):
+        s["pattern"][2] = True
     elif rule.startswith("links"):
         at(s["links"], rule.split("links", 1)[1])
     elif rule.startswith("key"):
@@ -887,6 +899,8 @@ for rule in rules:
         showpreview = True
     elif rule == "verifyondisk":
         verifyondisk = True
+    elif rule == "theyfuckedup":
+        ssl._create_default_https_context = ssl._create_unverified_context
     elif rule == "shuddup":
         shuddup = 2
     elif rule.startswith('bgcolor '):
@@ -1134,6 +1148,12 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
                 Keypress_S[0] = False
                 return 0, str(e.code)
         except URLError as e:
+            if "CERTIFICATE_VERIFY_FAILED" in str(e.reason):
+                echo("", 0, 1)
+                if context:
+                    kill(f""" {e.reason}\n\n They fucked up deploying their certificates (probably).\n Add "theyfuckedup" to {rulefile} to bypass this kind of error if you're willing to take risks.""")
+                else:
+                    kill(f""" {e.reason}\n\n Either they fucked up deploying their certificates or this Python is just having shitty certificate validator.\n Try execute optional prerequisites in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install certifi""")
             if stderr or Keypress_X[0] and not Keypress_S[0]:
                 if not retry(f"{stderr} ({e.reason})"):
                     return 0, e.reason
@@ -1156,13 +1176,8 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
 
 
 
-request.install_opener(request.build_opener(request.HTTPCookieProcessor(cookies)))
 # cookies.save()
-
-# ssl._create_default_https_context = ssl._create_unverified_context
-# context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-# context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
-# request.install_opener(request.build_opener(request.HTTPSHandler(context=context)))
+request.install_opener(request.build_opener(request.HTTPSHandler(context=context), request.HTTPCookieProcessor(cookies)))
 
 def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=False, stderr="", sleep=0, threadn=0):
     if sleep:
@@ -1322,7 +1337,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
 
 def echolinks(download):
     while True:
-        threadn, errorhtml, todisk, onserver, sleep = download.get()
+        threadn, todisk, onserver, sleep = download.get()
         conflict = [[], []]
         for n in range(len(onserver)):
             if n and not collisionisreal:
@@ -1337,11 +1352,11 @@ def echolinks(download):
                 echo(f"{threadn:>3} Already downloaded: {todisk}", 0, 1)
             elif (err := get(url, todisk=todisk, conflict=conflict, threadn=threadn, sleep=sleep)) == 1:
                 newfilen[0] += 1
-                errorhtml[0] += ["<a href=\"" + todisk.replace("#", "%23") + "\"><img src=\"" + todisk.replace("#", "%23") + "\" height=200px></a>"]
+                error[0] += ["<a href=\"" + todisk.replace("#", "%23") + "\"><img src=\"" + todisk.replace("#", "%23") + "\" height=200px></a>"]
             else:
-                error[0] += [todisk]
+                error[1] += [todisk]
+                error[2] += [f"&gt; Error downloading ({err}): {url}"]
                 echo(f"{threadn:>3} Error downloading ({err}): {url}", 0, 1)
-                errorhtml[1] += [f"&gt; Error downloading ({err}): {url}"]
         echothreadn.remove(threadn)
         download.task_done()
 download = Queue()
@@ -1352,8 +1367,64 @@ for i in range(8):
 
 
 
-def get_cd(file, fromhtml, errorhtml, makedirs=False, preview=False, subdir=""):
-    link = file["link"] if preview else file.pop("link")
+def check(string, patterns, whitelist=False):
+    found = False
+    for pattern in patterns:
+        if not pattern:
+            continue
+        if pattern.startswith('.'):
+            if string.lower().endswith(pattern.lower()):
+                found = True
+                break
+        elif pattern.lower() in string.lower():
+            found = True
+            break
+    if found and not whitelist or not found and whitelist:
+        return pattern.lower()
+    else:
+        return ""
+
+
+
+def isrej(filename, pattern):
+    inline = pickers["inline"]["pattern"]
+    rejected = ""
+    origin = ""
+    if "/" in filename:
+        dir, filename = filename.rsplit("/", 1)
+        dir = f"{batchname}/{echoname[0]}/{dir}/"
+    else:
+        dir = f"{batchname}/{echoname[0]}/"
+    if pattern[0]:
+        origin = "mediocre.txt"
+        rejected = check(filename, pattern[0])
+    if not rejected and pattern[2]:
+        rejected = check(filename, pattern[1], whitelist=True)
+        if rejected and inline[1]:
+            rejected = check(filename, inline[1], whitelist=True)
+        elif rejected and inline[0]:
+            origin = rulefile
+            rejected = check(filename, inline[0])
+        else:
+            rejected = ""
+    elif not rejected and pattern[1]:
+        rejected = check(filename, pattern[1], whitelist=True)
+    elif not rejected and inline[1]:
+        rejected = check(filename, inline[1], whitelist=True)
+    elif not rejected and inline[0]:
+        origin = rulefile
+        rejected = check(filename, inline[0])
+    if rejected and showpreview:
+        if rejected in filename.lower():
+            print(f"{tcolor}{origin:>18}: {dir}{filename.lower().replace(rejected, tcolorr + rejected + tcolor)}{tcolorx}")
+        else:
+            print(f"{tcolor}  Not in whitelist: {dir}{tcolorb}{filename}{tcolorx}")
+    return rejected
+
+
+
+def get_cd(subdir, file, pattern, makedirs=False, preview=False):
+    link = file["link"]
     todisk = batchname + "/" + file["name"].replace("\\", "/")
     if rule := [v for k, v in customdir.items() if k in link]:
         name, ext = os.path.splitext(file["name"])
@@ -1367,7 +1438,9 @@ def get_cd(file, fromhtml, errorhtml, makedirs=False, preview=False, subdir=""):
         prepend, append = rule[0]
         todisk = f"{folder}{prepend}{name}{append}{ext}".replace("\\", "/") # "\\" in file["name"] can work like folder after prepend
         dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
-        if not preview and not os.path.exists(dir):
+        if isrej(todisk, pattern):
+            link = ""
+        elif not preview and not os.path.exists(dir):
             if makedirs or [ast(x) for x in exempt if ast(x) == dir.replace("/", "\\")]:
                 try:
                     os.makedirs(dir)
@@ -1375,13 +1448,15 @@ def get_cd(file, fromhtml, errorhtml, makedirs=False, preview=False, subdir=""):
                     buffer = "\\" + dir.replace("/", "\\")
                     kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
             else:
-                errorhtml[1] += [f"&gt; Error downloading (dir): {link}"]
+                error[1] += [todisk]
+                error[2] += [f"&gt; Error downloading (dir): {link}"]
                 print(f" Error downloading (dir): {link}")
-                error[0] += [todisk]
                 link = ""
     elif not preview:
         dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
-        if not os.path.exists(batchname + "/"):
+        if isrej(todisk, pattern):
+            link = ""
+        elif not os.path.exists(batchname + "/"):
             try:
                 os.makedirs(batchname + "/")
             except:
@@ -1414,33 +1489,42 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
             pass
         return
     error[0] = []
-    errorhtml = [[], []]
-    filelist = []
-    filelisthtml = []
+    error[1] = []
+    error[2] = []
     htmlname = fromhtml["name"]
     htmlpart = fromhtml["partition"]
+    pattern = fromhtml["pattern"]
+    subdir = ""
+    queued = {}
+    lastfilen = newfilen[0]
+
+
+
+    # Partition and rebuild HTML
+    filelist = [[], []]
     for key in htmlpart.keys():
         for file in htmlpart[key]["files"]:
             if not file["name"]:
                 print(f""" I don't have a scraper for {file["link"]}""")
             else:
-                if (x := get_cd(file, fromhtml, errorhtml, makedirs) + [key])[0]:
-                    filelist += [x]
-        for array in htmlpart[key]["html"]:
-            if len(array) == 2 and array[1]:
-                if not array[1]["name"]:
-                    print(f""" I don't have a scraper for {array[1]["link"]}""")
+                if (x := get_cd(subdir, file, pattern, makedirs) + [key])[0]:
+                    filelist[0] += [x]
+        for h in htmlpart[key]["html"]:
+            if len(h) == 2 and h[1]:
+                if not h[1]["name"]:
+                    print(f""" I don't have a scraper for {h[1]["link"]}""")
                 else:
-                    if (x := get_cd(array[1], fromhtml, errorhtml, makedirs) + [key])[0]:
-                        filelisthtml += [x]
+                    if (x := get_cd(subdir, h[1], pattern, makedirs) + [key])[0]:
+                        filelist[1] += [x]
     if fromhtml["inlinefirst"]:
-        filelist = filelisthtml + filelist
+        filelist = filelist[1] + filelist[0]
     else:
-        filelist += filelisthtml
-    if error[0]:
+        filelist = filelist[0] + filelist[1]
+
+    if error[1]:
         buffer = " There is at least one of the bad custom dir rules (non-existent dir).\n"
         echoed = []
-        for e in error[0]:
+        for e in error[1]:
             if not (e := os.path.split(e)[0].replace("/", "\\") + "\\") in echoed:
                 echoed += [e]
                 buffer += f"  {e}\n"
@@ -1451,11 +1535,10 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
 
     if not filelist:
         if fromhtml["makehtml"]:
-            x = get_cd({"link":fromhtml["page"], "name":fromhtml["folder"], "edited":0}, fromhtml, errorhtml, makedirs)[1]
-            tohtml(x, x.split("/")[-2], fromhtml, [])
+            x = get_cd("", new_link(fromhtml["page"], fromhtml["folder"], 0), pattern, makedirs)[1]
+            tohtml(x, x.split("/")[-2], pattern, [])
         else:
             echo("Filelist is empty!", 0, 1)
-        error[0] = []
         return
     if len(filelist) == 1:
         echothreadn.append(0)
@@ -1465,18 +1548,21 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         except KeyboardInterrupt:
             pass
         return
-    queued = {}
-    lastfilen = newfilen[0]
 
 
 
+    # Autosave (1/3)
     dirs = set()
     htmldirs = {}
     for onserver, ondisk, edited, key in filelist:
+
+
+
+        # Autosave (2/3)
         dir = ondisk.rsplit("/", 1)[0] + "/"
         if not dir in dirs and not dirs.add(dir):
-            if os.path.exists(dir + "partition.json"):
-                with open(dir + "partition.json", 'r') as f:
+            if os.path.exists(p := f"{dir}{thumbnail_dir}partition.json"):
+                with open(p, 'r') as f:
                     htmldirs.update({dir:json.loads(f.read())})
             else:
                 htmldirs.update({dir:{}})
@@ -1504,49 +1590,71 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
             ondisk = conflict[0]
         queued.update({ondisk: [onserver] + (queued[ondisk] if queued.get(ondisk) else [])})
 
+
+
+    for dir in htmldirs.keys():
+        for icon in fromhtml["icons"]:
+            if not os.path.exists(dir + thumbnail_dir + icon["name"]):
+                if not (err := get(icon["link"], dir + thumbnail_dir + icon["name"])) == 1:
+                    echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
+
+        if page := fromhtml["page"]:
+            file = dir + page["name"] + ".URL"
+            if not os.path.exists(file):
+                with open(file, 'w') as f:
+                    f.write(f"""[InternetShortcut]
+URL={page["link"]}""")
+                buffer = file.replace("/", "\\")
+                echo(f" File created: \\{buffer}", 0, 1)
+
+        if not os.path.exists(dir + thumbnail_dir):
+            os.makedirs(dir + thumbnail_dir)
+
+
+
+        if (part := frompart(f"{dir}{thumbnail_dir}partition.json", htmldirs[dir], htmlpart)) or verifyondisk:
+            parttohtml(dir, htmlname, part, filelist, pattern)
+
+
+
     threadn = 0
     for ondisk, onserver in queued.items():
         threadn += 1
         echothreadn.append(threadn)
-        download.put((threadn, errorhtml, ondisk, onserver, 0))
+        download.put((threadn, ondisk, onserver, 0))
     try:
         download.join()
     except KeyboardInterrupt:
         pass
-    title(status())
 
-    if len(htmlpart) > 1 or htmlpart["0"]["html"]:
-        newfile = False if lastfilen == newfilen[0] else True
-        if error[0]:
-            for x in error[0]:
-                # Legacy code for ender! Need a new way to find part IDs of failed downloads.
-                htmlpart.pop(os.path.basename(x).split(".", 1)[0], None)
-        if not newfile:
-            sys.stdout.write(" Nothing new to download.")
-        if error[0]:
-            sys.stdout.write(" There are failed downloads I will try again later.\n")
-        elif not newfile:
-            sys.stdout.write("\n")
-        for dir in htmldirs.keys():
-            if not (x := os.path.exists(dir + "gallery.html")) or newfile:
-                orphfiles = []
-                for file in next(os.walk(dir))[2]:
-                    if not file.endswith(tuple(specialfile)) and not file.startswith("icon"):
-                        orphfiles += [file]
-                for icon in fromhtml["icons"]:
-                    if not os.path.exists(dir + thumbnail_dir + icon["name"]):
-                        if not (err := get(icon["link"], subdir + thumbnail_dir + icon["name"])) == 1:
-                            echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
-                tohtml(dir, dir.split("/")[-2], fromhtml, set(orphfiles).difference([x[1].rsplit("/", 1)[-1] for x in filelist]))
-    for dir in htmldirs.keys():
-        if x := fromhtml["page"]:
-            file = dir + x["name"] + ".URL"
-            if not os.path.exists(file):
-                with open(file, 'w') as f:
-                    f.write(f"""[InternetShortcut]
-URL={x["link"]}""")
-                x = "\\" + file.replace("/", "\\")
-                print(f" File created: {x}")
+
+
+    # Autosave (3/3), build thumbnails and errorHTML
+    if buildthumbnail:
+        echo("Building thumbnails . . .")
+        thumbnail = f"{subdir}{thumbnail_dir}".join(ren(file, "_small").rsplit("/", 1))
+        if not os.path.exists(thumbnail):
+            try:
+                img = Image.open(f"{subdir}{thumbnail_dir}{file}")
+                w, h = img.size
+                if h > 200:
+                    img.resize((int(w*(200/h)), 200), Image.ANTIALIAS).save(thumbnail, subsampling=0, quality=100)
+                else:
+                    img.save(thumbnail)
+            except:
+                pass
+
+    newfile = False if lastfilen == newfilen[0] else True
+    if error[1]:
+        for x in error[1]:
+            # Legacy code for ender! Need a new way to find part IDs of failed downloads.
+            htmlpart.pop(os.path.basename(x).split(".", 1)[0], None)
+    if not newfile:
+        sys.stdout.write(" Nothing new to download.")
+    if error[1]:
+        sys.stdout.write(" There are failed downloads I will try again later.\n")
+    elif not newfile:
+        sys.stdout.write("\n")
 
 
 
@@ -1593,6 +1701,8 @@ def firefox(url):
         c = new_cookie()
         c.update(bc)
         cookies.set_cookie(cookiejar.Cookie(**c))
+    echo("", 0, 1)
+    echo(f" FIREFOX: Gave cookie(s) to {batchname}", 0, 1)
     return True
 
 
@@ -1868,7 +1978,7 @@ def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
                     name += ext
             if after:
                 url = array[1]
-            update_html += [[update_array[0], {"link":url, "name":saint(folder + parse.unquote(name)), "edited":htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else "0"}]]
+            update_html += [[update_array[0], new_link(url, folder + parse.unquote(name), htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else 0)]]
         else:
             update_html += [[update_array[0], '']]
         url = array[1]
@@ -1943,7 +2053,7 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
         if e := pick["extfix"]:
             if len(ext := carrots([[file[2], ""]], e, [".", ""], False)) == 2 and not name.endswith(ext := ext[-2][1]):
                 name += ext
-        filelist += [[f_key, {"link":file[2], "name":saint(folder + name), "edited":htmlpart[f_key]["keywords"][1] if f_key in htmlpart and len(htmlpart[f_key]["keywords"]) > 1 else "0"}]]
+        filelist += [[f_key, new_link(file[2], folder + name, htmlpart[f_key]["keywords"][1] if f_key in htmlpart and len(htmlpart[f_key]["keywords"]) > 1 else 0)]]
 
 
 
@@ -2029,7 +2139,7 @@ def pick_in_page(scraper):
     while True:
         data = ""
         url = ""
-        threadn, pick, start, page, more_pages, alerted_pages, fromhtml = scraper.get()
+        threadn, pick, start, page, pagen, more_pages, alerted_pages, fromhtml = scraper.get()
         htmlpart = fromhtml["partition"][threadn]
         folder = fromhtml["folder"]
         pg[0] += 1
@@ -2087,16 +2197,16 @@ def pick_in_page(scraper):
                         if not pick["dismiss"] and Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)
                         alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "As expected", pick["dismiss"])
-                        alerted_pages += [[start, page]]
+                        alerted_pages += [[start, page, pagen]]
                         alerted[0] = True
                     elif not y[0]["alt"] and not result:
                         if not pick["dismiss"] and Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)
                         alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "Not any longer", pick["dismiss"])
-                        alerted_pages += [[start, page]]
+                        alerted_pages += [[start, page, pagen]]
                         alerted[0] = True
                     else:
-                        more_pages += [[start, page]]
+                        more_pages += [[start, page, pagen]]
                         timer("Not quite as expected! ", False)
         if not folder:
             if pick["folder"]:
@@ -2132,7 +2242,7 @@ def pick_in_page(scraper):
                 echo("", 0, 1)
                 echo(f"Folder assets assembled! From now on the downloaded files will go to this directory: {tcolorg}\\{folder}{tcolorx}*\nAdditional folders are made by custom dir rules in {rulefile}.", 0, 2)
             if x := pick["savelink"]:
-                fromhtml["page"] = {"link":page, "name":saint(x), "edited":0}
+                fromhtml["page"] = new_link(page, x, 0)
         if pick["pages"]:
             if not data:
                 if x := get_data(threadn, page, url, pick):
@@ -2144,19 +2254,19 @@ def pick_in_page(scraper):
                     if a:
                         if not db:
                             db = opendb(data)
-                        pages = tree(db, [z[0], [[z[1], 0, 0, 0, 0]]])
+                        pages = tree(db, [z[0], [[z[1], 0, 0, cw, 0]]])
                         if pages and not pages[0][0] == "None":
                             for p in pages:
                                 if not p[0] == page and not page + p[0] == page:
                                     px = p[0] if y[0]["alt"] else page + p[0]
-                                    more_pages += [[start, px]]
+                                    more_pages += [[start, px, pagen]]
                                     if pick["checkpoint"]:
                                         print(f"Checkpoint: {px}\n")
                     else:
                         for p in [x[1] for x in carrots(part, z, cw) if x[1]]:
                             if not p == page and not page + p == page:
                                 px = p if y[0]["alt"] else page + p
-                                more_pages += [[start, px]]
+                                more_pages += [[start, px, pagen]]
                                 if pick["checkpoint"]:
                                     print(f"Checkpoint: {px}\n")
         if pick["paginate"]:
@@ -2186,8 +2296,7 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                 r_fix = y[1][2]
                 r = carrots([[new, ""]], y[0][2])[0][1] if len(y[0]) == 3 else ""
                 new = f"{l}{l_fix}{x}{r_fix}{r}"
-            more_pages += [[start, new]]
-        filelist_html = []
+            more_pages += [[start, new, pagen]]
         if pick["html"]:
             if not data:
                 if x := get_data(threadn, page, url, pick):
@@ -2230,7 +2339,7 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                                 html[2] = rp(html[2], pick["replace"])
                                 k_html += [[html[1 if html[0] == "0" else 0], [[html[2], ""]]]]
                     else:
-                        new_part = []
+                        new = []
                         for p in part:
                             key = "0"
                             for k in kx[1:]:
@@ -2239,8 +2348,8 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                                     break
                             c = carrots([[p[0], ""]], z, cw, False)
                             k_html += [[key, [[rp(c[0][1], pick["replace"]), ""]]]]
-                            new_part += [["".join(x[0] for x in c), ""]]
-                        part = new_part
+                            new += [["".join(x[0] for x in c), ""]]
+                        part = new
                 pos += 1
             for k, html in k_html:
                 if not k in htmlpart:
@@ -2255,7 +2364,6 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                             new_html = []
                             for h in html:
                                 new_html += [[h[0], ""], ["", h[1]]] if h[1] else [h] # Overkill?
-                                if not pick["ready"]: filelist_html += [h[1]] if h[1] else []
                             html = new_html
                     after = True
                 htmlpart[k]["html"] += html
@@ -2322,7 +2430,7 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                             for x in imagefile:
                                 if x in url:
                                     ext = x
-                            fromhtml["icons"] += [{"link":url, "name":f"""icon{" " + str(pos) if pos else ""}{ext}""", "edited":0}]
+                            fromhtml["icons"] += [new_link(url, f"""icon{" " + str(pos) if pos else ""}{ext}""", 0)]
                         else:
                             if len(c := carrots(part, z, [], False)) == 2:
                                 url = c[0][1]
@@ -2330,7 +2438,7 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                                 for x in imagefile:
                                     if x in url:
                                         ext = x
-                                fromhtml["icons"] += [{"link":url, "name":f"""icon{" " + str(pos) if pos else ""}{ext}""", "edited":0}]
+                                fromhtml["icons"] += [new_link(url, f"""icon{" " + str(pos) if pos else ""}{ext}""", 0)]
                 pos += 1
         if pick["file"] or pick["file_after"]:
             if not data:
@@ -2352,12 +2460,17 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
             if not pick["ready"]:
                 stdout = ""
                 x = ""
-                for file in filelist:
-                    x = get_cd(file[1], fromhtml, [[], []], preview=True)
-                    stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + "\n"
-                for file in filelist_html:
-                    x = get_cd(file, fromhtml, [[], []], preview=True)
-                    stdout += tcolorb + x[0] + tcolorr + " -> " + tcolorg + x[1].replace("/", "\\") + "\n"
+                pattern = [[], [], False]
+                for k in htmlpart.keys():
+                    for file in htmlpart[k]["files"]:
+                        x = get_cd("", file, pattern, preview=True)
+                        buffer = x[1].replace("/", "\\")
+                        stdout += f"{tcolorb}{x[0]}{tcolorr} -> {tcolorg}{buffer}\n"
+                    for h in htmlpart[k]["html"]:
+                        if h[1]:
+                            x = get_cd("", h[1], pattern, preview=True)
+                            buffer = x[1].replace("/", "\\")
+                            stdout += f"{tcolorb}{x[0]}{tcolorr} -> {tcolorg}{buffer}\n"
                 if not x:
                     stdout += f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference." + "\n"
                 echo(stdout + tcolorx)
@@ -2383,8 +2496,10 @@ def new_p(z):
 
 def new_part(threadn=0):
     new = {threadn:new_p("0")} if threadn else new_p("0")
-    return {"ready":True, "page":"", "name":"", "folder":"", "makehtml":False, "icons":[], "inlinefirst":True, "partition":new}
+    return {"ready":True, "page":"", "name":"", "folder":"", "makehtml":False, "pattern":[[], [], False], "icons":[], "inlinefirst":True, "partition":new}
 
+def new_link(l, n, e):
+    return {"link":l, "name":saint(n), "edited":e}
 
 
 def nextshelf(fromhtml):
@@ -2434,15 +2549,17 @@ def nextshelf(fromhtml):
 
 
 
+pgs = [8]
 def scrape(startpages):
     shelf = {}
     threadn = 0
-    pages = [["", x] for x in startpages]
+    pages = startpages
     visited = set()
     alerted_pages = []
     while True:
         more_pages = []
-        for start, page in pages:
+        for start, page, pagen in pages:
+            pgs[0] -= 1
             threadn += 1
             echothreadn.append(threadn)
             get_pick = [x for x in pickers.keys() if page.startswith(x)]
@@ -2458,14 +2575,15 @@ def scrape(startpages):
             else:
                 fromhtml = shelf[start]
                 fromhtml["partition"].update({threadn:new_p("0")})
-            scraper.put((threadn, pick, start, page, more_pages, alerted_pages, fromhtml))
+            scraper.put((threadn, pick, start, page, pagen, more_pages, alerted_pages, fromhtml))
         try:
             scraper.join()
         except KeyboardInterrupt:
             pass # Ctrl + C
+        pgs[0] = 8
         seen = set()
         more_pages = [x for x in more_pages if not x[1] in seen and not seen.add(x[1])]
-        for start, page in more_pages:
+        for _, page, _ in more_pages:
             if page in visited and not visited.add(page):
                 print(f"{tcolorr}Already visited {page} loophole warning{tcolorx}")
                 # more_pages.remove(page)
@@ -2609,31 +2727,19 @@ def ren(filename, append):
 
 
 
-def container(dir, ondisk):
+def container(dir, ondisk, pattern=False):
     if ondisk.lower().endswith(tuple(videofile)):
         data = f"""<div class="frame"><video height="200" autoplay><source src="{ondisk.replace("#", "%23")}"></video><div class="sources">{ondisk}</div></div>\n"""
     elif ondisk.lower().endswith(tuple(imagefile)):
         if buildthumbnail:
             thumb = "Thumbnails/" + ren(ondisk, "_small")[1]
-            if not os.path.exists(dir + thumb):
-                try:
-                    img = Image.open(dir + ondisk)
-                    w, h = img.size
-                    if h > 200:
-                        img.resize((int(w*(200/h)), 200), Image.ANTIALIAS).save(dir + thumb, subsampling=0, quality=100)
-                    else:
-                        img.save(dir + thumb)
-                except:
-                    pass
         else:
             thumb = ondisk
         data = f"""<div class="frame"><a class="fileThumb" href="{ondisk.replace("#", "%23")}"><img class="lazy" data-src="{thumb.replace("#", "%23")}"></a><div class="sources">{ondisk}</div></div>\n"""
-    elif os.path.exists(dir + ondisk):
+    else:
         data = f"""<a href=\"{ondisk.replace("#", "%23")}"><div class="aqua" style="height:174px; width:126px;">{ondisk}</div></a>\n"""
         if os.path.exists(dir + ondisk.rsplit(".", 1)[0] + "/"):
             data += f"""<a href="{ondisk.rsplit(".", 1)[0].replace("#", "%23")}"><div class="aqua" style="height:174px;"><i class="aqua" style="border-width:0 3px 3px 0; padding:3px; -webkit-transform: rotate(-45deg); margin-top:82px;"></i></div></a>\n"""
-    else:
-        data = f"""<a href=\"{ondisk.replace("#", "%23")}"><div style="display:inline-block; vertical-align:top; border:1px solid #b2b2b2; border-top:1px solid #4c4c4c; border-left:1px solid #4c4c4c; padding:12px; height:174px; width:126px; word-wrap: break-word;">☠️</div></a>\n"""
     return data
 
 
@@ -2661,30 +2767,31 @@ def new_html(builder, htmlname, listurls, imgsize=200):
 """ + f"<title>{htmlname}</title>" + """
 <style>
 html,body{background-color:#10100c; color:#088 /*088 cb7*/; font-family:consolas, courier; font-size:14px;}
-a{color:#dc8 /*efdfa8*/;}
-a:visited{color:#cccccc;}
+a{color:#6cb /*efdfa8*/;}
+a:visited{color:#bfe;}
+.external{color:#db6;}
+.external:visited{color:#ed9;}
+
+img {vertical-align:top;}
+h2 {margin:4px;}
+button {padding:1px 4px;}
+[contenteditable]:focus {outline: none;}
+
 .aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
 .carbon, .files, .time{background-color:#10100c /*10100c 112230 07300f*/; border:3px solid #6a6a66 /*6a6a66 367 192*/; border-radius:12px;}
 .time{white-space:pre-wrap; color:#ccc; font-size:90%; line-height:1.6;}
 .cell, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
-.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45;}
+.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45; padding:12px; margin:6px; word-wrap:break-word;}
 .previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
 .next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
 .closebtn{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
-
-.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45; padding:12px; margin:6px; word-wrap:break-word;}
-.frame{display:inline-block; vertical-align:top; position:relative;}
-.previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
 .reverse{background-color:#63c; color:#d9f; border:none; border-radius:10px; cursor:pointer;}
 .tangerine{background-color:#c60; color:#fc3; border:none; border-radius:10px; cursor:pointer;}
 .edge{background-color:#261; color:#8c4; border:none; border-radius:10px; cursor:pointer;}
-.next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
-.sources{font-size:80%; width:200px;}
 
-img{vertical-align:top;}
-.container{display:block; position:relative;}
-.frame{display:inline-block; vertical-align:top;}
 .sources{font-size:80%; width:200px;}
+.container{display:block; position:relative;}
+.frame{display:inline-block; vertical-align:top; position:relative;}
 .aqua{display:inline-block; vertical-align:top; padding:12px; word-wrap:break-word;}
 .carbon, .time, .files, .edits{display:inline-block; vertical-align:top;}
 .carbon, .time, .cell, .mySlides, .files, .edits{padding:8px; margin:6px; word-wrap:break-word;}
@@ -2692,15 +2799,15 @@ img{vertical-align:top;}
 .closebtn{position:absolute; top:15px; right:15px;}
 .carbon, .files, .edits{margin-right:12px;}
 .cell{overflow:auto; width:calc(100% - 30px); display:inline-block; vertical-align:text-top;}
-h2{margin:4px;}
 .postMessage{white-space:pre-wrap;}
-[contenteditable]:focus {outline: none;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 .stdout {white-space:pre-wrap; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
-.schande{opacity:0.5; position:absolute; top:""" + f"{imgsize - 50}" + """px; text-align:center; line-height:40px; height:40px; margin:3px; cursor:pointer; min-width:40px; border:2px solid #f66; background-color:#602; color:#f45;}
-.save{border:2px solid #6f6; background-color:#260; color:#4f5;}
-.spinner {position:absolute; border-top:8px solid #6f6; height:6px; width:3px; top:155px; left:24px; animation-name:spin; animation-duration: 1000ms; animation-timing-function: linear;}
+.schande{opacity:0.5; position:absolute; top:158px; text-align:center; line-height:34px; height:34px; cursor:pointer; min-width:40px; border:2px solid transparent; background-clip: padding-box; box-shadow:inset 0 0 0 2px #c44; padding:2px; background-color:#602; color:#f45; -webkit-user-select:none;}
+.save{box-shadow:inset 0 0 0 2px #367; background-color:#142434; color:#2a9;}
+.spinner {position:absolute; border-top:9px solid #6cc; height:6px; width:3px; top:162px; left:24px; pointer-events:none; animation-name:spin; animation-duration: 1000ms; animation-timing-function: linear;}
+.left {position:absolute; border-bottom:2px solid #f66; border-left:2px solid #f66; height:5px; width:5px; transform:rotate(45deg); top:166px; left:86px; pointer-events:none;}
+.right {position:absolute; border-bottom:2px solid #6cc; border-left:2px solid #6cc; height:5px; width:5px; transform:rotate(225deg); top:166px; left:21px; pointer-events:none;}
 @keyframes spin {
   from {
     transform:rotate(0deg);
@@ -2757,18 +2864,54 @@ var FFdown = function(e) {
   var a = t.parentNode;
   if (t.hasAttribute("data-schande")) {
     var b = t.innerHTML + " " + location.pathname.split('/').slice(0, -1).join('/') + "/" + t.getAttribute("data-schande");
+    var d = document.createElement("div");
+    a.appendChild(d);
+    t.addEventListener('touchmove', function(e) {e.preventDefault()});
     if (t.classList.contains("save")){
-      var d = document.createElement("div");
       d.classList.add("spinner");
-      a.appendChild(d);
       var timeoutID = setTimeout(function() {
-        send(b, e);
-      }.bind(t.addEventListener('mouseup', function() {
+        if (isTouch){
+          d.classList.remove("spinner");
+          d.classList.add("right");
+          var X = e.pageX;
+          var Y = e.pageY;
+          t.addEventListener('touchend', function(z) {
+            if (-20 < (Y - z.pageY) && (Y - z.pageY) < 20 && (z.pageX - X) > 50){
+              d.classList.remove("right");
+              send(b, e);
+            }
+          });
+          t.addEventListener('mouseleave', function() {d.classList.remove("right")})
+        } else {
+          send(b, e)
+        }
+      }.bind(t.addEventListener('click', function() {
+        clearTimeout(timeoutID);
+        d.classList.remove("spinner");
+      })).bind(t.addEventListener('mouseleave', function() {
+        clearTimeout(timeoutID);
+        d.classList.remove("spinner");
+      })).bind(t.addEventListener('touchmove', function() {
         clearTimeout(timeoutID);
         d.classList.remove("spinner");
       })), 1000);
     } else {
-      send(b, e);
+      if (isTouch){
+        d.classList.add("left");
+        var X = e.pageX;
+        var Y = e.pageY;
+        t.addEventListener('touchend', function(z) {
+          if (-20 < (Y - z.pageY) && (Y - z.pageY) < 20 && (X - z.pageX) > 50){
+            d.classList.remove("left");
+            send(b, e);
+          }
+        });
+        t.addEventListener('mouseleave', function() {d.classList.remove("left")})
+      } else {
+        t.addEventListener('mouseup', function() {
+          send(b, e)
+        });
+      }
     }
   }
 }
@@ -2776,7 +2919,7 @@ var FFdown = function(e) {
 var FFclick = function(e) {
   var t = e.target;
   var a = t.parentNode;
-  if (a.classList.contains("fileThumb")) {
+  if (a.classList != undefined && a.classList.contains("fileThumb")) {
     e.preventDefault();
     if(t.hasAttribute("data-src")) {
       var c = document.createElement("img");
@@ -2807,10 +2950,11 @@ var FFmove = function(e) {
 
 var FFover = function(e) {
   var t = e.target;
-  if(t.classList.contains("lazy") && !t.hasAttribute("busy")) {
+  var a = t.parentNode;
+  if(a.classList != undefined && a.classList.contains("fileThumb") && !a.parentNode.hasAttribute("busy")) {
+    a = a.parentNode;
     var d = document.createElement("div");
-    d.innerHTML = "<div class='schande save'>Save</div><div class='schande' style='left:44px;'>Schande!</div>";
-    var a = t.parentNode.parentNode;
+    d.innerHTML = "<div class='schande save'>Save</div><div class='schande' style='left:48px;'>Schande!</div>";
     a.appendChild(d);
     let isover = function(g) {
       g.target.style.opacity = 1
@@ -2829,15 +2973,16 @@ var FFover = function(e) {
       setTimeout(function(){
         a.removeChild(d);
       }, 1)
-      t.removeAttribute("busy")
+      a.removeAttribute("busy")
       a.removeEventListener("mouseleave", left);
     }
-    t.setAttribute("busy", true)
+    a.setAttribute("busy", true)
     a.addEventListener("mouseleave", left);
   }
 }
 
 document.addEventListener("click", FFclick);
+document.addEventListener("touchstart", FFdown);
 document.addEventListener("mousedown", FFdown);
 document.addEventListener("mousemove", FFmove);
 document.addEventListener("mouseover", FFover);
@@ -3285,11 +3430,17 @@ function hideParts(e, t='', a=true) {
   }
 }
 
+var isTouch;
+var dir = location.href.substring(0, location.href.lastIndexOf('/')) + "/";
 window.onload = () => {
   var links = document.getElementsByTagName('a');
   for(var i=0; i<links.length; i++) {
-    links[i].target = "_blank";
+    if (!links[i].href.startsWith(dir)){
+      links[i].classList.add("external");
+      links[i].target = "_blank";
+    }
   }
+  if('ontouchstart' in window){isTouch = true;};
   stdout = document.getElementById("stdout");
   if(!stdout.isContentEditable){
     stdout.setAttribute("onpaste", "plaintext(this, event)");
@@ -3363,15 +3514,100 @@ def hyperlink(html):
 
 
 
-def tohtml(subdir, htmlname, fromhtml, stray_files, rebuild=False):
-    builder = ""
-    listurls = ""
-    htmlpart = fromhtml["partition"]
+def frompart(partfile, relics, htmlpart):
     if "0" in htmlpart and not htmlpart["0"]["html"] and not htmlpart["0"]["files"]:
         del htmlpart["0"]
-    if not os.path.exists(subdir + thumbnail_dir):
-        os.makedirs(subdir + thumbnail_dir)
+
     new_relics = htmlpart.copy()
+    for key in new_relics.keys():
+        new_relics[key] = htmlpart[key].copy()
+        files = []
+        duplicates = set()
+        for file in htmlpart[key]["files"]:
+            if not file["name"] in duplicates and not duplicates.add(file["name"]):
+                files += [file["name"].rsplit("/", 1)[-1]]
+        new_relics[key]["files"] = files
+        for array in new_relics[key]["html"]:
+            if len(array) == 2 and array[1]:
+                array[1] = array[1]["name"].rsplit("/", 1)[-1]
+
+    part_is = False
+    if not os.path.exists(partfile):
+        with open(partfile, 'w') as f:
+            f.write(json.dumps(new_relics))
+        part_is = "created"
+        part = new_relics
+    else:
+        if not relics:
+            with open(partfile, 'r', encoding="utf-8") as f:
+                relics = json.loads(f.read())
+        stray_keys = iter(relics.keys())
+        part = {}
+        for key in new_relics.keys():
+            if not key in relics:
+                part.update({key:new_relics[key]})
+                continue
+            for stray_key in stray_keys:
+                if not key == stray_key:
+                    part.update({stray_key:relics[stray_key]})
+                else:
+                    break
+            if not relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
+                part.update({key:new_relics[key]})
+                part_is = "updated"
+            else:
+                part.update({key:relics[key]})
+    if part_is:
+        with open(partfile, 'w') as f:
+            f.write(json.dumps(part))
+        buffer = partfile.replace("/", "\\")
+        echo(f" File {part_is}: \\{buffer}", 0, 1)
+        return part
+
+
+
+def parttohtml(subdir, htmlname, part, filelist, pattern):
+    files = []
+    for file in next(os.walk(subdir))[2]:
+        if not file.endswith(tuple(specialfile)) and not file.startswith("icon"):
+            files += [file]
+    stray_files = sorted(set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
+
+
+
+
+
+
+
+
+
+    for file in stray_files:
+        key = file.split(".", 1)[0]
+        if not key in part.keys():
+            if not "0" in part.keys():
+                part.update(new_p("0"))
+            key = "0"
+        if "stray_files" in part[key]:
+            part[key]["stray_files"] += [file]
+        else:
+            part[key]["stray_files"] = [file]
+
+    tohtml(subdir, htmlname, part, pattern)
+
+    for file in stray_files:
+        if not file.endswith(tuple(specialfile)) and isrej(file, pattern):
+            ondisk = f"{subdir}{file}".replace("/", "\\")
+            echo(f"Blacklisted file saved on disk: {ondisk}", 0, 1)
+            error[2] += [f"&gt; Blacklisted file saved on disk: {ondisk}"]
+
+    if buildthumbnail:
+        echo("Building thumbnails . . .")
+
+
+
+def tohtml(subdir, htmlname, part, pattern):
+    builder = ""
+    listurls = ""
 
 
 
@@ -3383,68 +3619,9 @@ def tohtml(subdir, htmlname, fromhtml, stray_files, rebuild=False):
             builder += f"""<img src="{thumbnail_dir}{icon}" height="100px">\n"""
         else:
             break
-    if os.path.exists(x := subdir + htmlname + ".URL"):
-        with open(x, 'r') as f:
+    if os.path.exists(page := f"{subdir}{thumbnail_dir}{htmlname}.URL"):
+        with open(page, 'r') as f:
             builder += f"""<h2><a href="{f.splitlines()[1].replace("URL=", "")}">{htmlname}</a></h2>"""
-
-
-
-    if not rebuild:
-        for key in new_relics.keys():
-            new_relics[key] = htmlpart[key].copy()
-            files = []
-            duplicates = set()
-            for file in htmlpart[key]["files"]:
-                if not file["name"] in duplicates and not duplicates.add(file["name"]):
-                    files += [file["name"].rsplit("/", 1)[-1]]
-            new_relics[key]["files"] = files
-            for array in new_relics[key]["html"]:
-                if len(array) == 2 and array[1]:
-                    array[1]["name"] = array[1]["name"].rsplit("/", 1)[-1]
-
-
-
-    partfile = f"{subdir}{thumbnail_dir}partition.json"
-    gallery_is = "updated"
-    if not os.path.exists(partfile):
-        gallery_is = "created"
-        with open(partfile, 'w') as f:
-            f.write(json.dumps(new_relics))
-    with open(partfile, 'r', encoding="utf-8") as f:
-        relics = json.loads(f.read())
-    stray_keys = iter(relics.keys())
-    part = {}
-    for key in new_relics.keys():
-        if not key in relics:
-            part.update({key:new_relics[key]})
-            continue
-        for stray_key in stray_keys:
-            if not key == stray_key:
-                part.update({stray_key:relics[stray_key]})
-            else:
-                break
-        if not relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
-            part.update({key:new_relics[key]})
-        else:
-            part.update({key:relics[key]})
-    if not rebuild:
-        with open(partfile, 'w') as f:
-            f.write(json.dumps(part))
-        buffer = partfile.replace("/", "\\")
-        print(f" File {gallery_is}: {buffer}")
-
-
-
-    for file in stray_files:
-        key = file.split(".", 1)[0]
-        if not key in part.keys():
-            key = "0"
-        if "stray_files" in part[key]:
-            part[key]["stray_files"] += [file]
-        else:
-            part[key]["stray_files"] = [file]
-    if buildthumbnail:
-        echo("Building thumbnails . . .")
 
 
 
@@ -3470,13 +3647,13 @@ def tohtml(subdir, htmlname, fromhtml, stray_files, rebuild=False):
         if part[key]["files"]:
             builder += "<div class=\"files\">\n"
             for file in part[key]["files"]:
-                builder += container(subdir, file)
+                builder += container(subdir, file, pattern)
             builder += "</div>\n"
         if "stray_files" in part[key]:
             builder += "<div class=\"edits\">\n"
             for file in part[key]["stray_files"]:
-                # os.rename(subdir + file, subdir + "Orphaned files/" + file)
-                builder += container(subdir, file)
+                # os.rename(subdir + file, subdir + "Stray files/" + file)
+                builder += container(subdir, file, pattern)
             builder += "<br><br>File(s) not on server\n</div>\n"
         if html := part[key]["html"]:
             builder += """<div class="postMessage">"""
@@ -3487,7 +3664,7 @@ def tohtml(subdir, htmlname, fromhtml, stray_files, rebuild=False):
                         end_container = True
                         new_container = False
                     if array[1]:
-                        content += f"""{array[0]}{container(subdir, array[1]["name"])}"""
+                        content += f"""{array[0]}{container(subdir, array[1], pattern)}"""
                     else:
                         content += array[0]
                 elif end_container:
@@ -3511,10 +3688,13 @@ def tohtml(subdir, htmlname, fromhtml, stray_files, rebuild=False):
         elif not part[key]["files"]:
             builder += "<div class=\"edits\">Rebuild HTML with a different login/tier may be required to view</div>\n"
         builder += "</div>\n\n"
+    gallery_is = "created"
+    if os.path.exists(subdir + "gallery.html"):
+        gallery_is = "updated"
     with open(subdir + "gallery.html", 'wb') as f:
         f.write(bytes(new_html(builder, htmlname, listurls), "utf-8"))
     buffer = subdir.replace("/", "\\")
-    print(f" File {gallery_is}: {buffer}gallery.html ")
+    print(f" File {gallery_is}: \\{buffer}gallery.html ")
 
 
 
@@ -3665,25 +3845,38 @@ def savenow(trashdir=False):
                 new_savs += [new[0].split(" ", 1)[0]]
             if new[1]:
                 savxread.remove(new[1])
+        with open(savs, 'ab') as f:
+            f.write(bytes("\n".join(new_savs) + "\n", 'utf-8'))
         # with open(sav, 'wb') as f:
         #     f.write(bytes("\n".join(savread) + "\n", 'utf-8'))
         # with open(savx, 'wb') as f:
         #     f.write(bytes("\n".join(savxread) + "\n", 'utf-8'))
-    else:
+    elif savefiles[0]:
+        buffer = ""
         for ondisk in savefiles[0]:
-            new = [[], []]
+            next_new = [[], []]
             for line in savread:
                 if ondisk in line:
-                    new[0] = line
+                    next_new[0] = line
                     break
             for line in savxread:
                 if ondisk in line:
-                    new[1] = line
+                    next_new[1] = line
                     break
-            if all(new):
-                new_savs += [new[0].split(" ", 1)[0] + " " + " ".join(new[1].split(" ", 4)[:4])]
-    with open(savs, 'ab') as f:
-        f.write(bytes("\n".join(new_savs) + "\n", 'utf-8'))
+            if all(next_new):
+                new_savs += [next_new[0].split(" ", 1)[0] + " " + " ".join(next_new[1].split(" ", 4)[:4])]
+                buffer += f" Save: {tcolorg}{ondisk}{tcolorx}\n"
+            else:
+                buffer += f" Unscanned: {tcolorb}{ondisk}{tcolorx}\n"
+        echo(buffer, 0, 1)
+        if not new_savs:
+            echo("No files to save!", 0, 1)
+            return
+        if input(" Press S again to confirm or return to (M)ain menu: ", "sm") == 1:
+            with open(savs, 'ab') as f:
+                f.write(bytes("\n".join(new_savs) + "\n", 'utf-8'))
+    else:
+        echo("No files to save!", 0, 1)
 
 
 
@@ -3696,8 +3889,8 @@ def delnow():
             if not f[0] in trashlist:
                 trashlist.update({f[0]:[]})
             trashlist[f[0]] += [f[1]]
-            dir = f[0].replace("/", "\\")
-            buffer += f"{tcolorb}{dir}\\{f[1]}{tcolorr} -> {tcolorg}{dir} Trash\\{f[1]}{tcolorx}\n"
+            stdout = f[0].replace("/", "\\")
+            buffer += f"{tcolorb}{stdout}\\{f[1]}{tcolorr} -> {tcolorg}{stdout} Trash\\{f[1]}{tcolorx}\n"
     if not trashlist:
         echo("No schande'd files!", 0, 1)
         return
@@ -3708,7 +3901,8 @@ def delnow():
             if not os.path.exists(trashdir):
                 os.makedirs(trashdir)
             for file in trashlist[dir]:
-                os.rename(f"{dir}/{file}", f"{trashdir}/{file}")
+                if os.path.exists(file):
+                    os.rename(f"{dir}/{file}", f"{trashdir}{file}")
         echo(skull(), 0, 1)
         choice(bg="4c")
         delfiles[0] = []
@@ -3753,7 +3947,6 @@ def delmode():
                 tohtml_geistauge(True)
             return
         elif el == 3:
-            echo("", 1, 0)
             savenow()
             return
         elif el == 4:
@@ -4010,7 +4203,6 @@ def source_view():
 
 
 
-run_input = [False]*4
 def read_input(fp):
     if not fp:
         return
@@ -4026,8 +4218,22 @@ def read_input(fp):
         return True
     elif os.path.exists(fp):
         if fp.endswith("partition.json"):
+            subdir = fp.rsplit("/", 1)[0] + "/"
+            htmlname = fp.rsplit("/", 2)[-2]
+            pattern = [[], [], False]
             with open(fp, 'r') as f:
-                tohtml(fp.rsplit("/", 1)[0] + "/", fp.rsplit("/")[-2], {"partition":json.loads(f.read())}, [], True)
+                htmlpart =json.loads(f.read())
+
+            filelist = []
+            for key in htmlpart.keys():
+                for file in htmlpart[key]["files"]:
+                    if not isrej(file, pattern):
+                        filelist += [["", file]]
+                for array in htmlpart[key]["html"]:
+                    if len(array) == 2 and array[1]:
+                        if not isrej(array[1], pattern):
+                            filelist += [["", array[1]]]
+            parttohtml(subdir, htmlname, htmlpart, filelist, pattern)
         elif not Geistauge:
             choice(bg=True)
             print(" GEISTAUGE: Maybe not.")
@@ -4050,36 +4256,36 @@ def readfile():
     print(f"Reading {textfile} . . .")
     with open(textfile, 'r', encoding="utf-8") as f:
         textread = f.read().splitlines()
-    pages = []
+    startpages = []
     nextpages = []
     fromhtml = new_part()
     for line in textread:
         if not line or line.startswith("#"):
             continue
         elif line == "then":
-            nextpages += [pages]
-            pages = []
+            nextpages += [startpages]
+            startpages = []
             continue
         elif line == "end":
             break
         elif not line.startswith("http"):
             continue
         if any(word for word in pickers.keys() if line.startswith(word)):
-            pages += [line]
+            startpages += [["", line, [0]]]
         else:
             name = parse.unquote(line.split("/")[-1])
-            fromhtml["partition"]["0"]["files"] += [{"link":line, "name":saint(name), "edited":0}]
-    nextpages += [pages]
+            fromhtml["partition"]["0"]["files"] += [new_link(line, name, 0)]
+    nextpages += [startpages]
     if fromhtml["partition"]["0"]["files"]:
         downloadtodisk(fromhtml, "Autosave declared completion.")
     elif nextpages:
         resume = False
-        for pages in nextpages:
+        for startpages in nextpages:
             if resume:
                 print(f"\n Resuming next lines from {textfile}")
             else:
                 resume = True
-            scrape(pages)
+            scrape(startpages)
     else:
         print(f" No urls in {textfile}!")
 
@@ -4260,7 +4466,7 @@ ready_input()
 while True:
     if run_input[0]:
         busy[0] = True
-        scrape([run_input[0]])
+        scrape([["", run_input[0], [0]]])
         run_input[0] = ""
         busy[0] = False
         print()
@@ -4268,7 +4474,7 @@ while True:
     if run_input[1]:
         busy[0] = True
         x = new_part()
-        x["partition"]["0"]["files"] = [{"link":run_input[1], "name":saint(parse.unquote(run_input[1].split("/")[-1])), "edited":0}]
+        x["partition"]["0"]["files"] = [new_link(run_input[1], parse.unquote(run_input[1].split("/")[-1]), 0)]
         downloadtodisk(x, "Autosave declared completion.")
         run_input[1] = ""
         busy[0] = False

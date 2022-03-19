@@ -52,6 +52,7 @@ echothreadn = []
 error = [[]]*4
 echoname = [batchfile]
 newfilen = [0]
+run_input = [False]*4
 Keypress_prompt = [False]
 Keypress_A = [False]
 Keypress_C = [False]
@@ -62,7 +63,6 @@ Keypress_S = [False]
 Keypress_X = [False]
 Keypress_CtrlC = [False]
 retries = [0]
-run_input = [False]*4
 sf = [0]
 
 # Probably useless settings
@@ -82,7 +82,7 @@ def ansi(c):
         c = "".join(x*2 for x in c)
     return ";".join(str(int(x, 16)) for x in [c[0:2], c[2:4], c[4:6]])
 
-def ansi_color(b=False, f="3"):
+def ansi_color(b=False, f="F9F1A5"):
     if not b:
         return "\033[0m"
     b = f"4{b}" if len(b) == 1 else "48;2;" + ansi(b)
@@ -116,7 +116,7 @@ def mainmenu():
     return f"""
  - - - - {batchname} HTML - - - -
  + Press B to launch HTML in your favorite browser.
- + Press G to rebuild HTMLs from partition.json.
+ | Press G to rebuild HTMLs from partition.json.
  + Press D to open delete mode.
 
  Delete the autosave file if:
@@ -408,20 +408,21 @@ if new_setting:
 
 Bs = [0]
 Bstime = [int(time.time())]
-fp = "▹"
+Ba = "▹"
+Barray = [[Ba[0]]*8]
 MBs = [0]
 for n in range(256):
     h = f"{n:02x}"
     h0 = int(h[0],16)
     h1 = int(h[1],16)
-    fp += chr(10240+h1+int(h0/2)*16+int(h1/8)*64+int(h0/8)*64+(h0%2)*8-int(h1/8)*8)
-def echoMBs(threadn, Bytes, ff):
-    if not threadn or (x := echothreadn.index(threadn)) < len(fx[0]):
-        fx[0][x if threadn else 0] = fp[ff%257]
+    Ba += chr(10240+h1+int(h0/2)*16+int(h1/8)*64+int(h0/8)*64+(h0%2)*8-int(h1/8)*8)
+def echoMBs(threadn, Bytes, total):
+    if not threadn or (x := echothreadn.index(threadn)) < len(Barray[0]):
+        Barray[0][x if threadn else 0] = Ba[total%257]
     s = time.time()
     if echofriction[0] < int(s*eps):
         echofriction[0] = int(s*eps)
-        stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {echoname[0]} {''.join(fx[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
+        stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {echoname[0]} {''.join(Barray[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
     else:
         echofriction[0] = int(s*eps)
     if Bstime[0] < int(s):
@@ -430,7 +431,6 @@ def echoMBs(threadn, Bytes, ff):
         Bs[0] = Bytes
     else:
         Bs[0] += Bytes
-fx = [[fp[0]]*8]
 
 
 
@@ -962,7 +962,6 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
 
 
 # cookies.save()
-# context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
 request.install_opener(request.build_opener(request.HTTPSHandler(context=context), request.HTTPCookieProcessor(cookies)))
 
 def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=False, stderr="", sleep=0, threadn=0):
@@ -1247,7 +1246,7 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
         dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
         if isrej(todisk, pattern):
             link = ""
-        if not os.path.exists(batchname + "/"):
+        elif not os.path.exists(batchname + "/"):
             try:
                 os.makedirs(batchname + "/")
             except:
@@ -1322,8 +1321,14 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         echo("", 0, 1)
         echo(f"{buffer} Add following dirs as new rules (preferably only for those intentional) to allow auto-create dirs.", 0, 2)
 
+
+
     if not filelist:
-        echo("Filelist is empty!", 0, 1)
+        if fromhtml["makehtml"]:
+            x = get_cd({"link":fromhtml["page"], "name":fromhtml["folder"], "edited":0}, fromhtml, makedirs)[1]
+            tohtml(x, x.split("/")[-2], fromhtml, [])
+        else:
+            echo("Filelist is empty!", 0, 1)
         return
     if len(filelist) == 1:
         echothreadn.append(0)
@@ -1333,29 +1338,6 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         except KeyboardInterrupt:
             pass
         return
-
-
-
-    for icon in fromhtml["icons"]:
-        if not os.path.exists(subdir + thumbnail_dir + icon["name"]):
-            if not (err := get(icon["link"], subdir + thumbnail_dir + icon["name"])) == 1:
-                echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
-
-    if page := fromhtml["page"]:
-        file = subdir + page["name"] + ".URL"
-        if not os.path.exists(file):
-            with open(file, 'w') as f:
-                f.write(f"""[InternetShortcut]
-URL={page["link"]}""")
-            page = "\\" + file.replace("/", "\\")
-            echo(f" File created: {page}", 0, 1)
-
-
-
-    if not os.path.exists(subdir + thumbnail_dir):
-        os.makedirs(subdir + thumbnail_dir)
-    if (part := frompart(f"{subdir}{thumbnail_dir}partition.json", htmlpart)) or verifyondisk:
-        parttohtml(subdir, htmlname, part, filelist, pattern)
 
 
 
@@ -1373,6 +1355,8 @@ URL={page["link"]}""")
 
 
 
+    dirs = set()
+    htmldirs = {subdir:{}}
     for onserver, filename, edited, key in filelist:
         ondisk = f"{subdir}{filename}"
 
@@ -1413,6 +1397,28 @@ URL={page["link"]}""")
         if conflict := [k for k in queued.keys() if ondisk.lower() == k.lower()]:
             ondisk = conflict[0]
         queued.update({ondisk: [onserver] + (queued[ondisk] if queued.get(ondisk) else [])})
+
+
+
+    for dir in htmldirs.keys():
+        for icon in fromhtml["icons"]:
+            if not os.path.exists(dir + thumbnail_dir + icon["name"]):
+                if not (err := get(icon["link"], dir + thumbnail_dir + icon["name"])) == 1:
+                    echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
+
+        if page := fromhtml["page"]:
+            file = dir + page["name"] + ".URL"
+            if not os.path.exists(file):
+                with open(file, 'w') as f:
+                    f.write(f"""[InternetShortcut]
+URL={page["link"]}""")
+                buffer = file.replace("/", "\\")
+                echo(f" File created: \\{buffer}", 0, 1)
+
+        if not os.path.exists(dir + thumbnail_dir):
+            os.makedirs(dir + thumbnail_dir)
+        if (part := frompart(f"{dir}{thumbnail_dir}partition.json", htmlpart)) or verifyondisk:
+            parttohtml(dir, htmlname, part, filelist, pattern)
 
 
 
@@ -1515,21 +1521,21 @@ def firefox(url):
 
 
 def container(ondisk, pattern=False, depth=0):
-    filename = ondisk.rsplit("/", 1)[-1]
+    file = ondisk.rsplit("/", 1)[-1]
     relfile = ondisk.split("/", depth)[-1]
-    if pattern and isrej(filename, pattern):
-        return f"""<div class="frame"><div class="aqua">🦦 -( Mediocre )</div><div class="sources">{filename}</div></div>\n"""
+    if pattern and isrej(file, pattern):
+        return f"""<div class="frame"><div class="aqua">🦦 -( Mediocre )</div><div class="sources">{file}</div></div>\n"""
     else:
-        if filename.lower().endswith(tuple(videofile)):
-            data = f"""<div class="frame"><video height="200" autoplay><source src="{relfile.replace("#", "%23")}"></video><div class="sources">{filename}</div></div>\n"""
-        elif filename.lower().endswith(tuple(imagefile)):
+        if file.lower().endswith(tuple(videofile)):
+            data = f"""<div class="frame"><video height="200" autoplay><source src="{relfile.replace("#", "%23")}"></video><div class="sources">{file}</div></div>\n"""
+        elif file.lower().endswith(tuple(imagefile)):
             if buildthumbnail and not f"/{thumbnail_dir}" in relfile:
                 thumb = f"/{thumbnail_dir}".join(ren(relfile, "_small").rsplit("/", 1))
             else:
                 thumb = relfile
-            data = f"""<div class="frame"><a class="fileThumb" href="{relfile.replace("#", "%23")}"><img class="lazy" data-src="{thumb.replace("#", "%23")}"></a><div class="sources">{filename}</div></div>\n"""
+            data = f"""<div class="frame"><a class="fileThumb" href="{relfile.replace("#", "%23")}"><img class="lazy" data-src="{thumb.replace("#", "%23")}"></a><div class="sources">{file}</div></div>\n"""
         else:
-            data = f"""<a href=\"{relfile.replace("#", "%23")}"><div class="aqua" style="height:174px; width:126px;">{filename}</div></a>\n"""
+            data = f"""<a href=\"{relfile.replace("#", "%23")}"><div class="aqua" style="height:174px; width:126px;">{file}</div></a>\n"""
             if os.path.exists(ondisk.rsplit(".", 1)[0] + "/"):
                 data += f"""<a href="{relfile.rsplit(".", 1)[0].replace("#", "%23")}"><div class="aqua" style="height:174px;"><i class="aqua" style="border-width:0 3px 3px 0; padding:3px; -webkit-transform: rotate(-45deg); margin-top:82px;"></i></div></a>\n"""
         return data
@@ -2339,12 +2345,12 @@ def frompart(partfile, htmlpart):
         with open(partfile, 'w') as f:
             f.write(json.dumps(part))
         buffer = partfile.replace("/", "\\")
-        print(f" File {part_is}: \\{buffer}")
+        echo(f" File {part_is}: \\{buffer}", 0, 1)
         return part
 
 
 
-def parttohtml(subdir, htmlname, part, filelist, pattern, rebuild=False):
+def parttohtml(subdir, htmlname, part, filelist, pattern):
     files = []
     for file in next(os.walk(subdir))[2]:
         if not file.endswith(tuple(specialfile)) and not file.startswith("icon"):
@@ -3193,7 +3199,7 @@ def readfile(rebuild=False):
                             if len(array) == 2 and array[1]:
                                 if not isrej(array[1], pattern):
                                     filelist += [["", array[1]]]
-                    parttohtml(subdir, htmlname, htmlpart, filelist, pattern, True)
+                    parttohtml(subdir, htmlname, htmlpart, filelist, pattern)
             else:
                 scrape(startpages)
             echoname[0] = batchfile

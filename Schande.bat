@@ -1480,7 +1480,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         while True:
             threadn += 1
             echothreadn.append(threadn)
-            download.put((threadn, [[], []], "Key listener test", ["Key listener test"], random()*0.5))
+            download.put((threadn, "Key listener test", ["Key listener test"], random()*0.5))
             if threadn == 200:
                 break
         try:
@@ -1542,7 +1542,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         return
     if len(filelist) == 1:
         echothreadn.append(0)
-        download.put((0, [[], []], filelist[0][1], [filelist[0][0]], 0))
+        download.put((0, filelist[0][1], [filelist[0][0]], 0))
         try:
             download.join()
         except KeyboardInterrupt:

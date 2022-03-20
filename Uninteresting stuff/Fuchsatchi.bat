@@ -378,15 +378,13 @@ fanbox
 
 sys.stdout.write(tcolorx + cls)
 
-if not os.path.exists(rulefile):
-    open(rulefile, 'w').close()
-if os.path.getsize(rulefile) < 1:
+if not os.path.exists(rulefile) or os.path.getsize(rulefile) < 1:
     rules = new_rules().splitlines()
 else:
     with open(rulefile, 'r', encoding="utf-8") as f:
         rules = f.read().splitlines()
 
-new_setting = False
+new_settings = ["", False]
 offset = 0
 settings = ["Launch HTML server = ", "Browser = ", "Geistauge = No", "Python = " + pythondir, "Proxy = socks5://"]
 for setting in settings:
@@ -394,13 +392,11 @@ for setting in settings:
         if offset == 0:
             setting += "Yes" if input(f"Launch HTML server? (Y)es/(N)o: ", "yn") == 1 else "No"
             echo("", 1)
-            echo(f" Inline tutorial and download filters were added to {rulefile}.\n You may want to check/edit there before I download artpieces with filters and settings.", 0, 1)
-            echo("", 0, 1)
+            new_settings[1] = True
         rules.insert(offset, setting)
-        print(f"""Added new setting "{setting}" to {rulefile}!""")
-        new_setting = True
+        new_settings[0] += f"""Added new setting "{setting}" to {rulefile}!\n"""
     offset += 1
-if new_setting:
+if new_settings[0]:
     with open(rulefile, 'wb') as f:
         f.write(bytes("\n".join(rules), 'utf-8'))
 
@@ -736,6 +732,11 @@ for rule in rules:
 if bgcolor:
     tcolorx = ansi_color(bgcolor, fgcolor)
     sys.stdout.write(tcolorx + cls)
+
+if new_settings[0]:
+    echo(new_settings[0], 0, 1)
+    if new_settings[1]:
+        echo(f" Inline tutorial and download filters were added to {rulefile}.\n You must edit there before I download artpieces with filters and settings.", 0, 2)
 
 
 
@@ -1270,7 +1271,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         while True:
             threadn += 1
             echothreadn.append(threadn)
-            download.put((threadn, [[], []], "Key listener test", ["Key listener test"], random()*0.5))
+            download.put((threadn, "Key listener test", ["Key listener test"], random()*0.5))
             if threadn == 200:
                 break
         try:
@@ -1299,12 +1300,12 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
             else:
                 if (x := get_cd(subdir, file, pattern, makedirs) + [key])[0]:
                     filelist[0] += [x]
-        for array in htmlpart[key]["html"]:
-            if len(array) == 2 and array[1]:
-                if not array[1]["name"]:
-                    print(f""" I don't have a scraper for {array[1]["link"]}""")
+        for h in htmlpart[key]["html"]:
+            if len(h) == 2 and h[1]:
+                if not h[1]["name"]:
+                    print(f""" I don't have a scraper for {h[1]["link"]}""")
                 else:
-                    if (x := get_cd(subdir, array[1], pattern, makedirs) + [key])[0]:
+                    if (x := get_cd(subdir, h[1], pattern, makedirs) + [key])[0]:
                         filelist[1] += [x]
     if fromhtml["inlinefirst"]:
         filelist = filelist[1] + filelist[0]
@@ -1325,14 +1326,14 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
 
     if not filelist:
         if fromhtml["makehtml"]:
-            x = get_cd({"link":fromhtml["page"], "name":fromhtml["folder"], "edited":0}, fromhtml, makedirs)[1]
+            x = get_cd({"link":fromhtml["page"], "name":fromhtml["folder"], "edited":0}, fromhtml, pattern, makedirs)[1]
             tohtml(x, x.split("/")[-2], fromhtml, [])
         else:
             echo("Filelist is empty!", 0, 1)
         return
     if len(filelist) == 1:
         echothreadn.append(0)
-        download.put((0, [[], []], filelist[0][1], [filelist[0][0]], 0))
+        download.put((0, filelist[0][1], [filelist[0][0]], 0))
         try:
             download.join()
         except KeyboardInterrupt:
@@ -2376,7 +2377,7 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
         else:
             part[key]["stray_files"] = [file]
 
-    tohtml(subdir, part, htmlname, pattern)
+    tohtml(subdir, htmlname, part, pattern)
 
     for file in stray_files:
         if not file.endswith(tuple(specialfile)) and isrej(file, pattern):
@@ -2386,7 +2387,7 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
 
 
 
-def tohtml(subdir, part, htmlname, pattern):
+def tohtml(subdir, htmlname, part, pattern):
     builder = ""
     listurls = ""
 
@@ -2549,8 +2550,8 @@ if False and Fantiacookie:
 def new_p(z):
     return {z:{"html":[], "keywords":[], "files":[]}}
 
-def new_part(pagen=0):
-    return {"ready":False if showpreview else True, "page":"", "name":"", "folder":"", "makehtml":True, "campaign_id":None, "pattern":[[], [], False], "icons":[], "inlinefirst":True, "partition":{pagen:new_p("0")}}
+def new_part(threadn=0):
+    return {"ready":False if showpreview else True, "page":"", "name":"", "folder":"", "makehtml":True, "campaign_id":None, "pattern":[[], [], False], "icons":[], "inlinefirst":True, "partition":{threadn:new_p("0")}}
 
 def new_link(l, n, e):
     return {"link":l, "name":saint(n), "edited":e}

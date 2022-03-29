@@ -1,6 +1,6 @@
 @echo off && goto loaded
 
-import os, sys, ssl, time, json, zlib, inspect, smtplib, hashlib
+import os, sys, ssl, time, json, zlib, inspect, smtplib, hashlib, subprocess
 from datetime import datetime
 from fnmatch import fnmatch
 from http import cookiejar
@@ -24,7 +24,7 @@ thumbnail_dir = ""
 if len(sys.argv) > 3:
     filelist = list(filter(None, sys.argv[1].split("//")))
     pythondir = sys.argv[2].replace("\\\\", "\\").replace("\\", "/")
-    batchdir = sys.argv[3].replace("\\\\", "\\").replace("\\", "/") # grabs "start in" argument
+    # batchdir = sys.argv[3].replace("\\\\", "\\").replace("\\", "/") # grabs "start in" argument
 if "/" in batchdir and not batchdir.endswith("/"):
     batchdir += "/"
 os.chdir(batchdir)
@@ -42,7 +42,7 @@ textfile = batchname + ".txt"
 archivefile = [".7z", ".rar", ".zip"]
 imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"]
 videofile = [".mkv", ".mp4", ".webm"]
-specialfile = ["gallery.html", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
+specialfile = ["mediocre.txt", "autosave.txt", "gallery.html", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
 
 alerted = [False]
 busy = [False]
@@ -57,7 +57,7 @@ Keypress_prompt = [False]
 Keypress_A = [False]
 Keypress_C = [False]
 Keypress_F = [False]
-Keypress_M = [False]
+Keypress_U = [False]
 Keypress_R = [False]
 Keypress_S = [False]
 Keypress_X = [False]
@@ -127,7 +127,7 @@ def mainmenu():
  + Enter valid site to start a scraper.
 """
 def ready_input():
-    sys.stdout.write(f"Enter (I)nput mode or ready to s(O)rt, (L)oad filelist from {textfile}, h(E)lp: ")
+    sys.stdout.write(f"Enter (I)nput mode or ready to s(O)rt, (L)oad filelist from {textfile}, torrent (M)anager, h(E)lp: ")
     sys.stdout.flush()
 def skull():
     return """                                    
@@ -203,7 +203,7 @@ def help():
  |  "send X Y"        send data (X) to url (Y) or to current page url (no Y) before accessing page.
  |
  | Alert
- |  "expect ...*..."  put scraper into loop, exit when a pattern is found in page. "unexpect" for opposition.
+ |  "expect ...*..."  put scraper into loop, alarm when a pattern is found in page. "unexpect" for opposition.
  |    API: "un/expect .. > .. = X", "X > X" for multiple possibilities. Without equal sign to un/expect key only.
  |  "message ..."     customize alert message. Leave blank to exit loop without alerting.
  |
@@ -292,13 +292,15 @@ t.start()
 def columns():
     return os.get_terminal_size().columns
 
-def echo(threadn, b=0, f=0, clamp='', friction=False):
-    if not str(threadn).isdigit():
+def echo(t, b=0, f=0, clamp='', friction=False):
+    c = columns()
+    if not isinstance(t, int):
+        if clamp:
+            t = f"{t[:c-1]}{(t[c-1:] and clamp)}"
         stdout[0] = ""
         stdout[1] = ""
-        sys.stdout.write("\033[A"*b + f"{threadn:<{columns()}}" + "\n"*f + "\r")
-    elif not echothreadn or threadn == echothreadn[0]:
-        c = columns()
+        sys.stdout.write("\033[A"*b + f"{t:<{c}}" + "\n"*f + "\r")
+    elif not echothreadn or t == echothreadn[0]:
         if clamp:
             b = f"{b[:c-1]}{(b[c-1:] and clamp)}"
         if friction:
@@ -307,8 +309,6 @@ def echo(threadn, b=0, f=0, clamp='', friction=False):
             stdout[0] = ""
             stdout[1] = ""
             sys.stdout.write(f"{b:<{c}}\r")
-    else:
-        return
 
 
 
@@ -323,14 +323,14 @@ def send(s, m, d):
             server.login(Mail[0], Mail[2])
             server.sendmail(Mail[0], Mail[1], message)
             server.close()
-            print("Success sending!                           ")
+            echo("Success sending!", 0, 1)
         except:
-            print("Sending failed! Try turning on https://myaccount.google.com/lesssecureapps and make sure user and password is correct.")
+            echo("Sending failed! Try turning on https://myaccount.google.com/lesssecureapps and make sure user and password is correct.", 0, 1)
     elif not d:
-        print("You should consider using Mail if you want alert over Mail.")
+        echo("You should consider using Mail if you want alert over Mail.", 0, 1)
     else:
-        print("Dismissing                                 ")
-    print(" | " + "\n | ".join(message.splitlines()) + "\n")
+        echo("Dismissing", 0, 1)
+    echo(" | " + "\n | ".join(message.splitlines()), 0, 2)
 
 
 
@@ -338,8 +338,7 @@ def alert(m, s, d=False):
     title("! " + monitor())
     send(s, m, d)
     if not d:
-        sys.stdout.write("(C)ontinue")
-        sys.stdout.flush()
+        echo(alerted[0])
         choice(bg="2e", persist=True)
 
 
@@ -367,6 +366,16 @@ def tcolorz(c):
 def debug(e="echoed", b=0, f=1):
     c = inspect.getframeinfo(inspect.stack()[1][0])
     echo(f"""{tcolorz("cccccc")}{c.lineno} {c.function}() {e}{tcolorx}""", b, f)
+
+
+
+def echo_pip():
+    if sys.platform == "win32":
+        return f"{sys.exec_prefix}\Scripts\pip.exe"
+    elif sys.platform == "darwin":
+        return "sudo python3 -m pip"
+    elif sys.platform == "linux":
+        return "pip3"
 
 
 
@@ -461,6 +470,12 @@ if new_setting:
 
 
 
+def status():
+    # return f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {echoname[0]}"""
+    return f"""🗎×{newfilen[0]}{f" ↺×{retries[0]}" if retries[0] else ""} {echoname[0]}"""
+
+
+
 Bs = [0]
 Bstime = [int(time.time())]
 Ba = "▹"
@@ -477,7 +492,7 @@ def echoMBs(threadn, Bytes, total):
     s = time.time()
     if echofriction[0] < int(s*eps):
         echofriction[0] = int(s*eps)
-        stdout[1] = "\n\033]0;" + f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {echoname[0]} {''.join(Barray[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
+        stdout[1] = "\n\033]0;" + f"""{status()} {''.join(Barray[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
     else:
         echofriction[0] = int(s*eps)
     if Bstime[0] < int(s):
@@ -501,12 +516,7 @@ def monitor():
     tm[min][sec] = tp[pg[0]] if pg[0] < pr else tp[pr]
     ts = [x.copy() for x in tm]
     ts[min][sec] = "|"
-    return f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {echoname[0]} ꊱ {" ꊱ ".join(["".join(x) for x in ts])} ꊱ"""
-
-
-
-def status():
-    return f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {echoname[0]}"""
+    return f"""{status()} ꊱ {" ꊱ ".join(["".join(x) for x in ts])} ꊱ"""
 
 
 
@@ -1013,7 +1023,7 @@ if Geistauge:
         Image.MAX_IMAGE_PIXELS = 400000000
         print(" GEISTAUGE: ON")
     except:
-        kill(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install pillow\n{sys.exec_prefix}\Scripts\pip.exe install numpy\n{sys.exec_prefix}\Scripts\pip.exe install opencv-python")
+        kill(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install pillow\n{echo_pip()} install numpy\n{echo_pip()} install opencv-python")
 elif verifyondisk:
     kill(f""" GEISTAUGE: I must be enabled for "verifyondisk" declared in {rulefile}.""")
 elif buildthumbnail:
@@ -1026,7 +1036,7 @@ if "socks5://" in proxy and proxy[10:]:
     try:
         import socket, socks
     except:
-        kill(f" PROXY: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install PySocks")
+        kill(f" PROXY: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install PySocks")
     if "@" in proxy[10:]:
         usr, pw, address, port = proxy.replace("socks5:","").replace("/","").replace("@",":").split(":")
         socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port), username=usr, password=pw)
@@ -1153,7 +1163,7 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
                 if context:
                     kill(f""" {e.reason}\n\n They fucked up deploying their certificates (probably).\n Add "theyfuckedup" to {rulefile} to bypass this kind of error if you're willing to take risks.""")
                 else:
-                    kill(f""" {e.reason}\n\n Either they fucked up deploying their certificates or this Python is just having shitty certificate validator.\n Try execute optional prerequisites in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install certifi""")
+                    kill(f""" {e.reason}\n\n Either they fucked up deploying their certificates or this Python is just having shitty certificate validator.\n Try execute optional prerequisites in another command prompt with:\n\n{echo_pip()} install certifi""")
             if stderr or Keypress_X[0] and not Keypress_S[0]:
                 if not retry(f"{stderr} ({e.reason})"):
                     return 0, e.reason
@@ -1505,14 +1515,14 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
     for key in htmlpart.keys():
         for file in htmlpart[key]["files"]:
             if not file["name"]:
-                print(f""" I don't have a scraper for {file["link"]}""")
+                print(f""" Couldn't download to disk without a name for {file["link"]}""")
             else:
                 if (x := get_cd(subdir, file, pattern, makedirs) + [key])[0]:
                     filelist[0] += [x]
         for h in htmlpart[key]["html"]:
             if len(h) == 2 and h[1]:
                 if not h[1]["name"]:
-                    print(f""" I don't have a scraper for {h[1]["link"]}""")
+                    print(f""" Couldn't download to disk without a name for {h[1]["link"]}""")
                 else:
                     if (x := get_cd(subdir, h[1], pattern, makedirs) + [key])[0]:
                         filelist[1] += [x]
@@ -1629,21 +1639,7 @@ URL={page["link"]}""")
 
 
 
-    # Autosave (3/3), build thumbnails and errorHTML
-    if buildthumbnail:
-        echo("Building thumbnails . . .")
-        thumbnail = f"{subdir}{thumbnail_dir}".join(ren(file, "_small").rsplit("/", 1))
-        if not os.path.exists(thumbnail):
-            try:
-                img = Image.open(f"{subdir}{thumbnail_dir}{file}")
-                w, h = img.size
-                if h > 200:
-                    img.resize((int(w*(200/h)), 200), Image.ANTIALIAS).save(thumbnail, subsampling=0, quality=100)
-                else:
-                    img.save(thumbnail)
-            except:
-                pass
-
+    # Autosave (3/3) and errorHTML
     newfile = False if lastfilen == newfilen[0] else True
     if error[1]:
         for x in error[1]:
@@ -1665,7 +1661,7 @@ def new_firefox():
             from selenium import webdriver
         except:
             echo("", 0, 1)
-            echo(f" SELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install selenium", 0, 2)
+            echo(f" SELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install selenium", 0, 2)
         options = webdriver.FirefoxOptions()
         # options.add_argument("--headless")
         return webdriver.Firefox(options=options)
@@ -2196,18 +2192,18 @@ def pick_in_page(scraper):
                     if y[0]["alt"] and result:
                         if not pick["dismiss"] and Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)
-                        alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "As expected", pick["dismiss"])
                         alerted_pages += [[start, page, pagen]]
-                        alerted[0] = True
+                        alerted[0] = "(C)ontinue, (S)kip {len(alerted_pages[0])} alerted pages"
+                        alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "As expected", pick["dismiss"])
                     elif not y[0]["alt"] and not result:
                         if not pick["dismiss"] and Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)
-                        alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "Not any longer", pick["dismiss"])
                         alerted_pages += [[start, page, pagen]]
-                        alerted[0] = True
+                        alerted[0] = "(C)ontinue, (S)kip {len(alerted_pages[0])} alerted pages"
+                        alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "Not any longer", pick["dismiss"])
                     else:
                         more_pages += [[start, page, pagen]]
-                        timer("Not quite as expected! ", False)
+                        timer(f"Not quite as expected! {alerted[0]}", False, listen=[Keypress_C, Keypress_S])
         if not folder:
             if pick["folder"]:
                 if not data:
@@ -2465,12 +2461,12 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                     for file in htmlpart[k]["files"]:
                         x = get_cd("", file, pattern, preview=True)
                         buffer = x[1].replace("/", "\\")
-                        stdout += f"{tcolorb}{x[0]}{tcolorr} -> {tcolorg}{buffer}\n"
+                        stdout += f"{tcolorb}{x[0]}{tcolorr} -> {tcolorg}\\{buffer}\n"
                     for h in htmlpart[k]["html"]:
                         if h[1]:
                             x = get_cd("", h[1], pattern, preview=True)
                             buffer = x[1].replace("/", "\\")
-                            stdout += f"{tcolorb}{x[0]}{tcolorr} -> {tcolorg}{buffer}\n"
+                            stdout += f"{tcolorb}{x[0]}{tcolorr} -> {tcolorg}\\{buffer}\n"
                 if not x:
                     stdout += f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference." + "\n"
                 echo(stdout + tcolorx)
@@ -2500,6 +2496,7 @@ def new_part(threadn=0):
 
 def new_link(l, n, e):
     return {"link":l, "name":saint(n), "edited":e}
+
 
 
 def nextshelf(fromhtml):
@@ -2536,14 +2533,14 @@ def nextshelf(fromhtml):
                         if h[1]:
                             stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
                     stdout += "\n"
-        echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or return to (M)ain menu: """, 0, 1)
-        Keypress_M[0] = False
+        echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or return to main men(U): """, 0, 1)
+        Keypress_U[0] = False
         Keypress_C[0] = False
-        while not Keypress_M[0] and not Keypress_C[0]:
+        while not Keypress_U[0] and not Keypress_C[0]:
             time.sleep(0.1)
         Keypress_C[0] = False
-        if Keypress_M[0]:
-            Keypress_M[0] = False
+        if Keypress_U[0]:
+            Keypress_U[0] = False
             return
     downloadtodisk(fromhtml, "Autosave declared completion.", makedirs=True)
 
@@ -2597,7 +2594,11 @@ def scrape(startpages):
                 Keypress_C[0] = False
                 pages += alerted_pages
                 alerted_pages = []
-            choice(bg="2e")
+                choice(bg="2e")
+            elif Keypress_S[0]:
+                Keypress_S[0] = False
+                alerted_pages = []
+                choice(bg="2e")
     title(status())
 
     for p in shelf.keys():
@@ -2723,7 +2724,7 @@ def opensav(file):
 
 
 def ren(filename, append):
-    return append.join(os.path.splitext(filename) if filename.count(".") > 1 else [filename, ""])
+    return append.join(filename.rsplit(".", 1) if filename.count(".") > 1 else [filename, ""])
 
 
 
@@ -2732,10 +2733,20 @@ def container(dir, ondisk, pattern=False):
         data = f"""<div class="frame"><video height="200" autoplay><source src="{ondisk.replace("#", "%23")}"></video><div class="sources">{ondisk}</div></div>\n"""
     elif ondisk.lower().endswith(tuple(imagefile)):
         if buildthumbnail:
-            thumb = "Thumbnails/" + ren(ondisk, "_small")[1]
+            thumbnail = f"{subdir}{thumbnail_dir}" + ren(file.rsplit("/", 1), "_small")
+            if not os.path.exists(thumbnail):
+                try:
+                    img = Image.open(f"{subdir}{thumbnail_dir}{file}")
+                    w, h = img.size
+                    if h > 200:
+                        img.resize((int(w*(200/h)), 200), Image.ANTIALIAS).save(thumbnail, subsampling=0, quality=100)
+                    else:
+                        img.save(thumbnail)
+                except:
+                    pass
         else:
-            thumb = ondisk
-        data = f"""<div class="frame"><a class="fileThumb" href="{ondisk.replace("#", "%23")}"><img class="lazy" data-src="{thumb.replace("#", "%23")}"></a><div class="sources">{ondisk}</div></div>\n"""
+            thumbnail = ondisk
+        data = f"""<div class="frame"><a class="fileThumb" href="{ondisk.replace("#", "%23")}"><img class="lazy" data-src="{thumbnail.replace("#", "%23")}"></a><div class="sources">{ondisk}</div></div>\n"""
     else:
         data = f"""<a href=\"{ondisk.replace("#", "%23")}"><div class="aqua" style="height:174px; width:126px;">{ondisk}</div></a>\n"""
         if os.path.exists(dir + ondisk.rsplit(".", 1)[0] + "/"):
@@ -3538,14 +3549,12 @@ def frompart(partfile, relics, htmlpart):
         part_is = "created"
         part = new_relics
     else:
-        if not relics:
-            with open(partfile, 'r', encoding="utf-8") as f:
-                relics = json.loads(f.read())
         stray_keys = iter(relics.keys())
         part = {}
         for key in new_relics.keys():
             if not key in relics:
                 part.update({key:new_relics[key]})
+                part_is = "updated"
                 continue
             for stray_key in stray_keys:
                 if not key == stray_key:
@@ -3573,13 +3582,13 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
             files += [file]
     stray_files = sorted(set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
 
-
-
-
-
-
-
-
+    if verifyondisk:
+        gethreadn = 0
+        for file in files:
+            gethreadn += 1
+            ge_q.put((gethreadn, htmlname, len(files), file))
+        ge_q.join()
+        echo(" GEISTAUGE: 100%", 0, 1)
 
     for file in stray_files:
         key = file.split(".", 1)[0]
@@ -3622,6 +3631,11 @@ def tohtml(subdir, htmlname, part, pattern):
     if os.path.exists(page := f"{subdir}{thumbnail_dir}{htmlname}.URL"):
         with open(page, 'r') as f:
             builder += f"""<h2><a href="{f.splitlines()[1].replace("URL=", "")}">{htmlname}</a></h2>"""
+
+
+
+    if buildthumbnail:
+        echo("Building thumbnails . . .")
 
 
 
@@ -4145,77 +4159,177 @@ def syntax(html, api=False):
 
 
 savepage = [{}]
-def source_view():
-    if busy[0]:
-        echo("Please wait for another operation to finish", 1, 1)
-        return
-    while True:
-        fp = input("Enter URL to view source, append URL with key > s > to read it as dictionary, enter nothing to exit: ").rstrip()
-        if fp.startswith("http"):
-            fp = fp.split(" ", 1)
-            if not fp[0] in savepage[0]:
-                data = get(fp[0], utf8=True)
-                savepage[0] = {fp[0]:data, "part":[]}
+def view_in_page(data, z, cw, a):
+    if a:
+        if x := tree(opendb(data), [z[0], [[z[1], 0, 0, cw, 0]]]):
+            for y in x:
+                echo(syntax(y[0], True), 0, 1)
+                savepage[0]["part"] += [y[0]]
+        else:
+            echo(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}", 0, 2)
+    else:
+        if len(z.split("*")) == 2:
+            if len(c := carrots([[data, ""]], z, cw)) > 1:
+                for x in c:
+                    echo(x[1], 0, 1)
+                    savepage[0]["part"] += [x[1]]
             else:
-                data = savepage[0][fp[0]]
+                echo(f"{tcolorr}Pattern doesn't exist, try again.{tcolorx}", 0, 2)
+        else:
+            echo(f"{tcolorr}Cannot find in page with no asterisk or too many.{tcolorx}", 0, 2)
+def source_view():
+    while True:
+        key = input("Enter URL to view source, append URL with key > s > to read it as dictionary, enter nothing to exit: ").rstrip()
+        if key.startswith("http"):
+            page, key = key.split(" ", 1) if " " in key else [key, False]
+            if not page in savepage[0]:
+                data = get(page, utf8=True)
+                savepage[0] = {page:data, "part":[]}
+            else:
+                data = savepage[0][page]
             if not data.isdigit():
-                if len(fp) == 2:
-                    z, _, a = peanut(fp[1], [], False)
-                    if a:
-                        if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0, 0]]]):
-                            for y in x:
-                                print(syntax(y[0], True))
-                                savepage[0]["part"] += [y[0]]
-                        else:
-                            print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}\n")
-                    else:
-                        part = []
-                        for x in carrots([[data, ""]], z):
-                            print(x[1])
-                            savepage[0]["part"] += [x[1]]
+                if key:
+                    z, cw, a = peanut(key, [], False)
+                    view_in_page(data, z, cw, a)
                 else:
                     data = ''.join([s.strip() if s.strip() else "" for s in data.splitlines()])
-                    print(syntax(data))
-                    print()
+                    echo(syntax(data), 0, 2)
             else:
-                print(f"Error or dead (update cookie or referer if these are required to view: {data})\n")
-        elif not fp:
+                echo(f"Error or dead (update cookie or referer if these are required to view: {data})", 0, 2)
+        elif not key:
             echo("", 1)
             echo("", 1)
             break
         else:
-            z, _, a = peanut(fp, [], False)
+            z, cw, a = peanut(key, [], False)
             part = savepage[0]["part"]
             savepage[0]["part"] = []
             for data in part:
-                if a:
-                    if x := tree(opendb(data), [z[0], [[z[1], 0, 0, 0, 0]]]):
-                        for y in x:
-                            print(syntax(y[0], True))
-                            savepage[0]["part"] += [y[0]]
+                view_in_page(data, z, cw, a)
+
+
+
+def start_remote(remote):
+    shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
+    while True:
+        el = input("(A)dd/(R)emove torrent, (S)top/start (G)etting, (F)ile/(L)ist torrent, return to main men(U): ", "arsgflu")
+        if el == 1:
+            i = input("Magnet link, enter nothing to cancel: ")
+            if i.startswith("magnet:") or i.startswith("http") or i.endswith(".torrent"):
+                subprocess.Popen([remote, "--start-paused", "-a", i, "-w", batchdir.rstrip("/"), "-sr", "0"], **shuddup)
+            else:
+                echo("", 1)
+                echo("", 1)
+        elif el == 2:
+            i = input("Select torrent by number to remove, (A)ll (R)eturn: ", "123456789ar")
+            if i == 10:
+                subprocess.Popen([remote, "-t", "all", "-r"], **shuddup)
+            elif not i == 11:
+                subprocess.Popen([remote, "-t", str(i), "-r"], **shuddup)
+            else:
+                echo("", 1)
+                echo("", 1)
+        elif el == 3:
+            i = input("Select torrent by number to stop (R)eturn: ", "123456789r")
+            if not i == 10:
+                subprocess.Popen([remote, "-t", str(i), "-S"], **shuddup)
+            else:
+                echo("", 1)
+                echo("", 1)
+        elif el == 4:
+            i = input("Select torrent by number to start (R)eturn: ", "123456789r")
+            if not i == 10:
+                subprocess.Popen([remote, "-t", str(i), "-s"], **shuddup)
+            else:
+                echo("", 1)
+                echo("", 1)
+        elif el == 5:
+            id = input("Select torrent by number to view file list, (R)eturn: ", "123456789r")
+            if id == 10:
+                echo("", 1)
+                echo("", 1)
+                continue
+            sys.stdout.write("  ")
+            sys.stdout.flush()
+            subprocess.call([remote, "-t", str(id), "-f"], **shuddup)
+            while True:
+                i = input("(G)et or (S)top getting, (R)eturn: ", "gsr")
+                if i == 1:
+                    i = input("Get file by number, (A)ll (R)eturn: ", "0123456789ar")
+                    if i == 11:
+                        subprocess.Popen([remote, "-t", str(id), "-g", "all"], **shuddup)
+                    elif not i == 11:
+                        subprocess.Popen([remote, "-t", str(id), "-g", str(i-1)], **shuddup)
                     else:
-                        print(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}\n")
+                        echo("", 1)
+                        echo("", 1)
+                elif i == 2:
+                    i = input("Stop getting file by number, (A)ll (R)eturn: ", "0123456789ar")
+                    if i == 11:
+                        subprocess.Popen([remote, "-t", str(id), "-G", "all"], **shuddup)
+                    elif not i == 11:
+                        subprocess.Popen([remote, "-t", str(id), "-G", str(i-1)], **shuddup)
+                    else:
+                        echo("", 1)
+                        echo("", 1)
                 else:
-                    for x in carrots([[data, ""]], z):
-                        print(x[1])
-                        savepage[0]["part"] += [x[1]]
-    ready_input()
+                    echo("", 1)
+                    echo("", 1)
+                    break
+        elif el == 6:
+            with subprocess.Popen([remote, "-l"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
+                listed = False
+                for line in p.stdout:
+                    if not line.startswith(tuple(["Sum: ", "    ID   Done"])):
+                        listed = True
+                        line = line.rstrip()
+                        id = line[:6].strip()
+                        percent = line[6:13].strip()
+                        status = line[59:71].strip() 
+                        name = line[72:].strip()
+                        echo(f"{id:>3} {status} {percent} {name}", 0, 1, clamp='█')
+                if not listed:
+                    echo("Nothing to list!", 0, 1)
+        else:
+            return
+
+
+
+def torrent_get(fp=""):
+    if sys.platform == "win32":
+        daemon = "C:/Program Files/Transmission/transmission-daemon.exe"
+        remote = "C:/Program Files/Transmission/transmission-remote.exe"
+        if not os.path.exists(daemon):
+            echo(" Download and install Transmission x64 for Windows in default location from https://github.com/transmission/transmission/releases and then try again.", 0, 1)
+            return
+    elif sys.platform == "linux":
+        if not os.path.exists("/usr/bin/transmission-daemon"):
+            os.system("apk add transmission-daemon")
+        daemon = "transmission-daemon"
+        remote = "transmission-remote"
+    else:
+        echo("Unimplemented for this system!")
+        return
+    shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
+    subprocess.Popen([daemon, "-f", "-w", batchdir.rstrip("/")], **shuddup, shell=True)
+    if fp:
+        subprocess.Popen([remote, "--start-paused", "-a", fp, "-sr", "0"], **shuddup)
+    start_remote(remote)
+    return
 
 
 
 def read_input(fp):
-    if not fp:
-        return
     if any(word for word in pickers.keys() if fp.startswith(word)):
         run_input[0] = fp
-        return True
     elif fp.startswith("http") and not fp.startswith("http://localhost"):
         if fp.endswith("/"):
             choice(bg=True)
-            print(" I don't have a scraper for that!")
+            echo(" I don't have a scraper for that!", 0, 2)
         else:
             run_input[1] = fp
-        return True
+    elif fp.startswith("magnet"):
+        torrent_get(fp)
     elif os.path.exists(fp):
         if fp.endswith("partition.json"):
             subdir = fp.rsplit("/", 1)[0] + "/"
@@ -4236,21 +4350,21 @@ def read_input(fp):
             parttohtml(subdir, htmlname, htmlpart, filelist, pattern)
         elif not Geistauge:
             choice(bg=True)
-            print(" GEISTAUGE: Maybe not.")
+            echo(" GEISTAUGE: Maybe not.", 0, 2)
         elif os.path.isdir(fp):
+            print(f"""\nLoading featuring {"folder" if os.path.isdir(fp) else "image"} successful: "{fp}" """)
             tosav(fp)
         else:
+            print(f"""\nLoading featuring {"folder" if os.path.isdir(fp) else "image"} successful: "{fp}" """)
             compare(fp)
     else:
-        print("Invalid input or not on disk")
         choice(bg=True)
-    print()
-    ready_input()
+        echo("Invalid input or not on disk", 0, 2)
     return True
 
 
 
-def readfile():
+def read_file():
     if not os.path.exists(textfile):
         open(textfile, 'w').close()
     print(f"Reading {textfile} . . .")
@@ -4300,15 +4414,7 @@ if filelist:
 
  Geistauge is also disabled which can be a reminder that this is not the setup to run Geistauge.
  May I suggest having another copy of this script with Geistauge enabled in different directory?''' if not Geistauge else ""}""")
-    fp = filelist[0]
-    print(f"""\nLoading featuring {"folder" if os.path.isdir(fp) else "image"} successful: "{fp}" """)
-    if not Geistauge:
-        echo("\n GEISTAUGE: Maybe not.", 0, 1)
-        sys.exit()
-    if os.path.isdir(fp):
-        tosav(fp)
-    else:
-        compare(fp)
+    read_input(filelist[0])
 busy[0] = False
 
 
@@ -4376,10 +4482,12 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            if not read_input(input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "").replace("\\", "/")):
+            if fp := input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "").replace("\\", "/"):
+                read_input(fp)
+            else:
                 echo("", 1)
                 echo("", 1)
-                ready_input()
+            ready_input()
         elif el == 10:
             unrecognized("J")
         elif el == 11:
@@ -4396,7 +4504,13 @@ def keylistener():
                 continue
             run_input[2] = True
         elif el == 13:
-            pressed(Keypress_M)
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            echo("", 1)
+            torrent_get()
+            echo("", 1)
+            ready_input()
         elif el == 14:
             unrecognized("N")
         elif el == 15:
@@ -4425,9 +4539,13 @@ def keylistener():
             if not busy[0]:
                 ready_input()
         elif el == 21:
-            unrecognized("U")
+            pressed(Keypress_U)
         elif el == 22:
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
             source_view()
+            ready_input()
         elif el == 23:
             unrecognized("W")
         elif el == 24:
@@ -4467,23 +4585,23 @@ while True:
     if run_input[0]:
         busy[0] = True
         scrape([["", run_input[0], [0]]])
-        run_input[0] = ""
+        run_input[0] = False
         busy[0] = False
-        print()
+        echo("", 0, 1)
         ready_input()
     if run_input[1]:
         busy[0] = True
         x = new_part()
         x["partition"]["0"]["files"] = [new_link(run_input[1], parse.unquote(run_input[1].split("/")[-1]), 0)]
         downloadtodisk(x, "Autosave declared completion.")
-        run_input[1] = ""
+        run_input[1] = False
         busy[0] = False
-        print()
+        echo("", 0, 1)
         ready_input()
     if run_input[2]:
-        readfile()
+        read_file()
         run_input[2] = False
-        print()
+        echo("", 0, 1)
         ready_input()
     if run_input[3]:
         busy[0] = True
@@ -4497,6 +4615,7 @@ while True:
     except KeyboardInterrupt:
         echo(skull(), 0, 1)
         choice(bg="4c")
+        ready_input()
 
 
 
@@ -4520,6 +4639,7 @@ setlocal enabledelayedexpansion
 set batchdir=!batchdir:\=\\!
 set filelist=
 if [%1]==[] goto skip
+if [%1]==[magnet:?xt] set filelist=%1=%2&&goto skip
 :loop
 set file=%1
 set file=!file:"=!

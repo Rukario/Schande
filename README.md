@@ -23,6 +23,6 @@ Any good OS with Python 3 installed will work. iOS/iPadOS: get iSH Shell app fro
 3. Schande.bat on first run will create a new file: Schande.cd, open it in your favorite text editor to edit rules, refer to the premade Schande.cd for inspiration.
 
 4.
-    - Paranoids: (H)elp, (V)iew page source
+    - Paranoids: h(E)lp, (V)iew page source
     - Braves: (I)nput
     - Leave it in background for HTML server if enabled

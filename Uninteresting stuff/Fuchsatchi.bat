@@ -1505,11 +1505,11 @@ def firefox(url):
             return
     firefox_running[0].get(url)
     # ff_login()
-    # echo("(C)ontinue when finished defusing.")
-    # Keypress_C[0] = False
-    # while not Keypress_C[0]:
-    #     time.sleep(0.1)
-    # Keypress_C[0] = False
+    echo("(C)ontinue when finished defusing.")
+    Keypress_C[0] = False
+    while not Keypress_C[0]:
+        time.sleep(0.1)
+    Keypress_C[0] = False
     for bc in firefox_running[0].get_cookies():
         if "httpOnly" in bc: del bc["httpOnly"]
         if "expiry" in bc: del bc["expiry"]
@@ -3020,9 +3020,9 @@ def scrape(startpages):
                     page = f"https://api.fanbox.cc/post.listCreator?userId={id}&limit=100"
                     fromhtml.update(fanbox_avatars(threadn, htmlname, id))
                 elif HOME == "patreon" and id in pledges[0]:
-                    page = "https://www.patreon.com/api/posts?include=attachments%2Cimages.null%2Caudio.null&fields[post]=content%2Ccurrent_user_can_view%2Cedited_at%2Cembed%2Cpost_file%2Cpost_type%2Ctitle&fields[media]=download_url%2Cfile_name%2Cowner_id&sort=-published_at&filter[campaign_id]=" + fromhtml["campaign_id"]
                     if data := patreon_avatars(threadn, htmlname, id):
                         fromhtml.update(data)
+                        page = "https://www.patreon.com/api/posts?include=attachments%2Cimages.null%2Caudio.null&fields[post]=content%2Ccurrent_user_can_view%2Cedited_at%2Cembed%2Cpost_file%2Cpost_type%2Ctitle&fields[media]=download_url%2Cfile_name%2Cowner_id&sort=-published_at&filter[campaign_id]=" + fromhtml["campaign_id"]
                     else:
                         page = ""
                         print("Error fetching new data for {htmlname} ({HOME})")

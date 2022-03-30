@@ -1,6 +1,6 @@
 @echo off && goto loaded
 
-import os, sys, ssl, time, json, zlib, inspect, smtplib, hashlib
+import os, sys, ssl, time, json, zlib, inspect, smtplib, hashlib, subprocess
 from datetime import datetime
 from fnmatch import fnmatch
 from http import cookiejar
@@ -42,7 +42,7 @@ textfile = batchname + ".txt"
 archivefile = [".7z", ".rar", ".zip"]
 imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"]
 videofile = [".mkv", ".mp4", ".webm"]
-specialfile = ["mediocre.txt", "autosave.txt"]
+specialfile = ["mediocre.txt", "autosave.txt", "gallery.html", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
 
 alerted = [False]
 busy = [False]
@@ -771,7 +771,6 @@ if Geistauge:
     try:
         from PIL import Image
         Image.MAX_IMAGE_PIXELS = 400000000
-        import subprocess
         print(" GEISTAUGE: ON")
     except:
         kill(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{sys.exec_prefix}\Scripts\pip.exe install pillow")
@@ -1418,7 +1417,10 @@ URL={page["link"]}""")
 
         if not os.path.exists(dir + thumbnail_dir):
             os.makedirs(dir + thumbnail_dir)
-        if (part := frompart(f"{dir}{thumbnail_dir}partition.json", htmlpart)) or verifyondisk:
+
+
+
+        if (part := frompart(f"{dir}{thumbnail_dir}partition.json", htmldirs[dir], htmlpart)) or verifyondisk:
             parttohtml(dir, htmlname, part, filelist, pattern)
 
 
@@ -2300,7 +2302,7 @@ def hyperlink(html):
 
 
 
-def frompart(partfile, htmlpart):
+def frompart(partfile, relics, htmlpart):
     if "0" in htmlpart and not htmlpart["0"]["html"] and not htmlpart["0"]["files"]:
         del htmlpart["0"]
 
@@ -2324,13 +2326,12 @@ def frompart(partfile, htmlpart):
         part_is = "created"
         part = new_relics
     else:
-        with open(partfile, 'r', encoding="utf-8") as f:
-            relics = json.loads(f.read())
         stray_keys = iter(relics.keys())
         part = {}
         for key in new_relics.keys():
             if not key in relics:
                 part.update({key:new_relics[key]})
+                part_is = "updated"
                 continue
             for stray_key in stray_keys:
                 if not key == stray_key:
@@ -3116,7 +3117,7 @@ def read_input(m):
 
 
 
-def readfile(rebuild=False):
+def read_file(rebuild=False):
     if not os.path.exists(textfile):
         open(textfile, 'w').close()
     print(f"Reading {textfile} . . .")
@@ -3290,7 +3291,7 @@ def keylistener():
                 choice(bg=True)
                 echo(" GEISTAUGE: Maybe not.", 0, 1)
             else:
-                readfile(True)
+                read_file(True)
                 # Rebuild HTML
             ready_input()
         elif el == 8:
@@ -3379,7 +3380,7 @@ ready_input()
 while True:
     if run_input[2]:
         busy[0] = True
-        readfile()
+        read_file()
         run_input[2] = False
         busy[0] = False
         echo("", 0, 1)

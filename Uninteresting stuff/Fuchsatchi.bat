@@ -1356,7 +1356,12 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
 
 
     dirs = set()
-    htmldirs = {subdir:{}}
+    htmldirs = {}
+    if os.path.exists(p := f"{subdir}{thumbnail_dir}partition.json"):
+        with open(p, 'r') as f:
+            htmldirs.update({subdir:json.loads(f.read())})
+    else:
+        htmldirs.update({subdir:{}})
     for onserver, filename, edited, key in filelist:
         ondisk = f"{subdir}{filename}"
 
@@ -1367,12 +1372,13 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         if line := [x for x in enderread if part_key in x]:
             if not onserver:
                 continue
-            if int(edited) > 0 and int(edited) > int(line[0].rsplit(" ", 1)[-1]):
+            k = line[0].rsplit(" ", 1)[-1]
+            if not edited == "0" and not edited == k:
                 if os.path.exists(ondisk):
                     if editisreal:
                         old = ".old_file_" + line[0].split(" ")[1]
                         os.rename(ondisk, f"{subdir}{ren(filename, old)}")
-                        thumbnail = f"{subdir}{thumbnail_dir}" + ren(filename, append="_small")
+                        thumbnail = f"{subdir}{thumbnail_dir}{ren(filename, '_small')}"
                         if os.path.exists(thumbnail):
                             os.rename(thumbnail, ren(thumbnail, old))
                     else:
@@ -1440,18 +1446,19 @@ URL={page["link"]}""")
     # Autosave (3/3), build thumbnails and errorHTML
     if buildthumbnail:
         echo("Building thumbnails . . .")
-        thumbnail = f"{subdir}{thumbnail_dir}".join(ren(file, "_small").rsplit("/", 1))
-        if not os.path.exists(thumbnail):
-            try:
-                img = Image.open(f"{subdir}{thumbnail_dir}{file}")
-                w, h = img.size
-                if h > 200:
-                    img.resize((int(w*(200/h)), 200), Image.ANTIALIAS).save(thumbnail, subsampling=0, quality=100)
-                else:
-                    img.save(thumbnail)
-            except:
-                pass
-
+        for dir in htmldirs.keys():
+            for file in next(os.walk(dir))[2]:
+                thumbnail = f"{dir}{thumbnail_dir}{ren(file, '_small')}"
+                if not os.path.exists(thumbnail):
+                    try:
+                        img = Image.open(f"{dir}{file}")
+                        w, h = img.size
+                        if h > 200:
+                            img.resize((int(w*(200/h)), 200), Image.ANTIALIAS).save(thumbnail, subsampling=0, quality=100)
+                        else:
+                            img.save(thumbnail)
+                    except:
+                        pass
     newfile = False if lastfilen == newfilen[0] else True
     new_enderread = sorted(new_enderread)
     if error[1]:
@@ -1533,7 +1540,7 @@ def container(ondisk, pattern=False, depth=0):
             data = f"""<div class="frame"><video height="200" autoplay><source src="{relfile.replace("#", "%23")}"></video><div class="sources">{file}</div></div>\n"""
         elif file.lower().endswith(tuple(imagefile)):
             if buildthumbnail and not f"/{thumbnail_dir}" in relfile:
-                thumb = f"/{thumbnail_dir}".join(ren(relfile, "_small").rsplit("/", 1))
+                thumb = f"/{thumbnail_dir}".join(ren(relfile, '_small').rsplit("/", 1))
             else:
                 thumb = relfile
             data = f"""<div class="frame"><a class="fileThumb" href="{relfile.replace("#", "%23")}"><img class="lazy" data-src="{thumb.replace("#", "%23")}"></a><div class="sources">{file}</div></div>\n"""
@@ -2234,12 +2241,8 @@ window.onload = () => {
     stdout.setAttribute("onpaste", "plaintext(this, event)");
     stdout.setAttribute("contenteditable", "true");
   }
-}
 
-function lazyload() {
-  var lazyloadImages;
-
-  lazyloadImages = document.querySelectorAll(".lazy");
+  var lazyloadImages = document.querySelectorAll(".lazy");
   var imageObserver = new IntersectionObserver(function(entries, observer) {
     entries.forEach(function(entry) {
       if (entry.isIntersecting) {
@@ -2280,9 +2283,6 @@ function lazyload() {
 <button class="next" onclick="hideParts('.edits')">Edits</button>
 <button class="next" onclick="hideParts()">&times;</button></div>
 {builder}</body>
-<script>
-lazyload();
-</script>
 </html>"""
 
 
@@ -2338,7 +2338,7 @@ def frompart(partfile, relics, htmlpart):
                     part.update({stray_key:relics[stray_key]})
                 else:
                     break
-            if not relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
+            if not relics[key]["html"] == new_relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
                 part.update({key:new_relics[key]})
                 part_is = "updated"
             else:

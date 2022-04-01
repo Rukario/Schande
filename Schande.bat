@@ -1568,7 +1568,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
 
 
 
-        # Autosave (2/3)
+        # Autosave (2/3) and load partition.json
         dir = ondisk.rsplit("/", 1)[0] + "/"
         if not dir in dirs and not dirs.add(dir):
             if os.path.exists(p := f"{dir}{thumbnail_dir}partition.json"):
@@ -1585,7 +1585,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
                     if editisreal:
                         old = ".old_file_" + k
                         os.rename(ondisk, ren(ondisk, old))
-                        thumbnail = ren(ondisk, append="_small")
+                        thumbnail = ren(ondisk, '_small')
                         if os.path.exists(thumbnail):
                             os.rename(thumbnail, ren(thumbnail, old))
                     else:
@@ -1639,7 +1639,22 @@ URL={page["link"]}""")
 
 
 
-    # Autosave (3/3) and errorHTML
+    # Autosave (3/3), build thumbnails and errorHTML
+    if buildthumbnail:
+        echo("Building thumbnails . . .")
+        for dir in htmldirs.keys():
+            for file in next(os.walk(dir))[2]:
+                thumbnail = f"{dir}{thumbnail_dir}{ren(file, '_small')}"
+                if not os.path.exists(thumbnail):
+                    try:
+                        img = Image.open(f"{dir}{file}")
+                        w, h = img.size
+                        if h > 200:
+                            img.resize((int(w*(200/h)), 200), Image.ANTIALIAS).save(thumbnail, subsampling=0, quality=100)
+                        else:
+                            img.save(thumbnail)
+                    except:
+                        pass
     newfile = False if lastfilen == newfilen[0] else True
     if error[1]:
         for x in error[1]:
@@ -1685,11 +1700,11 @@ def firefox(url):
             return
     firefox_running[0].get(url)
     # ff_login()
-    # echo("(C)ontinue when finished defusing.")
-    # Keypress_C[0] = False
-    # while not Keypress_C[0]:
-    #     time.sleep(0.1)
-    # Keypress_C[0] = False
+    echo("(C)ontinue when finished defusing.")
+    Keypress_C[0] = False
+    while not Keypress_C[0]:
+        time.sleep(0.1)
+    Keypress_C[0] = False
     for bc in firefox_running[0].get_cookies():
         if "httpOnly" in bc: del bc["httpOnly"]
         if "expiry" in bc: del bc["expiry"]
@@ -2734,16 +2749,6 @@ def container(dir, ondisk, pattern=False):
     elif ondisk.lower().endswith(tuple(imagefile)):
         if buildthumbnail:
             thumbnail = f"{subdir}{thumbnail_dir}" + ren(file.rsplit("/", 1), "_small")
-            if not os.path.exists(thumbnail):
-                try:
-                    img = Image.open(f"{subdir}{thumbnail_dir}{file}")
-                    w, h = img.size
-                    if h > 200:
-                        img.resize((int(w*(200/h)), 200), Image.ANTIALIAS).save(thumbnail, subsampling=0, quality=100)
-                    else:
-                        img.save(thumbnail)
-                except:
-                    pass
         else:
             thumbnail = ondisk
         data = f"""<div class="frame"><a class="fileThumb" href="{ondisk.replace("#", "%23")}"><img class="lazy" data-src="{thumbnail.replace("#", "%23")}"></a><div class="sources">{ondisk}</div></div>\n"""
@@ -3561,7 +3566,7 @@ def frompart(partfile, relics, htmlpart):
                     part.update({stray_key:relics[stray_key]})
                 else:
                     break
-            if not relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
+            if not relics[key]["html"] == new_relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
                 part.update({key:new_relics[key]})
                 part_is = "updated"
             else:
@@ -4251,7 +4256,7 @@ def start_remote(remote):
                 continue
             sys.stdout.write("  ")
             sys.stdout.flush()
-            subprocess.call([remote, "-t", str(id), "-f"], **shuddup)
+            subprocess.call([remote, "-t", str(id), "-f"])
             while True:
                 i = input("(G)et or (S)top getting, (R)eturn: ", "gsr")
                 if i == 1:
@@ -4311,7 +4316,7 @@ def torrent_get(fp=""):
         echo("Unimplemented for this system!")
         return
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
-    subprocess.Popen([daemon, "-f", "-w", batchdir.rstrip("/")], **shuddup, shell=True)
+    subprocess.Popen([daemon, "-f", "-w", batchdir + "Transmission"], **shuddup, shell=True)
     if fp:
         subprocess.Popen([remote, "--start-paused", "-a", fp, "-sr", "0"], **shuddup)
     start_remote(remote)

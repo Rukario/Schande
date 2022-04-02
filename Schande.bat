@@ -413,7 +413,9 @@ def input(i="Your Input: ", choices=False):
             keys += c[0]
         while True:
             el = choice(keys)
-            if (c := choices[el-1])[1:]:
+            if not el:
+                kill(0)
+            elif (c := choices[el-1])[1:]:
                 echo("", 1, 0)
                 nter = input("Type and enter to confirm, else to return: " + c + f"\033[{len(c)-1}D")
                 echo("", 1, 0)
@@ -4221,7 +4223,7 @@ def start_remote(remote):
         if el == 1:
             i = input("Magnet link, enter nothing to cancel: ")
             if i.startswith("magnet:") or i.startswith("http") or i.endswith(".torrent"):
-                subprocess.Popen([remote, "--start-paused", "-a", i, "-w", batchdir.rstrip("/"), "-sr", "0"], **shuddup)
+                subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", i, "-w", batchdir.rstrip("/"), "-sr", "0"], **shuddup)
             else:
                 echo("", 1)
                 echo("", 1)
@@ -4316,9 +4318,9 @@ def torrent_get(fp=""):
         echo("Unimplemented for this system!")
         return
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
-    subprocess.Popen([daemon, "-f", "-w", batchdir + "Transmission"], **shuddup, shell=True)
+    subprocess.Popen([daemon, "-f"], **shuddup, shell=True)
     if fp:
-        subprocess.Popen([remote, "--start-paused", "-a", fp, "-sr", "0"], **shuddup)
+        subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", fp, "-sr", "0"], **shuddup)
     start_remote(remote)
     return
 

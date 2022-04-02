@@ -41,6 +41,7 @@ __cf_bm ... for .patreon.com
 
 
 - - - - Sorter - - - -
+Reddit\* for https://v.redd.it/
 Fanbox\* for https://api.fanbox.cc
 Fanbox\* for https://downloads.fanbox.cc
 Fanbox\* for https://www.fanbox.cc
@@ -97,6 +98,12 @@ http://192.168.1.239:8886/
 relpages <li><a href="*">*</a></li> ends with /
 relfiles <li><a href="*">*</a></li> not ends with /
 meta http://192.168.1.239:8886/*
+
+https://www.reddit.com/r/
+urlfix * with *.json?limit=1
+file 0 > data > children > 0 > data > media > reddit_video > fallback_url
+name 0 > data > children > 0 > data > title
+name1 0 > data > children > 0 > data > id customize with  [*].mp4
 
 https://exhentai.org/g/
 title <h1 id="gn">*</h1> customize with * 

@@ -205,6 +205,7 @@ def help():
  | Alert
  |  "expect ...*..."  put scraper into loop, alarm when a pattern is found in page. "unexpect" for opposition.
  |    API: "un/expect .. > .. = X", "X > X" for multiple possibilities. Without equal sign to un/expect key only.
+ |  "expect"          alert when the pages became accessible previously 404.
  |  "message ..."     customize alert message. Leave blank to exit loop without alerting.
  |
  | Get files
@@ -400,6 +401,8 @@ done""")
             sys.stdout.flush()
     if not keys:
         return
+    if el < 1:
+        kill(0)
     return el
 
 
@@ -413,9 +416,7 @@ def input(i="Your Input: ", choices=False):
             keys += c[0]
         while True:
             el = choice(keys)
-            if not el:
-                kill(0)
-            elif (c := choices[el-1])[1:]:
+            if (c := choices[el-1])[1:]:
                 echo("", 1, 0)
                 nter = input("Type and enter to confirm, else to return: " + c + f"\033[{len(c)-1}D")
                 echo("", 1, 0)
@@ -507,7 +508,7 @@ def echoMBs(threadn, Bytes, total):
 
 
 pg = [0]
-tp = " ․⁚⋮456789abcdef⍿"
+tp = " ․⁚⋮456789abcdef⍿"
 pr = len(tp)-1
 pgtime = [int(time.time()/5)]
 tm = [x.copy() for _ in range(10) for x in [[tp[0]]*12]]
@@ -750,7 +751,7 @@ def at(s, r, cw=[], alt=0, key=False, name=False, meta=False):
 
 
 def new_picker():
-    return {"replace":[], "send":[], "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "pattern":[[], [], False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "send":[], "login":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "pattern":[[], [], False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
 
 
 
@@ -759,6 +760,8 @@ def picker(s, rule):
     if rule.startswith("send "):
         rule = rule.split(" ", 2)
         s["send"] += [[rule[1], rule[2]] if len(rule) == 2 else [rule[1], []]]
+    elif rule.startswith("login"):
+        s["login"] = True
     elif rule.startswith("visit"):
         s["visit"] = True
     elif rule.startswith("part "):
@@ -1063,7 +1066,7 @@ if not shuddup:
 
 tn = [len(ticks)]
 ticking = [False]
-def timer(e="", all=True, listen=[[True]], notlisten=[[False]]):
+def timer(e="", ind=True, listen=[[True]], notlisten=[[False]]):
     if not ticks:
         ticks.append([4, 8])
         tn[0] = len(ticks)
@@ -1074,7 +1077,7 @@ def timer(e="", all=True, listen=[[True]], notlisten=[[False]]):
         r = ticks[int(tn[0]*random())]
         s = r[0]+int((r[1]-r[0]+1)*random())
         for sec in range(s):
-            echo(f"{e}Reloading in {s-sec} . . .")
+            echo(f"{e} Reloading in {s-sec} . . .")
             time.sleep(1)
             if pgtime[0] < int(time.time()/5):
                 pgtime[0] = int(time.time()/5)
@@ -1083,10 +1086,10 @@ def timer(e="", all=True, listen=[[True]], notlisten=[[False]]):
             if Keypress_CtrlC[0]:
                 Keypress_CtrlC[0] = False
                 break
-            if any(not x[0] for x in listen) or any(x[0] for x in notlisten):
+            if not all(not x[0] for x in listen) or any(x[0] for x in notlisten):
                 break
         ticking[0] = False
-    elif all:
+    elif ind:
         while ticking[0]:
             time.sleep(0.5)
 
@@ -1101,7 +1104,7 @@ def retry(stderr):
             Keypress_prompt[0] = True
             if stderr:
                 if Keypress_A[0]:
-                    e = f"{retries[0]} retries (P)ause (S)kip once "
+                    e = f"{retries[0]} retries (P)ause (S)kip once"
                     if cooldown[0]:
                         timer(e, listen=[Keypress_A], notlisten=[Keypress_S])
                     else:
@@ -1137,7 +1140,7 @@ def retry(stderr):
 
 
 
-def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
+def fetch(url, stderr="", dl=0, threadn=0, data=None):
     referer = x[0] if (x := [v for k, v in referers.items() if url.startswith(k)]) else ""
     ua = x[0] if (x := [v for k, v in mozilla.items() if url.startswith(k)]) else 'Mozilla/5.0'
     headers = {x[0][0]:x[0][1]} if (x := [v for k, v in hydras.items() if url.startswith(k)]) else {}
@@ -1145,7 +1148,7 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
     while True:
         try:
             headers.update({'Range':f'bytes={dl}-', 'Accept':"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"})
-            resp = request.urlopen(request.Request(saint(url=url), headers=headers, data=data), context=context)
+            resp = request.urlopen(request.Request(saint(url=url), headers=headers, data=data))
             break
         except HTTPError as e:
             if stderr or Keypress_X[0] and not Keypress_S[0]:
@@ -1191,7 +1194,7 @@ def fetch(url, context=None, stderr="", dl=0, threadn=0, data=None):
 # cookies.save()
 request.install_opener(request.build_opener(request.HTTPSHandler(context=context), request.HTTPCookieProcessor(cookies)))
 
-def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=False, stderr="", sleep=0, threadn=0):
+def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr="", sleep=0, threadn=0):
     if sleep:
         time.sleep(sleep)
     dl = 0
@@ -1204,7 +1207,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
     Keypress_CtrlC[0] = False
     while echothreadn and echothreadn.index(threadn) >= dlslot[0]:
         time.sleep(0.1)
-    resp, err = fetch(url, context, stderr, dl, threadn)
+    resp, err = fetch(url, stderr, dl, threadn)
     if not resp:
         return err
     total = resp.headers['Content-length']
@@ -1241,21 +1244,21 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
                             break
                         if not retry(stderr):
                             return err
-                        resp, err = fetch(url, context, stderr, dl, threadn)
+                        resp, err = fetch(url, stderr, dl, threadn)
                         if not resp:
                             return err
                         if resp.status == 200 and dl > 0:
                             kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                         continue
                 except KeyboardInterrupt:
-                    resp, err = fetch(url, context, stderr, dl, threadn)
+                    resp, err = fetch(url, stderr, dl, threadn)
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                     continue
                 except:
                     if not retry(stderr):
                         return err
-                    resp, err = fetch(url, context, stderr, dl, threadn)
+                    resp, err = fetch(url, stderr, dl, threadn)
                     if not resp:
                         return err
                     if resp.status == 200 and dl > 0:
@@ -1267,7 +1270,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
                 echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
                 echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {url}""", clamp='█', friction=True)
                 if Keypress_CtrlC[0]:
-                    resp, err = fetch(url, context, stderr, dl, threadn)
+                    resp, err = fetch(url, stderr, dl, threadn)
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                     Keypress_CtrlC[0] = False
@@ -1310,7 +1313,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
                             return data
                     if not retry(stderr):
                         return err
-                    resp, err = fetch(url, context, stderr, dl, threadn)
+                    resp, err = fetch(url, stderr, dl, threadn)
                     if not resp:
                         return err
                     if resp.status == 200:
@@ -1318,7 +1321,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
                         dl = 0
                     continue
             except KeyboardInterrupt:
-                resp, err = fetch(url, context, stderr, dl, threadn)
+                resp, err = fetch(url, stderr, dl, threadn)
                 if resp.status == 200:
                     data = b''
                     dl = 0
@@ -1326,7 +1329,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
             except:
                 if not retry(stderr):
                     return err
-                resp, err = fetch(url, context, stderr, dl, threadn)
+                resp, err = fetch(url, stderr, dl, threadn)
                 if not resp:
                     return err
                 if resp.status == 200:
@@ -1339,7 +1342,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], context=None, headonly=Fa
             echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
             echo(threadn, f"{int(dl/1048576)} MB", friction=True)
             if Keypress_CtrlC[0]:
-                resp, err = fetch(url, context, stderr, dl, threadn)
+                resp, err = fetch(url, stderr, dl, threadn)
                 if resp.status == 200:
                     data = b''
                     dl = 0
@@ -1720,7 +1723,7 @@ def firefox(url):
 
 
 
-def carrot(array, z, cw, new, my_conditions):
+def carrot(array, z, cw, new, my_conditions, saint):
     a = ""
     aa = ""
     p = ""
@@ -1794,6 +1797,8 @@ def carrot(array, z, cw, new, my_conditions):
                 update_array[0] = y[1]
                 a = aa + y[0] + z[0]
             else:
+                if saint:
+                    p = saint.join(s.strip() for s in p.replace("\\", "/").split("/"))
                 update_array[0] = y[1]
                 a = ii[1] if ii else y[0]
                 if cw:
@@ -1803,13 +1808,13 @@ def carrot(array, z, cw, new, my_conditions):
 
 
 
-def carrots(arrays, x, cw=[], any=True):
+def carrots(arrays, x, cw=[], any=True, saint=False):
     update_array = []
     x, my_conditions = conditions(x)
     new = []
     for array in arrays:
         while True:
-            update_array = carrot(array, x, cw, new, my_conditions)
+            update_array = carrot(array, x, cw, new, my_conditions, saint)
             if not update_array:
                 break
             array = update_array[1]
@@ -2117,6 +2122,8 @@ def get_data(threadn, page, url, pick):
     data = ""
     if not pick["ready"]:
         echo(f" Visiting {page}", 0, 1)
+    if pick["login"]:
+        firefox(page)
     if pick["visit"]:
         fetch(page, stderr="Error visiting the page to visit")
     if pick["send"]:
@@ -2190,22 +2197,28 @@ def pick_in_page(scraper):
                 if len(c := carrots(part, y)) == 2:
                     data = c[0][1]
         if pick["expect"]:
-            if not data:
-                if x := get_data(threadn, page, url, pick):
-                    data, part = x
-                else:
-                    break
             pos = 0
             for y in pick["expect"]:
                 for z, cw, a in y[1:]:
-                    if a:
-                        if not db:
-                            db = opendb(data)
-                        pos += 1
-                        c = z[1].rsplit(" = ", 1)
-                        result = tree(db, [z[0], [[c[0], c[1].split(" > ") if len(c) == 2 else 0, 0, 0, 0, 0]]])
+                    if not z:
+                        if not pick["ready"]:
+                            echo(f" Visiting {page}", 0, 1)
+                        result = True if fetch(page)[0] else False
+                        title(monitor())
                     else:
-                        result = True if [x[1] for x in carrots(part, z, [], False)][0] else False
+                        if not data:
+                            if x := get_data(threadn, page, url, pick):
+                                data, part = x
+                            else:
+                                break
+                        if a:
+                            if not db:
+                                db = opendb(data)
+                            pos += 1
+                            c = z[1].rsplit(" = ", 1)
+                            result = tree(db, [z[0], [[c[0], c[1].split(" > ") if len(c) == 2 else 0, 0, 0, 0, 0]]])
+                        else:
+                            result = True if [x[1] for x in carrots(part, z, [], False)][0] else False
                     if y[0]["alt"] and result:
                         if not pick["dismiss"] and Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)
@@ -2220,7 +2233,9 @@ def pick_in_page(scraper):
                         alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "Not any longer", pick["dismiss"])
                     else:
                         more_pages += [[start, page, pagen]]
-                        timer(f"Not quite as expected! {alerted[0]}", False, listen=[Keypress_C, Keypress_S])
+                        timer(f"Not quite as expected!", listen=[Keypress_C, Keypress_S])
+                        Keypress_C[0] = False
+                        Keypress_S[0] = False
         if not folder:
             if pick["folder"]:
                 if not data:
@@ -2238,12 +2253,12 @@ def pick_in_page(scraper):
                                 folder += d[0]
                                 name_err = False
                         elif y[0]["alt"]:
-                            if x := [x[1] for x in carrots(part, z, cw, False) if x[1]]:
+                            if x := [x[1] for x in carrots(part, z, cw, False, " ꍯ ") if x[1]]:
                                 folder += x[0]
                                 name_err = False
                                 break
                         else:
-                            if len(x := carrots([[page, ""]], z, cw, False)) == 2:
+                            if len(x := carrots([[page, ""]], z, cw, False, " ꍯ ")) == 2:
                                 folder += x[0][1]
                                 name_err = False
                                 break
@@ -4221,61 +4236,124 @@ def start_remote(remote):
     while True:
         el = input("(A)dd/(R)emove torrent, (S)top/start (G)etting, (F)ile/(L)ist torrent, return to main men(U): ", "arsgflu")
         if el == 1:
-            i = input("Magnet link, enter nothing to cancel: ")
-            if i.startswith("magnet:") or i.startswith("http") or i.endswith(".torrent"):
-                subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", i, "-w", batchdir.rstrip("/"), "-sr", "0"], **shuddup)
-            else:
-                echo("", 1)
-                echo("", 1)
+            while True:
+                i = input("Magnet link, enter nothing to cancel: ")
+                if i.startswith("magnet:") or i.startswith("http") or i.endswith(".torrent"):
+                    subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", i, "-w", batchdir.rstrip("/"), "-sr", "0"], **shuddup)
+                else:
+                    echo("", 1)
+                    echo("", 1)
+                    break
         elif el == 2:
-            i = input("Select torrent by number to remove, (A)ll (R)eturn: ", "123456789ar")
-            if i == 10:
-                subprocess.Popen([remote, "-t", "all", "-r"], **shuddup)
-            elif not i == 11:
-                subprocess.Popen([remote, "-t", str(i), "-r"], **shuddup)
-            else:
-                echo("", 1)
-                echo("", 1)
+            pos = 0
+            while True:
+                while True:
+                    i = input(f"Select torrent by number to remove, (A)ll (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789ardf")
+                    if i == 13:
+                        pos -= 10
+                    elif i == 14:
+                        pos += 10
+                    else:
+                        break
+                    echo("", 1)
+                if i == 11:
+                    subprocess.Popen([remote, "-t", "all", "-r"], **shuddup)
+                elif not i == 12:
+                    subprocess.Popen([remote, "-t", str(i-1+pos), "-r"], **shuddup)
+                else:
+                    echo("", 1)
+                    echo("", 1)
+                    break
         elif el == 3:
-            i = input("Select torrent by number to stop (R)eturn: ", "123456789r")
-            if not i == 10:
-                subprocess.Popen([remote, "-t", str(i), "-S"], **shuddup)
-            else:
-                echo("", 1)
-                echo("", 1)
+            pos = 0
+            while True:
+                while True:
+                    i = input(f"Select torrent by number to stop (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789rdf")
+                    if i == 12:
+                        pos -= 10
+                    elif i == 13:
+                        pos += 10
+                    else:
+                        break
+                    echo("", 1)
+                if not i == 11:
+                    subprocess.Popen([remote, "-t", str(i-1+pos), "-S"], **shuddup)
+                else:
+                    echo("", 1)
+                    echo("", 1)
+                    break
         elif el == 4:
-            i = input("Select torrent by number to start (R)eturn: ", "123456789r")
-            if not i == 10:
-                subprocess.Popen([remote, "-t", str(i), "-s"], **shuddup)
-            else:
-                echo("", 1)
-                echo("", 1)
+            pos = 0
+            while True:
+                while True:
+                    i = input(f"Select torrent by number to start (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789rdf")
+                    if i == 12:
+                        pos -= 10
+                    elif i == 13:
+                        pos += 10
+                    else:
+                        break
+                    echo("", 1)
+                if not i == 11:
+                    subprocess.Popen([remote, "-t", str(i-1+pos), "-s"], **shuddup)
+                else:
+                    echo("", 1)
+                    echo("", 1)
+                    break
         elif el == 5:
-            id = input("Select torrent by number to view file list, (R)eturn: ", "123456789r")
-            if id == 10:
+            pos = 0
+            while True:
+                id = input(f"Select torrent by number to view file list, (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789rdf")
+                if id == 12:
+                    pos -= 10
+                elif id == 13:
+                    pos += 10
+                else:
+                    break
+                echo("", 1)
+            if id == 11:
                 echo("", 1)
                 echo("", 1)
                 continue
+            id += pos
             sys.stdout.write("  ")
             sys.stdout.flush()
             subprocess.call([remote, "-t", str(id), "-f"])
             while True:
                 i = input("(G)et or (S)top getting, (R)eturn: ", "gsr")
                 if i == 1:
-                    i = input("Get file by number, (A)ll (R)eturn: ", "0123456789ar")
+                    pos = 0
+                    while True:
+                        i = input(f"Get file by number, (A)ll (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789ardf")
+                        if i == 13:
+                            pos -= 10
+                        elif i == 14:
+                            pos += 10
+                        else:
+                            break
+                        echo("", 1)
                     if i == 11:
                         subprocess.Popen([remote, "-t", str(id), "-g", "all"], **shuddup)
                     elif not i == 11:
-                        subprocess.Popen([remote, "-t", str(id), "-g", str(i-1)], **shuddup)
+                        subprocess.Popen([remote, "-t", str(id), "-g", str(i-1+pos)], **shuddup)
                     else:
                         echo("", 1)
                         echo("", 1)
                 elif i == 2:
-                    i = input("Stop getting file by number, (A)ll (R)eturn: ", "0123456789ar")
+                    pos = 0
+                    while True:
+                        i = input(f"Stop getting file by number, (A)ll (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789ardf")
+                        if i == 13:
+                            pos -= 10
+                        elif i == 14:
+                            pos += 10
+                        else:
+                            break
+                        echo("", 1)
                     if i == 11:
                         subprocess.Popen([remote, "-t", str(id), "-G", "all"], **shuddup)
                     elif not i == 11:
-                        subprocess.Popen([remote, "-t", str(id), "-G", str(i-1)], **shuddup)
+                        subprocess.Popen([remote, "-t", str(id), "-G", str(i-1+pos)], **shuddup)
                     else:
                         echo("", 1)
                         echo("", 1)

@@ -165,11 +165,12 @@ part <div id="FirstPost" style="display: inline-table;">*<span class="OmissionTe
 part <table class="ReplyBoxTable*" cellspacing="0px" cellpadding="0px">*</table></td></tr></table>
 key No.<a class="AltLink" href="javascript:QuotePost(*);">*</a>
 key1 <span class="Subject">* </span>
+key2 <span class="UserName">*</span> *src='https://u18chan.com/themes/default/images/flags/*>*No.<a class="AltLink"
 key2 <span class="UserName">*</span>*No.<a class="AltLink"
 key3 <span class="UserName">*</span>
 html <span name="post_*_message_div" id="post_*_message_div">*<br /></span>
 title ^<span class="Subject">*^</span><span class="UserName">*^href="javascript:DownloadZip 2-100 letters customize with *
-folder1 ^/* customize with [* U-18Chan]\
+folder1 ^/* customize with  [* U-18Chan]\
 files <div class="FileDetails">File: <a href="*"
 name target="_blank"><u>*</u>
 savelink U-18Chan topic

@@ -22,7 +22,7 @@ pythondir = ""
 thumbnail_dir = ""
 
 if len(sys.argv) > 3:
-    filelist = list(filter(None, sys.argv[1].split("//")))
+    filelist = list(filter(None, sys.argv[1].replace("\\", "/").split("//")))
     pythondir = sys.argv[2].replace("\\\\", "\\").replace("\\", "/")
     # batchdir = sys.argv[3].replace("\\\\", "\\").replace("\\", "/") # grabs "start in" argument
 if "/" in batchdir and not batchdir.endswith("/"):
@@ -237,6 +237,7 @@ def help():
  |    Mostly FIFO aware (for HTML builder), using too many of it can cause FIFO (esp. arrangement) issue, it depends.
  |  "paginate *. * .* with X(Y)Z" split url into three parts then update/restore X and Z, paginate Y with +/- or key.
  |    Repeat this picker with different pattern to pick another location of this url to change.
+ |    paginate# for extra pagination.
  +  "savelink"        save first scraped page link as URL file in same directory where files are downloading.
 
  + Manipulating picker:
@@ -666,8 +667,8 @@ def new_cookie():
 
 
 
-def ast(rule, key="0"):
-    return rule.replace("*date", date).replace("*id", key).replace("/", "\\")
+def ast(rule, key="0", key1="0"):
+    return rule.replace("*date", date).replace("*id", key).replace("*title", key1).replace("/", "\\")
 
 def saint(name=False, url=False):
     if url:
@@ -767,7 +768,7 @@ def picker(s, rule):
     elif rule.startswith("part "):
         s["part"] += [rule.split("part ", 1)[1]]
     elif rule.startswith("replace "):
-        rule = rule.split(" ", 1)[1].split(" with ", 1)
+        rule = rule.split(" ", 1)[1].rsplit(" with ", 1)
         s["replace"] += [[rule[0], rule[1]]]
     elif rule.startswith("dict "):
         s["dict"] += [rule.split("dict ", 1)[1]]
@@ -822,23 +823,30 @@ def picker(s, rule):
         elif not " with " in rule:
             kill("""urlfix picker is broken, there need to be "with"!""")
         else:
-            rule = rule.split("urlfix ", 1)[1].split(" with ", 1)
+            rule = rule.split("urlfix ", 1)[1].rsplit(" with ", 1)
             x = rule[1].split("*", 1)
             s["urlfix"] += [[x[0], rule[0], x[1]]]
     elif rule.startswith("url "):
         if not " with " in rule:
             kill("""url picker is broken, there need to be "with"!""")
-        rule = rule.split("url ", 1)[1].split(" with ", 1)
+        rule = rule.split("url ", 1)[1].rsplit(" with ", 1)
         x = rule[1].split("*", 1)
         s["url"] = [x[0], [rule[0]], x[1]]
     elif rule.startswith("pages "):
         at(s["pages"], rule.split("pages", 1)[1], [], 1)
     elif rule.startswith("relpages "):
         at(s["pages"], rule.split("relpages", 1)[1])
-    elif rule.startswith("paginate "):
-        if not " with " in rule:
+    elif rule.startswith("paginate"):
+        r = rule.split("paginate", 1)[1]
+        n, r = r.split(" ", 1) if " " in r else [r, ""]
+        n = int(n) if n else 0
+        if not s["paginate"]:
+            s["paginate"] += [[]]
+        if n:
+            s["paginate"] += [[] for _ in range(n-len(s["paginate"])+1)]
+        if not " with " in r:
             kill("""paginate picker is broken, there need to be "with"!""")
-        x = rule.split("paginate ", 1)[1].split(" with ", 1)
+        x = r.rsplit(" with ", 1)
         y = x[1].replace("(", ")")
         if len(z := y.split(")")) == 3:
             pass
@@ -846,7 +854,7 @@ def picker(s, rule):
             z.insert(1, "")
         else:
             kill("""paginate picker is broken, there need to be a pair of parentheses or an asterisk!""")
-        s["paginate"] += [[x[0].split(" "), z]]
+        s["paginate"][n] += [[x[0].split(" "), z]] if s["paginate"][n] else [{"alt":0}, [x[0].split(" "), z]]
     elif rule.startswith("checkpoint"):
         s["checkpoint"] = True
     elif rule.startswith("ready"):
@@ -1550,8 +1558,20 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
 
     if not filelist:
         if fromhtml["makehtml"]:
-            x = get_cd("", new_link(fromhtml["page"], fromhtml["folder"], 0), pattern, makedirs)[1]
-            tohtml(x, x.split("/")[-2], pattern, [])
+            subdir = get_cd("", new_link(fromhtml["page"], fromhtml["folder"], 0), pattern, makedirs)[1]
+            if os.path.exists(p := f"{subdir}{thumbnail_dir}partition.json"):
+                with open(p, 'r') as f:
+                    p = json.loads(f.read())
+            else:
+                p = {}
+            if (part := frompart(f"{subdir}{thumbnail_dir}partition.json", p, htmlpart, pattern)):
+                new_relics = {}
+                for key in part.keys():
+                    if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern):
+                        continue
+                    else:
+                        new_relics.update({key:part[key]})
+                parttohtml(subdir, htmlname, new_relics, filelist, pattern)
         else:
             echo("Filelist is empty!", 0, 1)
         return
@@ -1627,8 +1647,14 @@ URL={page["link"]}""")
 
 
 
-        if (part := frompart(f"{dir}{thumbnail_dir}partition.json", htmldirs[dir], htmlpart)) or verifyondisk:
-            parttohtml(dir, htmlname, part, filelist, pattern)
+        if (part := frompart(f"{dir}{thumbnail_dir}partition.json", htmldirs[dir], htmlpart, pattern)) or verifyondisk:
+            new_relics = {}
+            for key in part.keys():
+                if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern):
+                    continue
+                else:
+                    new_relics.update({key: part[key]})
+            parttohtml(dir, htmlname, new_relics, filelist, pattern)
 
 
 
@@ -1671,6 +1697,7 @@ URL={page["link"]}""")
         sys.stdout.write(" There are failed downloads I will try again later.\n")
     elif not newfile:
         sys.stdout.write("\n")
+    title(status())
 
 
 
@@ -1852,6 +1879,8 @@ def linear(d, z):
         if not dc:
             return
         dc = str(dc)
+        if x[5]:
+            dc = x[5].join(s.strip() for s in dc.replace("\\", "/").split("/"))
         if x[1] and not any(c for c in x[1] if c == dc) or x[2] and not met(dc, x[2]):
             if x[4]:
                 kill(0, x[4])
@@ -1930,7 +1959,7 @@ def splitos(z):
     return z[0].split("0", 1) + z[1:]
 
 def tree(d, z):
-    # tree(dictionary, [branching keys, [[linear keys, choose, conditions, customize with, stderr and kill], [linear keys, 0 accept any, 0 no conditions, 0 no customization, 0 continue without]]])
+    # tree(dictionary, [branching keys, [[linear keys, choose, conditions, customize with, stderr and kill, replace slashes], [linear keys, 0 accept any, 0 no conditions, 0 no customization, 0 continue without, 0 no slash replacement]]])
     for x in z[1::2]:
         if not x[0][0]:
             print(f"{tcolorr} Can't have > 0 for last.{tcolorx}")
@@ -1961,8 +1990,8 @@ def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
     for array in html:
         update_array = [array[0], array[1]]
         if after:
-            if not update_array[0]:
-                update_html += [update_array]
+            if not array[0]:
+                update_html += [["", new_link(array[1], folder + parse.unquote(name), htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else 0) if array[1] else ""]]
                 continue
             url = array[1]
         if url:
@@ -1972,7 +2001,7 @@ def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
             for x in pick["name"]:
                 name_err = True
                 for z, cw, a in x[1:]:
-                    cw = ast(f"{cw[0]}*{cw[1]}", key).rsplit("*", 1)
+                    cw = ast(f"{cw[0]}*{cw[1]}", key, htmlpart[key]["keywords"][0] if key in htmlpart and len(htmlpart[key]["keywords"]) > 0 else "0").rsplit("*", 1)
                     if a:
                         continue
                     if not z:
@@ -2045,11 +2074,11 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
             if off_branch_name:
                 cwf = [cwf[0] + "".join(off_branch_name), cwf[1]]
                 off_branch_name = []
-            linear_name += [[z[1], 0, 0, cwf, stderr]]
+            linear_name += [[z[1], 0, 0, cwf, stderr, 0]]
         else:
-            x = tree(db, [z[0], [[z[1], 0, 0, cwf, stderr]]])
+            x = tree(db, [z[0], [[z[1], 0, 0, cwf, stderr, 0]]])
             off_branch_name += [x[0][0]] if x else []
-    files = tree(db, master_key + [file, key + [[c[0], c[1], 0, 0, 0], [f[1], 0, f[2], cw, 0]] + linear_name])
+    files = tree(db, master_key + [file, key + [[c[0], c[1], 0, 0, 0], [f[1], 0, f[2], cw, 0, 0]] + linear_name])
     if c[1]:
         cf = []
         for cc in c[1]:
@@ -2148,9 +2177,8 @@ def get_data(threadn, page, url, pick):
             part += [[x[1], ""] for x in carrots([[data, ""]], z)]
     else:
         part = [[data, ""]]
-    if not pick["html"]:
-        for p in part:
-            p[0] = rp(p[0], pick["replace"])
+    for p in part:
+        p[0] = rp(p[0], pick["replace"])
     return data, part
 
 
@@ -2216,7 +2244,7 @@ def pick_in_page(scraper):
                                 db = opendb(data)
                             pos += 1
                             c = z[1].rsplit(" = ", 1)
-                            result = tree(db, [z[0], [[c[0], c[1].split(" > ") if len(c) == 2 else 0, 0, 0, 0, 0]]])
+                            result = tree(db, [z[0], [[c[0], c[1].split(" > ") if len(c) == 2 else 0, 0, 0, 0, 0, 0]]])
                         else:
                             result = True if [x[1] for x in carrots(part, z, [], False)][0] else False
                     if y[0]["alt"] and result:
@@ -2249,11 +2277,11 @@ def pick_in_page(scraper):
                         if a:
                             if not db:
                                 db = opendb(data)
-                            for d in tree(db, [z[0], [[z[1], 0, 0, 0, 0]]]):
+                            for d in tree(db, [z[0], [[z[1], 0, 0, 0, 0, " ꍯ "]]]):
                                 folder += d[0]
                                 name_err = False
                         elif y[0]["alt"]:
-                            if x := [x[1] for x in carrots(part, z, cw, False, " ꍯ ") if x[1]]:
+                            if x := [x[1] for x in carrots([[data, ""]], z, cw, False, " ꍯ ") if x[1]]:
                                 folder += x[0]
                                 name_err = False
                                 break
@@ -2282,49 +2310,50 @@ def pick_in_page(scraper):
                     if a:
                         if not db:
                             db = opendb(data)
-                        pages = tree(db, [z[0], [[z[1], 0, 0, cw, 0]]])
+                        pages = tree(db, [z[0], [[z[1], 0, 0, cw, 0, 0]]])
                         if pages and not pages[0][0] == "None":
                             for p in pages:
                                 if not p[0] == page and not page + p[0] == page:
-                                    px = p[0] if y[0]["alt"] else page + p[0]
+                                    px = p[0] if y[0]["alt"] else page.rsplit("/", 1)[0] + "/" + p[0]
                                     more_pages += [[start, px, pagen]]
                                     if pick["checkpoint"]:
                                         print(f"Checkpoint: {px}\n")
                     else:
-                        for p in [x[1] for x in carrots(part, z, cw) if x[1]]:
+                        for p in [x[1] for x in carrots([[data, ""]], z, cw) if x[1]]:
                             if not p == page and not page + p == page:
-                                px = p if y[0]["alt"] else page + p
+                                px = p if y[0]["alt"] else page.rsplit("/", 1)[0] + "/" + p
                                 more_pages += [[start, px, pagen]]
                                 if pick["checkpoint"]:
                                     print(f"Checkpoint: {px}\n")
         if pick["paginate"]:
-            new = page
             for y in pick["paginate"]:
-                l = carrots([[new, ""]], y[0][0])[0][1] if len(y[0]) > 1 else ""
-                l_fix = y[1][0]
-                x = carrots([[new, ""]], y[0][1 if len(y[0]) > 1 else 0])[0][1]
-                if (p := y[1][1]).isdigit() or p[1:].isdigit():
-                    if not x.isdigit():
-                        kill(f""" String captured: {x}
+                new = page
+                for z in y[1:]:
+                    l = carrots([[new, ""]], z[0][0])[0][1] if len(z[0]) > 1 else ""
+                    l_fix = z[1][0]
+                    x = carrots([[new, ""]], z[0][1 if len(z[0]) > 1 else 0])[0][1]
+                    if (p := z[1][1]).isdigit() or p[1:].isdigit():
+                        if not x.isdigit():
+                            kill(f""" String captured: {x}
  Calculate with (+): {p}
 
 Paginate picker is broken, captured string must be digit for calculator +/- mode!""")
-                    x = int(x) + int(p)
-                elif y[1][1]:
-                    p, _, a = peanut(y[1][1], [], False)
-                    if a:
-                        if not data:
-                            if x := get_data(threadn, page, url, pick):
-                                data, part = x
-                            else:
-                                break
-                        if not db:
-                            db = opendb(data)
-                        x = tree(db, [p[0], [[p[1], 0, 0, 0, 0]]])[-1][0]
-                r_fix = y[1][2]
-                r = carrots([[new, ""]], y[0][2])[0][1] if len(y[0]) == 3 else ""
-                new = f"{l}{l_fix}{x}{r_fix}{r}"
-            more_pages += [[start, new, pagen]]
+                        x = int(x) + int(p)
+                    elif z[1][1]:
+                        p, _, a = peanut(z[1][1], [], False)
+                        if a:
+                            if not data:
+                                if x := get_data(threadn, page, url, pick):
+                                    data, part = x
+                                else:
+                                    break
+                            if not db:
+                                db = opendb(data)
+                            x = tree(db, [p[0], [[p[1], 0, 0, 0, 0, 0]]])[-1][0]
+                    r_fix = z[1][2]
+                    r = carrots([[new, ""]], z[0][2])[0][1] if len(z[0]) == 3 else ""
+                    new = f"{l}{l_fix}{x}{r_fix}{r}"
+                more_pages += [[start, new, pagen]]
         if pick["html"]:
             if not data:
                 if x := get_data(threadn, page, url, pick):
@@ -2350,16 +2379,16 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                             else:
                                 html =  z[0]
                                 if html == k[1][0]:
-                                    key = [[k[1][1], 0, 0, 0, 0]]
+                                    key = [[k[1][1], 0, 0, 0, 0, 0]]
                                 else:
                                     continue
                                 if k[0][0]:
                                     if len(x := k[1][0].split(k[0][0] if k[0][0].startswith("0") else k[0][0] + " > 0", 1)) == 2:
                                         html = x[1]
-                                        master_key = [k[0][0], [[k[0][1], 0, 0, 0, 0]]]
+                                        master_key = [k[0][0], [[k[0][1], 0, 0, 0, 0, 0]]]
                                 elif k[0][1]:
-                                    master_key = ["", [[k[0][1], 0, 0, 0, 0]]]
-                            for html in tree(db, master_key + [html, key + [[z[1], 0, 0, cw, 0]]]):
+                                    master_key = ["", [[k[0][1], 0, 0, 0, 0, 0]]]
+                            for html in tree(db, master_key + [html, key + [[z[1], 0, 0, cw, 0, 0]]]):
                                 if pos == 1 or pos == 5:
                                     html[2] = html[2] + "\n"
                                 if pos > 3:
@@ -2405,13 +2434,13 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                             db = opendb(data)
                         for k in kx[1:]:
                             if not k:
-                                key = [["0", 0, 0, 0, 0]]
+                                key = [["0", 0, 0, 0, 0, 0]]
                             else:
                                 if z[0] == k[1][0]:
-                                    key = [[k[1][1], 0, 0, 0, 0]]
+                                    key = [[k[1][1], 0, 0, 0, 0, 0]]
                                 else:
                                     continue
-                            for d in tree(db, [z[0], [[z[1], 0, 0, 0, 0]] + key]):
+                            for d in tree(db, [z[0], [[z[1], 0, 0, 0, 0, 0]] + key]):
                                 if not d[1] in keywords:
                                     keywords.update({d[1]: [""]})
                                 if pos == 0:
@@ -2453,7 +2482,7 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                         if a:
                             if not db:
                                 db = opendb(data)
-                            url = tree(db, [z[0], [[z[1], 0, 0, 0, 0]]])[0][0]
+                            url = tree(db, [z[0], [[z[1], 0, 0, 0, 0, 0]]])[0][0]
                             ext = ""
                             for x in imagefile:
                                 if x in url:
@@ -2488,7 +2517,7 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
             if not pick["ready"]:
                 stdout = ""
                 x = ""
-                pattern = [[], [], False]
+                pattern = fromhtml["pattern"]
                 for k in htmlpart.keys():
                     for file in htmlpart[k]["files"]:
                         x = get_cd("", file, pattern, preview=True)
@@ -2600,6 +2629,7 @@ def scrape(startpages):
                 start = page
                 shelf.update({start: new_part(threadn)})
                 fromhtml = shelf[start]
+                fromhtml["pattern"] = pickers[get_pick[0]]["pattern"]
                 fromhtml["inlinefirst"] = pick["inlinefirst"]
             else:
                 fromhtml = shelf[start]
@@ -3547,7 +3577,7 @@ def hyperlink(html):
 
 
 
-def frompart(partfile, relics, htmlpart):
+def frompart(partfile, relics, htmlpart, pattern):
     if "0" in htmlpart and not htmlpart["0"]["html"] and not htmlpart["0"]["files"]:
         del htmlpart["0"]
 
@@ -3650,9 +3680,9 @@ def tohtml(subdir, htmlname, part, pattern):
             builder += f"""<img src="{thumbnail_dir}{icon}" height="100px">\n"""
         else:
             break
-    if os.path.exists(page := f"{subdir}{thumbnail_dir}{htmlname}.URL"):
+    if os.path.exists(page := f"{subdir}{thumbnail_dir}savelink.URL"):
         with open(page, 'r') as f:
-            builder += f"""<h2><a href="{f.splitlines()[1].replace("URL=", "")}">{htmlname}</a></h2>"""
+            builder += f"""<h2><a href="{f.read().splitlines()[1].replace("URL=", "")}">{htmlname}</a></h2>"""
 
 
 
@@ -3677,7 +3707,7 @@ def tohtml(subdir, htmlname, part, pattern):
         builder += """<div class="cell">\n"""
         if len(keywords) > 1:
             time = keywords[1] if keywords[1] else "No timestamp"
-            keywords = ", ".join(x for x in keywords[2:]) if len(keywords) > 2 else "None"
+            keywords = ", ".join(x for x in keywords[2:] if x) if len(keywords) > 2 else "None"
             builder += f"""<div class="time" id="{key}" style="float:right;">Part {key} ꍯ {time}\nKeywords: {keywords}</div>\n"""
         builder += title
         if part[key]["files"]:
@@ -4419,12 +4449,24 @@ def read_input(fp):
         if fp.endswith("partition.json"):
             subdir = fp.rsplit("/", 1)[0] + "/"
             htmlname = fp.rsplit("/", 2)[-2]
-            pattern = [[], [], False]
+            if os.path.exists(p := f"{subdir}{thumbnail_dir}savelink.URL"):
+                with open(p, 'r') as f:
+                    page = f.read().splitlines()[1].replace("URL=", "")
+            else:
+                page = input("URL file not found, please guess original url to provide pattern for this partition: ")
+            get_pick = [x for x in pickers.keys() if page.startswith(x)]
+            pattern = pickers[get_pick[0]]["pattern"]
+            # pattern = [[], [], False]
             with open(fp, 'r') as f:
-                htmlpart =json.loads(f.read())
+                htmlpart = json.loads(f.read())
 
             filelist = []
+            new_relics = {}
             for key in htmlpart.keys():
+                if htmlpart[key]["keywords"] and isrej(htmlpart[key]["keywords"][0], pattern):
+                    continue
+                else:
+                    new_relics.update({key: htmlpart[key]})
                 for file in htmlpart[key]["files"]:
                     if not isrej(file, pattern):
                         filelist += [["", file]]
@@ -4432,7 +4474,7 @@ def read_input(fp):
                     if len(array) == 2 and array[1]:
                         if not isrej(array[1], pattern):
                             filelist += [["", array[1]]]
-            parttohtml(subdir, htmlname, htmlpart, filelist, pattern)
+            parttohtml(subdir, htmlname, new_relics, filelist, pattern)
         elif not Geistauge:
             choice(bg=True)
             echo(" GEISTAUGE: Maybe not.", 0, 2)

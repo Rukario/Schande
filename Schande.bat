@@ -340,7 +340,6 @@ def alert(m, s, d=False):
     title("! " + monitor())
     send(s, m, d)
     if not d:
-        echo(alerted[0])
         choice(bg="2e", persist=True)
 
 
@@ -365,9 +364,9 @@ def tcolorz(c):
 
 
 
-def debug(e="echoed", b=0, f=1):
+def whereami(e="echoed", b=0, f=1):
     c = inspect.getframeinfo(inspect.stack()[1][0])
-    echo(f"""{tcolorz("cccccc")}{c.lineno} {c.function}() {e}{tcolorx}""", b, f)
+    return f"{c.lineno} {c.function}(): {e}"
 
 
 
@@ -402,8 +401,10 @@ done""")
             sys.stdout.flush()
     if not keys:
         return
-    if el < 1:
-        kill(0)
+    if el == 0:
+        echo("", 0, 1)
+    if el < 0 or el > 100:
+        kill(whereami("Obscene return code"))
     return el
 
 
@@ -1085,7 +1086,7 @@ def timer(e="", ind=True, listen=[[True]], notlisten=[[False]]):
         r = ticks[int(tn[0]*random())]
         s = r[0]+int((r[1]-r[0]+1)*random())
         for sec in range(s):
-            echo(f"{e} Reloading in {s-sec} . . .")
+            echo(f"{e} {s-sec} . . .")
             time.sleep(1)
             if pgtime[0] < int(time.time()/5):
                 pgtime[0] = int(time.time()/5)
@@ -1114,7 +1115,7 @@ def retry(stderr):
                 if Keypress_A[0]:
                     e = f"{retries[0]} retries (P)ause (S)kip once"
                     if cooldown[0]:
-                        timer(e, listen=[Keypress_A], notlisten=[Keypress_S])
+                        timer(f"{e}, reloading in", listen=[Keypress_A], notlisten=[Keypress_S])
                     else:
                         echo(e)
                     Keypress_R[0] = True if Keypress_A[0] else False
@@ -2140,9 +2141,12 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, folder, filelist,
 
 
 
-def rp(x, p):
+def rp(x, p):        
     for r in p:
-        x = "".join(y[0] + y[1] for y in carrots([[x, ""]], r[0], r[1].split("*", 1)))
+        if "*" in r[0]:
+            x = "".join(y[0] + y[1] for y in carrots([[x, ""]], r[0], r[1].split("*", 1)))
+        else:
+            x = x.replace(r[0], r[1])
     return x
 
 
@@ -2251,19 +2255,20 @@ def pick_in_page(scraper):
                         if not pick["dismiss"] and Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)
                         alerted_pages += [[start, page, pagen]]
-                        alerted[0] = "(C)ontinue, (S)kip {len(alerted_pages[0])} alerted pages"
+                        alerted[0] = f"(C)ontinue (S)kip {len(alerted_pages)} alerted pages"
                         alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "As expected", pick["dismiss"])
                     elif not y[0]["alt"] and not result:
                         if not pick["dismiss"] and Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)
                         alerted_pages += [[start, page, pagen]]
-                        alerted[0] = "(C)ontinue, (S)kip {len(alerted_pages[0])} alerted pages"
+                        alerted[0] = f"(C)ontinue (S)kip {len(alerted_pages)} alerted pages"
                         alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "Not any longer", pick["dismiss"])
                     else:
                         more_pages += [[start, page, pagen]]
-                        timer(f"Not quite as expected!", listen=[Keypress_C, Keypress_S])
-                        Keypress_C[0] = False
-                        Keypress_S[0] = False
+                        timer(f"{alerted[0]}, resuming unalerted pages in"  if alerted[0] else "Not quite as expected! Reloading in", listen=[Keypress_C, Keypress_S] if alerted[0] else [[False]])
+                        echothreadn.remove(threadn)
+                        scraper.task_done()
+                        return
         if not folder:
             if pick["folder"]:
                 if not data:
@@ -2651,15 +2656,18 @@ def scrape(startpages):
         pages = more_pages
         if alerted[0]:
             if not more_pages:
+                echo(alerted[0])
                 time.sleep(1)
             if Keypress_C[0]:
                 Keypress_C[0] = False
                 pages += alerted_pages
                 alerted_pages = []
+                alerted[0] = False
                 choice(bg="2e")
             elif Keypress_S[0]:
                 Keypress_S[0] = False
                 alerted_pages = []
+                alerted[0] = False
                 choice(bg="2e")
     title(status())
 
@@ -3997,7 +4005,7 @@ def delmode():
     while True:
         el = input("Return to (M)ain menu: ", "dgstm")
         if not el:
-            kill(0)
+            kill(whereami("Bad choice"))
         elif el == 1:
             if delnow():
                 return
@@ -4153,14 +4161,14 @@ def finish_sort():
     sys.stdout.write(f" ({tcolorb}From directory {tcolorr}-> {tcolorg}to a more deserving directory{tcolorx}) {tcd} for non-existent directories - (C)ontinue ")
     sys.stdout.flush()
     if not choice("c") == 1:
-        kill(0)
+        kill(whereami("Bad choice"))
     for file, dir in mover.items():
         if os.path.exists(dir + file):
             print(f"""I want to (D)elete source file because destination file already exists:
      source:      {batchname + "/"}{file}
      destination: {dir}{file}""")
             if not choice("d") == 1:
-                kill(0)
+                kill(whereami("Bad choice"))
             os.remove(batchname + "/" + file)
         elif os.path.exists(dir):
             os.rename(batchname + "/" + file, dir + file)
@@ -4174,7 +4182,7 @@ def finish_sort():
      source:      {batchname}/{file}
      destination: {cd}{file}""")
                 if not choice("d") == 1:
-                    kill(0)
+                    kill(whereami("Bad choice"))
                 os.remove(batchname + "/" + file)
 
 
@@ -4726,8 +4734,10 @@ while True:
         echo("", 0, 1)
         ready_input()
     if run_input[2]:
+        busy[0] = True
         read_file()
         run_input[2] = False
+        busy[0] = False
         echo("", 0, 1)
         ready_input()
     if run_input[3]:

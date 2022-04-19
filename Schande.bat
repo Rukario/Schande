@@ -2266,9 +2266,6 @@ def pick_in_page(scraper):
                     else:
                         more_pages += [[start, page, pagen]]
                         timer(f"{alerted[0]}, resuming unalerted pages in"  if alerted[0] else "Not quite as expected! Reloading in", listen=[Keypress_C, Keypress_S] if alerted[0] else [[False]])
-                        echothreadn.remove(threadn)
-                        scraper.task_done()
-                        return
         if not folder:
             if pick["folder"]:
                 if not data:

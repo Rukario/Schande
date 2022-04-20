@@ -10,7 +10,8 @@ shuddup
 
 
 - - - - Spoofer - - - -
-Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:99.0) Gecko/20100101 Firefox/99.0 for http
+# Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:100.0) Gecko/20100101 Firefox/100.0 for http
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36 for http
 4-8 seconds rarity 75%
 12-24 seconds rarity 23%
 # 64-128 seconds rarity 2%

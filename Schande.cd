@@ -91,6 +91,11 @@ https://www.amazon.com/gp/aws/cart/add
 expect Proceed to checkout
 ready
 
+https://bad-dragon.com/shop/inventory
+url &* with https://bad-dragon.com/api/inventory-toys?price[min]=0&price[max]=300&sort[field]=price&*&&sort[direction]=asc&page=1&limit=60
+expect toys > 0 > sku
+ready
+
 
 
 - - - - Scraper - - - -
@@ -205,6 +210,7 @@ files <a href="https://dl.dropbox.com*</a> customize with https://dl.dropbox.com
 meta ^/*^?dl=0
 
 https://www.patreon.com/
+defuse
 title /patreon-media/p/user/*/ customize with *
 folder1 ^/*^/ customize with  *\
 pages /patreon-media/p/campaign/*/ customize with https://www.patreon.com/api/posts?include=attachments%2Cimages.null%2Caudio.null&fields[post]=content%2Ccurrent_user_can_view%2Cedited_at%2Cembed%2Cpost_file%2Cpost_type%2Ctitle&fields[media]=download_url%2Cfile_name%2Cowner_id&sort=-published_at&filter[campaign_id]=*

@@ -197,6 +197,7 @@ def help():
  |  "http..."         validates a site to start a scraper, attribute all pickers to this.
  |
  | Networking
+ |  "defuse"          declare this url as having antibot detectors in place, defuse tools will be used on first visit.
  |  "visit"           visit especially for cookies before redirection.
  |  "urlfix ..*.. with ..*.." permanent redirector.
  |  "url ..*.. with ..*.. redirector. Original url will be used for statement and scraper loop.
@@ -753,7 +754,7 @@ def at(s, r, cw=[], alt=0, key=False, name=False, meta=False):
 
 
 def new_picker():
-    return {"replace":[], "send":[], "login":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "pattern":[[], [], False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "send":[], "defuse":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "pattern":[[], [], False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
 
 
 
@@ -762,8 +763,8 @@ def picker(s, rule):
     if rule.startswith("send "):
         rule = rule.split(" ", 2)
         s["send"] += [[rule[1], rule[2]] if len(rule) == 2 else [rule[1], []]]
-    elif rule.startswith("login"):
-        s["login"] = True
+    elif rule.startswith("defuse"):
+        s["defuse"] = True
     elif rule.startswith("visit"):
         s["visit"] = True
     elif rule.startswith("part "):
@@ -1163,7 +1164,7 @@ def fetch(url, stderr="", dl=0, threadn=0, data=None):
             if stderr or Keypress_X[0] and not Keypress_S[0]:
                 el = retry(f"{stderr} ({e.code} {e.reason})")
                 if el == 2:
-                    firefox(saint(url=url))
+                    driver(saint(url=url))
                     Keypress_prompt[0] = False
                     Keypress_R[0] = True
                 elif not el:
@@ -1188,7 +1189,7 @@ def fetch(url, stderr="", dl=0, threadn=0, data=None):
             if stderr or Keypress_X[0] and not Keypress_S[0]:
                 el = retry(f"{stderr} (closed by host)")
                 if el == 2:
-                    echo(" FIREFOX: Maybe not.", 0, 1)
+                    echo(" BROWSER: Maybe not.", 0, 1)
                     Keypress_prompt[0] = False
                     Keypress_R[0] = True
                 elif not el:
@@ -1702,43 +1703,56 @@ URL={page["link"]}""")
 
 
 
-firefox_running = [False]
-def new_firefox():
-    if os.path.isfile(batchdir + "geckodriver.exe"):
-        try:
-            from selenium import webdriver
-        except:
-            echo("", 0, 1)
-            echo(f" SELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install selenium", 0, 2)
+driver_running = [False]
+def new_driver():
+    try:
+        from selenium import webdriver
+    except:
+        echo("", 0, 1)
+        echo(f" SELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install selenium", 0, 2)
+    if os.path.isfile(batchdir + "chromedriver.exe"):
+        if not os.path.exists(batchdir + "chromedriver"):
+            os.makedirs(batchdir + "chromedriver")
+        options = webdriver.ChromeOptions()
+        options.add_argument(f'user-data-dir={batchdir}chromedriver')
+        options.add_argument(f"user-agent={mozilla['http']}")
+        options.add_argument('--disable-blink-features=AutomationControlled')
+        # might also need to change binary string $cdc_ to $cra_?
+        return webdriver.Chrome(options=options)
+    elif os.path.isfile(batchdir + "geckodriver.exe"):
+        if not os.path.exists(batchdir + "geckodriver"):
+            os.makedirs(batchdir + "geckodriver")
         options = webdriver.FirefoxOptions()
-        # options.add_argument("--headless")
+        options.add_argument('--profile')
+        options.add_argument(batchdir + "geckodriver")
+        options.set_preference('general.useragent.override', mozilla['http'])
         return webdriver.Firefox(options=options)
     else:
-        echo("", 0, 1)
-        echo(f" FIREFOX: Download and extract the latest win64 package from https://github.com/mozilla/geckodriver/releases and then try again.", 0, 2)
-def ff_login():
+        echo(f" The defuse picker suggested there are antibot detectors in place in this url and I will need a browser to defeat them.\n\n CHROME: Download and extract the latest stable release from https://chromedriver.chromium.org/home\n FIREFOX: Download and extract the latest win64 package from https://github.com/mozilla/geckodriver/releases\n\n > Couldn't recommend Firefox because one dumbass Firefox developer has something to say\n   https://github.com/mozilla/geckodriver/issues/1680#issuecomment-581466864\n   https://github.com/mozilla/geckodriver/issues/1878#issuecomment-856673443\n > Context: They're not going to give their Gecko driver an option to turn off 'navigator.webdriver'\n   to defeat more antibot detectors, claiming it's not the solution.", 0, 2)
+def ff_login(url):
+    dom = parse.urlparse(url).netloc.replace("www", "")
     revisit = False
     for c in cookies:
         if dom == c.domain:
             revisit = True
-            firefox_running[0].add_cookie({"name":c.name, "value":c.value, "domain":c.domain})
+            driver_running[0].add_cookie({"name":c.name, "value":c.value, "domain":c.domain})
     if revisit:
-        firefox_running[0].get(url)
-def firefox(url):
-    dom = parse.urlparse(url).netloc.replace("www", "")
-    if not firefox_running[0]:
-        if f := new_firefox():
-            firefox_running[0] = f
+        driver_running[0].get(url)
+def driver(url):
+    if not driver_running[0]:
+        if f := new_driver():
+            driver_running[0] = f
         else:
             return
-    firefox_running[0].get(url)
-    # ff_login()
+    # url = "https://www.whatsmyua.info/"
+    driver_running[0].get(url)
+    # ff_login(url)
     echo("(C)ontinue when finished defusing.")
     Keypress_C[0] = False
     while not Keypress_C[0]:
         time.sleep(0.1)
     Keypress_C[0] = False
-    for bc in firefox_running[0].get_cookies():
+    for bc in driver_running[0].get_cookies():
         if "httpOnly" in bc: del bc["httpOnly"]
         if "expiry" in bc: del bc["expiry"]
         if "sameSite" in bc: del bc["sameSite"]
@@ -1746,7 +1760,7 @@ def firefox(url):
         c.update(bc)
         cookies.set_cookie(cookiejar.Cookie(**c))
     echo("", 0, 1)
-    echo(f" FIREFOX: Gave cookie(s) to {batchname}", 0, 1)
+    echo(f" BROWSER: Gave cookie(s) to {batchname}", 0, 1)
     return True
 
 
@@ -1985,12 +1999,13 @@ def opendb(data):
 
 
 def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
-    url = ""
     name_err = True
     update_html = []
+    url = ""
+    name = ""
     for array in html:
         update_array = [array[0], array[1]]
-        if after:
+        if after and name:
             if not array[0]:
                 update_html += [["", new_link(array[1], folder + parse.unquote(name), htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else 0) if array[1] else ""]]
                 continue
@@ -2040,7 +2055,7 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
     if not k:
         key = [["0"]]
     else:
-        key = [[k[1][1], 0, 0, 0, 0]]
+        key = [[k[1][1], 0, 0, 0, 0, 0]]
         if k[0][0]:
             if len(z := k[1][0].split(k[0][0] if k[0][0].startswith("0") else k[0][0] + " > 0", 1)) == 2:
                 file = z[1]
@@ -2079,7 +2094,7 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
         else:
             x = tree(db, [z[0], [[z[1], 0, 0, cwf, stderr, 0]]])
             off_branch_name += [x[0][0]] if x else []
-    files = tree(db, master_key + [file, key + [[c[0], c[1], 0, 0, 0], [f[1], 0, f[2], cw, 0, 0]] + linear_name])
+    files = tree(db, master_key + [file, key + [[c[0], c[1], 0, 0, 0, 0], [f[1], 0, f[2], cw, 0, 0]] + linear_name])
     if c[1]:
         cf = []
         for cc in c[1]:
@@ -2155,8 +2170,8 @@ def get_data(threadn, page, url, pick):
     data = ""
     if not pick["ready"]:
         echo(f" Visiting {page}", 0, 1)
-    if pick["login"]:
-        firefox(page)
+    if pick["defuse"]:
+        driver(page)
     if pick["visit"]:
         fetch(page, stderr="Error visiting the page to visit")
     if pick["send"]:

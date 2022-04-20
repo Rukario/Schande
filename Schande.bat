@@ -1728,7 +1728,25 @@ def new_driver():
         options.set_preference('general.useragent.override', mozilla['http'])
         return webdriver.Firefox(options=options)
     else:
-        echo(f" The defuse picker suggested there are antibot detectors in place in this url and I will need a browser to defeat them.\n\n CHROME: Download and extract the latest stable release from https://chromedriver.chromium.org/home\n FIREFOX: Download and extract the latest win64 package from https://github.com/mozilla/geckodriver/releases\n\n > Couldn't recommend Firefox because one dumbass Firefox developer has something to say\n   https://github.com/mozilla/geckodriver/issues/1680#issuecomment-581466864\n   https://github.com/mozilla/geckodriver/issues/1878#issuecomment-856673443\n > Context: They're not going to give their Gecko driver an option to turn off 'navigator.webdriver'\n   to defeat more antibot detectors, claiming it's not the solution.", 0, 2)
+        subdir = batchdir.replace("/", "\\")
+        echo(f""" The defuse picker (or you) suggested there are antibot detectors in place in this url
+ and I will need a browser to defeat them.
+
+ CHROME: Download and extract the latest stable release from https://chromedriver.chromium.org/home
+ FIREFOX: Download and extract the latest win64 package from https://github.com/mozilla/geckodriver/releases
+
+ to {subdir} and then try again.
+
+ > Couldn't recommend Firefox because one dumbass Firefox developer has something to say
+   https://github.com/mozilla/geckodriver/issues/1680#issuecomment-581466864
+   https://github.com/mozilla/geckodriver/issues/1878#issuecomment-856673443
+ > Context: They're not going to give their Gecko driver an option to turn off 'navigator.webdriver'
+   used to defeat more antibot detectors, claiming it's not the solution. Is it really not . . . ?
+
+ Either will expect Chrome or Firefox being already installed, then {batchname} will create own user profile respectively:
+  > {subdir}chromedriver\\ (Chrome)
+  > {subdir}geckodriver\\ (Firefox)
+ Once launched, personalize it sometime. Default settings is trait of bots not saving!""", 0, 2)
 def ff_login(url):
     dom = parse.urlparse(url).netloc.replace("www", "")
     revisit = False

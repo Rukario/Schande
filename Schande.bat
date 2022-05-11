@@ -57,9 +57,9 @@ Keypress_prompt = [False]
 Keypress_A = [False]
 Keypress_C = [False]
 Keypress_F = [False]
-Keypress_U = [False]
 Keypress_R = [False]
 Keypress_S = [False]
+Keypress_U = [False]
 Keypress_X = [False]
 Keypress_CtrlC = [False]
 retries = [0]
@@ -106,7 +106,6 @@ if sys.platform == "linux":
     dlslot[0] = 1
     os.system("cat /dev/location > /dev/null &")
 title(batchfile)
-sys.stdout.write("Non-ANSI-compliant Command Prompt/Terminal (expect lot of visual glitches): Upgrade to Windows 10 if you're on Windows.")
 
 
 
@@ -341,7 +340,7 @@ def alert(m, s, d=False):
     title("! " + monitor())
     send(s, m, d)
     if not d:
-        choice(bg="2e", persist=True)
+        choice(bg=["2e"])
 
 
 
@@ -381,12 +380,23 @@ def echo_pip():
 
 
 
-def choice(keys="", bg=False, persist=False):
+lostfocus = [False]
+def choice(keys="", bg=[]):
     if sys.platform == "win32":
-        if bg: os.system(f"""color {"%stopcolor%" if bg == True else bg}""")
-        if keys: el = os.system(f"choice /c:{keys} /n")
-        if bg and not persist: os.system("color %color%")
-        echo(tcolorx)
+        if bg:
+            lostfocus[0] = True
+            if bg == True:
+                bg = ["%stopcolor%", "%color%"]
+            for b in bg:
+                os.system(f"color {b}")
+            echo(tcolorx)
+        if keys:
+            lostfocus[0] = False
+            el = os.system(f"choice /c:{keys} /n")
+            while lostfocus[0]:
+                lostfocus[0] = False
+                echo("Sorry, lost focus, what was your choice, again?")
+                el = os.system(f"choice /c:{keys} /n")
     else:
         if keys:
             el = os.system("""while true; do
@@ -511,7 +521,7 @@ def echoMBs(threadn, Bytes, total):
 
 
 pg = [0]
-tp = " ․⁚⋮456789abcdef⍿"
+tp = " ․⁚⋮⁴⁵⁶⁷⁸⁹abcdef⍿"
 pr = len(tp)-1
 pgtime = [int(time.time()/5)]
 tm = [x.copy() for _ in range(10) for x in [[tp[0]]*12]]
@@ -1066,7 +1076,7 @@ print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 
 
 if not shuddup:
-    choice(bg="4c")
+    choice(bg=["4c", "%color%"])
     buffer = f"\n{tcolorr} TO YOURSELF: {rulefile} contains personal information like mail, password, cookies. Edit {rulefile} before sharing!"
     if HTMLserver:
         buffer += f"\n{tcoloro}{skull()} HTML SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookies"
@@ -1219,7 +1229,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
         time.sleep(0.1)
     resp, err = fetch(url, stderr, dl, threadn)
     if not resp:
-        return err
+        return 0, err
     total = resp.headers['Content-length']
     if total:
         total = dl + int(total)
@@ -1231,9 +1241,9 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
     if todisk and total and dl == total:
         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
         os.rename(todisk + ".part", todisk)
-        return 1
+        return 1, 0
     if headonly and not stderr:
-        return total
+        return total, 0
     if todisk:
         if conflict[0]:
             if not total in conflict[1]:
@@ -1242,7 +1252,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                         conflict[1] += [os.path.getsize(file)]
             if total in conflict[1]:
                 echo("Filename collision + same filesize, safe to ignore", 0, 1)
-                return 2
+                return 2, 0
         conflict[1] += [total]
         echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {url}""", clamp='█')
         with open(todisk + ".part", 'ab') as f:
@@ -1253,24 +1263,26 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                         if not total or dl == total:
                             break
                         if not retry(stderr):
-                            return err
+                            return 0, err
                         resp, err = fetch(url, stderr, dl, threadn)
                         if not resp:
-                            return err
+                            return 0, err
                         if resp.status == 200 and dl > 0:
                             kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                         continue
                 except KeyboardInterrupt:
                     resp, err = fetch(url, stderr, dl, threadn)
+                    if not resp:
+                        return 0, err
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                     continue
                 except:
                     if not retry(stderr):
-                        return err
+                        return 0, err
                     resp, err = fetch(url, stderr, dl, threadn)
                     if not resp:
-                        return err
+                        return 0, err
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                     continue
@@ -1281,6 +1293,8 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                 echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {url}""", clamp='█', friction=True)
                 if Keypress_CtrlC[0]:
                     resp, err = fetch(url, stderr, dl, threadn)
+                    if not resp:
+                        return 0, err
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
                     Keypress_CtrlC[0] = False
@@ -1291,7 +1305,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
             sys.stdout.flush()
         stdout[0] = ""
         stdout[1] = ""
-        return 1
+        return 1, 0
     else:
         data = b''
         while True:
@@ -1303,10 +1317,10 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                         stdout[1] = ""
                         if utf8:
                             try:
-                                return data.decode("utf-8")
+                                return data.decode("utf-8"), 0
                             except:
                                 try:
-                                    return zlib.decompress(data, 16+zlib.MAX_WBITS).decode("utf-8")
+                                    return zlib.decompress(data, 16+zlib.MAX_WBITS).decode("utf-8"), 0
                                 except:
                                     todisk = saint(parse.unquote(url.split("/")[-1]))
                                     sys.stdout.write(f" Not an UTF-8 file! Save on disk as {todisk} to open it in another program? (S)ave (D)iscard: ")
@@ -1318,30 +1332,32 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                                     if Keypress_prompt[0]:
                                         sys.stdout.write(Keypress_err[0])
                                         sys.stdout.flush()
-                                    return
+                                    return 1, 0
                         else:
-                            return data
+                            return data, 0
                     if not retry(stderr):
-                        return err
+                        return 0, err
                     resp, err = fetch(url, stderr, dl, threadn)
                     if not resp:
-                        return err
+                        return 0, err
                     if resp.status == 200:
                         data = b''
                         dl = 0
                     continue
             except KeyboardInterrupt:
                 resp, err = fetch(url, stderr, dl, threadn)
+                if not resp:
+                    return 0, err
                 if resp.status == 200:
                     data = b''
                     dl = 0
                 continue
             except:
                 if not retry(stderr):
-                    return err
+                    return 0, err
                 resp, err = fetch(url, stderr, dl, threadn)
                 if not resp:
-                    return err
+                    return 0, err
                 if resp.status == 200:
                     data = b''
                     dl = 0
@@ -1353,6 +1369,8 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
             echo(threadn, f"{int(dl/1048576)} MB", friction=True)
             if Keypress_CtrlC[0]:
                 resp, err = fetch(url, stderr, dl, threadn)
+                if not resp:
+                    return 0, err
                 if resp.status == 200:
                     data = b''
                     dl = 0
@@ -1375,7 +1393,7 @@ def echolinks(download):
                 conflict[0] += [todisk]
             if os.path.exists(todisk):
                 echo(f"{threadn:>3} Already downloaded: {todisk}", 0, 1)
-            elif (err := get(url, todisk=todisk, conflict=conflict, threadn=threadn, sleep=sleep)) == 1:
+            elif not (err := get(url, todisk=todisk, conflict=conflict, threadn=threadn, sleep=sleep)[1]):
                 newfilen[0] += 1
                 error[0] += ["<a href=\"" + todisk.replace("#", "%23") + "\"><img src=\"" + todisk.replace("#", "%23") + "\" height=200px></a>"]
             else:
@@ -1632,7 +1650,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
     for dir in htmldirs.keys():
         for icon in fromhtml["icons"]:
             if not os.path.exists(dir + thumbnail_dir + icon["name"]):
-                if not (err := get(icon["link"], dir + thumbnail_dir + icon["name"])) == 1:
+                if err := get(icon["link"], dir + thumbnail_dir + icon["name"])[1]:
                     echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
 
         if page := fromhtml["page"]:
@@ -1741,7 +1759,7 @@ def new_driver():
    https://github.com/mozilla/geckodriver/issues/1680#issuecomment-581466864
    https://github.com/mozilla/geckodriver/issues/1878#issuecomment-856673443
  > Context: They're not going to give their Gecko driver an option to turn off 'navigator.webdriver'
-   used to defeat more antibot detectors, claiming it's not the solution. Is it really not . . . ?
+   used to defeat more antibot traps, claiming it's not the solution. Is it really not . . . ?
 
  Either will expect Chrome or Firefox being already installed, then {batchname} will create own user profile respectively:
   > {subdir}chromedriver\\ (Chrome)
@@ -2016,21 +2034,20 @@ def opendb(data):
 
 
 
-def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
+def carrot_files(html, htmlpart, key, pick, abs_page, folder, after=False):
     name_err = True
     update_html = []
     url = ""
     name = ""
     for array in html:
         update_array = [array[0], array[1]]
-        if after and name:
+        if after: # and name?
             if not array[0]:
                 update_html += [["", new_link(array[1], folder + parse.unquote(name), htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else 0) if array[1] else ""]]
                 continue
             url = array[1]
         if url:
-            if not is_abs:
-                url = page + url
+            url = abs_page + url
             name = ""
             for x in pick["name"]:
                 name_err = True
@@ -2048,6 +2065,8 @@ def carrot_files(html, htmlpart, key, pick, is_abs, folder, after=False):
                             update_array[0] = n[0][0] + n[1][0]
                             break
                     else:
+                        # meta
+                        print(url)
                         if len(n := carrots([[url, ""]], z, cw, False)) == 2:
                             name += n[-2][1]
                             name_err = False
@@ -2138,7 +2157,7 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
 
 
 
-def pick_files(threadn, data, db, part, htmlpart, pick, pickf, folder, filelist, pos, after):
+def pick_files(threadn, page, data, db, part, htmlpart, pick, pickf, folder, filelist, pos, after):
     for y in pickf:
         name_err = True
         for z, cw, a in y[1:]:
@@ -2163,7 +2182,7 @@ def pick_files(threadn, data, db, part, htmlpart, pick, pickf, folder, filelist,
                         if len(d := carrots([p], k[1], [], False)) == 2:
                             key = d[0][1]
                             break
-                    html, name_err = carrot_files(carrots([p], z, cw, pick["files"]), htmlpart, key, pick, y[0]["alt"], folder, after)
+                    html, name_err = carrot_files(carrots([p], z, cw, pick["files"]), htmlpart, key, pick, "" if y[0]["alt"] else page, folder, after)
                     for h in html:
                         if not h[1]:
                             continue
@@ -2195,17 +2214,18 @@ def get_data(threadn, page, url, pick):
     if pick["send"]:
         for x in pick["send"]:
             post = x[1] if x[1] else url
-            data = fetch(post, stderr="Error sending data", data=str(x[0]).encode('utf-8'))
-        if not data:
-            print(f" Error visiting {page}")
-            return
+            data, err = fetch(post, stderr="Error sending data", data=str(x[0]).encode('utf-8'))
+            if err:
+                print(f" Error visiting ({err}): {page}")
+                return 0, 0
         data = data.read()
-    if not data and (data := get(url if url else page, utf8=True, stderr="Update cookie or referer if these are required to view", threadn=threadn)) and not data.isdigit():
-        if len(data) < 4:
-            return
-    else:
-        print(f" Error visiting {page}")
-        return
+    if not data:
+        data, err = get(url if url else page, utf8=True, stderr="Update cookie or referer if these are required to view", threadn=threadn)
+        if err:
+            print(f" Error visiting ({err}): {page}")
+            return 0, 0
+        elif len(data) < 4:
+            return 0, 0
     title(monitor())
     data = ''.join([x.strip() for x in data.splitlines()])
     if pick["part"]:
@@ -2222,11 +2242,12 @@ def get_data(threadn, page, url, pick):
 
 def pick_in_page(scraper):
     while True:
-        data = ""
-        url = ""
+        data = 0
+        url = 0
         threadn, pick, start, page, pagen, more_pages, alerted_pages, fromhtml = scraper.get()
         htmlpart = fromhtml["partition"][threadn]
         folder = fromhtml["folder"]
+        proceed = True
         pg[0] += 1
         if x := pick["url"]:
             redir = ""
@@ -2252,16 +2273,8 @@ def pick_in_page(scraper):
                 break
             page = redir
         db = ""
-        if pick["dict"]:
-            if not data:
-                if x := get_data(threadn, page, url, pick):
-                    data, part = x
-            else:
-                break
-            for y in pick["dict"]:
-                if len(c := carrots(part, y)) == 2:
-                    data = c[0][1]
-        if pick["expect"]:
+        if proceed and pick["expect"]:
+            proceed = False
             pos = 0
             for y in pick["expect"]:
                 for z, cw, a in y[1:]:
@@ -2272,9 +2285,8 @@ def pick_in_page(scraper):
                         title(monitor())
                     else:
                         if not data:
-                            if x := get_data(threadn, page, url, pick):
-                                data, part = x
-                            else:
+                            data, part = get_data(threadn, page, url, pick)
+                            if not data:
                                 break
                         if a:
                             if not db:
@@ -2285,12 +2297,14 @@ def pick_in_page(scraper):
                         else:
                             result = True if [x[1] for x in carrots(part, z, [], False)][0] else False
                     if y[0]["alt"] and result:
+                        proceed = True
                         if not pick["dismiss"] and Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)
                         alerted_pages += [[start, page, pagen]]
                         alerted[0] = f"(C)ontinue (S)kip {len(alerted_pages)} alerted pages"
                         alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "As expected", pick["dismiss"])
                     elif not y[0]["alt"] and not result:
+                        proceed = True
                         if not pick["dismiss"] and Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)
                         alerted_pages += [[start, page, pagen]]
@@ -2299,13 +2313,16 @@ def pick_in_page(scraper):
                     else:
                         more_pages += [[start, page, pagen]]
                         timer(f"{alerted[0]}, resuming unalerted pages in"  if alerted[0] else "Not quite as expected! Reloading in", listen=[Keypress_C, Keypress_S] if alerted[0] else [[False]])
-        if not folder:
-            if pick["folder"]:
-                if not data:
-                    if x := get_data(threadn, page, url, pick):
-                        data, part = x
-                    else:
-                        break
+        if any(pick[x] for x in ["folder", "pages", "html", "icon", "dict", "file", "file_after"]) and not data:
+            data, part = get_data(threadn, page, url, pick)
+            if not data:
+                proceed = False
+        if proceed and pick["dict"]:
+            for y in pick["dict"]:
+                if len(c := carrots(part, y)) == 2:
+                    data = c[0][1]
+        if proceed and not folder:
+            if proceed and pick["folder"]:
                 for y in pick["folder"]:
                     name_err = True
                     for z, cw, a in y[1:]:
@@ -2332,14 +2349,9 @@ def pick_in_page(scraper):
                 fromhtml["folder"] = folder
                 echo("", 0, 1)
                 echo(f"Folder assets assembled! From now on the downloaded files will go to this directory: {tcolorg}\\{folder}{tcolorx}*\nAdditional folders are made by custom dir rules in {rulefile}.", 0, 2)
-            if x := pick["savelink"]:
+            elif proceed and (x := pick["savelink"]):
                 fromhtml["page"] = new_link(page, x, 0)
-        if pick["pages"]:
-            if not data:
-                if x := get_data(threadn, page, url, pick):
-                    data, part = x
-                else:
-                    break
+        if proceed and pick["pages"]:
             for y in pick["pages"]:
                 for z, cw, a in y[1:]:
                     if a:
@@ -2360,7 +2372,7 @@ def pick_in_page(scraper):
                                 more_pages += [[start, px, pagen]]
                                 if pick["checkpoint"]:
                                     print(f"Checkpoint: {px}\n")
-        if pick["paginate"]:
+        if proceed and pick["paginate"]:
             for y in pick["paginate"]:
                 new = page
                 for z in y[1:]:
@@ -2378,9 +2390,8 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                         p, _, a = peanut(z[1][1], [], False)
                         if a:
                             if not data:
-                                if x := get_data(threadn, page, url, pick):
-                                    data, part = x
-                                else:
+                                data, part = get_data(threadn, page, url, pick)
+                                if not data:
                                     break
                             if not db:
                                 db = opendb(data)
@@ -2389,12 +2400,7 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                     r = carrots([[new, ""]], z[0][2])[0][1] if len(z[0]) == 3 else ""
                     new = f"{l}{l_fix}{x}{r_fix}{r}"
                 more_pages += [[start, new, pagen]]
-        if pick["html"]:
-            if not data:
-                if x := get_data(threadn, page, url, pick):
-                    data, part = x
-                else:
-                    break
+        if proceed and pick["html"]:
             fromhtml["makehtml"] = True
             k_html = []
             if pick["key"] and pick["key"][0]:
@@ -2452,7 +2458,7 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                         for z, cw, a in y[1:]:
                             if a:
                                 continue
-                            html = carrot_files(carrots(html, z, cw, pick["files"]), htmlpart, k, pick, y[0]["alt"], folder, after)[0]
+                            html = carrot_files(carrots(html, z, cw, pick["files"]), htmlpart, k, pick, "" if y[0]["alt"] else page, folder, after)[0]
                             new_html = []
                             for h in html:
                                 new_html += [[h[0], ""], ["", h[1]]] if h[1] else [h] # Overkill?
@@ -2504,12 +2510,7 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                 if not z in htmlpart:
                     htmlpart.update(new_p(z))
                 htmlpart[z]["keywords"] += [rp(y, pick["replace"]) for y in keywords[z]]
-        if pick["icon"]:
-            if not data:
-                if x := get_data(threadn, page, url, pick):
-                    data, part = x
-                else:
-                    break
+        if proceed and pick["icon"]:
             pos = 0
             for y in pick["icon"]:
                 if len(fromhtml["icons"]) < pos + 1:
@@ -2532,18 +2533,13 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                                         ext = x
                                 fromhtml["icons"] += [new_link(url, f"""icon{" " + str(pos) if pos else ""}{ext}""", 0)]
                 pos += 1
-        if pick["file"] or pick["file_after"]:
-            if not data:
-                if x := get_data(threadn, page, url, pick):
-                    data, part = x
-                else:
-                    break
+        if proceed and (pick["file"] or pick["file_after"]):
             pos = 0
             filelist = []
             if pick["file"]:
-                pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file"], folder, filelist, pos, False)
+                pos = pick_files(threadn, page, data, db, part, htmlpart, pick, pick["file"], folder, filelist, pos, False)
             if pick["file_after"]:
-                pos = pick_files(threadn, data, db, part, htmlpart, pick, pick["file_after"], folder, filelist, pos, True)
+                pos = pick_files(threadn, page, data, db, part, htmlpart, pick, pick["file_after"], folder, filelist, pos, True)
             for file in filelist:
                 k = file[0]
                 if not k in htmlpart:
@@ -2566,12 +2562,10 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                 if not x:
                     stdout += f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference." + "\n"
                 echo(stdout + tcolorx)
-        if not pick["ready"]:
+        if proceed and not pick["ready"]:
             fromhtml["ready"] = False
         echothreadn.remove(threadn)
         scraper.task_done()
-    echothreadn.remove(threadn)
-    scraper.task_done()
 
 
 
@@ -2693,12 +2687,12 @@ def scrape(startpages):
                 pages += alerted_pages
                 alerted_pages = []
                 alerted[0] = False
-                choice(bg="2e")
+                choice(bg=["2e", "%color%"])
             elif Keypress_S[0]:
                 Keypress_S[0] = False
                 alerted_pages = []
                 alerted[0] = False
-                choice(bg="2e")
+                choice(bg=["2e", "%color%"])
     title(status())
 
     for p in shelf.keys():
@@ -2737,7 +2731,7 @@ def phthread(ph_q):
             accu.append(f"{hash} {f[0]}/{f[1]}")
             if filevs and filevs == hash:
                 print(f"{file}\nSame file found! (C)ontinue")
-                choice("c", "2e")
+                choice("c", ["2e"])
         except:
             error[0] += [file]
         if threadn%16 == 0:
@@ -4008,7 +4002,7 @@ def delnow():
                 if os.path.exists(file):
                     os.rename(f"{dir}/{file}", f"{trashdir}{file}")
         echo(skull(), 0, 1)
-        choice(bg="4c")
+        choice(bg=["4c", "%color%"])
         delfiles[0] = []
     return True
 
@@ -4044,10 +4038,10 @@ def delmode():
                 choice(bg=True)
                 print(" GEISTAUGE: Maybe not.")
                 return
-            choice(bg="4c")
+            choice(bg=["4c", "%color%"])
             if input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "").replace("\\", "/") == f"{batchdir}{sav}":
                 echo(skull(), 0, 1)
-                choice(bg="4c")
+                choice(bg=["4c", "%color%"])
                 tohtml_geistauge(True)
             return
         elif el == 3:
@@ -4058,7 +4052,7 @@ def delmode():
             trashdir = input("Trash dir: ").rstrip().replace("\"", "").replace("\\", "/")
             if os.path.isdir(trashdir) and trashdir.endswith(" Trash"):
                 echo(skull(), 0, 1)
-                choice(bg="4c")
+                choice(bg=["4c", "%color%"])
                 savenow(trashdir)
             return
         elif el == 5:
@@ -4082,17 +4076,17 @@ def delmode_old(m):
             while True:
                 try:
                     delfiles[0].remove(file)
-                    choice(bg="2a")
+                    choice(bg=["2a", "%color%"])
                 except:
-                    choice(bg="08")
+                    choice(bg=["08", "%color%"])
                     break
         elif file.lower() == "d" and delfiles[0]:
             delnow()
         elif os.path.exists(file):
-            choice(bg="4c")
+            choice(bg=["4c", "%color%"])
             delfiles[0] += [file]
         else:
-            choice(bg="08")
+            choice(bg=["08", "%color%"])
 
 
 
@@ -4126,7 +4120,7 @@ def compare(fp):
             print(f" {tcolorg}Featuring image is unique! Nothing like it in database!{tcolorx}")
         else:
             print(f"{hash} {fp} (featuring image)\nSame file found! (C)ontinue")
-            choice("c", "2e")
+            choice("c", ["2e"])
     elif os.path.isdir(s):
         fp = s
         tosav(fp, hash)
@@ -4273,7 +4267,10 @@ def source_view():
         if key.startswith("http"):
             page, key = key.split(" ", 1) if " " in key else [key, False]
             if not page in savepage[0]:
-                data = get(page, utf8=True)
+                data, err = get(page, utf8=True)
+                if err:
+                    echo(f" Error visiting ({err}): {page}", 0, 1)
+                    continue
                 savepage[0] = {page:data, "part":[]}
             else:
                 data = savepage[0][page]
@@ -4781,7 +4778,7 @@ while True:
         time.sleep(0.1)
     except KeyboardInterrupt:
         echo(skull(), 0, 1)
-        choice(bg="4c")
+        choice(bg=["4c", "%color%"])
         ready_input()
 
 

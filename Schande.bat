@@ -4453,7 +4453,8 @@ def torrent_get(fp=""):
             echo(" Download and install Transmission x64 for Windows in default location from https://github.com/transmission/transmission/releases and then try again.", 0, 1)
             return
     elif sys.platform == "linux":
-        if not os.path.exists("/usr/bin/transmission-remote"):
+        if not os.path.exists("/usr/bin/transmission-daemon") or not os.path.exists("/usr/bin/transmission-remote"):
+            os.system("apk add transmission-daemon")
             os.system("apk add transmission-cli")
         daemon = "transmission-daemon"
         remote = "transmission-remote"

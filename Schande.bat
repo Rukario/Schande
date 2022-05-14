@@ -4313,9 +4313,9 @@ def start_remote(remote):
             pos = 0
             while True:
                 while True:
-                    i = input(f"Select torrent by number to remove, (A)ll (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789ardf")
+                    i = input(f"Select torrent by number (D/F to -/+ 10) to remove, (A)ll (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789ardf")
                     if i == 13:
-                        pos -= 10
+                        pos -= 10 if pos > 0 else 0
                     elif i == 14:
                         pos += 10
                     else:
@@ -4333,9 +4333,9 @@ def start_remote(remote):
             pos = 0
             while True:
                 while True:
-                    i = input(f"Select torrent by number to stop (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789rdf")
+                    i = input(f"Select torrent by number (D/F to -/+ 10) to stop (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789rdf")
                     if i == 12:
-                        pos -= 10
+                        pos -= 10 if pos > 0 else 0
                     elif i == 13:
                         pos += 10
                     else:
@@ -4351,9 +4351,9 @@ def start_remote(remote):
             pos = 0
             while True:
                 while True:
-                    i = input(f"Select torrent by number to start (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789rdf")
+                    i = input(f"Select torrent by number (D/F to -/+ 10) to start (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789rdf")
                     if i == 12:
-                        pos -= 10
+                        pos -= 10 if pos > 0 else 0
                     elif i == 13:
                         pos += 10
                     else:
@@ -4368,9 +4368,9 @@ def start_remote(remote):
         elif el == 5:
             pos = 0
             while True:
-                id = input(f"Select torrent by number to view file list, (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789rdf")
+                id = input(f"Select torrent by number (D/F to -/+ 10) to view file list, (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789rdf")
                 if id == 12:
-                    pos -= 10
+                    pos -= 10 if pos > 0 else 0
                 elif id == 13:
                     pos += 10
                 else:
@@ -4389,9 +4389,9 @@ def start_remote(remote):
                 if i == 1:
                     pos = 0
                     while True:
-                        i = input(f"Get file by number, (A)ll (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789ardf")
+                        i = input(f"Get file by number (D/F to -/+ 10), (A)ll (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789ardf")
                         if i == 13:
-                            pos -= 10
+                            pos -= 10 if pos > 0 else 0
                         elif i == 14:
                             pos += 10
                         else:
@@ -4407,9 +4407,9 @@ def start_remote(remote):
                 elif i == 2:
                     pos = 0
                     while True:
-                        i = input(f"Stop getting file by number, (A)ll (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789ardf")
+                        i = input(f"Stop getting file by number (D/F to -/+ 10), (A)ll (R)eturn: {f'{pos/10:g}' if pos else ''}", "0123456789ardf")
                         if i == 13:
-                            pos -= 10
+                            pos -= 10 if pos > 0 else 0
                         elif i == 14:
                             pos += 10
                         else:

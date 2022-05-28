@@ -2066,7 +2066,6 @@ def carrot_files(html, htmlpart, key, pick, abs_page, folder, after=False):
                             break
                     else:
                         # meta
-                        print(url)
                         if len(n := carrots([[url, ""]], z, cw, False)) == 2:
                             name += n[-2][1]
                             name_err = False

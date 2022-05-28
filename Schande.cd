@@ -100,10 +100,10 @@ ready
 
 
 - - - - Scraper - - - -
-http://192.168.1.239:8886/
+http://192.168.1.
 relpages <li><a href="*">*</a></li> ends with /
 relfiles <li><a href="*">*</a></li> not ends with /
-meta http://192.168.1.239:8886/*
+meta http://192.168.1.*/*
 
 https://www.reddit.com/r/
 urlfix * with *.json?limit=1
@@ -219,9 +219,16 @@ pages "creator_id": *} customize with https://www.patreon.com/api/user/*
 savelink Patreon
 
 https://www.pixiv.net/en/artworks/
-urlfix https://www.pixiv.net/en/artworks/* with https://www.pixiv.net/ajax/illust/*/pages?lang=en
+urlfix https://www.pixiv.net/en/artworks/* with https://www.pixiv.net/ajax/illust/*/pages
 replace \ with 
-files "original":"*"
+files "original":"*" not ends with ugoira0.jpg
+meta ^/*
+pages ^/*_ugoira customize with https://www.pixiv.net/ugoira/*
+
+https://www.pixiv.net/ugoira/
+urlfix https://www.pixiv.net/ugoira/* with https://www.pixiv.net/ajax/illust/*/ugoira_meta
+replace \ with 
+files "originalSrc":"*"
 meta ^/*
 
 https://www.fanbox.cc/@

@@ -4304,7 +4304,7 @@ def start_remote(remote):
             while True:
                 i = input("Magnet link, enter nothing to cancel: ")
                 if i.startswith("magnet:") or i.startswith("http") or i.endswith(".torrent"):
-                    subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", i, "-w", batchdir.rstrip("/"), "-sr", "0"], **shuddup)
+                    subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", i, "-sr", "0"], **shuddup)
                 else:
                     echo("", 1)
                     echo("", 1)

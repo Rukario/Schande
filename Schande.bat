@@ -199,7 +199,9 @@ def help():
  |  "defuse"          declare this url as having antibot detectors in place, defuse tools will be used on first visit.
  |  "visit"           visit especially for cookies before redirection.
  |  "urlfix ..*.. with ..*.." permanent redirector.
+ |    Alternatively "X with Y".
  |  "url ..*.. with ..*.. redirector. Original url will be used for statement and scraper loop.
+ |    Alternatively "X with Y".
  |  "send X Y"        send data (X) to url (Y) or to current page url (no Y) before accessing page.
  |
  | Alert
@@ -231,6 +233,7 @@ def help():
  |
  | Miscellaneous
  |  "replace ..*.. with ..*.." find'n'replace before start picking in page/partition.
+ |    Alternatively "X with Y".
  |  "newline ...*..." highlight areas to preserve newlines ("\\n").
  |  "pages ...*..."   pick more pages to scrape in parallel, "relpages" for relative urls.
  |    Page picker will make sure all pages are unique to visit, but older pages can cause loophole.
@@ -273,6 +276,27 @@ def help():
  |  "X # letters" (# or #-#) after any picker (before "customize with") so the match is expected to be that amount.
  |  "X ends/starts with X" after any picker (before "customize with"). "not" for opposition.
  + Use replace picker to discard what you don't need before complicating pickers with many asterisks or carets.
+
+
+ - - - - Filter - - - -
+  Wildcard: None, non-anchored start/end.
+
+ + Possible operators: .filetype, !.filetype, !pattern, !!pattern.
+ |  > .filetype    to whitelist file types.
+ |  > !.filetype   to blacklist file types.
+ |  > !pattern     to blacklist files by pattern match in their file names.
+ |  > !!pattern    to whitelist, "!!" irony operator used to distinguish from Geistauge/Sorter rules.
+ |
+ | Filters are case insensitive.
+ + Anchored ending if there's a period at the beginning, to avoid matching pattern of an extension name in file names.
+
+ + Filters can be mainstreamed with scraper pickers as way to filter per-site.
+ | Filters before any site picker will be your "general" filters. Filters under a site will be for this site.
+ | Filters under a site picker will override whitelist.
+ |
+ | Extra pickers:
+ |  "reload"       to scrape and download files that was rejected in the past.
+ +  "inherit"      to make whitelist incorporate again, your "exempt from blacklist" mode for this site.
 """
 
 
@@ -325,9 +349,8 @@ def send(s, m, d):
             server.login(Mail[0], Mail[2])
             server.sendmail(Mail[0], Mail[1], message)
             server.close()
-            echo("Success sending!", 0, 1)
         except:
-            echo("Sending failed! Try turning on https://myaccount.google.com/lesssecureapps and make sure user and password is correct.", 0, 1)
+            echo("Sending failed!\n > Create & use app password from 'App Passwords' under 'Signing in to Google' in https://myaccount.google.com/security.\n   Turn on the 2-Step Verification to see 'App Passwords' option under 'Signing in to Google'.\n > Make sure user and password is correct.", 0, 1)
     elif not d:
         echo("You should consider using Mail if you want alert over Mail.", 0, 1)
     else:
@@ -395,7 +418,7 @@ def choice(keys="", bg=[]):
             el = os.system(f"choice /c:{keys} /n")
             while lostfocus[0]:
                 lostfocus[0] = False
-                echo("Sorry, lost focus, what was your choice, again?")
+                echo("Sorry, lost focus, what was your choice, again?\n")
                 el = os.system(f"choice /c:{keys} /n")
     else:
         if keys:
@@ -764,7 +787,7 @@ def at(s, r, cw=[], alt=0, key=False, name=False, meta=False):
 
 
 def new_picker():
-    return {"replace":[], "send":[], "defuse":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "pattern":[[], [], False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "send":[], "defuse":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "pattern":[[], [], False, False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
 
 
 
@@ -792,6 +815,8 @@ def picker(s, rule):
         at(s["icon"], rule.split("icon", 1)[1])
     elif rule.startswith("inherit"):
         s["pattern"][2] = True
+    elif rule.startswith("reload"):
+        s["pattern"][3] = True
     elif rule.startswith("links"):
         at(s["links"], rule.split("links", 1)[1])
     elif rule.startswith("key"):
@@ -837,13 +862,13 @@ def picker(s, rule):
         else:
             rule = rule.split("urlfix ", 1)[1].rsplit(" with ", 1)
             x = rule[1].split("*", 1)
-            s["urlfix"] += [[x[0], rule[0], x[1]]]
+            s["urlfix"] += [[x[0], rule[0], x[1] if len(x) > 1 else ""]]
     elif rule.startswith("url "):
         if not " with " in rule:
             kill("""url picker is broken, there need to be "with"!""")
         rule = rule.split("url ", 1)[1].rsplit(" with ", 1)
         x = rule[1].split("*", 1)
-        s["url"] = [x[0], [rule[0]], x[1]]
+        s["url"] += [[x[0], rule[0], x[1] if len(x) > 1 else ""]]
     elif rule.startswith("pages "):
         at(s["pages"], rule.split("pages", 1)[1], [], 1)
     elif rule.startswith("relpages "):
@@ -1621,7 +1646,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
                     htmldirs.update({dir:json.loads(f.read())})
             else:
                 htmldirs.update({dir:{}})
-        if dir in htmldirs and key in htmldirs[dir]:
+        if dir in htmldirs and key in htmldirs[dir] and not pattern[3]:
             if len(htmldirs[dir][key]["keywords"]) < 2:
                 continue
             k = htmldirs[dir][key]["keywords"][1]
@@ -2205,7 +2230,7 @@ def rp(x, p):
 def get_data(threadn, page, url, pick):
     data = ""
     if not pick["ready"]:
-        echo(f" Visiting {page}", 0, 1)
+        echo(f""" {"into" if url else "Visiting"} {page}""", 0, 1)
     if pick["defuse"]:
         driver(page)
     if pick["visit"]:
@@ -2221,7 +2246,7 @@ def get_data(threadn, page, url, pick):
     if not data:
         data, err = get(url if url else page, utf8=True, stderr="Update cookie or referer if these are required to view", threadn=threadn)
         if err:
-            print(f" Error visiting ({err}): {page}")
+            print(f" Error visiting ({err}): {url if url else page}")
             return 0, 0
         elif len(data) < 4:
             return 0, 0
@@ -2248,29 +2273,33 @@ def pick_in_page(scraper):
         folder = fromhtml["folder"]
         proceed = True
         pg[0] += 1
-        if x := pick["url"]:
-            redir = ""
-            for y in x[1]:
-                if len(c := carrots([[page, ""]], y, [], False)) == 2:
-                    redir = x[0] + c[-2][1] + x[2]
-                    break
-            if not redir:
-                print(f" Error creating a redirected url for {page}")
-                break
-            url = redir
+        redir = False
         if x := pick["urlfix"]:
-            redir = ""
             for y in x:
                 if not y:
-                    redir = page
+                    redir = True
                     break
-                if len(c := carrots([[page, ""]], y[1], [], False)) == 2:
-                    redir = y[0] + c[-2][1] + y[2]
-                    break
-            if not redir:
-                print(f" Error fixing url for permanent redirection from {page}")
-                break
-            page = redir
+                if "*" in y[1]:
+                    if len(c := carrots([[page, ""]], y[1], [], False)) == 2:
+                        page = y[0] + c[-2][1] + y[2]
+                        redir = True
+                else:
+                    page = page.replace(y[1], y[0])
+                    redir = True
+            if redir and not pick["ready"]:
+                echo(f" Updated url with a permanent redirection from {url}", 0, 1)
+        if x := pick["url"]:
+            url = page
+            for y in x:
+                if "*" in y[1]:
+                    if len(c := carrots([[url, ""]], y[1], [], False)) == 2:
+                        url = y[0] + c[-2][1] + y[2]
+                        redir = True
+                else:
+                    url = url.replace(y[1], y[0])
+                    redir = True
+            if redir and not pick["ready"]:
+                echo(f" Visiting {url}", 0, 1)
         db = ""
         if proceed and pick["expect"]:
             proceed = False
@@ -2279,7 +2308,7 @@ def pick_in_page(scraper):
                 for z, cw, a in y[1:]:
                     if not z:
                         if not pick["ready"]:
-                            echo(f" Visiting {page}", 0, 1)
+                            echo(f""" {"into" if url else "Visiting"} {page}""", 0, 1)
                         result = True if fetch(page)[0] else False
                         title(monitor())
                     else:
@@ -2287,6 +2316,15 @@ def pick_in_page(scraper):
                             data, part = get_data(threadn, page, url, pick)
                             if not data:
                                 break
+                        if z[0] == " ":
+                            # standard
+                            pass
+                        else:
+                            # numbered
+                            pass
+
+
+
                         if a:
                             if not db:
                                 db = opendb(data)
@@ -2295,20 +2333,17 @@ def pick_in_page(scraper):
                             result = tree(db, [z[0], [[c[0], c[1].split(" > ") if len(c) == 2 else 0, 0, 0, 0, 0, 0]]])
                         else:
                             result = True if [x[1] for x in carrots(part, z, [], False)][0] else False
-                    if y[0]["alt"] and result:
+                    if y[0]["alt"] and result or not y[0]["alt"] and not result:
                         proceed = True
                         if not pick["dismiss"] and Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)
                         alerted_pages += [[start, page, pagen]]
                         alerted[0] = f"(C)ontinue (S)kip {len(alerted_pages)} alerted pages"
-                        alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "As expected", pick["dismiss"])
-                    elif not y[0]["alt"] and not result:
-                        proceed = True
-                        if not pick["dismiss"] and Browser:
-                            os.system(f"""start "" "{Browser}" "{page}" """)
-                        alerted_pages += [[start, page, pagen]]
-                        alerted[0] = f"(C)ontinue (S)kip {len(alerted_pages)} alerted pages"
-                        alert(page, pick["message"][pos-1] if pick["message"] and len(pick["message"]) >= pos else "Not any longer", pick["dismiss"])
+                        if pick["message"] and len(pick["message"]) >= pos:
+                            buffer = pick["message"][pos-1]
+                        else:
+                            buffer = "As expected" if y[0]["alt"] and result else "Not any longer"
+                        alert(page, buffer, pick["dismiss"])
                     else:
                         more_pages += [[start, page, pagen]]
                         timer(f"{alerted[0]}, resuming unalerted pages in"  if alerted[0] else "Not quite as expected! Reloading in", listen=[Keypress_C, Keypress_S] if alerted[0] else [[False]])
@@ -2581,7 +2616,7 @@ def new_p(z):
 
 def new_part(threadn=0):
     new = {threadn:new_p("0")} if threadn else new_p("0")
-    return {"ready":True, "page":"", "name":"", "folder":"", "makehtml":False, "pattern":[[], [], False], "icons":[], "inlinefirst":True, "partition":new}
+    return {"ready":True, "page":"", "name":"", "folder":"", "makehtml":False, "pattern":[[], [], False, False], "icons":[], "inlinefirst":True, "partition":new}
 
 def new_link(l, n, e):
     return {"link":l, "name":saint(n), "edited":e}
@@ -3654,6 +3689,10 @@ def frompart(partfile, relics, htmlpart, pattern):
             f.write(json.dumps(part))
         buffer = partfile.replace("/", "\\")
         echo(f" File {part_is}: \\{buffer}", 0, 1)
+        return part
+    elif pattern[3]:
+        buffer = partfile.replace("/", "\\")
+        echo(f" File loaded (filter reload): \\{buffer}", 0, 1)
         return part
 
 

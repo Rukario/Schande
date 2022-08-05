@@ -155,8 +155,8 @@ function pos() {
 
 function plaintext(elem, e) {
   e.preventDefault();
-  var text = e.clipboardData.getData('text/plain');
-  window.document.execCommand('insertText', false, text);
+  var text = e.clipboardData.getData('text/plain').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  document.execCommand('insertHTML', false, text);
 }
 
 function edit() {
@@ -289,8 +289,7 @@ function fraktur(){
     }
     str += String.fromCodePoint(c);
   }
-  document.body.textContent = str;
-  toolbar(document.body.textContent);
+  toolbar(str);
 }
 
 function check(e){
@@ -409,15 +408,15 @@ function toolbar(d){
   document.body.innerHTML = `<div style="position:fixed; white-space:nowrap; background-color:inherit;"><div id="dimm" style="font-size:14px; display:none;"><button class="prev" onclick="exitmenu();">🦊 -(Destructive tools)</button> 🦊 -(De<button class="next" onclick="dedup();">duplicate</button><button class="next" onclick="denew();">newline</button><button class="next" onclick="detab();">tab</button><button class="next" onclick="decode();">code</button> or <input id="replace" class="next" style="padding:5px 10px 4px; margin:2px; width:86px;" type="text" placeholder="Replace...">→<input id="with" class="next" style="padding:5px 10px 4px; margin:2px; width:88px;" type="text" placeholder="none">) <button class="next" onclick="fraktur();">🦊 -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="font-size:14px; display:block;"><label><input id="color" type="color" value="#2d0710"></input><button class="next" onclick="menu()">🦊 -(Destructive tools)</button><input id="calculator" class="next" style="padding:5px 10px 4px; margin:2px; width:116px;" type="text" oninput="check(this);" placeholder="Quick Calculator"> 🦊 -(Open<label class="next" style="font-size:11px; padding:5px 12px 4px; margin:2px; font-family:arial;"><input type="file" id="picker"></input>File</label><label id="togglediffx" class="next" style="font-size:11px; padding:5px 12px 4px; margin:2px; font-family:arial;"><input type="file" id="pickerdiff"></input>Diff</label><button class="next" id="togglediff" style="display:none;" onclick="diff(this, 'File 2')">File 1</button>) <button class="next" onclick="rename();">🦊 -(Save as)</button> 🦊 -(<button class="next" onclick="save()">Save</button><button class="next" id="ask" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label> <div id="highlight" class="tooltip" style="display:none;" data-tooltip='Save <a href="https://highlightjs.org/download/" target="_blank">highlight.min.js</a> next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.'>🦊 -(Highlight)</div></div><div id="tooltip" style="white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + document.body.innerHTML.replace(/(https:\/\/.*?)(\"|\'|\n|<|\)| )/g, '<a href="$1" target="_blank" contenteditable="false">$1</a>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
   tooltip = document.getElementById("tooltip");
   editor = document.getElementById("editable");
-  if (window.location.search.includes("?")){
-    tooltip.style.display = "inline-block"
+  let left = () => {
+    setTimeout(function(){
+      tooltip.style.display = "none";
+    }, 40)
+    editor.removeEventListener("click", left);
+  }
+  if (window.location.search.includes("?") && !d){
+    tooltip.style.display = "inline-block";
     tooltip.innerHTML = "The clipboard is updated with page source, paste to view!";
-    let left = () => {
-      setTimeout(function(){
-        tooltip.style.display = "none";
-      }, 40)
-      editor.removeEventListener("click", left);
-    }
     editor.addEventListener("click", left);
   }
   editor.addEventListener("mouseup", pos);
@@ -425,6 +424,11 @@ function toolbar(d){
   editor.setAttribute("oninput", "edit();");
   editor.setAttribute("onselect", "selected();");
   if(!editor.isContentEditable){
+    if(!d){
+      tooltip.style.display = "inline-block";
+      tooltip.innerHTML = `Performance reduced: The JavaScript version is now used for compatibility of some feature for this browser.`;
+      editor.addEventListener("click", left);
+    }
     editor.setAttribute("onpaste", "plaintext(this, event)");
     editor.setAttribute("contenteditable", "true");
     editdiff.setAttribute("onpaste", "plaintext(this, event)");

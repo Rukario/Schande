@@ -426,7 +426,7 @@ function toolbar(d){
   if(!editor.isContentEditable){
     if(!d){
       tooltip.style.display = "inline-block";
-      tooltip.innerHTML = `Performance reduced: The JavaScript version is now used for compatibility of some feature for this browser.`;
+      tooltip.innerHTML = `Performance reduced: The JavaScript version is now used for compatibility of some feature on this browser.`;
       editor.addEventListener("click", left);
     }
     editor.setAttribute("onpaste", "plaintext(this, event)");

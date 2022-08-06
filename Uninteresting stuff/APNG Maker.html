@@ -17,16 +17,34 @@ input[type="file"] {display:none;}
 .inverse{background-color:#d9f; color:#428; border:1px solid #214}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
-.tooltip {background:none; border:1px solid #772227; color:inherit; cursor:pointer; position:relative; margin:-2px 0px;}
+.tooltip {background:none; border:1px solid #772227; color:inherit; position:relative; cursor:default; padding:2px 11px 3px;}
 .previous, .reverse, .inverse, .next {border-radius:0px; cursor:pointer; font-size:12px; padding:4px 11px; font-family:Arial;}
 .cell{display:inline-block; width: 360px; vertical-align: text-top; border:2px solid #772227; padding-left:10px;}
 .stdout {color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
 </style>
 <script>
+var FFdown = function(e) {
+  var t = e.target;
+  var a = t.parentNode;
+  if (t.hasAttribute("data-tooltip")) {
+    tooltip.style.display = "inline-block";
+    tooltip.innerHTML = t.getAttribute("data-tooltip");
+    let left = () => {
+      setTimeout(function(){
+        tooltip.style.display = "none";
+      }, 1250)
+      a.removeEventListener("mouseleave", left);
+    }
+    a.addEventListener("mouseleave", left);
+  }
+}
+
+document.addEventListener("click", FFdown);
+
 function plaintext(elem, e) {
   e.preventDefault();
-  var text = e.clipboardData.getData('text/plain');
-  window.document.execCommand('insertText', false, text);
+  var text = e.clipboardData.getData('text/plain').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  document.execCommand('insertHTML', false, text);
 }
 
 function quicklook(e) {
@@ -143,6 +161,8 @@ function isImage(ext) {
     case 'bmp':
     case 'png':
       return true;
+    case 'heic':
+      return 'heic';
   }
   return false;
 }
@@ -202,7 +222,7 @@ function ABtoAB(ab){
 function echoIMG(img, B){
   img.style = "max-height:400px;"
   dl = document.createElement("a");
-  dl.download = B + ".png";
+  dl.download = B;
   dl.href = img.src;
   dl.appendChild(img);
   stdout.insertAdjacentHTML("beforeend", "<br>");
@@ -212,17 +232,28 @@ function echoIMG(img, B){
 function echoABtoDL(ab, B){
   dl = document.createElement("a")
   dl.href = ABtoURL(ABtoAB(ab));
-  dl.download = B + ".png";
+  dl.download = B;
   dl.innerHTML = "<br>" + B
   stdout.appendChild(dl);
 }
 
-function echoIMGfromCanvas(c) {
-  var promise = new Promise(canvasToAB(c))
+function echoIMGfromCanvas(c, B=undefined, ext='png') {
+  var promise = new Promise(canvasToAB(c, ext))
   promise.then(function(arri){
-    echoIMG(ABtoIMG(ABtoAB(arri)))
+    echoIMG(ABtoIMG(ABtoAB(arri)), B)
   })
 }
+
+function echoHEIC(image, B) {
+  c = document.createElement("canvas");
+  c.width = image.get_width();
+  c.height = image.get_height();
+  context = c.getContext("2d");
+  image.display(context.createImageData(c.width, c.height), function(display_image_data) {
+    context.putImageData(display_image_data, 0, 0);
+    echoIMGfromCanvas(c, B, 'jpeg');
+  });
+};
 
 function echoPalette(h=8, s=1){
   palette.sort();
@@ -254,7 +285,7 @@ function echoPalette(h=8, s=1){
   palette = [];
 }
 
-function canvasToAB(c) {
+function canvasToAB(c, ext="png") {
   return function(resolve) {
     c.toBlob((blob0) => {
       var fr = new FileReader();
@@ -265,7 +296,7 @@ function canvasToAB(c) {
         ti[2] = performance.now()
         //echo((ti[2] - ti[1])/1000 + "s canvasToAB(c)")
         ti[1] = performance.now()
-        if(optimize){
+        if(ext == "png" && optimize){
           //https://manpages.debian.org/stretch/optipng/optipng.1.en.html
           //Ideal settings for apng production
           arri = optipng(arri, ['-force', '-zw', '32k', '-f', '0', '-zs', '0', '-zm', '8', '-zc', '9', '-nx', '-strip', 'all']).data;
@@ -274,7 +305,7 @@ function canvasToAB(c) {
         //echo((ti[2] - ti[1])/1000 + "s OptiPNG")
         resolve(arri);
       };
-    }, 'image/png');
+    }, 'image/' + ext);
   }
 }
 
@@ -311,13 +342,13 @@ function canvasToFrame(callback, i, fpsm=1){
     //echo((ti[2] - ti[1])/1000 + "s ArrayBuffer")
     if(i == undefined){
       document.title = "Make APNG";
-      //echoIMG(ABtoIMG(ABtoAB(arri)), "Resave as");
+      //echoIMG(ABtoIMG(ABtoAB(arri)), "Resave as" + ".png");
       toFrame([1000, 1000]);
       callback();
     } else {
       echo("Frame " + (i+1));
       document.title = "Frame " + (i+1);
-      //echoIMG(ABtoIMG(ABtoAB(arri)), "Frame " + (i+1));
+      //echoIMG(ABtoIMG(ABtoAB(arri)), "Frame " + (i+1) + ".png");
       toFrame([1000/(fps/fpsm), 1000]);
       callback(i + callafter);
     }
@@ -836,7 +867,7 @@ function makeAPNG(i) {
   sequence_number = -1
 
   //echoPalette();
-  echoIMG(ABtoIMG(newAPNG), name.split('.').slice(0, -1).join('.') + " (apng)");
+  echoIMG(ABtoIMG(newAPNG), name.split('.').slice(0, -1).join('.') + " (apng).png");
   document.title = "Make APNG";
   newAPNG = [];
 }
@@ -1002,7 +1033,7 @@ function compileapngs(){
             frameSaver(0);
             document.title = next;
             echo(next)
-            //echoIMG(img, next)
+            //echoIMG(img, next + ".png")
             newframe.arri = arri;
             toFrame([frame.numerator, frame.denominator], [frame.disposeOp, frame.blendOp]);
             if(f+1 == frames.length){
@@ -1019,7 +1050,7 @@ function compileapngs(){
               img = ABtoIMG(ABtoAB(arri))
               document.title = next;
               echo(next)
-              //echoIMG(img, next)
+              //echoIMG(img, next + ".png")
               newframe.arri = arri;
               toFrame([frame.numerator, frame.denominator], [frame.disposeOp, frame.blendOp]);
               c.width = dim[2];
@@ -1037,7 +1068,7 @@ function compileapngs(){
           frameSaver(0);
           document.title = next;
           echo(next)
-          //echoIMG(img, next)
+          //echoIMG(img, next + ".png")
           newframe.arri = arri;
           toFrame([frame.numerator, frame.denominator], [frame.disposeOp, frame.blendOp]);
           if(f+1 == frames.length){
@@ -1146,6 +1177,7 @@ function readapng(filelist){
 }
 
 function loaded(){
+  tooltip = document.getElementById("tooltip");
   di = document.getElementById("di");
   fl = document.getElementById("framelist");
   al = document.getElementById("apnglist");
@@ -1164,14 +1196,26 @@ function loaded(){
       v.play();
     } else if (isImage(get_ext(f))) {
       var img = document.createElement("img")
-      var src = window.URL.createObjectURL(f);
-      img.src = src;
-      img.style = "max-height:400px;"
-      var dl = document.createElement("a");
-      dl.download = f.name;
-      dl.href = src;
-      dl.appendChild(img);
-      stdout.appendChild(dl);
+      if (isImage(get_ext(f)) == "heic"){
+        if (convert){
+          var fr = new FileReader();
+          fr.readAsArrayBuffer(f);
+          fr.onload = () => {
+            echoHEIC(decoder.decode(fr.result)[0], f.name.replace(/.HEIC/gi, ".jpg"));
+          }
+        } else {
+          stdout.insertAdjacentHTML("beforeend", "libheif.js is required to view.");
+        }
+      } else {
+        var src = window.URL.createObjectURL(f);
+        img.src = src;
+        img.style = "max-height:400px;"
+        var dl = document.createElement("a");
+        dl.download = f.name;
+        dl.href = src;
+        dl.appendChild(img);
+        stdout.appendChild(dl);
+      }
     } else if (get_ext(f).toLowerCase()=="swf") {
       try {
         const ruffle = window.RufflePlayer.newest();
@@ -1216,41 +1260,27 @@ function loaded(){
     read(event.dataTransfer.files);
   });
 
-  document.getElementById("js").addEventListener('change', (event) => {
-    var fr = new FileReader();
-    fr.readAsArrayBuffer(event.target.files[0]);
-    fr.onload = () => {
-      var d = document.getElementById("jsload");
-      d.classList = "previous";
-      d.setAttribute("onclick", "echo('Already loaded!')")
-      d.innerHTML = "optipng.js armed";
-      var s = document.createElement("script");
-      s.src = ABtoURL(ABtoAB(fr.result));
-      document.body.appendChild(s);
-      optimize = true;
-    }
-  });
-
-  var jslist = ["optipng.min.js", "optipng.js"]
-  function NextJs(i){
-    if(i>=jslist.length){return;}
-    var s = document.createElement("script");
-    s.src = jslist[i];
-    document.body.appendChild(s);
-    s.onload = () => {
-      if(Module){
-        var d = document.getElementById("jsload");
-        d.classList = "previous";
-        d.setAttribute("onclick", "echo('Already loaded!')")
-        d.innerHTML = "optipng.js armed";
-        optimize = true;
-      }
-    }
-    s.onerror = () => {
-      NextJs(i+1)
-    }
+  var s = document.createElement("script");
+  s.src = "optipng.min.js";
+  document.body.appendChild(s);
+  s.onload = () => {
+    optimize = true;
   }
-  NextJs(0)
+  s.onerror = () => {
+    document.getElementById("oload").style.display = "inline-block";
+  }
+
+  var s = document.createElement("script");
+  s.src = "libheif.js";
+  document.body.appendChild(s);
+  s.onload = () => {
+    convert = true;
+    decoder = new libheif.HeifDecoder();
+  }
+  s.onerror = () => {
+    document.getElementById("lload").style.display = "inline-block";
+  }
+
   var s = document.createElement("script");
   s.src = "ruffle.js?" + Date.now();
   document.body.appendChild(s);
@@ -1260,32 +1290,27 @@ var fps = 0;
 var framearray = [];
 var apngarray = [];
 var optimize = false;
+var convert = false;
 var ti = [0, 0, 0, 0];
 var c = document.createElement("canvas");
 var context = c.getContext("2d");
-var di, dim, orig_dim, new_dim, portrait, cactus, al, fl, arri, arro, stdout, dl, img, Module, name, rgb;
+var di, dim, orig_dim, new_dim, portrait, cactus, al, fl, arri, arro, stdout, dl, img, Module, name, rgb, tooltip, decoder;
 
 window.onload = () => {
-  document.body.innerHTML = `<!--<div class="container">
-<div class="frame"><a class="fileThumb" href="Eye - Green.png"><img class="lazy" data-src="Eye - Green.png"></a></div>
-<div class="frame"><a class="fileThumb" href="Eye - pink.png"><img class="lazy" id="load" data-src="Eye - pink.png"></a></div>
-</div>
-<div class="container">
-<div class="frame"><a class="fileThumb" href="El technical fight outfit.png"><img class="lazy" data-src="El technical fight outfit.png"></a></div>
-<div class="frame"><a class="fileThumb" href="El standard outfit.png"><img class="lazy" data-src="El standard outfit.png"></a></div>
-</div>-->
-
-<label class="next" id="jsload"><input id="js" type="file" accept=".js, text/javascript"></input>Load optipng.js</label>
-<button class="tooltip" onclick="echo('Optimize frames with <a href=&quot;https://github.com/LI-NA/optipng.js/tree/master/demo/js&quot; target=&quot;_blank&quot;>optipng.min.js</a> (minified of optipng.js), save next to HTML to load it automatically.<br>')">what?</button>
-<button class="tooltip" onclick="echo('APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Load optipng.js for additional file size reduction.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">production advices</button>
+  document.body.innerHTML = `<div style="margin-bottom:10px; z-index:999;">
 <label class="next"><input id="viewer" type="file"></input>Echo File</label>
-<p>
+<div class="tooltip" style="display:inline-block;" data-tooltip='APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Load optipng.js for additional file size reduction.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">production advices</div>
+<div class="tooltip" id="oload" style="display:none;" data-tooltip='Optimize frames with <a href="https://github.com/LI-NA/optipng.js/tree/master/demo/js" target="_blank">optipng.min.js</a>, save next to HTML then reload this page.'>optipng.js</div>
+<div class="tooltip" id="lload" style="display:none;" data-tooltip='Load HEIC files with <a href="https://github.com/alexcorvi/heic2any/raw/master/src" target="_blank">libheif.js</a>, save next to HTML then reload this page.'>libheif.js</div>
+</div>
+<div id="tooltip" style="position:absolute; margin-top:35px; white-space:initial; background-color:#2d0710; padding:2px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div>
+</div>
 
 
 
 <div>
 <div class="cell">
-<div style="background-color:#2d0710; padding:4px; top:-12px; position:relative; display:table;">Make</div>
+<div style="background-color:#2d0710; padding:0px 4px; top:-8px; position:relative; display:table;">Make</div>
 <label class="next"><input id="frames" type="file" multiple></input>Load Frames</label>
 <label class="next"><input id="more" type="file" multiple></input>Load more</label>
 <p>
@@ -1302,7 +1327,7 @@ window.onload = () => {
 
 
 <div class="cell">
-<div style="background-color:#2d0710; padding:4px; top:-12px; position:relative; display:table;">Merge</div>
+<div style="background-color:#2d0710; padding:0px 4px; top:-8px; position:relative; display:table;">Merge</div>
 <label class="next"><input id="apngframes" type="file" multiple></input>Load APNG</label>
 <label class="next"><input id="apngmore" type="file" multiple></input>Load more</label>
 <p>
@@ -1319,7 +1344,7 @@ window.onload = () => {
 
 
 
-<p class="stdout" id="stdout">`
+<p class="stdout" id="stdout">-- Output --</p>`
   loaded();
   lazyload();
   //document.addEventListener("click", Expander);

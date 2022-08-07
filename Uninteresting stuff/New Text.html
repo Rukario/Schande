@@ -426,7 +426,7 @@ function toolbar(d){
   if(!editor.isContentEditable){
     if(!d){
       tooltip.style.display = "inline-block";
-      tooltip.innerHTML = `Performance reduced: The JavaScript version is now used for compatibility of some feature on this browser.`;
+      tooltip.innerHTML = `Performance reduced: The JavaScript version is now used for compatibility of some feature for this browser.`;
       editor.addEventListener("click", left);
     }
     editor.setAttribute("onpaste", "plaintext(this, event)");
@@ -437,7 +437,12 @@ function toolbar(d){
   var x = document.getElementById("color");
   x.addEventListener('change', (event) => {
     var s = document.createElement("style")
-    s.innerHTML = ".exitmenu{background-color:" + event.target.value + ";}"
+    calc.placeholder = event.target.value;
+    if(event.target.value == "#000000"){
+      s.innerHTML = ".exitmenu{background-color:#000; color:#fff;}"
+    } else {
+      s.innerHTML = ".exitmenu{background-color:" + event.target.value + "; color:#f45;}"
+    }
     document.body.appendChild(s)
   });
   var x = document.getElementById("picker");

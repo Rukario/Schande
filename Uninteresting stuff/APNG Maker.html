@@ -17,10 +17,10 @@ input[type="file"] {display:none;}
 .inverse{background-color:#d9f; color:#428; border:1px solid #214}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
-.tooltip {background:none; border:1px solid #772227; color:inherit; position:relative; cursor:default; padding:2px 11px 3px;}
+.tooltip {background:#2d0710; border:1px solid #772227; color:inherit; position:relative; cursor:default; font-size:12px; padding:4px 11px; line-height:1.1;}
 .previous, .reverse, .inverse, .next {border-radius:0px; cursor:pointer; font-size:12px; padding:4px 11px; font-family:Arial;}
-.cell{display:inline-block; width: 360px; vertical-align: text-top; border:2px solid #772227; padding-left:10px;}
-.stdout {color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
+.cell {display:inline-block; width: 360px; vertical-align: text-top; border:2px solid #772227; padding-left:10px;}
+.stdout {line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
 </style>
 <script>
 var FFdown = function(e) {
@@ -1297,20 +1297,20 @@ var context = c.getContext("2d");
 var di, dim, orig_dim, new_dim, portrait, cactus, al, fl, arri, arro, stdout, dl, img, Module, name, rgb, tooltip, decoder;
 
 window.onload = () => {
-  document.body.innerHTML = `<div style="margin-bottom:10px; z-index:999;">
-<label class="next"><input id="viewer" type="file"></input>Echo File</label>
-<div class="tooltip" style="display:inline-block;" data-tooltip='APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Load optipng.js for additional file size reduction.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">production advices</div>
-<div class="tooltip" id="oload" style="display:none;" data-tooltip='Optimize frames with <a href="https://github.com/LI-NA/optipng.js/tree/master/demo/js" target="_blank">optipng.min.js</a>, save next to HTML then reload this page.'>optipng.js</div>
-<div class="tooltip" id="lload" style="display:none;" data-tooltip='Load HEIC files with <a href="https://github.com/alexcorvi/heic2any/raw/master/src" target="_blank">libheif.js</a>, save next to HTML then reload this page.'>libheif.js</div>
+  document.body.innerHTML = `<div style="margin-bottom:12px;">
+<label class="next"><input id="viewer" type="file"></input>🦦 -(Echo file)</label>
+<div class="tooltip" style="display:inline-block;" data-tooltip='APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Load optipng.js for additional file size reduction.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">🦦 -(Production advices)</div>
+<div class="tooltip" id="oload" style="display:none;" data-tooltip='Optimize frames with <a href="https://github.com/LI-NA/optipng.js/tree/master/demo/js" target="_blank">optipng.min.js</a>, save next to HTML then reload this page'>🦦 -(Optimize frames)</div>
+<div class="tooltip" id="lload" style="display:none;" data-tooltip='Read HEIC files with <a href="https://github.com/alexcorvi/heic2any/raw/master/src" target="_blank">libheif.js</a>, save next to HTML then reload this page'>🦦 -(HEICide)</div>
 </div>
-<div id="tooltip" style="position:absolute; margin-top:35px; white-space:initial; background-color:#2d0710; padding:2px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div>
+<div id="tooltip" style="position:absolute; margin-top:37px; white-space:initial; background-color:#2d0710; padding:2px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div>
 </div>
 
 
 
 <div>
 <div class="cell">
-<div style="background-color:#2d0710; padding:0px 4px; top:-8px; position:relative; display:table;">Make</div>
+<div class="tooltip" style="top:-8px; position:relative; display:table;">🦦 -(Make)</div>
 <label class="next"><input id="frames" type="file" multiple></input>Load Frames</label>
 <label class="next"><input id="more" type="file" multiple></input>Load more</label>
 <p>
@@ -1327,7 +1327,7 @@ window.onload = () => {
 
 
 <div class="cell">
-<div style="background-color:#2d0710; padding:0px 4px; top:-8px; position:relative; display:table;">Merge</div>
+<div class="tooltip" style="top:-8px; position:relative; display:table;">🦦 -(Merge)</div>
 <label class="next"><input id="apngframes" type="file" multiple></input>Load APNG</label>
 <label class="next"><input id="apngmore" type="file" multiple></input>Load more</label>
 <p>
@@ -1344,7 +1344,7 @@ window.onload = () => {
 
 
 
-<p class="stdout" id="stdout">-- Output --</p>`
+<p class="stdout" id="stdout">🦦 -(Output)</p>`
   loaded();
   lazyload();
   //document.addEventListener("click", Expander);

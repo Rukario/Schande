@@ -397,15 +397,21 @@ function opendiff(file){
   }
   let d = document.getElementById("togglediff")
   d.style.display = "inline-block";
-  d = document.getElementById("togglediffx")
-  d.style.display = "none";
 }
 
 function toolbar(d){
   document.body.className = "exitmenu";
   document.body.innerHTML = d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   if (hljs) hljs.highlightElement(document.body);
-  document.body.innerHTML = `<div style="position:fixed; white-space:nowrap; background-color:inherit;"><div id="dimm" style="font-size:14px; display:none;"><button class="prev" onclick="exitmenu();">🦊 -(Destructive tools)</button> 🦊 -(De<button class="next" onclick="dedup();">duplicate</button><button class="next" onclick="denew();">newline</button><button class="next" onclick="detab();">tab</button><button class="next" onclick="decode();">code</button> or <input id="replace" class="next" style="padding:5px 10px 4px; margin:2px; width:86px;" type="text" placeholder="Replace...">→<input id="with" class="next" style="padding:5px 10px 4px; margin:2px; width:88px;" type="text" placeholder="none">) <button class="next" onclick="fraktur();">🦊 -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="font-size:14px; display:block;"><label><input id="color" type="color" value="#2d0710"></input><button class="next" onclick="menu()">🦊 -(Destructive tools)</button><input id="calculator" class="next" style="padding:5px 10px 4px; margin:2px; width:116px;" type="text" oninput="check(this);" placeholder="Quick Calculator"> 🦊 -(Open<label class="next" style="font-size:11px; padding:5px 12px 4px; margin:2px; font-family:arial;"><input type="file" id="picker"></input>File</label><label id="togglediffx" class="next" style="font-size:11px; padding:5px 12px 4px; margin:2px; font-family:arial;"><input type="file" id="pickerdiff"></input>Diff</label><button class="next" id="togglediff" style="display:none;" onclick="diff(this, 'File 2')">File 1</button>) <button class="next" onclick="rename();">🦊 -(Save as)</button> 🦊 -(<button class="next" onclick="save()">Save</button><button class="next" id="ask" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label> <div id="highlight" class="tooltip" style="display:none;" data-tooltip='Save <a href="https://highlightjs.org/download/" target="_blank">highlight.min.js</a> next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.'>🦊 -(Highlight)</div></div><div id="tooltip" style="white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + document.body.innerHTML.replace(/(https:\/\/.*?)(\"|\'|\n|<|\)| )/g, '<a href="$1" target="_blank" contenteditable="false">$1</a>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
+  document.body.innerHTML = `<div style="position:fixed; white-space:nowrap; background-color:inherit;"><div id="dimm" style="font-size:14px; display:none;"><button class="prev" onclick="exitmenu();">🦊 -(Destructive tools)</button> 🦊 -(De<button class="next" onclick="dedup();">duplicate</button><button class="next" onclick="denew();">newline</button><button class="next" onclick="detab();">tab</button><button class="next" onclick="decode();">code</button> or <input id="replace" class="next" style="padding:5px 10px 4px; margin:2px; width:86px;" type="text" placeholder="Replace...">→<input id="with" class="next" style="padding:5px 10px 4px; margin:2px; width:88px;" type="text" placeholder="none">) <button class="next" onclick="fraktur();">🦊 -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="font-size:14px; display:block;"><label><input id="color" type="color" value="#2d0710"></input><button class="next" onclick="menu()">🦊 -(Destructive tools)</button><input id="calculator" class="next" style="padding:5px 10px 4px; margin:2px; width:116px;" type="text" oninput="check(this);" placeholder="Quick Calculator"> 🦊 -(<select id="opener" class="next" style="width:86px;">
+    <option value="0">Open...</option>
+    <option value="1">File</option>
+    <option value="2">Similar file</option>
+    <option value="3"></option>
+    <option value="4">Red/Railscasts</option>
+    <option value="5">Under sunlight</option>
+    <option value="6">Color picker</option>
+</select><input type="file" id="picker"></input><input type="file" id="pickerdiff"></input><button class="next" id="togglediff" style="display:none;" onclick="diff(this, 'File 2')">File 1</button>) <button class="next" onclick="rename();">🦊 -(Save as)</button> 🦊 -(<button class="next" onclick="save()">Save</button><button class="next" id="ask" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label> <div id="highlight" class="tooltip" style="display:none;" data-tooltip='Save <a href="https://highlightjs.org/download/" target="_blank">highlight.min.js</a> next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.'>🦊 -(Highlight)</div></div><div id="tooltip" style="white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + document.body.innerHTML.replace(/(https:\/\/.*?)(\"|\'|\n|<|\)| )/g, '<a href="$1" target="_blank" contenteditable="false">$1</a>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
   tooltip = document.getElementById("tooltip");
   editor = document.getElementById("editable");
   let left = () => {
@@ -434,8 +440,8 @@ function toolbar(d){
     editdiff.setAttribute("onpaste", "plaintext(this, event)");
     editdiff.setAttribute("contenteditable", "true");
   }
-  var x = document.getElementById("color");
-  x.addEventListener('change', (event) => {
+  var colorpicker = document.getElementById("color");
+  colorpicker.addEventListener('change', (event) => {
     var s = document.createElement("style")
     calc.placeholder = event.target.value;
     if(event.target.value == "#000000"){
@@ -445,14 +451,14 @@ function toolbar(d){
     }
     document.body.appendChild(s)
   });
-  var x = document.getElementById("picker");
-  x.addEventListener('change', (event) => {
+  var picker = document.getElementById("picker");
+  picker.addEventListener('change', (event) => {
     file = event.target.files[0];
     document.title = file.name;
     open(file);
   });
-  var x = document.getElementById("pickerdiff");
-  x.addEventListener('change', (event) => {
+  var pickerdiff = document.getElementById("pickerdiff");
+  pickerdiff.addEventListener('change', (event) => {
     opendiff(event.target.files[0]);
   });
   calc = document.getElementById("calculator");
@@ -463,6 +469,28 @@ function toolbar(d){
       } catch {
       }
     }
+  });
+  var opener = document.getElementById("opener");
+  opener.addEventListener('change', (e) => {
+    var x = e.target.selectedIndex;
+    if (x == 1){
+      picker.click()
+    } else if (x == 2){
+      pickerdiff.click()
+    } else if (x == 4){
+      var s = document.createElement("style")
+      calc.placeholder = "#2d0710";
+      s.innerHTML = ".exitmenu{background-color: #2d0710; color:#f45;}"
+      document.body.appendChild(s)
+    } else if (x == 5){
+      var s = document.createElement("style")
+      calc.placeholder = "#000000";
+      s.innerHTML = ".exitmenu{background-color: #000000; color:#fff;}"
+      document.body.appendChild(s)
+    } else if (x == 6){
+      colorpicker.click()
+    }
+    e.target.selectedIndex = 0
   });
   var y = document.getElementById("replace");
   y.addEventListener("keyup", function(e) {

@@ -4361,8 +4361,8 @@ def start_remote(remote):
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
     pos = 0
     sel = 15
-    echo("Key listeners: (A)dd/(R)emove torrent, (S)top/start (G)etting, fil(E)/(L)ist torrent, return to main men(U)", 0, 1)
-    stdout = "Select torrent by number (D/F to -/+ 10) to remove, X to select all:"
+    echo("Key listener: (A)dd/(R)emove torrent, (S)top/start (G)etting, fil(E)/(L)ist torrent, return to main men(U)", 0, 1)
+    stdout = "Select torrent by number (D/F to -/+ 10) to remove, X to remove all:"
     while True:
         el = input(f"{stdout} {f'{pos/10:g}' if pos else ''}", "0123456789xdfarsgelu")
         if el == 12:
@@ -4402,7 +4402,7 @@ def start_remote(remote):
             sel = el
             pos = 0
             if el == 15:
-                stdout = "Select torrent by number (D/F to -/+ 10) to remove, X to select all:"
+                stdout = "Select torrent by number (D/F to -/+ 10) to remove, X to remove all:"
             elif el == 16:
                 stdout = "Select torrent by number (D/F to -/+ 10) to stop:"
             elif el == 17:
@@ -4438,7 +4438,7 @@ def start_remote(remote):
                     if i == 1:
                         pos = 0
                         while True:
-                            i = input(f"Get file by number (D/F to -/+ 10), X to select all: {f'{pos/10:g}' if pos else ''}", "0123456789xdf")
+                            i = input(f"Get file by number (D/F to -/+ 10), X to apply all: {f'{pos/10:g}' if pos else ''}", "0123456789xdf")
                             if i == 12:
                                 pos -= 10 if pos > 0 else 0
                             elif i == 13:
@@ -4456,7 +4456,7 @@ def start_remote(remote):
                     elif i == 2:
                         pos = 0
                         while True:
-                            i = input(f"Stop getting file by number (D/F to -/+ 10), X to select all: {f'{pos/10:g}' if pos else ''}", "0123456789xdf")
+                            i = input(f"Stop getting file by number (D/F to -/+ 10), X to apply all: {f'{pos/10:g}' if pos else ''}", "0123456789xdf")
                             if i == 12:
                                 pos -= 10 if pos > 0 else 0
                             elif i == 13:

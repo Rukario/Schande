@@ -438,7 +438,7 @@ done""")
     if el == 0:
         echo("", 0, 1)
     if el < 0 or el > 100:
-        kill(whereami("Obscene return code"))
+        kill(whereami(f"Obscene return code {el}"))
     return el
 
 
@@ -4480,10 +4480,14 @@ def start_remote(remote):
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
     pos = 0
     sel = 15
-    echo("Key listener: (A)dd/(R)emove torrent, (S)top/start (G)etting, fil(E)/(L)ist torrent, return to main men(U)", 0, 1)
-    stdout = "Select torrent by number (D/F to -/+ 10) to remove, X to remove all:"
+    echo(""" Key listener:
+  > Press L to (L)ist torrent/file
+  > Press I, R to (I)nput new torrent or (R)emove torrent
+  > Press E to view fil(Es) of selected torrent
+  > Press S, G, U to (S)top/start (G)etting, return to previous men(U)""", 0, 2)
+    stdout = "Select torrent by number (D/F to -/+ 10) to remove, A to remove all:"
     while True:
-        el = input(f"{stdout} {f'{pos/10:g}' if pos else ''}", "0123456789xdfarsgelu")
+        el = input(f"{stdout} {f'{pos/10:g}' if pos else ''}", "0123456789adfirsgelu")
         if el == 12:
             pos -= 10 if pos > 0 else 0
             echo("", 1)
@@ -4521,7 +4525,7 @@ def start_remote(remote):
             sel = el
             pos = 0
             if el == 15:
-                stdout = "Select torrent by number (D/F to -/+ 10) to remove, X to remove all:"
+                stdout = "Select torrent by number (D/F to -/+ 10) to remove, A to remove all:"
             elif el == 16:
                 stdout = "Select torrent by number (D/F to -/+ 10) to stop:"
             elif el == 17:
@@ -4549,51 +4553,55 @@ def start_remote(remote):
                 if el == 11:
                     echo("", 1)
                     continue
-                sys.stdout.write("  ")
-                sys.stdout.flush()
-                subprocess.call([remote, "-t", str(el-1+pos), "-f"])
+                sele = 15
+                pose = 0
+                stdoute = "Stop getting"
                 while True:
-                    i = input("(G)et or (S)top getting, (R)eturn: ", "gsr")
-                    if i == 1:
-                        pos = 0
-                        while True:
-                            i = input(f"Get file by number (D/F to -/+ 10), X to apply all: {f'{pos/10:g}' if pos else ''}", "0123456789xdf")
-                            if i == 12:
-                                pos -= 10 if pos > 0 else 0
-                            elif i == 13:
-                                pos += 10
-                            else:
-                                break
-                            echo("", 1)
-                        if i == 11:
-                            subprocess.Popen([remote, "-t", str(el-1+pos), "-g", "all"], **shuddup)
-                        elif i < 11:
-                            subprocess.Popen([remote, "-t", str(el-1+pos), "-g", str(i-1+pos)], **shuddup)
-                        else:
-                            echo("", 1)
-                            echo("", 1)
-                    elif i == 2:
-                        pos = 0
-                        while True:
-                            i = input(f"Stop getting file by number (D/F to -/+ 10), X to apply all: {f'{pos/10:g}' if pos else ''}", "0123456789xdf")
-                            if i == 12:
-                                pos -= 10 if pos > 0 else 0
-                            elif i == 13:
-                                pos += 10
-                            else:
-                                break
-                            echo("", 1)
-                        if i == 11:
-                            subprocess.Popen([remote, "-t", str(el-1+pos), "-G", "all"], **shuddup)
-                        elif i < 11:
-                            subprocess.Popen([remote, "-t", str(el-1+pos), "-G", str(i-1+pos)], **shuddup)
-                        else:
-                            echo("", 1)
-                            echo("", 1)
-                    else:
+                    i = input(f"{stdoute} file by number (D/F to -/+ 10), A to apply all: {f'{pose/10:g}' if pose else ''}", "0123456789adfgslu")
+                    if i == 12:
+                        pose -= 10 if pose > 0 else 0
                         echo("", 1)
+                    elif i == 13:
+                        pose += 10
+                        echo("", 1)
+                    elif i == 16:
+                        echo(f" - - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
+                        with subprocess.Popen([remote, "-t", str(el-1+pos), "-f"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
+                            listed = False
+                            for line in p.stdout:
+                                line = line.rstrip()
+                                if line and not line.startswith("  #  Done") and not line.endswith("files):"):
+                                    listed = True
+                                    id = line[:3].strip()
+                                    percent = line[5:10].strip()
+                                    status = line[19:23].strip()
+                                    size = line[24:33].strip() 
+                                    name = line[34:].strip()
+                                    echo(f"{int(id)+1:>3} {'Include' if status == 'Yes' else 'Ignore '} {percent} {size:>9}  {name}", 0, 1, clamp='█')
+                            if not listed:
+                                echo("No files to list!", 0, 1)
+                    elif i == 17:
                         echo("", 1)
                         break
+                    elif i > 13:
+                        sele = i
+                        pose = 0
+                        if i == 14:
+                            stdoute = "Get"
+                        elif i == 15:
+                            stdoute = "Stop getting"
+                        echo("", 1)
+                    else:
+                        if sele == 14:
+                            if i == 11:
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", "all"], **shuddup)
+                            else:
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", str(i-2+pose)], **shuddup)
+                        elif sele == 15:
+                            if i == 11:
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", "all"], **shuddup)
+                            else:
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", str(i-2+pose)], **shuddup)
 
 
 
@@ -4805,7 +4813,7 @@ def keylistener():
             ready_input()
         elif el == 10:
             if portkilled():
-                echo("Dead, Jim (restart server induced, check again soon)", 1, 1)
+                echo(" HTML SERVER: Dead, Jim (restart server induced)", 1, 1)
                 restartserver()
             else:
                 echo(" HTML SERVER: I feel fine!", 1, 1)

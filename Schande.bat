@@ -2960,6 +2960,7 @@ button {padding:1px 4px;}
 .previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
 .next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
 .nextword{margin-left:8px; display:inline-block; color:#6fe; background-color:#066; border:none; padding:0px 8px;}
+::placeholder {color:#3cb;}
 .closebtn{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
 .reverse{background-color:#63c; color:#d9f; border:none; border-radius:10px; cursor:pointer;}
 .tangerine{background-color:#c60; color:#fc3; border:none; border-radius:10px; cursor:pointer;}

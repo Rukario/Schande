@@ -46,7 +46,6 @@ specialfile = ["mediocre.txt", "autosave.txt", "gallery.html", "keywords.json", 
 
 alerted = [False]
 busy = [False]
-cooldown = [False]
 dlslot = [8]
 echothreadn = []
 error = [[]]*4
@@ -54,14 +53,8 @@ echoname = [batchfile]
 newfilen = [0]
 run_input = [False]*4
 Keypress_prompt = [False]
-Keypress_A = [False]
-Keypress_C = [False]
-Keypress_F = [False]
-Keypress_R = [False]
-Keypress_S = [False]
-Keypress_U = [False]
-Keypress_X = [False]
-Keypress_CtrlC = [False]
+Keypress = [False]*27
+torrent_menu = [False]
 retries = [0]
 sf = [0]
 
@@ -573,7 +566,7 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         Bytes = int(self.headers['Content-Length'])
         dir = batchdir.rstrip("/") + saint(self.path).replace("\\", "/").rsplit("/", 1)[0] + "/"
-        if Bytes < 200:
+        if Bytes < 2000:
             data = self.rfile.read(Bytes).decode('utf-8')
             self.send_response(200)
             self.send_header('Content-type', 'text/plain; charset=utf-8')
@@ -613,7 +606,7 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'text/plain; charset=utf-8')
             self.end_headers()
-            echo(f"Large POST data: {x} in length", 0, 1)
+            echo(f"Large POST data: {Bytes} in length exceeding 2000 allowance", 0, 1)
             self.wfile.write(bytes(f"Large POST data sent", 'utf-8'))
 
     def send_head(self):
@@ -1163,8 +1156,8 @@ def timer(e="", ind=True, listen=[[True]], notlisten=[[False]]):
                 pgtime[0] = int(time.time()/5)
                 pg[0] = 0
                 title(monitor())
-            if Keypress_CtrlC[0]:
-                Keypress_CtrlC[0] = False
+            if Keypress[26]:
+                Keypress[26] = False
                 break
             if not all(not x[0] for x in listen) or any(x[0] for x in notlisten):
                 break
@@ -1178,32 +1171,32 @@ def timer(e="", ind=True, listen=[[True]], notlisten=[[False]]):
 Keypress_err = ["Some error happened. (R)etry (A)lways (S)kip once (X)auto defuse antibot with (F)irefox: "]
 def retry(stderr):
     # Warning: urllib has slight memory leak
-    Keypress_R[0] = False
+    Keypress[18] = False
     while True:
         if not Keypress_prompt[0]:
             Keypress_prompt[0] = True
             if stderr:
-                if Keypress_A[0]:
+                if Keypress[1]:
                     e = f"{retries[0]} retries (P)ause (S)kip once"
-                    if cooldown[0]:
-                        timer(f"{e}, reloading in", listen=[Keypress_A], notlisten=[Keypress_S])
+                    if Keypress[20]:
+                        timer(f"{e}, reloading in", listen=[Keypress[1]], notlisten=[Keypress[19]])
                     else:
                         echo(e)
-                    Keypress_R[0] = True if Keypress_A[0] else False
-                if not Keypress_R[0]:
+                    Keypress[18] = True if Keypress[1] else False
+                if not Keypress[18]:
                     title(monitor())
                     Keypress_err[0] = f"{stderr} (R)etry (A)lways (S)kip once (X)auto defuse antibot with (F)irefox: "
                     sys.stdout.write(Keypress_err[0])
                     sys.stdout.flush()
                     while True:
-                        if Keypress_R[0] or Keypress_A[0]:
+                        if Keypress[18] or Keypress[1]:
                             break
-                        if Keypress_S[0]:
-                            Keypress_S[0] = False
+                        if Keypress[19]:
+                            Keypress[19] = False
                             Keypress_prompt[0] = False
                             return
-                        if Keypress_F[0]:
-                            Keypress_F[0] = False
+                        if Keypress[6]:
+                            Keypress[6] = False
                             return 2
                         time.sleep(0.1)
             else:
@@ -1213,8 +1206,8 @@ def retry(stderr):
             title(monitor())
             Keypress_prompt[0] = False
             return True
-        elif Keypress_R[0]:
-            time.sleep(0.1) # so I don't return too soon to turn off another Keypress_R used to turn off Keypress_prompt.
+        elif Keypress[18]:
+            time.sleep(0.1) # so I don't return too soon to turn off another Keypress[18] used to turn off Keypress_prompt.
             return True
         time.sleep(0.1)
 
@@ -1231,16 +1224,16 @@ def fetch(url, stderr="", dl=0, threadn=0, data=None):
             resp = request.urlopen(request.Request(saint(url=url), headers=headers, data=data))
             break
         except HTTPError as e:
-            if stderr or Keypress_X[0] and not Keypress_S[0]:
+            if stderr or Keypress[24] and not Keypress[19]:
                 el = retry(f"{stderr} ({e.code} {e.reason})")
                 if el == 2:
                     driver(saint(url=url))
                     Keypress_prompt[0] = False
-                    Keypress_R[0] = True
+                    Keypress[18] = True
                 elif not el:
                     return 0, str(e.code)
             else:
-                Keypress_S[0] = False
+                Keypress[19] = False
                 return 0, str(e.code)
         except URLError as e:
             if "CERTIFICATE_VERIFY_FAILED" in str(e.reason):
@@ -1249,23 +1242,23 @@ def fetch(url, stderr="", dl=0, threadn=0, data=None):
                     kill(f""" {e.reason}\n\n They fucked up deploying their certificates (probably).\n Add "theyfuckedup" to {rulefile} to bypass this kind of error if you're willing to take risks.""")
                 else:
                     kill(f""" {e.reason}\n\n Either they fucked up deploying their certificates or this Python is just having shitty certificate validator.\n Try execute optional prerequisites in another command prompt with:\n\n{echo_pip()} install certifi""")
-            if stderr or Keypress_X[0] and not Keypress_S[0]:
+            if stderr or Keypress[24] and not Keypress[19]:
                 if not retry(f"{stderr} ({e.reason})"):
                     return 0, e.reason
             else:
-                Keypress_S[0] = False
+                Keypress[19] = False
                 return 0, e.reason
         except:
-            if stderr or Keypress_X[0] and not Keypress_S[0]:
+            if stderr or Keypress[24] and not Keypress[19]:
                 el = retry(f"{stderr} (closed by host)")
                 if el == 2:
                     echo(" BROWSER: Maybe not.", 0, 1)
                     Keypress_prompt[0] = False
-                    Keypress_R[0] = True
+                    Keypress[18] = True
                 elif not el:
                     return 0, "closed by host"
             else:
-                Keypress_S[0] = False
+                Keypress[19] = False
                 return 0, "closed by host"
     return resp, 0
 
@@ -1284,7 +1277,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
             dl = os.path.getsize(todisk + ".part")
     else:
         echo(threadn, "0 MB")
-    Keypress_CtrlC[0] = False
+    Keypress[26] = False
     while echothreadn and echothreadn.index(threadn) >= dlslot[0]:
         time.sleep(0.1)
     resp, err = fetch(url, stderr, dl, threadn)
@@ -1351,13 +1344,13 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                 dl += Bytes
                 echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
                 echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {url}""", clamp='█', friction=True)
-                if Keypress_CtrlC[0]:
+                if Keypress[26]:
                     resp, err = fetch(url, stderr, dl, threadn)
                     if not resp:
                         return 0, err
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
-                    Keypress_CtrlC[0] = False
+                    Keypress[26] = False
         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
         os.rename(todisk + ".part", todisk)
         if Keypress_prompt[0]:
@@ -1427,14 +1420,14 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
             dl += Bytes
             echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
             echo(threadn, f"{int(dl/1048576)} MB", friction=True)
-            if Keypress_CtrlC[0]:
+            if Keypress[26]:
                 resp, err = fetch(url, stderr, dl, threadn)
                 if not resp:
                     return 0, err
                 if resp.status == 200:
                     data = b''
                     dl = 0
-                Keypress_CtrlC[0] = False
+                Keypress[26] = False
 
 
 
@@ -1787,10 +1780,10 @@ def new_driver():
             echo("", 0, 1)
             echo(f" SELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install selenium", 0, 2)
             echo("(C)ontinue when finished installing required prerequisites.")
-            Keypress_C[0] = False
-            while not Keypress_C[0]:
+            Keypress[3] = False
+            while not Keypress[3]:
                 time.sleep(0.1)
-            Keypress_C[0] = False
+            Keypress[3] = False
     if os.path.isfile(batchdir + "chromedriver.exe"):
         if not os.path.exists(batchdir + "chromedriver"):
             os.makedirs(batchdir + "chromedriver")
@@ -1849,10 +1842,10 @@ def driver(url):
         echo(f" BROWSER: My user-agent didn't match to an user-agent spoofer.", 0, 1)
     # ff_login(url)
     echo("(C)ontinue when finished defusing.")
-    Keypress_C[0] = False
-    while not Keypress_C[0]:
+    Keypress[3] = False
+    while not Keypress[3]:
         time.sleep(0.1)
-    Keypress_C[0] = False
+    Keypress[3] = False
     try:
         for bc in driver_running[0].get_cookies():
             if "httpOnly" in bc: del bc["httpOnly"]
@@ -2392,7 +2385,7 @@ def pick_in_page(scraper):
                         alert(page, buffer, pick["dismiss"])
                     else:
                         more_pages += [[start, page, pagen]]
-                        timer(f"{alerted[0]}, resuming unalerted pages in"  if alerted[0] else "Not quite as expected! Reloading in", listen=[Keypress_C, Keypress_S] if alerted[0] else [[False]])
+                        timer(f"{alerted[0]}, resuming unalerted pages in"  if alerted[0] else "Not quite as expected! Reloading in", listen=[Keypress[3], Keypress[19]] if alerted[0] else [[False]])
         if any(pick[x] for x in ["folder", "pages", "html", "icon", "dict", "file", "file_after"]) and not data:
             data, part = get_data(threadn, page, url, pick)
             if not data:
@@ -2703,14 +2696,14 @@ def nextshelf(fromhtml):
                         if h[1]:
                             stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
                     stdout += "\n"
-        echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or return to main men(U): """, 0, 1)
-        Keypress_U[0] = False
-        Keypress_C[0] = False
-        while not Keypress_U[0] and not Keypress_C[0]:
+        echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or return to (M)ain menu: """, 0, 1)
+        Keypress[13] = False
+        Keypress[3] = False
+        while not Keypress[13] and not Keypress[3]:
             time.sleep(0.1)
-        Keypress_C[0] = False
-        if Keypress_U[0]:
-            Keypress_U[0] = False
+        Keypress[3] = False
+        if Keypress[13]:
+            Keypress[13] = False
             return
     downloadtodisk(fromhtml, "Autosave declared completion.", makedirs=True)
 
@@ -2762,14 +2755,14 @@ def scrape(startpages):
             if not more_pages:
                 echo(alerted[0])
                 time.sleep(1)
-            if Keypress_C[0]:
-                Keypress_C[0] = False
+            if Keypress[3]:
+                Keypress[3] = False
                 pages += alerted_pages
                 alerted_pages = []
                 alerted[0] = False
                 choice(bg=["2e", "%color%"])
-            elif Keypress_S[0]:
-                Keypress_S[0] = False
+            elif Keypress[19]:
+                Keypress[19] = False
                 alerted_pages = []
                 alerted[0] = False
                 choice(bg=["2e", "%color%"])
@@ -4481,14 +4474,19 @@ def start_remote(remote):
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
     pos = 0
     sel = 15
-    echo(""" Key listener:
-  > Press L to (L)ist torrent/file
+    if not torrent_menu[0]:
+        torrent_menu[0] = True
+        echo(""" Key listener (torrent/file viewer):
+  > Press D, F to decrease or increase number by 10
+  > Press L to (L)ist all items
+  > Press S, G to (S)top/start (G)etting selected item
+
+ Key listener (torrent management):
   > Press I, R to (I)nput new torrent or (R)emove torrent
-  > Press E to view fil(Es) of selected torrent
-  > Press S, G, U to (S)top/start (G)etting, return to previous men(U)""", 0, 2)
-    stdout = "Select torrent by number (D/F to -/+ 10) to remove, A to remove all:"
+  > Press E to view fil(Es) of selected torrent""", 0, 2)
+    stdout = "remove, A to remove all"
     while True:
-        el = input(f"{stdout} {f'{pos/10:g}' if pos else ''}", "0123456789adfirsgelu")
+        el = input(f"Select TORRENT by number to {stdout}, return to main (M)enu: {f'{pos/10:g}' if pos else ''}", "0123456789adfirsgelm")
         if el == 12:
             pos -= 10 if pos > 0 else 0
             echo("", 1)
@@ -4500,7 +4498,7 @@ def start_remote(remote):
         elif el == 14:
             echo("", 1)
             while True:
-                i = input("Magnet link, enter nothing to finish: ")
+                i = input("Magnet/torrent link, enter nothing to finish: ")
                 if i.startswith("magnet:") or i.startswith("http") or i.endswith(".torrent"):
                     subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", i, "-sr", "0"], **shuddup)
                 else:
@@ -4522,17 +4520,18 @@ def start_remote(remote):
                         echo(f"{id:>3} {status} {percent} {name}", 0, 1, clamp='█')
                 if not listed:
                     echo("No torrents to list!", 0, 1)
+                echo("", 0, 1)
         elif el > 13:
             sel = el
             pos = 0
             if el == 15:
-                stdout = "Select torrent by number (D/F to -/+ 10) to remove, A to remove all:"
+                stdout = "remove, A to remove all"
             elif el == 16:
-                stdout = "Select torrent by number (D/F to -/+ 10) to stop:"
+                stdout = "stop"
             elif el == 17:
-                stdout = "Select torrent by number (D/F to -/+ 10) to start:"
+                stdout = "start"
             elif el == 18:
-                stdout = "Select torrent by number (D/F to -/+ 10) to view file list:"
+                stdout = "view file list"
             echo("", 1)
         else:
             if sel == 15:
@@ -4556,9 +4555,9 @@ def start_remote(remote):
                     continue
                 sele = 15
                 pose = 0
-                stdoute = "Stop getting"
+                stdoute = "stop getting"
                 while True:
-                    i = input(f"{stdoute} file by number (D/F to -/+ 10), A to apply all: {f'{pose/10:g}' if pose else ''}", "0123456789adfgslu")
+                    i = input(f"Select FILE by number to {stdoute}, A to apply all, return to torrent (M)anager: {f'{pose/10:g}' if pose else ''}", "0123456789adfsglm")
                     if i == 12:
                         pose -= 10 if pose > 0 else 0
                         echo("", 1)
@@ -4581,6 +4580,7 @@ def start_remote(remote):
                                     echo(f"{int(id)+1:>3} {'Include' if status == 'Yes' else 'Ignore '} {percent} {size:>9}  {name}", 0, 1, clamp='█')
                             if not listed:
                                 echo("No files to list!", 0, 1)
+                            echo("", 0, 1)
                     elif i == 17:
                         echo("", 1)
                         break
@@ -4588,21 +4588,21 @@ def start_remote(remote):
                         sele = i
                         pose = 0
                         if i == 14:
-                            stdoute = "Get"
+                            stdoute = "stop getting"
                         elif i == 15:
-                            stdoute = "Stop getting"
+                            stdoute = "get"
                         echo("", 1)
                     else:
                         if sele == 14:
                             if i == 11:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", "all"], **shuddup)
-                            else:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", str(i-2+pose)], **shuddup)
-                        elif sele == 15:
-                            if i == 11:
                                 subprocess.Popen([remote, "-t", str(el-1+pos), "-G", "all"], **shuddup)
                             else:
                                 subprocess.Popen([remote, "-t", str(el-1+pos), "-G", str(i-2+pose)], **shuddup)
+                        elif sele == 15:
+                            if i == 11:
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", "all"], **shuddup)
+                            else:
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", str(i-2+pose)], **shuddup)
 
 
 
@@ -4751,7 +4751,7 @@ def unrecognized(k):
 
 def pressed(k, s=True):
     echo("", 1)
-    k[0] = s
+    Keypress["?ABCDEFGHIJKLMNOPQRSTUVWXYZ".index(k)] = s
     if not busy[0]:
         ready_input()
 
@@ -4759,8 +4759,8 @@ def keylistener():
     while True:
         el = choice("abcdefghijklmnopqrstuvwxyz0123456789")
         if el == 1:
-            pressed(Keypress_A)
-            Keypress_X[0] = True
+            pressed("A")
+            Keypress[24] = True
         elif el == 2:
             if sys.platform == "win32":
                 if not Browser:
@@ -4775,7 +4775,7 @@ def keylistener():
             if not busy[0]:
                 ready_input()
         elif el == 3:
-            pressed(Keypress_C)
+            pressed("C")
         elif el == 4:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -4789,7 +4789,7 @@ def keylistener():
             echo(help(), 0, 1)
             ready_input()
         elif el == 6:
-            pressed(Keypress_F)
+            pressed("F")
         elif el == 7:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -4835,7 +4835,7 @@ def keylistener():
             run_input[2] = True
         elif el == 13:
             if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
+                pressed("M")
                 continue
             echo("", 1)
             torrent_get()
@@ -4850,26 +4850,24 @@ def keylistener():
             finish_sort()
             ready_input()
         elif el == 16:
-            pressed(Keypress_A, False)
+            pressed("A", False)
         elif el == 17:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             run_input[3] = True
         elif el == 18:
-            pressed(Keypress_R)
+            pressed("R")
         elif el == 19:
-            pressed(Keypress_S)
+            pressed("S")
         elif el == 20:
             if ticks:
-                echo(f"""COOLDOWN {"DISABLED" if cooldown[0] else "ENABLED"}""", 1, 1)
+                echo(f"""COOLDOWN {"DISABLED" if Keypress[20] else "ENABLED"}""", 1, 2)
             else:
-                echo(f"""Timer not enabled, please add "#-# seconds rarity 100%" in {rulefile}, add another timer to manipulate rarity.""", 1, 1)
-            cooldown[0] = False if cooldown[0] else True
-            if not busy[0]:
-                ready_input()
+                echo(f"""Timer not enabled, please add "#-# seconds rarity 100%" in {rulefile}, add another timer to manipulate rarity.""", 1, 2)
+            pressed("T", False if Keypress[20] else True)
         elif el == 21:
-            pressed(Keypress_U)
+            unrecognized("U")
         elif el == 22:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -4879,22 +4877,20 @@ def keylistener():
         elif el == 23:
             unrecognized("W")
         elif el == 24:
-            echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if Keypress_X[0] else "RETRY"}""", 1, 1)
-            Keypress_X[0] = False if Keypress_X[0] else True
-            Keypress_A[0] = True
-            if not busy[0]:
-                ready_input()
+            echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if Keypress[24] else "RETRY"}""", 1, 2)
+            pressed("X", False if Keypress[24] else True)
+            Keypress[1] = True
         elif el == 25:
             unrecognized("Y")
         elif el == 26:
-            pressed(Keypress_CtrlC)
+            pressed("Z")
         elif 0 <= (n := min(el-27, 8)) < 9:
             echo(f"""MAX PARALLEL DOWNLOAD SLOT: {n} {"(pause)" if not n else ""}""", 1, 1)
             dlslot[0] = n
             if not busy[0]:
                 ready_input()
         else:
-            pressed(Keypress_CtrlC)
+            pressed("Z")
 t = Thread(target=keylistener)
 t.daemon = True
 t.start()

@@ -42,7 +42,7 @@ textfile = batchname + ".txt"
 archivefile = [".7z", ".rar", ".zip"]
 imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"]
 videofile = [".mkv", ".mp4", ".webm"]
-specialfile = ["mediocre.txt", "autosave.txt", "gallery.html", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
+specialfile = ["mediocre.txt", "autosave.txt", "gallery.html", "keywords.json", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
 
 alerted = [False]
 busy = [False]
@@ -295,8 +295,8 @@ def help():
  | Filters under a site picker will override whitelist.
  |
  | Extra pickers:
- |  "reload"       to scrape and download files that was rejected in the past.
- +  "inherit"      to make whitelist incorporate again, your "exempt from blacklist" mode for this site.
+ |  "inherit"      to make whitelist incorporate again, your "exempt from blacklist" mode for this site.
+ +  "reload"       to scrape and download files that was rejected in the past.
 """
 
 
@@ -571,26 +571,50 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
                 f.close()
 
     def do_POST(self):
-        if (x := int(self.headers['Content-Length'])) < 200:
-            x = self.rfile.read(x).decode('utf-8')
+        Bytes = int(self.headers['Content-Length'])
+        dir = batchdir.rstrip("/") + saint(self.path).replace("\\", "/").rsplit("/", 1)[0] + "/"
+        if Bytes < 200:
+            data = self.rfile.read(Bytes).decode('utf-8')
             self.send_response(200)
             self.send_header('Content-type', 'text/plain; charset=utf-8')
             self.end_headers()
-            if x.startswith("Save "):
-                x = saint(x.split(" ", 1)[1]).replace("\\", "/")
-                x = f"""{batchdir.rstrip("/")}{x}"""
-                echo(f"Save {x}", 0, 1)
-                savefiles[0] += [x]
+            api = {"kind":"","ondisk":"","body":""}
+            try:
+                api.update(json.loads(data))
+            except:
+                pass
+            ondisk = saint(api["ondisk"]).replace("\\", "/")
+            if api["kind"] == "Save":
+                echo(f"Save {dir}{ondisk}", 0, 1)
+                savefiles[0] += [f"{dir}{ondisk}"]
                 self.wfile.write(bytes(f"Save list updated", 'utf-8'))
-            elif x.startswith("Schande! "):
-                x = saint(x.split(" ", 1)[1]).replace("\\", "/")
-                x = f"""{batchdir.rstrip("/")}{x}"""
-                echo(f"Schande! {x}", 0, 1)
-                delfiles[0] += [x]
+            elif api["kind"] == "Schande!":
+                echo(f"Schande! {dir}{ondisk}", 0, 1)
+                delfiles[0] += [f"{dir}{ondisk}"]
                 self.wfile.write(bytes(f"Schande list updated", 'utf-8'))
+            elif api["kind"] == "keywords":
+                echo(f""" File updated: {dir}{ondisk}""", 0, 1)
+                if os.path.exists(f"{dir}{ondisk}"):
+                    with open(f"{dir}{ondisk}", 'r') as f:
+                        body = json.loads(f.read())
+                        k = next(iter(api["body"]))
+                        if api["body"][k]:
+                            body.update(api["body"])
+                        elif k in body:
+                            del body[k]
+                else:
+                    body = api["body"]
+                with open(f"{dir}{ondisk}", 'w') as f:
+                    f.write(json.dumps(body))
             else:
-                echo(f"Stray POST data: {x}", 0, 1)
+                echo(f"Stray POST data: {data}", 0, 1)
                 self.wfile.write(bytes(f"Stray POST data sent", 'utf-8'))
+        else:
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain; charset=utf-8')
+            self.end_headers()
+            echo(f"Large POST data: {x} in length", 0, 1)
+            self.wfile.write(bytes(f"Large POST data sent", 'utf-8'))
 
     def send_head(self):
         self.range = (0, 0)
@@ -699,18 +723,6 @@ def restartserver():
         t = Thread(target=startserver, args=(port,directory,))
         t.daemon = True
         t.start()
-
-def sockkilled():
-    try:
-        if len(socket.socket.recv(16, socket.MSG_DONTWAIT | socket.MSG_PEEK)) == 0:
-            return True
-    except BlockingIOError:
-        return False
-    except ConnectionResetError:
-        return True
-    except Exception as e:
-        return False
-
 def portkilled():
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -1635,10 +1647,8 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
             if (part := frompart(f"{subdir}{thumbnail_dir}partition.json", p, htmlpart, pattern)):
                 new_relics = {}
                 for key in part.keys():
-                    if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern):
-                        continue
-                    else:
-                        new_relics.update({key:part[key]})
+                    part[key].update({"visible": False if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern) else True})
+                    new_relics.update({key: part[key]})
                 parttohtml(subdir, htmlname, new_relics, filelist, pattern)
         else:
             echo("Filelist is empty!", 0, 1)
@@ -1718,10 +1728,8 @@ URL={page["link"]}""")
         if (part := frompart(f"{dir}{thumbnail_dir}partition.json", htmldirs[dir], htmlpart, pattern)) or verifyondisk:
             new_relics = {}
             for key in part.keys():
-                if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern):
-                    continue
-                else:
-                    new_relics.update({key: part[key]})
+                part[key].update({"visible": False if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern) else True})
+                new_relics.update({key: part[key]})
             parttohtml(dir, htmlname, new_relics, filelist, pattern)
 
 
@@ -1771,11 +1779,18 @@ URL={page["link"]}""")
 
 driver_running = [False]
 def new_driver():
-    try:
-        from selenium import webdriver
-    except:
-        echo("", 0, 1)
-        echo(f" SELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install selenium", 0, 2)
+    while True:
+        try:
+            from selenium import webdriver
+            break
+        except:
+            echo("", 0, 1)
+            echo(f" SELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install selenium", 0, 2)
+            echo("(C)ontinue when finished installing required prerequisites.")
+            Keypress_C[0] = False
+            while not Keypress_C[0]:
+                time.sleep(0.1)
+            Keypress_C[0] = False
     if os.path.isfile(batchdir + "chromedriver.exe"):
         if not os.path.exists(batchdir + "chromedriver"):
             os.makedirs(batchdir + "chromedriver")
@@ -1807,7 +1822,7 @@ def new_driver():
    https://github.com/mozilla/geckodriver/issues/1680#issuecomment-581466864
    https://github.com/mozilla/geckodriver/issues/1878#issuecomment-856673443
  > Context: They're not going to give their Gecko driver an option to turn off 'navigator.webdriver'
-   used to defeat more antibot traps, claiming it's not the solution. Is it really not . . . ?
+   used to defeat more antibot traps, claiming it's not the solution.
 
  Either will expect Chrome or Firefox being already installed, then {batchname} will create own user profile respectively:
   > {subdir}chromedriver\\ (Chrome)
@@ -1830,22 +1845,30 @@ def driver(url):
             return
     # url = "https://www.whatsmyua.info/"
     driver_running[0].get(url)
+    if not driver_running[0].execute_script('return navigator.userAgent') == mozilla['http']:
+        echo(f" BROWSER: My user-agent didn't match to an user-agent spoofer.", 0, 1)
     # ff_login(url)
     echo("(C)ontinue when finished defusing.")
     Keypress_C[0] = False
     while not Keypress_C[0]:
         time.sleep(0.1)
     Keypress_C[0] = False
-    for bc in driver_running[0].get_cookies():
-        if "httpOnly" in bc: del bc["httpOnly"]
-        if "expiry" in bc: del bc["expiry"]
-        if "sameSite" in bc: del bc["sameSite"]
-        c = new_cookie()
-        c.update(bc)
-        cookies.set_cookie(cookiejar.Cookie(**c))
-    echo("", 0, 1)
-    echo(f" BROWSER: Gave cookie(s) to {batchname}", 0, 1)
-    return True
+    try:
+        for bc in driver_running[0].get_cookies():
+            if "httpOnly" in bc: del bc["httpOnly"]
+            if "expiry" in bc: del bc["expiry"]
+            if "sameSite" in bc: del bc["sameSite"]
+            c = new_cookie()
+            c.update(bc)
+            cookies.set_cookie(cookiejar.Cookie(**c))
+        echo("", 0, 1)
+        echo(f" BROWSER: Gave cookie(s) to {batchname}", 0, 1)
+        return True
+    except:
+        echo("", 0, 1)
+        echo(" Couldn't communicate with browser! Has it been closed by accident? Maybe another time . . .", 0, 1)
+        driver_running[0] = False
+        return
 
 
 
@@ -2909,7 +2932,7 @@ def container_c(ondisk, label):
 
 
 
-def new_html(builder, htmlname, listurls, imgsize=200):
+def new_html(builder, htmlname, listurls, pattern=[], imgsize=200):
     if not listurls:
         listurls = "Maybe in another page."
     return """<!DOCTYPE html>
@@ -2936,6 +2959,7 @@ button {padding:1px 4px;}
 .edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45; padding:12px; margin:6px; word-wrap:break-word;}
 .previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
 .next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
+.nextword{margin-left:8px; display:inline-block; color:#6fe; background-color:#066; border:none; padding:0px 8px;}
 .closebtn{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
 .reverse{background-color:#63c; color:#d9f; border:none; border-radius:10px; cursor:pointer;}
 .tangerine{background-color:#c60; color:#fc3; border:none; border-radius:10px; cursor:pointer;}
@@ -2955,6 +2979,7 @@ button {padding:1px 4px;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 .stdout {white-space:pre-wrap; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
+.stderr {display:inline-block; background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
 .schande{opacity:0.5; position:absolute; top:158px; text-align:center; line-height:34px; height:34px; cursor:pointer; min-width:40px; border:2px solid transparent; background-clip: padding-box; box-shadow:inset 0 0 0 2px #c44; padding:2px; background-color:#602; color:#f45; -webkit-user-select:none;}
 .save{box-shadow:inset 0 0 0 2px #367; background-color:#142434; color:#2a9;}
 .spinner {position:absolute; border-top:9px solid #6cc; height:6px; width:3px; top:162px; left:24px; pointer-events:none; animation-name:spin; animation-duration: 1000ms; animation-timing-function: linear;}
@@ -2989,6 +3014,88 @@ function send(b, e){
   }
 }
 
+function lazykeys() {
+  lazykey = document.querySelectorAll(".time");
+  var partObserver = new IntersectionObserver(function(parts, observer) {
+    parts.forEach(function(e) {
+      if (e.isIntersecting) {
+        var t = e.target;
+        var d = document.createElement("div");
+        d.classList.add("nextword");
+        d.addEventListener("click", editkeys);
+        if(keywords[t.id]){
+          d.innerHTML = keywords[t.id]
+        } else {
+          d.innerHTML = "+"
+        }
+        t.appendChild(d);
+        partObserver.unobserve(t);
+      }
+    });
+  });
+
+  lazykey.forEach(function(e) {
+    partObserver.observe(e);
+  });
+}
+
+function loadkeys(){
+  var isTainted = true
+  xhr.overrideMimeType("application/json");
+  xhr.open('GET', "keywords.json", true);
+  xhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
+  xhr.send();
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status !== 404 && xhr.responseText) {
+        keywords = JSON.parse(xhr.responseText);
+        lazykeys();
+      } else if (xhr.responseText){
+        keywords = {}
+        lazykeys();
+      } else {
+        isok.innerHTML = "Status: Err"
+        isok.setAttribute("data-tooltip", "Couldn't connect to the HTML server");
+      }
+    }
+    isTainted = false
+  }
+}
+
+function editkeys(e){
+  t = e.target;
+
+  var i = document.createElement("input");
+  i.setAttribute("type", "text");
+  i.classList.add("nextword");
+  i.placeholder = "Add more keywords..."
+  if (t.innerHTML !== "+"){
+    i.value = t.innerHTML;
+  }
+
+  function rea(k) {
+    if (k.keyCode === 13) {
+      var body = {[t.parentNode.id]:i.value}
+      var b = JSON.stringify({"kind":"keywords", "ondisk":"keywords.json", body})
+      if (i.value){
+        send(b, e);
+        t.innerHTML = i.value;
+      } else if (t.innerHTML !== "+"){
+        send(b, e);
+        t.innerHTML = "+"
+      }
+      i.removeEventListener("keyup", rea);
+      t.parentNode.removeChild(i);
+      t.style.display = "inline-block";
+    }
+  }
+
+  i.addEventListener("keydown", rea);
+  t.style.display = "none";
+  t.parentNode.appendChild(i);
+  i.focus();
+}
+
 function plaintext(elem, e) {
   e.preventDefault();
   var text = e.clipboardData.getData('text/plain');
@@ -3015,7 +3122,7 @@ var FFdown = function(e) {
   var t = e.target;
   var a = t.parentNode;
   if (t.hasAttribute("data-schande")) {
-    var b = t.innerHTML + " " + location.pathname.split('/').slice(0, -1).join('/') + "/" + t.getAttribute("data-schande");
+    var b = JSON.stringify({"kind":t.innerHTML, "ondisk":t.getAttribute("data-schande"), "body":""});
     var d = document.createElement("div");
     a.appendChild(d);
     t.addEventListener('touchmove', function(e) {e.preventDefault()});
@@ -3540,9 +3647,11 @@ function hideSources() {
 }
 
 function hideParts(e, t='', a=true) {
-  t = t.toLowerCase();
+  if (t.length == 1) return;
+  t = t.toLowerCase().split(" ");
   var x = document.getElementsByClassName("cell");
-  var c;
+  var c, f;
+  c = false;
   if (!e){
     for (var i=0; i < x.length; i++) {
       x[i].style.display = 'inline-block';
@@ -3573,8 +3682,15 @@ function hideParts(e, t='', a=true) {
         continue
       }
     }
-    fp = fp.toLowerCase().includes(t);
-    if (!a && !fp && t || a && fp && t) {
+    f = false;
+    fp = fp.toLowerCase();
+    for (var p=0; p < t.length; p++) {
+      if (t[p] && fp.includes(t[p])){
+        f = true;
+        break;
+      }
+    };
+    if (!a && !f && fp || a && f && fp){
       x[i].style.display = 'none';
     } else {
       x[i].style.display = 'inline-block';
@@ -3582,7 +3698,7 @@ function hideParts(e, t='', a=true) {
   }
 }
 
-var isTouch;
+var isTouch, isok, keywords, stdout;
 var dir = location.href.substring(0, location.href.lastIndexOf('/')) + "/";
 window.onload = () => {
   var links = document.getElementsByTagName('a');
@@ -3598,6 +3714,9 @@ window.onload = () => {
     stdout.setAttribute("onpaste", "plaintext(this, event)");
     stdout.setAttribute("contenteditable", "true");
   }
+  isok = document.getElementById("isok");
+  lazyload();
+  loadkeys();
 }
 
 function lazyload() {
@@ -3605,24 +3724,24 @@ function lazyload() {
 
   lazyloadImages = document.querySelectorAll(".lazy");
   var imageObserver = new IntersectionObserver(function(entries, observer) {
-    entries.forEach(function(entry) {
-      if (entry.isIntersecting) {
-        var image = entry.target;
-        image.src = image.dataset.src;
-        imageObserver.unobserve(image);
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        var t = e.target;
+        t.src = t.dataset.src;
+        imageObserver.unobserve(t);
       }
     });
   });
 
-  lazyloadImages.forEach(function(image) {
-    """ + f"""image.style.height = "{imgsize}""" + """px"
-    image.style.width = "auto"
-    imageObserver.observe(image);
+  lazyloadImages.forEach(function(e) {
+    e.style.height =""" + f""" "{imgsize}""" + """px"
+    e.style.width = "auto"
+    imageObserver.observe(e);
   });
 }
 </script>
 <body>
-<div id="tooltip" class="closebtn" style="padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial; pointer-events:none;"></div><div style="display:block; height:20px;"></div><p class="stdout" id="stdout" style="display:none;" onpaste="plaintext(this, event);" contenteditable="plaintext-only" spellcheck=false><div class="container" style="display:none;">
+<div id="tooltip" class="closebtn" style="padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial; pointer-events:none;"></div><div style="display:block; height:20px;"></div><div class="container" style="display:none;">
 <button class="closebtn" onclick="this.parentElement.style.display='none'">&times;</button>""" + f"""<div class="mySlides">{listurls}</div>
 <img id="expandedImg">
 </div>
@@ -3639,14 +3758,14 @@ function lazyload() {
 <button id="fi" class="next" onclick="preview(this)" data-sel="Preview, Preview [ ], Preview 1:1" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel">Preview</button>
 <button id="ge" class="next" onclick="previewg(this)" data-sel="Original, vs left, vs left &lt;, vs left &gt;, Find Edge" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
 <button class="next" onclick="hideSources()">Sources</button>
-<input class="next" type="text" oninput="hideParts('h2', this.value, false);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Search title">
-<input class="next" type="text" oninput="hideParts('h2', this.value);" style="padding-left:8px; padding-right:8px; width:140px;" placeholder="Ignore title">
+<input class="next" type="text" oninput="hideParts('h2', this.value, false);" style="padding-left:8px; padding-right:8px; width:140px;" value="{" ".join(pattern[1])}" placeholder="Search title">
+<input class="next" type="text" oninput="hideParts('h2', this.value);" style="padding-left:8px; padding-right:8px; width:140px;" value="{" ".join(pattern[0])}" placeholder="Ignore title">
 <button class="next" onclick="hideParts('.edits')">Edits</button>
-<button class="next" onclick="hideParts()">&times;</button></div>
+<button class="next" onclick="hideParts()">&times;</button>
+<div class="stderr" id="isok">Status: OK</div>
+<div class="stdout" id="stdout" style="display:none;" onpaste="plaintext(this, event);" contenteditable="plaintext-only" spellcheck=false></div>
+</div>
 {builder}</body>
-<script>
-lazyload();
-</script>
 </html>"""
 
 
@@ -3797,7 +3916,7 @@ def tohtml(subdir, htmlname, part, pattern):
             content = ""
         new_container = False
         end_container = False
-        builder += """<div class="cell">\n"""
+        builder += """<div class="cell">\n""" if part[key]["visible"] else """<div class="cell" style="display:none;">\n"""
         if len(keywords) > 1:
             time = keywords[1] if keywords[1] else "No timestamp"
             keywords = ", ".join(x for x in keywords[2:] if x) if len(keywords) > 2 else "None"
@@ -3851,7 +3970,7 @@ def tohtml(subdir, htmlname, part, pattern):
     if os.path.exists(subdir + "gallery.html"):
         gallery_is = "updated"
     with open(subdir + "gallery.html", 'wb') as f:
-        f.write(bytes(new_html(builder, htmlname, listurls), "utf-8"))
+        f.write(bytes(new_html(builder, htmlname, listurls, pattern), "utf-8"))
     buffer = subdir.replace("/", "\\")
     print(f" File {gallery_is}: \\{buffer}gallery.html ")
 
@@ -4524,6 +4643,8 @@ def read_input(fp):
             else:
                 page = input("URL file not found, please guess original url to provide pattern for this partition: ")
             get_pick = [x for x in pickers.keys() if page.startswith(x)]
+            if not get_pick:
+                kill("Couldn't recognize this url, I must exit!")
             pattern = pickers[get_pick[0]]["pattern"]
             # pattern = [[], [], False]
             with open(fp, 'r') as f:
@@ -4532,10 +4653,8 @@ def read_input(fp):
             filelist = []
             new_relics = {}
             for key in htmlpart.keys():
-                if htmlpart[key]["keywords"] and isrej(htmlpart[key]["keywords"][0], pattern):
-                    continue
-                else:
-                    new_relics.update({key: htmlpart[key]})
+                htmlpart[key].update({"visible": False if htmlpart[key]["keywords"] and isrej(htmlpart[key]["keywords"][0], pattern) else True})
+                new_relics.update({key: htmlpart[key]})
                 for file in htmlpart[key]["files"]:
                     if not isrej(file, pattern):
                         filelist += [["", file]]
@@ -4685,12 +4804,13 @@ def keylistener():
                 echo("", 1)
             ready_input()
         elif el == 10:
-            # J
             if portkilled():
-                echo("Dead, Jim (restart server induced, check again soon!)", 0, 1)
+                echo("Dead, Jim (restart server induced, check again soon)", 1, 1)
                 restartserver()
             else:
-                echo("Not yet", 0, 1)
+                echo(" HTML SERVER: I feel fine!", 1, 1)
+            if not busy[0]:
+                ready_input()
         elif el == 11:
             c = False
             for c in cookies:

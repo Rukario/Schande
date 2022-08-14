@@ -4590,7 +4590,7 @@ def start_remote(remote):
                 if el == 11:
                     echo("", 1)
                     continue
-                sele = 15
+                sele = 14
                 pose = 0
                 stdoute = "stop getting"
                 while True:

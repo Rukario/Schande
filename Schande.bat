@@ -134,6 +134,22 @@ def skull():
            \          /     '-==\}/ 
             '--------'              
                                     """
+def aczo():
+    return """                                         
+                 ______                  
+       ...---''''      ''''---...        
+      /    .-''   ----   ''-.    \\       
+     /    /___|  |____|  |___\    \\      
+    /    / .                . \    \\     
+   /     /     /\      /\     \     \\    
+  /     |      \/  __  \/      |     \\   
+ /       \         \/         /       \\  
+/      .__ ' ______  ______ ' __.      \\ 
+'.    /___'..'-.__|  |__.-'..'___\    .' 
+  '.                                .'   
+    '.                            .'     
+      '......______________......'       
+                                         """
 def help():
     return f"""
  {rulefile} is {batchname}'s only setting file and only place to follow your rules how files are downloaded and sorted.
@@ -2156,9 +2172,9 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
         if k[0][0]:
             if len(z := k[1][0].split(k[0][0] if k[0][0].startswith("0") else k[0][0] + " > 0", 1)) == 2:
                 file = z[1]
-                master_key = [k[0][0], [[k[0][1], 0, 0, 0, 0]]]
+                master_key = [k[0][0], [[k[0][1], 0, 0, 0, 0, 0]]]
         elif k[0][1]:
-            master_key = ["", [[k[0][1], 0, 0, 0, 0]]]
+            master_key = ["", [[k[0][1], 0, 0, 0, 0, 0]]]
 
 
 
@@ -3873,6 +3889,7 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
         if not key in part.keys():
             if not "0" in part.keys():
                 part.update(new_p("0"))
+                part["0"].update({"visible": True})
             key = "0"
         if "stray_files" in part[key]:
             part[key]["stray_files"] += [file]
@@ -4901,7 +4918,9 @@ def keylistener():
             pressed("X", False if Keypress[24] else True)
             Keypress[1] = True
         elif el == 25:
-            unrecognized("Y")
+            echo(aczo(),0 , 1)
+            if not busy[0]:
+                ready_input()
         elif el == 26:
             pressed("Z")
         elif 0 <= (n := min(el-27, 8)) < 9:

@@ -717,14 +717,11 @@ def restartserver():
         t.daemon = True
         t.start()
 def portkilled():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(1)
-        s.connect(("localhost", 8886))
-        s.close()
-        return False
-    except:
-        return True
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(1)
+    r = s.connect_ex(("localhost", 8886))
+    s.close()
+    return True if r else False
 
 
 
@@ -2954,7 +2951,7 @@ button {padding:1px 4px;}
 .next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
 .nextword{margin-left:8px; display:inline-block; color:#6fe; background-color:#066; border:none; padding:0px 8px;}
 .nextword::placeholder {color:#3cb;}
-.closebtn{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
+.dark{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
 .reverse{background-color:#63c; color:#d9f; border:none; border-radius:10px; cursor:pointer;}
 .tangerine{background-color:#c60; color:#fc3; border:none; border-radius:10px; cursor:pointer;}
 .edge{background-color:#261; color:#8c4; border:none; border-radius:10px; cursor:pointer;}
@@ -2966,14 +2963,15 @@ button {padding:1px 4px;}
 .carbon, .time, .files, .edits{display:inline-block; vertical-align:top;}
 .carbon, .time, .cell, .mySlides, .files, .edits{padding:8px; margin:6px; word-wrap:break-word;}
 .mySlides{white-space:pre-wrap; padding-right:32px;}
-.closebtn{position:absolute; top:15px; right:15px;}
+.close_button {position:absolute; top:15px; right:15px;}
+.tooltip {display:none; position:relative; cursor:default; font-family:sans-serif; font-size:12px;}
+.cursor_tooltip {padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial; pointer-events:none;}
 .carbon, .files, .edits{margin-right:12px;}
 .cell{overflow:auto; width:calc(100% - 30px); display:inline-block; vertical-align:text-top;}
 .postMessage{white-space:pre-wrap;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 .stdout {white-space:pre-wrap; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
-.stderr {display:inline-block; background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
 .schande{opacity:0.5; position:absolute; top:158px; text-align:center; line-height:34px; height:34px; cursor:pointer; min-width:40px; border:2px solid transparent; background-clip: padding-box; box-shadow:inset 0 0 0 2px #c44; padding:2px; background-color:#602; color:#f45; -webkit-user-select:none;}
 .save{box-shadow:inset 0 0 0 2px #367; background-color:#142434; color:#2a9;}
 .spinner {position:absolute; border-top:9px solid #6cc; height:6px; width:3px; top:162px; left:24px; pointer-events:none; animation-name:spin; animation-duration: 1000ms; animation-timing-function: linear;}
@@ -3016,7 +3014,7 @@ function lazykeys() {
         var t = e.target;
         var d = document.createElement("div");
         d.classList.add("nextword");
-        d.addEventListener("click", editkeys);
+        d.addEventListener("click", edit_key);
         if(keywords[t.id]){
           d.innerHTML = keywords[t.id]
         } else {
@@ -3048,46 +3046,69 @@ function loadkeys(){
         keywords = {}
         lazykeys();
       } else {
-        isok.innerHTML = "Status: Err"
-        isok.setAttribute("data-tooltip", "Couldn't connect to the HTML server");
+        local_tooltip.style.display = "inline-block";
+        local_tooltip.innerHTML = "⚠";
+        local_tooltip.setAttribute("data-tooltip", "Not loaded on HTML server: HTML server is used for custom keywords and interacting with Schande/Save buttons.");
       }
     }
     isTainted = false
   }
 }
 
-function editkeys(e){
-  t = e.target;
-
-  var i = document.createElement("input");
-  i.setAttribute("type", "text");
-  i.classList.add("nextword");
-  i.placeholder = "Add more keywords..."
-  if (t.innerHTML !== "+"){
-    i.value = t.innerHTML;
+var key_busy = false;
+function edit_key(e){
+  function submit_key(){
+    var body = {[t.parentNode.id]:i.value}
+    var b = JSON.stringify({"kind":"keywords", "ondisk":"keywords.json", body})
+    if (i.value){
+      send(b, e);
+      t.innerHTML = i.value;
+    } else if (t.innerHTML !== "+"){
+      send(b, e);
+      t.innerHTML = "+"
+    }
+    t.parentNode.removeChild(i);
+    i.removeEventListener("keyup", read_key);
+    t.style.display = "inline-block";
   }
 
-  function rea(k) {
+  function read_key(k) {
     if (k.keyCode === 13) {
-      var body = {[t.parentNode.id]:i.value}
-      var b = JSON.stringify({"kind":"keywords", "ondisk":"keywords.json", body})
-      if (i.value){
-        send(b, e);
-        t.innerHTML = i.value;
-      } else if (t.innerHTML !== "+"){
-        send(b, e);
-        t.innerHTML = "+"
-      }
-      i.removeEventListener("keyup", rea);
-      t.parentNode.removeChild(i);
-      t.style.display = "inline-block";
+      submit_key()
+      key_busy = false;
     }
   }
 
-  i.addEventListener("keydown", rea);
-  t.style.display = "none";
-  t.parentNode.appendChild(i);
-  i.focus();
+  if (key_busy){
+    if(e.target.hasAttribute("data-tooltip")){
+      e.target.removeAttribute("data-tooltip")
+      i.focus({preventScroll:true});
+      i.scrollIntoView({block: "start", behavior: "smooth"});
+    } else {
+      e.target.setAttribute("data-tooltip", "Busy typing another keyword. Click here again to take you there.");
+      FFmove(e);
+      let left = () => {
+        e.target.removeAttribute("data-tooltip")
+        e.target.removeEventListener("mouseleave", left);
+      }
+      e.target.addEventListener("mouseleave", left);
+    }
+  } else {
+    var t = e.target;
+    key_busy = true;
+    i = document.createElement("input");
+    i.setAttribute("type", "text");
+    i.classList.add("nextword");
+    i.placeholder = "Add more keywords..."
+    if (t.innerHTML !== "+"){
+      i.value = t.innerHTML;
+    }
+    
+    i.addEventListener("keydown", read_key);
+    t.style.display = "none";
+    t.parentNode.appendChild(i);
+    i.focus();
+  }
 }
 
 function plaintext(elem, e) {
@@ -3692,7 +3713,7 @@ function hideParts(e, t='', a=true) {
   }
 }
 
-var isTouch, isok, keywords, stdout;
+var isTouch, keywords, stdout;
 var dir = location.href.substring(0, location.href.lastIndexOf('/')) + "/";
 window.onload = () => {
   var links = document.getElementsByTagName('a');
@@ -3708,7 +3729,6 @@ window.onload = () => {
     stdout.setAttribute("onpaste", "plaintext(this, event)");
     stdout.setAttribute("contenteditable", "true");
   }
-  isok = document.getElementById("isok");
   lazyload();
   loadkeys();
 }
@@ -3735,8 +3755,8 @@ function lazyload() {
 }
 </script>
 <body>
-<div id="tooltip" class="closebtn" style="padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial; pointer-events:none;"></div><div style="display:block; height:20px;"></div><div class="container" style="display:none;">
-<button class="closebtn" onclick="this.parentElement.style.display='none'">&times;</button>""" + f"""<div class="mySlides">{listurls}</div>
+<div class="dark close_button cursor_tooltip" id="tooltip" style="padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial; pointer-events:none;"></div><div style="display:block; height:20px;"></div><div class="container" style="display:none;">
+<button class="dark" onclick="this.parentElement.style.display='none'">&times;</button>""" + f"""<div class="mySlides">{listurls}</div>
 <img id="expandedImg">
 </div>
 <div style="display:block; height:10px;"></div><div style="background:#0c0c0c; height:20px; border-radius: 0 0 12px 0; position:fixed; padding:6px; top:0px; z-index:1;">
@@ -3756,7 +3776,7 @@ function lazyload() {
 <input class="next" type="text" oninput="hideParts('h2', this.value);" style="padding-left:8px; padding-right:8px; width:140px;" value="{" ".join(pattern[0])}" placeholder="Ignore title">
 <button class="next" onclick="hideParts('.edits')">Edits</button>
 <button class="next" onclick="hideParts()">&times;</button>
-<div class="stderr" id="isok">Status: OK</div>
+<div class="dark local_tooltip" id="local_tooltip"></div>
 <div class="stdout" id="stdout" style="display:none;" onpaste="plaintext(this, event);" contenteditable="plaintext-only" spellcheck=false></div>
 </div>
 {builder}</body>

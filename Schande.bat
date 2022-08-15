@@ -1158,7 +1158,7 @@ if not shuddup:
 
 tn = [len(ticks)]
 ticking = [False]
-def timer(e="", ind=True, listen=[[True]], notlisten=[[False]]):
+def timer(e="", ind=True, listen=[True], notlisten=[False]):
     if not ticks:
         ticks.append([4, 8])
         tn[0] = len(ticks)
@@ -1178,7 +1178,7 @@ def timer(e="", ind=True, listen=[[True]], notlisten=[[False]]):
             if Keypress[26]:
                 Keypress[26] = False
                 break
-            if not all(not x[0] for x in listen) or any(x[0] for x in notlisten):
+            if not all(not x for x in listen) or any(notlisten):
                 break
         ticking[0] = False
     elif ind:
@@ -2098,7 +2098,7 @@ def tree(d, z):
         if not x[0][0]:
             print(f"{tcoloro} Can't have > 0 for last.{tcolorx}")
     z[0] = splitos(z[0])
-    # if len(z[0]) >= 2 and not z[0][-1]: z[0] += [""]
+    if len(z[0]) >= 2 and not z[0][-1]: z[0] += [""]
     return branch(d, z)
 
 

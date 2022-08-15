@@ -396,9 +396,15 @@ def tcolorz(c):
 
 
 
-def whereami(e="echoed", b=0, f=1):
+def whereami(e="echoed", b=0, f=1, kill=False):
     c = inspect.getframeinfo(inspect.stack()[1][0])
-    return f"{c.lineno} {c.function}(): {e}"
+    echo(f"""{c.lineno} {c.function}(): {tcolorr if kill else tcolorz("CCCCCC")}{e}{tcolorx}""", b, f)
+    if kill:
+        while True:
+            input("")
+    else:
+        input("(C)ontinue?", "c")
+        echo("", 1)
 
 
 
@@ -447,7 +453,7 @@ done""")
     if el == 0:
         echo("", 0, 1)
     if el < 0 or el > 100:
-        kill(whereami(f"Obscene return code {el}"))
+        whereami(f"Obscene return code {el}", kill=True)
     return el
 
 
@@ -1983,7 +1989,7 @@ def carrots(arrays, x, cw=[], any=True, saint=False):
 
 def linear(d, z):
     dt = []
-    for x in z[1]:
+    for x in z:
         dc = d
         if not x[0]:
             continue
@@ -1994,7 +2000,7 @@ def linear(d, z):
             y = y.split(" >> ")
             if not y[0]:
                 continue
-            if dc and y[0] in dc:
+            if dc and isinstance(dc, dict) and y[0] in dc:
                 dc = dc[y[0]]
                 if len(y) == 2:
                     dc = json.loads(dc)
@@ -2055,18 +2061,18 @@ def branch(d, z):
             dx = []
             if t == "list":
                 for dc in d:
-                    if dt := linear(dc, z):
+                    if dt := linear(dc, z[1]):
                         if len(z) > 2:
                             dx += [dt + b for b in branch(dc, [splitos(z[2])] + z[3:])]
                         else:
                             dx += [dt]
             elif t == "dict":
                 for x in d.values():
-                    if dt := linear(x, z):
+                    if dt := linear(x, z[1]):
                         dx += [dt]
             return dx
         else:
-            if dt := linear(d, z):
+            if dt := linear(d, z[1]):
                 if len(z) > 2:
                     return [dt + b for b in branch(d, [splitos(z[2])] + z[3:])]
                 else:
@@ -2090,7 +2096,7 @@ def tree(d, z):
     # tree(dictionary, [branching keys, [[linear keys, choose, conditions, customize with, stderr and kill, replace slashes], [linear keys, 0 accept any, 0 no conditions, 0 no customization, 0 continue without, 0 no slash replacement]]])
     for x in z[1::2]:
         if not x[0][0]:
-            print(f"{tcolorr} Can't have > 0 for last.{tcolorx}")
+            print(f"{tcoloro} Can't have > 0 for last.{tcolorx}")
     z[0] = splitos(z[0])
     # if len(z[0]) >= 2 and not z[0][-1]: z[0] += [""]
     return branch(d, z)
@@ -4240,7 +4246,7 @@ def delmode():
     while True:
         el = input("Return to (M)ain menu: ", "dgstm")
         if not el:
-            kill(whereami("Bad choice"))
+            whereami("Bad choice", kill=True)
         elif el == 1:
             if delnow():
                 return
@@ -4396,14 +4402,14 @@ def finish_sort():
     sys.stdout.write(f" ({tcolorb}From directory {tcolorr}-> {tcolorg}to a more deserving directory{tcolorx}) {tcd} for non-existent directories - (C)ontinue ")
     sys.stdout.flush()
     if not choice("c") == 1:
-        kill(whereami("Bad choice"))
+        whereami("Bad choice", kill=True)
     for file, dir in mover.items():
         if os.path.exists(dir + file):
             print(f"""I want to (D)elete source file because destination file already exists:
      source:      {batchname + "/"}{file}
      destination: {dir}{file}""")
             if not choice("d") == 1:
-                kill(whereami("Bad choice"))
+                whereami("Bad choice", kill=True)
             os.remove(batchname + "/" + file)
         elif os.path.exists(dir):
             os.rename(batchname + "/" + file, dir + file)
@@ -4417,7 +4423,7 @@ def finish_sort():
      source:      {batchname}/{file}
      destination: {cd}{file}""")
                 if not choice("d") == 1:
-                    kill(whereami("Bad choice"))
+                    whereami("Bad choice", kill=True)
                 os.remove(batchname + "/" + file)
 
 
@@ -4456,12 +4462,12 @@ def syntax(html, api=False):
 savepage = [{}]
 def view_in_page(data, z, cw, a):
     if a:
-        if x := tree(opendb(data), [z[0], [[z[1], 0, 0, cw, 0]]]):
+        if x := tree(opendb(data), [z[0], [[z[1], 0, 0, cw, 0, 0]]]):
             for y in x:
                 echo(syntax(y[0], True), 0, 1)
                 savepage[0]["part"] += [y[0]]
         else:
-            echo(f"{tcolorr}Last few keys doesn't exist, try again.{tcolorx}", 0, 2)
+            echo(f"{tcoloro}Last few keys doesn't exist, try again.{tcolorx}", 0, 2)
     else:
         if len(z.split("*")) == 2:
             if len(c := carrots([[data, ""]], z, cw)) > 1:

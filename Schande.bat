@@ -791,12 +791,13 @@ def peanut(z, cw, a):
             cw += [""]
     z = z[0]
     if " > " in z or a:
-        z = z.replace("*", "0")
+        if z.startswith("0"):
+            z = " > 0" + z.split("0", 1)[1]
         if " > 0" in z:
             z = z.rsplit(" > 0", 1)
-            z += conditions(z.pop(1))
+            z = [z[0] + ' > 0'] + conditions(z[1])
         else:
-            z = ["0"] + conditions(z.split("0", 1)[1]) if z.startswith("0") else [""] + conditions(z)
+            z = [''] + conditions(z)
         a = True
     return [z, cw, a]
 
@@ -2021,19 +2022,20 @@ def linear(d, z):
 
 def branch(d, z):
     ds = []
-    for k in z[0][0].split(" > "):
-        x = k.split(" >> ")
+    t = type(d).__name__
+    for y in z[0][0].split(" > "):
+        x = y.split(" >> ")
         if not x[0]:
             if len(z[0]) >= 2:
-                if isinstance(d, list):
+                if t == "list":
                     for x in d:
                         ds += branch(x, [z[0][1:]] + z[1:])
-                elif isinstance(d, dict):
+                elif t == "dict":
                     for x in d.values():
                         ds += branch(x, [z[0][1:]] + z[1:])
                 return ds
             else:
-                continue
+                break
         elif x[0] in d:
             d = d[x[0]]
             if len(x) == 2:
@@ -2042,9 +2044,9 @@ def branch(d, z):
                     d = d[x[1]]
                 else:
                     return ds
+            t = type(d).__name__
         else:
             return ds
-    t = type(d).__name__
     if len(z[0]) == 1:
         if not t == "list" and not t == "dict":
             return ds
@@ -2054,7 +2056,7 @@ def branch(d, z):
                 for dc in d:
                     if dt := linear(dc, z[1]):
                         if len(z) > 2:
-                            dx += [dt + b for b in branch(dc, [splitos(z[2])] + z[3:])]
+                            dx += [dt + b for b in branch(dc, [z[2].split(" > 0")] + z[3:])]
                         else:
                             dx += [dt]
             elif t == "dict":
@@ -2065,7 +2067,7 @@ def branch(d, z):
         else:
             if dt := linear(d, z[1]):
                 if len(z) > 2:
-                    return [dt + b for b in branch(d, [splitos(z[2])] + z[3:])]
+                    return [dt + b for b in branch(d, [z[2].split(" > 0")] + z[3:])]
                 else:
                     return [dt]
     else:
@@ -2077,19 +2079,12 @@ def branch(d, z):
                 ds += branch(x, [z[0][1:]] + z[1:])
     return ds
 
-
-
-def splitos(z):
-    z = z.split(" > 0")
-    return z[0].split("0", 1) + z[1:]
-
 def tree(d, z):
     # tree(dictionary, [branching keys, [[linear keys, choose, conditions, customize with, stderr and kill, replace slashes], [linear keys, 0 accept any, 0 no conditions, 0 no customization, 0 continue without, 0 no slash replacement]]])
     for x in z[1::2]:
         if not x[0][0]:
             print(f"{tcoloro} Can't have > 0 for last.{tcolorx}")
-    z[0] = splitos(z[0])
-    # if len(z[0]) >= 2 and not z[0][-1]: z[0] += [""]
+    z[0] = z[0].split(" > 0")
     return branch(d, z)
 
 
@@ -4462,9 +4457,9 @@ def view_in_page(data, z, cw, a):
             echo(f"{tcolorr}Cannot find in page with no asterisk or too many.{tcolorx}", 0, 2)
 def source_view():
     while True:
-        key = input("Enter URL to view source, append URL with key > s > to read it as dictionary, enter nothing to exit: ").rstrip()
-        if key.startswith("http"):
-            page, key = key.split(" ", 1) if " " in key else [key, False]
+        page = input("Enter URL to view source, append URL with key > s > to read it as dictionary, enter nothing to exit: ").rstrip()
+        if page.startswith("http"):
+            page, key = page.split(" ", 1) if " " in page else [page, False]
             if not page in savepage[0]:
                 data, err = get(page, utf8=True)
                 if err:
@@ -4482,12 +4477,12 @@ def source_view():
                     echo(syntax(data), 0, 2)
             else:
                 echo(f"Error or dead (update cookie or referer if these are required to view: {data})", 0, 2)
-        elif not key:
+        elif not page:
             echo("", 1)
             echo("", 1)
             break
         else:
-            z, cw, a = peanut(key, [], False)
+            z, cw, a = peanut(page, [], False)
             part = savepage[0]["part"]
             savepage[0]["part"] = []
             for data in part:

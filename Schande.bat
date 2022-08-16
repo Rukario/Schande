@@ -134,25 +134,6 @@ def skull():
            \          /     '-==\}/ 
             '--------'              
                                     """
-def aczo():
-    return """                                                
-                     ______                      
-         ....----''''      ''''----....        
-        /    / .-''   ----   ''-. \    \\       
-       /    / /___|  |____|  |___\ \    \\      
-      /     // .                . \\\\     \\     
-     /     / /     /\      /\     \ \     \\    
-    /      /|      \/  __  \/      |\      \\   
-   /      /  \         \/         /  \      \\  
-  /       /.__ ' ______  ______ ' __.\       \\ 
- /       //___'..'-.__|  |__.-'..'___\\\\       \\ 
-/        /                            \        \\
-'.''''''''''''''---------------'''''''''''''''.'
-  '.      '.                       .'       .'
-    '.      '.                   .'       .'   
-      '.      '.               .'       .'     
-        '........______________........'       
-                                         """
 def help():
     return f"""
  {rulefile} is {batchname}'s only setting file and only place to follow your rules how files are downloaded and sorted.
@@ -4925,9 +4906,7 @@ def keylistener():
             pressed("X", False if Keypress[24] else True)
             Keypress[1] = True
         elif el == 25:
-            echo(aczo(),0 , 1)
-            if not busy[0]:
-                ready_input()
+            unrecognized("Y")
         elif el == 26:
             pressed("Z")
         elif 0 <= (n := min(el-27, 8)) < 9:

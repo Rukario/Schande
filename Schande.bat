@@ -1618,12 +1618,17 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
     # Partition and rebuild HTML
     filelist = [[], []]
     for key in htmlpart.keys():
+        files = []
+        duplicates = set()
         for file in htmlpart[key]["files"]:
             if not file["name"]:
                 print(f""" Couldn't download to disk without a name for {file["link"]}""")
             else:
                 if (x := get_cd(subdir, file, pattern, makedirs) + [key])[0]:
                     filelist[0] += [x]
+            if not file["name"] in duplicates and not duplicates.add(file["name"]):
+                files += [file["name"].rsplit("/", 1)[-1]]
+        htmlpart[key]["files"] = files
         for h in htmlpart[key]["html"]:
             if len(h) == 2 and h[1]:
                 if not h[1]["name"]:
@@ -3831,15 +3836,6 @@ def frompart(partfile, relics, htmlpart, pattern):
         del htmlpart["0"]
 
     new_relics = htmlpart.copy()
-    for key in new_relics.keys():
-        new_relics[key] = htmlpart[key].copy()
-        files = []
-        duplicates = set()
-        for file in htmlpart[key]["files"]:
-            if not file["name"] in duplicates and not duplicates.add(file["name"]):
-                files += [file["name"].rsplit("/", 1)[-1]]
-        new_relics[key]["files"] = files
-
     part_is = False
     if not os.path.exists(partfile):
         with open(partfile, 'w') as f:

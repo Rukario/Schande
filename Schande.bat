@@ -3923,12 +3923,12 @@ def tohtml(subdir, htmlname, part, pattern):
 
     n = 0
     while True:
-        n += 1
-        icon = "icon.png" if n == 1 else f"icon {n}.png"
+        icon = "icon.png" if not n else f"icon {n}.png"
         if os.path.exists(f"{subdir}{thumbnail_dir}{icon}"):
             builder += f"""<img src="{thumbnail_dir}{icon}" height="100px">\n"""
         else:
             break
+        n += 1
     if os.path.exists(page := f"{subdir}{thumbnail_dir}savelink.URL"):
         with open(page, 'r') as f:
             builder += f"""<h2><a href="{f.read().splitlines()[1].replace("URL=", "")}">{htmlname}</a></h2>"""

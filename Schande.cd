@@ -303,35 +303,30 @@ meta2 ^/* ends with .jpeg
 meta2 ^/* ends with .gif
 
 https://kemono.party/api
-files 0 > file > path not starts with http customize with https://data.kemono.party*
-name1 0 > file > name
-files 0 > attachments > 0 > path not starts with http customize with https://data.kemono.party*
-name1 0 > attachments > 0 > name
-files 0 > file > path starts with http
-name1 0 > file > name
-files 0 > attachments > 0 > path starts with http
-name1 0 > attachments > 0 > name
-meta kemono.party/files/fanbox/*/*/ customize with *.
-meta kemono.party/files/*/*/ customize with *.
-meta kemono.party/attachments/*/*/ customize with *.
-meta
 key 0 > id
 key1 0 > title
 key2 0 > edited
 html 0 > content
-name1 <img data-media-id="*" customize with *id.*.
-name1 <img customize with *id.000.*
-meta2 kemono.party/inline/*/*
-meta2 kemono.party/inline/*
-files  src="/inline/*"> customize with https://data.kemono.party/inline/*
+files 0 > file > path customize with https://kemono.party/data*
+name 0 > id customize with *.
+name1 0 > file > name
+meta2
+files 0 > attachments > 0 > path customize with https://kemono.party/data*
+name 0 > id customize with *.
+name1 0 > attachments > 0 > name
+meta2
+name
+name1 <img data-media-id="*" customize with *id.*
+meta2 https://kemono.party/data/*/*/*
+files src="*"> customize with https://kemono.party/data*
 paginate *^= ^=* with =(+25)
 
 https://kemono.party/
 folder /patreon/ customize with Patreon\
 folder /fanbox/ customize with Fanbox\
 folder /fantia/ customize with Fantia\
-folder1 user/* customize with *
-title2 <span itemprop="name">*</span> customize with  *\
+folder1 user/* customize with * 
+title2 <span itemprop="name">*</span>
 paginate https://kemono.party/* with https://kemono.party/api/*?o=0
 
 https://discord.com/

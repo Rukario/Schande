@@ -1631,6 +1631,8 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
                 else:
                     if (x := get_cd(subdir, h[1], pattern, makedirs) + [key])[0]:
                         filelist[1] += [x]
+                h[1] = h[1]["name"].rsplit("/", 1)[-1]
+
     if fromhtml["inlinefirst"]:
         filelist = filelist[1] + filelist[0]
     else:
@@ -2098,7 +2100,7 @@ def tree(d, z):
         if not x[0][0]:
             print(f"{tcoloro} Can't have > 0 for last.{tcolorx}")
     z[0] = splitos(z[0])
-    if len(z[0]) >= 2 and not z[0][-1]: z[0] += [""]
+    # if len(z[0]) >= 2 and not z[0][-1]: z[0] += [""]
     return branch(d, z)
 
 
@@ -2230,6 +2232,9 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
             for y, cwf in x:
                 if len(c := carrots([[file[2], ""]], y, cwf, False)) == 2 and c[-2][1]:
                     fp += [c[-2][1]]
+                    break
+                elif not y:
+                    fp += [""]
                     break
         name = "".join([x if not x == 1 else fp.pop(0) if fp else "" for x in file[3:]] + off_branch_name)
         if e := pick["extfix"]:
@@ -3834,9 +3839,6 @@ def frompart(partfile, relics, htmlpart, pattern):
             if not file["name"] in duplicates and not duplicates.add(file["name"]):
                 files += [file["name"].rsplit("/", 1)[-1]]
         new_relics[key]["files"] = files
-        for array in new_relics[key]["html"]:
-            if len(array) == 2 and array[1]:
-                array[1] = array[1]["name"].rsplit("/", 1)[-1]
 
     part_is = False
     if not os.path.exists(partfile):
@@ -3998,7 +4000,7 @@ def tohtml(subdir, htmlname, part, pattern):
                 for link in urls[1:]:
                     link = link.split("\"", 1)[0]
                     links += f"""<a href="{link}">{link}</a><br>"""
-                listurls += f"""# From <a href="#{key}">#{key}</a> :: {part[key]["keywords"][0]}<br>{links}\n"""
+                listurls += f"""# From <a href="#{key}">#{key}</a> :: {keywords[0]}<br>{links}\n"""
             builder += f"{content}</div>\n"
         elif not part[key]["files"]:
             builder += "<div class=\"edits\">Rebuild HTML with a different login/tier may be required to view</div>\n"

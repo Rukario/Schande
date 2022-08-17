@@ -43,7 +43,7 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 0px 27px
 );
 }
-.tooltip {background:none; border:1px solid #772227; color:inherit; cursor:default; padding:6px 11px 4px;}
+.tooltip {display:none; background:none; border:1px solid #772227; color:inherit; cursor:default; padding:6px 11px 4px;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 ::selection {background:#ffb7b7;}
@@ -166,10 +166,19 @@ function getfontcolor(c, v){
     return ".exitmenu{background-color:#" + v + "; color:#fff;}"
   }
 }
+var sharp = [false, false];
 if(window.location.href.includes("#")){
-  var v = window.location.href.split('#')[1]
-  if(v.endsWith(".css")){
-    document.getElementsByTagName("head")[0].insertAdjacentHTML("beforeend", "<link rel='stylesheet' href='" + v + "'>");
+  sharp[0] = window.location.href.split('#')[1]
+}
+if (sharp[0]){
+  if(sharp[0].endsWith(".css")){
+    var link = document.createElement("link");
+    link.href = sharp[0];
+    link.rel = "stylesheet"
+    document.getElementsByTagName("head")[0].appendChild(link);
+    link.onerror = () => {
+      sharp[1] = true;
+    }
   } else {
     var s = document.createElement("style")
     s.innerHTML = getfontcolor(v.match(/.{1,2}/g), v);
@@ -466,7 +475,7 @@ function toolbar(d){
     <option value="2">Remove all new lines</option>
     <option value="3">Replace all tabs with 4 spaces each</option>
     <option value="4">Decode all percent signs</option>
-</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none">) <button class="next" onclick="fraktur();">🦊 -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="display:block;"><label><input id="colorpicker" type="color" value=calc.placeholder></input><button class="next" onclick="menu()">🦊 -(Destructive tools)</button><input id="calculator" class="next" style="width:116px;" type="text" oninput="check(this);" placeholder="Calculator"> 🦊 -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">🦊 -(Save as)</button> 🦊 -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label> <div id="highlight" class="tooltip" style="display:none;" data-tooltip='Save <a href="https://highlightjs.org/download/" target="_blank">highlight.min.js</a> next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.'>🦊 -(Highlight)</div></div><div id="tooltip" style="white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + document.body.innerHTML.replace(/(https:\/\/.*?)(\"|\'|\n|<|\)| )/g, '<a href="$1" target="_blank" contenteditable="false">$1</a>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
+</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none">) <button class="next" onclick="fraktur();">🦊 -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="display:block;"><label><input id="colorpicker" type="color" value=calc.placeholder></input><button class="next" onclick="menu()">🦊 -(Destructive tools)</button><input id="calculator" class="next" style="width:116px;" type="text" oninput="check(this);" placeholder="Calculator"> 🦊 -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">🦊 -(Save as)</button> 🦊 -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label> <div id="local_tooltip" class="tooltip"></div></div><div id="tooltip" style="white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + document.body.innerHTML.replace(/(https:\/\/.*?)(\"|\'|\n|<|\)| )/g, '<a href="$1" target="_blank" contenteditable="false">$1</a>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
   tooltip = document.getElementById("tooltip");
   editor = document.getElementById("editable");
   let left = () => {
@@ -564,7 +573,7 @@ function toolbar(d){
 */
 }
 
-var calc, editor, editdiff, tooltip, highlight;
+var calc, editor, editdiff, highlight;
 var dirs = [];
 var hljs = false;
 var aczo = "aczo28";
@@ -590,10 +599,17 @@ window.onload = () => {
   document.body.appendChild(highlight);
   highlight.onload = () => {
     toolbar("");
+    if(sharp[1]){
+      local_tooltip.innerHTML = "🦊 -(Uninitiated CSS)"
+      local_tooltip.setAttribute("data-tooltip", `Save style "` + sharp[0] + `" (if that's spelled correctly) from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> next to HTML then reload this page<br/>`)
+      local_tooltip.style.display = "inline-block";
+    }
   }
   highlight.onerror = () => {
     toolbar("");
-    document.getElementById("highlight").style.display = "inline-block";
+    local_tooltip.innerHTML = "🦊 -(Highlight)"
+    local_tooltip.setAttribute("data-tooltip", `Save highlight.min.js from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.`)
+    local_tooltip.style.display = "inline-block";
   }
 }
 </script></head><body class="exitmenu">1. Set up and run Schande.bat for its HTML server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a>

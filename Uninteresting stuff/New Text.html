@@ -181,7 +181,7 @@ if (sharp[0]){
     }
   } else {
     var s = document.createElement("style")
-    s.innerHTML = getfontcolor(v.match(/.{1,2}/g), v);
+    s.innerHTML = getfontcolor(sharp[0].match(/.{1,2}/g), sharp[0]);
     document.getElementsByTagName("head")[0].appendChild(s)
   }
 } else {

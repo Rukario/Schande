@@ -3,7 +3,7 @@
 <meta charset="UTF-8">
 <meta name="format-detection" content="telephone=no">
 <title>🦊.txt</title>
-<style>
+<head><style>
 html,body {caret-color:#ff8228; font-family:courier; font-size:14px; white-space:pre-wrap; margin-bottom:-2px; padding-top:2px; padding:2px;}
 [contenteditable]:focus {outline: none;}
 .editor {padding-top:40px; min-width:calc(100% - 20px); min-height:81vh; line-height:1.1;}
@@ -155,6 +155,9 @@ Railscasts-like style (c) Visoft, Inc. (Damien White)
 }
 </style>
 <script>
+if(window.location.href.includes("#")){
+  document.getElementsByTagName("head")[0].insertAdjacentHTML("beforeend", "<link rel='stylesheet' href='" + window.location.href.split('#')[1] + "'>");
+}
 var FFdown = function(e) {
   var t = e.target;
   var a = t.parentNode;
@@ -418,7 +421,7 @@ function open(file) {
   }
 }
 var filel = ["File", "Diff", "File 1", "File 2"]
-/*var filel = ["('▾')", "('▴')", "( 1 )", "( 2 )"]*/
+/*var filel = ["('▾')", "( ⤺ )", "( 1 )", "( 2 )"]*/
 
 function opendiff(file){
   var fr = new FileReader();
@@ -462,7 +465,7 @@ function toolbar(d){
   if(!editor.isContentEditable){
     if(!d){
       tooltip.style.display = "inline-block";
-      tooltip.innerHTML = `Performance reduced: The JavaScript version is now used for compatibility of some feature on this browser.`;
+      tooltip.innerHTML = `Performance reduced: The JavaScript version is now used for compatibility of some features on this browser.`;
       editor.addEventListener("click", left);
     }
     editor.setAttribute("onpaste", "plaintext(this, event)");
@@ -581,6 +584,5 @@ window.onload = () => {
     document.getElementById("highlight").style.display = "inline-block";
   }
 }
-</script>
-<body class="exitmenu">1. Set up and run Schande.bat for its HTML server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a>
+</script></head><body class="exitmenu">1. Set up and run Schande.bat for its HTML server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a>
 2. Take me to Schande.bat, then launch <a href="http://localhost:8886/New Text.html">http://localhost:8886/New Text.html</a></body></html>

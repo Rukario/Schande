@@ -155,8 +155,30 @@ Railscasts-like style (c) Visoft, Inc. (Damien White)
 }
 </style>
 <script>
+function getfontcolor(c, v){
+  if(c[0] >= "cc" || c[1] >= "cc" || c[2] >= "cc"){
+    return ".exitmenu{background-color:#" + v + "; color:#586e75;}"
+  } else if(c[0] >= "66" || c[1] >= "66" || c[2] >= "66"){
+    return ".exitmenu{background-color:#" + v + "; color:#000;}"
+  } else if(c[0] >= "20" && c[1] >= "07" && c[2] >= "07"){
+    return ".exitmenu{background-color:#" + v + "; color:#f45;}"
+  } else {
+    return ".exitmenu{background-color:#" + v + "; color:#fff;}"
+  }
+}
 if(window.location.href.includes("#")){
-  document.getElementsByTagName("head")[0].insertAdjacentHTML("beforeend", "<link rel='stylesheet' href='" + window.location.href.split('#')[1] + "'>");
+  var v = window.location.href.split('#')[1]
+  if(v.endsWith(".css")){
+    document.getElementsByTagName("head")[0].insertAdjacentHTML("beforeend", "<link rel='stylesheet' href='" + v + "'>");
+  } else {
+    var s = document.createElement("style")
+    s.innerHTML = getfontcolor(v.match(/.{1,2}/g), v);
+    document.getElementsByTagName("head")[0].appendChild(s)
+  }
+} else {
+  var a = document.createElement("a");
+  a.href = "#2d0710";
+  a.click()
 }
 var FFdown = function(e) {
   var t = e.target;
@@ -477,24 +499,11 @@ function toolbar(d){
   colorpicker.addEventListener('change', (event) => {
     var s = document.createElement("style")
     calc.placeholder = event.target.value;
-
-    var v = event.target.value.replace(/#/, "").match(/.{1,2}/g);
-    if(v[0] >= "cc" || v[1] >= "cc" || v[2] >= "cc"){
-      s.innerHTML = ".exitmenu{background-color:" + event.target.value + "; color:#586e75;}"
-    } else if(v[0] >= "66" || v[1] >= "66" || v[2] >= "66"){
-      s.innerHTML = ".exitmenu{background-color:" + event.target.value + "; color:#000;}"
-    } else if(v[0] >= "20" && v[1] >= "07" && v[2] >= "07"){
-      s.innerHTML = ".exitmenu{background-color:" + event.target.value + "; color:#f45;}"
-    } else {
-      s.innerHTML = ".exitmenu{background-color:" + event.target.value + "; color:#fff;}"
-    }
-
-    if(false && event.target.value == "#000000"){
-      s.innerHTML = ".exitmenu{background-color:#000; color:#fff;}"
-    } else if(false){
-      s.innerHTML = ".exitmenu{background-color:" + event.target.value + "; color:#f45;}"
-    }
-
+    var a = document.createElement("a");
+    a.href = event.target.value;
+    a.click()
+    var v = event.target.value.replace(/#/, "")
+    s.innerHTML = getfontcolor(v.match(/.{1,2}/g), v)
     document.body.appendChild(s)
   });
   var picker = document.getElementById("picker");

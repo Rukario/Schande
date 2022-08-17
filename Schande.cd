@@ -316,9 +316,10 @@ name 0 > id customize with *.
 name1 0 > attachments > 0 > name
 meta2
 name
+replace data-media-id="*" src=" with data-media-id="*" kemono-src="
 name1 <img data-media-id="*" customize with *id.*
 meta2 https://kemono.party/data/*/*/*
-files src="*"> customize with https://kemono.party/data*
+files kemono-src="*"> customize with https://kemono.party/data*
 paginate *^= ^=* with =(+25)
 
 https://kemono.party/

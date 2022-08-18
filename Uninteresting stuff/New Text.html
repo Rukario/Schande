@@ -2,7 +2,7 @@
 <html>
 <meta charset="UTF-8">
 <meta name="format-detection" content="telephone=no">
-<title>🦊.txt</title>
+<title>New Text.txt</title>
 <head><style>
 html,body {caret-color:#ff8228; font-family:courier; font-size:14px; white-space:pre-wrap; margin-bottom:-2px; padding-top:2px; padding:2px;}
 [contenteditable]:focus {outline: none;}
@@ -17,32 +17,20 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 .prev {color:#6fe; background-color:#399;}
 .next, .prev {border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
 .picker {font-family:arial; font-size:11px; padding:4px 11px 3px; position:relative;} /*Firefox: font-size:12px; padding:5px 11px 4px;*/
-.aczo {font-family:courier; font-size:12px; border:none; border-top:1px solid #033; border-bottom:1px solid #033; bottom:4px; padding:8px 4px 9px;
+.aczo {font-family:courier; font-size:12px; border:none; border-top:1px solid #033; border-bottom:1px solid #033; margin:-4px 2px; bottom:4px; padding:8px 5px 9px; text-align:center; width:34px; display:inline-block;
   clip-path: polygon(
-6px 4px,
-22px 0px,
-38px 4px,
+14% 12%,
+50% 0%,
+86% 12%,
 
-44px 22px,
-36px 32px,
+100% 68%,
+82% 100%,
 
-8px 32px,
-0px 22px
+18% 100%,
+0% 68%
 );
 }
-.aczo28 {font-family:courier; font-size:12px; border:none; border-top:1px solid #033; border-bottom:1px solid #033; bottom:5px; padding:10px 7px 13px;
-  clip-path: polygon(
-7px 4px,
-28px 0px,
-49px 4px,
-
-56px 27px,
-47px 40px,
-
-9px 40px,
-0px 27px
-);
-}
+.aczo28 {bottom:5px; padding:10px 7px 11px; width:44px;}
 .tooltip {display:none; background:none; border:1px solid #772227; color:inherit; cursor:default; padding:6px 11px 4px;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
@@ -451,8 +439,8 @@ function open(file) {
     toolbar(fr.result);
   }
 }
-var filel = ["File", "Diff", "File 1", "File 2"]
-/*var filel = ["('▾')", "( ⤺ )", "( 1 )", "( 2 )"]*/
+var filel = ["File", "Diff", "File 1", "File 2", "🦊", "🦊", "🦊"]
+/*var filel = ["❨'▾'❩", "❨ ⤺ ❩", "❨ 1 ❩", "❨ 2 ❩", "🐻‍❄️", "🦦", "🐻‍❄️"]*/
 
 function opendiff(file){
   var fr = new FileReader();
@@ -469,13 +457,13 @@ function toolbar(d){
   document.body.className = "exitmenu";
   document.body.innerHTML = d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   if (hljs) hljs.highlightElement(document.body);
-  document.body.innerHTML = `<div style="position:fixed; white-space:nowrap; background-color:inherit; font-size:14px;"><div id="dimm" style="display:none;"><button class="prev" onclick="exitmenu();">🦊 -(Destructive tools)</button> 🦊 -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
+  document.body.innerHTML = `<div style="position:fixed; white-space:nowrap; background-color:inherit; font-size:14px;"><div id="dimm" style="display:none;"><button class="prev" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
     <option value="0">Remove...</option>
     <option value="1">Remove all duplicate lines</option>
     <option value="2">Remove all new lines</option>
     <option value="3">Replace all tabs with 4 spaces each</option>
     <option value="4">Decode all percent signs</option>
-</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none">) <button class="next" onclick="fraktur();">🦊 -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="display:block;"><label><input id="colorpicker" type="color" value=calc.placeholder></input><button class="next" onclick="menu()">🦊 -(Destructive tools)</button><input id="calculator" class="next" style="width:116px;" type="text" oninput="check(this);" placeholder="Calculator"> 🦊 -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">🦊 -(Save as)</button> 🦊 -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label> <div id="local_tooltip" class="tooltip"></div></div><div id="tooltip" style="white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + document.body.innerHTML.replace(/(https:\/\/.*?)(\"|\'|\n|<|\)| )/g, '<a href="$1" target="_blank" contenteditable="false">$1</a>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
+</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none">) <button class="next" onclick="fraktur();">${filel[4]} -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="display:block;"><label><input id="colorpicker" type="color" value=calc.placeholder></input><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calculator" class="next" style="width:116px;" type="text" oninput="check(this);" placeholder="Calculator"> ${filel[5]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label> <div id="local_tooltip" class="tooltip"></div></div><div id="tooltip" style="white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + document.body.innerHTML.replace(/(https:\/\/.*?)(\"|\'|\n|<|\)| )/g, '<a href="$1" target="_blank" contenteditable="false">$1</a>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
   tooltip = document.getElementById("tooltip");
   editor = document.getElementById("editable");
   let left = () => {
@@ -568,15 +556,19 @@ function toolbar(d){
     }
   });
 /*
-  picker.classList.add(aczo);
-  pickerdiff.classList.add(aczo);
+  picker.classList.add("aczo");
+  pickerdiff.classList.add("aczo");
+  if(aczo28){
+    picker.classList.add("aczo28");
+    pickerdiff.classList.add("aczo28");
+  }
 */
 }
 
 var calc, editor, editdiff, highlight;
 var dirs = [];
 var hljs = false;
-var aczo = "aczo28";
+var aczo28 = true;
 window.onload = () => {
   if (document.body.getAttribute("data-launch")){
     render();
@@ -589,7 +581,7 @@ window.onload = () => {
   if (window.screen.width > 800){
     scale = "14px";
     adju = "none"
-    aczo = "aczo"
+    aczo28 = false
   }
   document.body.style.fontSize = scale;
   document.body.style.lineHeight = scale;
@@ -600,15 +592,15 @@ window.onload = () => {
   highlight.onload = () => {
     toolbar("");
     if(sharp[1]){
-      local_tooltip.innerHTML = "🦊 -(Uninitiated CSS)"
-      local_tooltip.setAttribute("data-tooltip", `Save style "` + sharp[0] + `" (if that's spelled correctly) from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> next to HTML then reload this page<br/>`)
+      local_tooltip.innerHTML = filel[6] + " -(Uninitiated CSS)"
+      local_tooltip.setAttribute("data-tooltip", `Download and extract "` + sharp[0] + `" (if that's spelled correctly) from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> directly next to HTML then reload this page<br/>`)
       local_tooltip.style.display = "inline-block";
     }
   }
   highlight.onerror = () => {
     toolbar("");
-    local_tooltip.innerHTML = "🦊 -(Highlight)"
-    local_tooltip.setAttribute("data-tooltip", `Save highlight.min.js from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.`)
+    local_tooltip.innerHTML = filel[6] + " -(Highlight)"
+    local_tooltip.setAttribute("data-tooltip", `Download and extract highlight.min.js from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> directly next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.`)
     local_tooltip.style.display = "inline-block";
   }
 }

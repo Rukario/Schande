@@ -1,4 +1,7 @@
 # Schande
+
+Download and serve files, you define how are they downloaded and sorted!
+
 ```
               ______
            .-"______"-.
@@ -24,6 +27,15 @@ Any good OS with Python 3 installed will work. iOS/iPadOS: get iSH Shell app fro
 3. Schande.bat on first run will create a new file: Schande.cd, open it in your favorite text editor to edit rules, refer to the premade Schande.cd for inspiration.
 
 4.
-    - Paranoids: h(E)lp, (V)iew page source
+    - Paranoids: h(E)lp
     - Braves: (I)nput
+    - Pirates: open torrent (M)anager
+      - Torrent capabilities via Transmission-daemon for the neglected OS (iOS/iPadOS) and whatnot.
     - Leave it in background for HTML server if enabled
+
+Extras
+
+  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/Fuchsatchi.bat">Uninteresting stuff/Fuchsatchi.bat</a> - Download and serve files from Patreon, Fantia, Fanbox, Kemono
+  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/Ferchel.bat">Uninteresting stuff/Ferchel.bat</a> - Manual filelist sync for the paranoids, to make the copies round up between PC and iOS/iPadOS storage via iTunes a bit more manageable.
+  - <a href="https://rukario.github.io/Schande/Uninteresting%20stuff/APNG%20Maker.html">Uninteresting stuff/APNG Maker.html</a> - APNG production
+  - <a href="https://rukario.github.io/Schande/Uninteresting%20stuff/New%20Text.html">Uninteresting stuff/New Text.html</a> - A good UTF-8 text editor for neglected OS but has good browser, colloborate with Shortcuts app for a proper exterience, see http://redd.it/westw3

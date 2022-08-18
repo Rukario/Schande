@@ -119,7 +119,7 @@ def mainmenu():
  + Enter valid site to start a scraper.
 """
 def ready_input():
-    sys.stdout.write(f"Enter (I)nput mode or ready to s(O)rt, (L)oad filelist from {textfile}, torrent (M)anager, h(E)lp: ")
+    sys.stdout.write(f"Ready input: ")
     sys.stdout.flush()
 def skull():
     return """                                    
@@ -4500,13 +4500,14 @@ def start_remote(remote):
   > Press D, F to decrease or increase number by 10
   > Press L to (L)ist all items
   > Press S, G to (S)top/start (G)etting selected item
+  > Press M to return to torrent (M)anager/(M)ain menu
 
  Key listener (torrent management):
   > Press I, R to (I)nput new torrent or (R)emove torrent
   > Press E to view fil(Es) of selected torrent""", 0, 2)
-    stdout = "remove, A to remove all"
+    stdout = "remove, (A)ll"
     while True:
-        el = input(f"Select TORRENT by number to {stdout}, return to main (M)enu: {f'{pos/10:g}' if pos else ''}", "0123456789adfirsgelm")
+        el = input(f"Select TORRENT by number to {stdout}: {f'{pos/10:g}' if pos else ''}", "0123456789adfirsgelm")
         if el == 12:
             pos -= 10 if pos > 0 else 0
             echo("", 1)
@@ -4517,10 +4518,12 @@ def start_remote(remote):
             return
         elif el == 14:
             echo("", 1)
+            buffer = "cancel"
             while True:
-                i = input("Magnet/torrent link, enter nothing to finish: ")
+                i = input(f"Magnet/torrent link, enter nothing to {buffer}: ")
                 if i.startswith("magnet:") or i.startswith("http") or i.endswith(".torrent"):
                     subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", i, "-sr", "0"], **shuddup)
+                    buffer = "finish"
                 else:
                     echo("", 1)
                     break
@@ -4545,7 +4548,7 @@ def start_remote(remote):
             sel = el
             pos = 0
             if el == 15:
-                stdout = "remove, A to remove all"
+                stdout = "remove, (A)ll"
             elif el == 16:
                 stdout = "stop"
             elif el == 17:
@@ -4577,7 +4580,7 @@ def start_remote(remote):
                 pose = 0
                 stdoute = "stop getting"
                 while True:
-                    i = input(f"Select FILE by number to {stdoute}, A to apply all, return to torrent (M)anager: {f'{pose/10:g}' if pose else ''}", "0123456789adfsglm")
+                    i = input(f"Select FILE by number to {stdoute}, (A)ll: {f'{pose/10:g}' if pose else ''}", "0123456789adfsglm")
                     if i == 12:
                         pose -= 10 if pose > 0 else 0
                         echo("", 1)
@@ -4914,14 +4917,19 @@ def keylistener():
 t = Thread(target=keylistener)
 t.daemon = True
 t.start()
-print("""
+print(f"""
  Key listener:
   > Press X to enable or disable indefinite retry on error downloading files (for this session).
   > Press S to skip next error once during downloading files.
   > Press T to enable or disable cooldown during errors (reduce server strain).
   > Press K to view cookies.
   > Press 1 to 8 to set max parallel download of 8 available slots, 0 to pause.
-  > Press Z or CtrlC to break and reconnect of the ongoing downloads or to end timer instantly.""")
+  > Press Z or CtrlC to break and reconnect of the ongoing downloads or to end timer instantly.
+
+ Key listener (ready input):
+  > Press I, L to enter (I)nput or (L)oad list from {textfile}.
+  > Press O to s(O)rt files.
+  > Press M, E to open torrent (M)anager or h(E)lp document.""")
 
 
 

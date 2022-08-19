@@ -192,18 +192,23 @@ key included > 0 > relationships > post > data > id
 key1 data > 0 > attributes > title
 key2 data > 0 > attributes > edited_at
 html data > 0 > attributes > content
+
 files included > 0 > attributes > download_url
 name1 included > 0 > attributes > file_name
 files included > 0 > attributes > url
 name1 included > 0 > attributes > name
 files data > 0 > attributes > post_file > url
 name1 data > 0 > attributes > post_file > name
+
 meta /p/post/*/ customize with *.
 meta file?h=*& customize with *.
+
+replace data-media-id="*" src=" with data-media-id="*" patreon-src="
 name1 <img data-media-id="*"
-files  src="https://c10*"> customize with https://c10*
+files patreon-src="*">
 extfix /1.*?token-time=
 pages links > next
+
 name1
 files <a href="*" rel="nofollow noopener" target="_blank">https://dl.dropbox.com*</a> customize with https://dl.dropbox.com*
 files <a href="*" rel="nofollow noopener" target="_blank">https://www.dropbox.com*</a> customize with https://dl.dropbox.com*
@@ -318,7 +323,8 @@ meta2
 name
 replace data-media-id="*" src=" with data-media-id="*" kemono-src="
 name1 <img data-media-id="*" customize with *id.*
-meta2 https://kemono.party/data/*/*/*
+meta2 https://kemono.party/data/*/*/*.* customize with .*
+meta2 https://kemono.party/data/*/*/* customize with .*
 files kemono-src="*"> customize with https://kemono.party/data*
 paginate *^= ^=* with =(+25)
 

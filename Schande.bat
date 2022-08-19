@@ -1798,20 +1798,35 @@ def new_driver():
     if os.path.isfile(batchdir + "chromedriver.exe"):
         if not os.path.exists(batchdir + "chromedriver"):
             os.makedirs(batchdir + "chromedriver")
+        # import undetected_chromedriver as uc
+        # return uc.Chrome()
         options = webdriver.ChromeOptions()
-        options.add_argument(f'user-data-dir={batchdir}chromedriver')
-        options.add_argument(f"user-agent={mozilla['http']}")
-        options.add_argument('--disable-blink-features=AutomationControlled')
-        # might also need to change binary string $cdc_ to $cra_?
-        return webdriver.Chrome(options=options)
+        options.arguments.extend([f'user-data-dir={batchdir}chromedriver', f"user-agent={mozilla['http']}", '--disable-blink-features=AutomationControlled', "--no-default-browser-check", "--no-first-run"])
+        driver = webdriver.Chrome(options=options)
+        driver.execute_cdp_cmd(
+            "Page.addScriptToEvaluateOnNewDocument",
+            {
+                "source": """
+                    let objectToInspect = window,
+                        result = [];
+                    while(objectToInspect !== null) 
+                    { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
+                      objectToInspect = Object.getPrototypeOf(objectToInspect); }
+                    result.forEach(p => p.match(/.+_.+_(Array|Promise|Symbol)/ig)
+                                        &&delete window[p])
+                    """
+            },
+        )
+        return driver
     elif os.path.isfile(batchdir + "geckodriver.exe"):
         if not os.path.exists(batchdir + "geckodriver"):
             os.makedirs(batchdir + "geckodriver")
         options = webdriver.FirefoxOptions()
-        options.add_argument('--profile')
-        options.add_argument(batchdir + "geckodriver")
+        options.arguments.extend(['--profile', batchdir + "geckodriver"])
         options.set_preference('general.useragent.override', mozilla['http'])
-        return webdriver.Firefox(options=options)
+        driver = webdriver.Firefox(options=options)
+        # driver.execute_script("")
+        return driver
     else:
         subdir = batchdir.replace("/", "\\")
         echo(f""" The defuse picker (or you) suggested there are antibot detectors in place in this url
@@ -2110,9 +2125,9 @@ def carrot_files(html, htmlpart, key, pick, abs_page, folder, after=False):
     name = ""
     for array in html:
         update_array = [array[0], array[1]]
-        if after: # and name?
+        if after:
             if not array[0]:
-                update_html += [["", new_link(array[1], folder + parse.unquote(name), htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else 0) if array[1] else ""]]
+                update_html += [["", array[1] if array[1] else ""]]
                 continue
             url = array[1]
         if url:

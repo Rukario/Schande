@@ -22,16 +22,28 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 14% 12%,
 50% 0%,
 86% 12%,
-
 100% 68%,
 82% 100%,
-
 18% 100%,
 0% 68%
 );
 }
 .aczo28 {bottom:5px; padding:10px 7px 11px; width:44px;}
-.tooltip {display:none; background:none; border:1px solid #772227; color:inherit; cursor:default; padding:6px 11px 4px;}
+.backtip {display:none; position:relative; width:150px; height:18px;}
+.backtip::before {content:''; position:absolute; left:0; top:2px; z-index:1; background:#ffffff; mix-blend-mode:overlay; width:150px; height:24px; clip-path: polygon(
+0% 0%,
+100% 0%,
+100% 100%,
+0% 100%,
+0% 0%,
+1px 1px,
+1px 96%,
+99% 96%,
+99% 1px,
+1px 1px
+
+);}
+.tooltip {position:absolute; z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 ::selection {background:#ffb7b7;}
@@ -148,7 +160,9 @@ function getfontcolor(c, v){
     return ".exitmenu{background-color:#" + v + "; color:#586e75;}"
   } else if(c[0] >= "66" || c[1] >= "66" || c[2] >= "66"){
     return ".exitmenu{background-color:#" + v + "; color:#000;}"
-  } else if(c[0] >= "20" && c[1] >= "07" && c[2] >= "07"){
+  } else if(c[0] >= "20" && c[1] >= "20" && c[2] >= "20"){
+    return ".exitmenu{background-color:#" + v + "; color:#93a1a1;}"
+  } else if(c[0] >= "20" && c[1] >= "07" && c[2] >= "07"){/* red */
     return ".exitmenu{background-color:#" + v + "; color:#f45;}"
   } else {
     return ".exitmenu{background-color:#" + v + "; color:#fff;}"
@@ -225,7 +239,7 @@ function menu(){
 }
 
 function exitmenu(){
-  document.body.className = "exitmenu"
+  document.body.className = "exitmenu hljs"
   var x = document.getElementById("dimm");
   x.style.display = "none";
   var x = document.getElementById("dim");
@@ -454,7 +468,7 @@ function opendiff(file){
 }
 
 function toolbar(d){
-  document.body.className = "exitmenu";
+  document.body.className = "exitmenu hljs";
   document.body.innerHTML = d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   if (hljs) hljs.highlightElement(document.body);
   document.body.innerHTML = `<div style="position:fixed; white-space:nowrap; background-color:inherit; font-size:14px;"><div id="dimm" style="display:none;"><button class="prev" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
@@ -463,7 +477,7 @@ function toolbar(d){
     <option value="2">Remove all new lines</option>
     <option value="3">Replace all tabs with 4 spaces each</option>
     <option value="4">Decode all percent signs</option>
-</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none">) <button class="next" onclick="fraktur();">${filel[4]} -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="display:block;"><label><input id="colorpicker" type="color" value=calc.placeholder></input><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calculator" class="next" style="width:116px;" type="text" oninput="check(this);" placeholder="Calculator"> ${filel[5]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label> <div id="local_tooltip" class="tooltip"></div></div><div id="tooltip" style="white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + document.body.innerHTML.replace(/(https:\/\/.*?)(\"|\'|\n|<|\)| )/g, '<a href="$1" target="_blank" contenteditable="false">$1</a>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
+</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none">) <button class="next" onclick="fraktur();">${filel[4]} -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="display:block;"><label><input id="colorpicker" type="color" value=calc.placeholder></input><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calculator" class="next" style="width:116px;" type="text" oninput="check(this);" placeholder="Calculator"> ${filel[5]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label> <div id="local_backtip" class="backtip"><div id="local_tooltip" class="tooltip"></div></div></div><div id="tooltip" style="white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + document.body.innerHTML.replace(/(https:\/\/.*?)(\"|\'|\n|<|\)| )/g, '<a href="$1" target="_blank" contenteditable="false">$1</a>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
   tooltip = document.getElementById("tooltip");
   editor = document.getElementById("editable");
   let left = () => {
@@ -589,19 +603,18 @@ window.onload = () => {
   highlight = document.createElement("script");
   highlight.src = "highlight.min.js"/* + Date.now()*/;
   document.body.appendChild(highlight);
+  toolbar("");
   highlight.onload = () => {
-    toolbar("");
     if(sharp[1]){
       local_tooltip.innerHTML = filel[6] + " -(Uninitiated CSS)"
       local_tooltip.setAttribute("data-tooltip", `Download and extract "` + sharp[0] + `" (if that's spelled correctly) from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> directly next to HTML then reload this page<br/>`)
-      local_tooltip.style.display = "inline-block";
+      local_backtip.style.display = "inline-block";
     }
   }
   highlight.onerror = () => {
-    toolbar("");
     local_tooltip.innerHTML = filel[6] + " -(Highlight)"
     local_tooltip.setAttribute("data-tooltip", `Download and extract highlight.min.js from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> directly next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.`)
-    local_tooltip.style.display = "inline-block";
+    local_backtip.style.display = "inline-block";
   }
 }
 </script></head><body class="exitmenu">1. Set up and run Schande.bat for its HTML server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a>

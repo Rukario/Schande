@@ -1,6 +1,6 @@
 @echo off && goto loaded
 
-import os, sys, ssl, socket, time, json, zlib, inspect, smtplib, hashlib, subprocess
+import os, sys, io, ssl, socket, time, json, zlib, inspect, smtplib, hashlib, subprocess
 from datetime import datetime
 from fnmatch import fnmatch
 from http import cookiejar
@@ -614,6 +614,51 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             echo(f"Large POST data: {Bytes} in length exceeding 2000 allowance", 0, 1)
             self.wfile.write(bytes(f"Large POST data sent", 'utf-8'))
+
+    def list_directory(self, path):
+        try:
+            list = os.listdir(path)
+        except OSError:
+            self.send_error(HTTPStatus.NOT_FOUND, "No permission to list directory")
+            return None
+        list.sort(key=lambda a: a.lower())
+        try:
+            displaypath = parse.unquote(self.path, errors='surrogatepass')
+        except UnicodeDecodeError:
+            displaypath = parse.unquote(path)
+        displaypath = displaypath.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
+        title = f'Directory listing for {displaypath}'
+        buffer = []
+        for name in list:
+            fullname = os.path.join(path, name)
+            displayname = linkname = name
+            if os.path.isdir(fullname):
+                displayname = name + "/"
+                linkname = name + "/"
+            if os.path.islink(fullname):
+                displayname = name + "@"
+            buffer.append(' &gt; <a href="%s">%s</a>'
+                    % (parse.quote(linkname, errors='surrogatepass'), displayname.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")))
+        buffer = '\n'.join(buffer)
+        style = """html,body{white-space:pre; background-color:#10100c; color:#088; font-family:courier; font-size:14px;}
+a{color:#6cb;}
+a:visited{color:#bfe;}
+h2 {margin:4px;}"""
+        htmldata = f"""<!DOCTYPE html>
+<html>
+<meta charset="UTF-8"/>
+<meta name="format-detection" content="telephone=no">
+<title>{title}</title>
+<style>{style}</style>
+<body><h2>{title}</h2>{buffer}</body>
+</html>"""
+        f = io.BytesIO()
+        f.write(bytes(htmldata, 'utf-8'))
+        f.seek(0)
+        self.send_response(200)
+        self.send_header("Content-Length", str(len(htmldata)))
+        self.end_headers()
+        return f
 
     def send_head(self):
         self.range = (0, 0)
@@ -3948,8 +3993,8 @@ def tohtml(subdir, htmlname, part, pattern):
         builder += """<div class="cell">\n""" if part[key]["visible"] else """<div class="cell" style="display:none;">\n"""
         if len(keywords) > 1:
             time = keywords[1] if keywords[1] else "No timestamp"
-            keywords = ", ".join(x for x in keywords[2:] if x) if len(keywords) > 2 else "None"
-            builder += f"""<div class="time" id="{key}" style="float:right;">Part {key} ꍯ {time}\nKeywords: {keywords}</div>\n"""
+            buffer = ", ".join(x for x in keywords[2:] if x) if len(keywords) > 2 else "None"
+            builder += f"""<div class="time" id="{key}" style="float:right;">Part {key} ꍯ {time}\nKeywords: {buffer}</div>\n"""
         builder += title
         if part[key]["files"]:
             builder += "<div class=\"files\">\n"

@@ -626,14 +626,16 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
             displaypath = parse.unquote(self.path, errors='surrogatepass')
         except UnicodeDecodeError:
             displaypath = parse.unquote(path)
-        displaypath = displaypath.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
-        title = f'Directory listing for {displaypath}'
+        if displaypath == "/":
+            title = "Top directory"
+        else:
+            title = displaypath.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;").replace("/", "\\")
         buffer = []
         for name in list:
             fullname = os.path.join(path, name)
             displayname = linkname = name
             if os.path.isdir(fullname):
-                displayname = name + "/"
+                displayname = "\\" + name + "\\"
                 linkname = name + "/"
             if os.path.islink(fullname):
                 displayname = name + "@"
@@ -641,8 +643,8 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
                     % (parse.quote(linkname, errors='surrogatepass'), displayname.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")))
         buffer = '\n'.join(buffer)
         style = """html,body{white-space:pre; background-color:#10100c; color:#088; font-family:courier; font-size:14px;}
-a{color:#6cb;}
-a:visited{color:#bfe;}
+a{color:#cb7; text-decoration:none;}
+a:visited{color:#efdfa8;}
 h2 {margin:4px;}"""
         htmldata = f"""<!DOCTYPE html>
 <html>

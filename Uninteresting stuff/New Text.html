@@ -9,7 +9,7 @@ html,body {caret-color:#ff8228; font-family:courier; font-size:14px; white-space
 .editor {padding-top:52px; min-width:calc(100% - 20px); min-height:81vh; line-height:1.1;}
 a {color:#ff9449;}
 a:visited {color:#ffc66d;}
-.hyperlink{color:#ffc66d; text-decoration:underline;}
+.hyperlink{color:#bfddc6; text-decoration:underline;}
 .blink{animation: bl 1000ms linear infinite;}
 @keyframes bl{50%{opacity:50%;}}
 input[type="text"] {padding:3px 11px; width:86px;} /*Firefox: padding:3px 11px 4px;*/
@@ -218,7 +218,7 @@ function pos() {
     where = link.getBoundingClientRect();
     cursor_tooltip.style.left = (window.scrollX + where.left + 6) + "px";
     cursor_tooltip.style.top = (window.scrollY + where.top -30) + "px";
-    cursor_tooltip.innerHTML = "<a href='" + link.innerHTML + "' target='_blank' class='next'>Open</a>";
+    cursor_tooltip.innerHTML = "<a href='" + link.innerHTML + "' target='_blank' class='next' style='text-decoration:none; font-size:12px; font-family:sans-serif;'>Open</a>";
     cursor_tooltip.style.display = "inline-block";
   }
   sel = sel.getRangeAt(0)

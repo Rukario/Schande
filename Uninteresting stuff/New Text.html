@@ -264,12 +264,18 @@ function rename(){
   }
 }
 
-function debar(x){
-  return x.replace(/^.*?Text: .*?\)/, "");
+function linksonly(){
+  canihljs = false;
+  toolbar(editor.textContent.replace(/[\s\S]*?((https:\/\/.*?)(\"|\'|\n|<|\)| )|($))/g, '$2\n'));
+}
+
+function dehljs(){
+  canihljs = false;
+  toolbar(editor.textContent);
 }
 
 function dedup(){
-  dirty = editor.textContent.split("\n");
+  var dirty = editor.textContent.split("\n");
   clean = []
   for(var i=0;i<dirty.length;i++){
     if(dirty[i] && clean.indexOf(dirty[i])<0){
@@ -341,6 +347,7 @@ function unraw(str) {
 function replace(x, y){
   var x = document.getElementById("replace");
   if(!x.value){
+    canihljs = true;
     toolbar(editor.textContent);
   } else {
     var y = document.getElementById("with");
@@ -461,7 +468,9 @@ function open(file) {
   var fr = new FileReader();
   fr.readAsText(file);
   fr.onload = () => {
-    toolbar(fr.result);
+    d = fr.result;
+    bigdoc = (d.length > 300000);
+    toolbar(d);
   }
 }
 var filel = ["File", "Diff", "File 1", "File 2", "🦊", "🦊", "🦊"]
@@ -480,16 +489,16 @@ function opendiff(file){
 
 function toolbar(d){
   document.body.className = "exitmenu hljs";
-  document.body.innerHTML = d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  if (hljs) hljs.highlightElement(document.body);
   document.body.innerHTML = `<div class="cursor_tooltip" id="cursor_tooltip"></div><div style="z-index:1; position:fixed; white-space:nowrap; background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><div id="dimm" style="display:none;"><button class="prev" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
     <option value="0">Remove...</option>
     <option value="1">Remove all duplicate lines</option>
     <option value="2">Remove all new lines</option>
     <option value="3">Replace all tabs with 4 spaces each</option>
     <option value="4">Decode all percent signs</option>
-</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none">) <button class="next" onclick="fraktur();">${filel[4]} -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="display:block;"><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calculator" class="next" style="width:116px;" type="text" oninput="check(this);" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[5]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"><div id="local_tooltip" class="tooltip"></div></div></div><div id="tooltip" style="white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + document.body.innerHTML.replace(/(https:\/\/.*?)(\"|\'|\n|<|\)| )/g, '<span class="hyperlink">$1</span>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
-  tooltip = document.getElementById("tooltip");
+    <option value="5">Links only</option>
+    <option value="6">De-highlight (until empty text replacement)</option>
+</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none">) <button class="next" onclick="fraktur();">${filel[4]} -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="display:block;"><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calculator" class="next" style="width:116px;" type="text" oninput="check(this);" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[5]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"><div id="local_tooltip" class="tooltip"></div></div></div><div id="tooltip" style="white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + (!bigdoc&&canihljs?hljs.highlightAuto(d).value:d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")).replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|\)| )/g, '<span class="hyperlink">$1</span>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
+  bigdoc = false;
   editor = document.getElementById("editable");
   let left = () => {
     setTimeout(function(){
@@ -509,7 +518,11 @@ function toolbar(d){
   if(!editor.isContentEditable){
     if(!d){
       tooltip.style.display = "inline-block";
-      tooltip.innerHTML = `Performance reduced: The JavaScript version is now used for compatibility of some features on this browser.`;
+      tooltip.innerHTML = "Performance reduced: The JavaScript version is now used for compatibility of some features on this browser.";
+      editor.addEventListener("click", left);
+    } else if (canihljs&&bigdoc){
+      tooltip.style.display = "inline-block";
+      tooltip.innerHTML = "The document is more than 300 KB, prompting for not highlighting for performance.";
       editor.addEventListener("click", left);
     }
     editor.setAttribute("onpaste", "plaintext(this, event)");
@@ -518,7 +531,7 @@ function toolbar(d){
     editdiff.setAttribute("contenteditable", "true");
   }
   colorpicker.addEventListener('change', (event) => {
-    var s = document.createElement("style")
+    var s = document.createElement("style");
     calc.placeholder = event.target.value;
     var a = document.createElement("a");
     a.href = event.target.value;
@@ -532,6 +545,7 @@ function toolbar(d){
   x.addEventListener('change', (event) => {
     file = event.target.files[0];
     document.title = file.name;
+    canihljs = true;
     open(file);
   });
   picker.innerHTML = filel[0];
@@ -552,7 +566,6 @@ function toolbar(d){
       }
     }
   });
-  var destructive = document.getElementById("destructive");
   destructive.addEventListener('change', (e) => {
     var x = e.target.selectedIndex;
     if (x == 1){
@@ -563,16 +576,20 @@ function toolbar(d){
       detab();
     } else if (x == 4){
       decode();
+    } else if (x == 5){
+      linksonly();
+    } else if (x == 6){
+      dehljs();
     }
   });
-  var y = document.getElementById("replace");
-  y.addEventListener("keyup", function(e) {
+  var rep = document.getElementById("replace");
+  rep.addEventListener("keyup", function(e) {
     if (e.keyCode === 13) {
       replace();
     }
   });
-  var z = document.getElementById("with");
-  z.addEventListener("keyup", function(e) {
+  rep = document.getElementById("with");
+  rep.addEventListener("keyup", function(e) {
     if (e.keyCode === 13) {
       replace();
     }
@@ -587,9 +604,11 @@ function toolbar(d){
 */
 }
 
-var calc, editor, editdiff, highlight;
+var calc, editor, editdiff;
 var dirs = [];
 var hljs = false;
+var canihljs = false;
+var bigdoc = false;
 var aczo28 = true;
 window.onload = () => {
   if (document.body.getAttribute("data-launch")){
@@ -608,18 +627,19 @@ window.onload = () => {
   document.body.style.fontSize = scale;
   document.body.style.lineHeight = scale;
   document.body.style.webkitTextSizeAdjust = adju;
-  highlight = document.createElement("script");
-  highlight.src = "highlight.min.js"/* + Date.now()*/;
-  document.body.appendChild(highlight);
+  var s = document.createElement("script");
+  s.src = "highlight.min.js"/* + Date.now()*/;
+  document.body.appendChild(s);
   toolbar("");
-  highlight.onload = () => {
+  s.onload = () => {
+    canihljs = true;
     if(sharp[1]){
       local_tooltip.innerHTML = filel[6] + " -(Uninitiated CSS)"
       local_tooltip.setAttribute("data-tooltip", `Download and extract "` + sharp[0] + `" (if that's spelled correctly) from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> directly next to HTML then reload this page<br/>`)
       local_backtip.style.display = "inline-block";
     }
   }
-  highlight.onerror = () => {
+  s.onerror = () => {
     local_tooltip.innerHTML = filel[6] + " -(Highlight)"
     local_tooltip.setAttribute("data-tooltip", `Download and extract highlight.min.js from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> directly next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.`)
     local_backtip.style.display = "inline-block";

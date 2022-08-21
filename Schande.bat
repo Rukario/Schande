@@ -4554,42 +4554,30 @@ def source_view():
 
 def start_remote(remote):
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
+    keys = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "All", "d", "f", "s", "g", "l", "m", "r", "e", "i"]
     pos = 0
-    sel = 15
+    sel = 14
+    stdout = "STOP"
     if not torrent_menu[0]:
         torrent_menu[0] = True
         echo(""" Key listener (torrent/file viewer):
   > Press D, F to decrease or increase number by 10
-  > Press L to (L)ist all items
   > Press S, G to (S)top/start (G)etting selected item
-  > Press M to return to torrent (M)anager/(M)ain menu
+  > Press L, M to re/(L)ist all items or return to torrent (M)anager/(M)ain menu
 
  Key listener (torrent management):
-  > Press I, R to (I)nput new torrent or (R)emove torrent
-  > Press E to view fil(Es) of selected torrent""", 0, 2)
-    stdout = "remove, (A)ll"
+  > Press R, E, I to (R)emove torrent, view fil(E)s of selected torrent, or (I)nput new torrent""", 0, 2)
     while True:
-        el = input(f"Select TORRENT by number to {stdout}: {f'{pos/10:g}' if pos else ''}", "0123456789adfirsgelm")
+        el = input(f"Select TORRENT by number to {stdout}: {f'{pos/10:g}' if pos else ''}", keys if sel == 18 else keys[:10] + keys[11:])
+        if not sel == 18 and el > 10:
+            el += 1
         if el == 12:
             pos -= 10 if pos > 0 else 0
             echo("", 1)
         elif el == 13:
             pos += 10
             echo("", 1)
-        elif el == 20:
-            return
-        elif el == 14:
-            echo("", 1)
-            buffer = "cancel"
-            while True:
-                i = input(f"Magnet/torrent link, enter nothing to {buffer}: ")
-                if i.startswith("magnet:") or i.startswith("http") or i.endswith(".torrent"):
-                    subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", i, "-sr", "0"], **shuddup)
-                    buffer = "finish"
-                else:
-                    echo("", 1)
-                    break
-        elif el == 19:
+        elif el == 16:
             echo("", 1)
             echo(f" - - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
             with subprocess.Popen([remote, "-l"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
@@ -4606,43 +4594,56 @@ def start_remote(remote):
                 if not listed:
                     echo("No torrents to list!", 0, 1)
                 echo("", 0, 1)
+        elif el == 17:
+            return
+        elif el == 20:
+            echo("", 1)
+            buffer = "cancel"
+            while True:
+                i = input(f"Magnet/torrent link, enter nothing to {buffer}: ")
+                if i.startswith("magnet:") or i.startswith("http") or i.endswith(".torrent"):
+                    subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", i, "-sr", "0"], **shuddup)
+                    buffer = "finish"
+                else:
+                    echo("", 1)
+                    break
         elif el > 13:
             sel = el
             pos = 0
-            if el == 15:
-                stdout = "remove, (A)ll"
-            elif el == 16:
-                stdout = "stop"
-            elif el == 17:
-                stdout = "start"
+            if el == 14:
+                stdout = "STOP"
+            elif el == 15:
+                stdout = "START"
             elif el == 18:
-                stdout = "view file list"
+                stdout = "REMOVE, (A)ll"
+            elif el == 19:
+                stdout = "VIEW file list"
             echo("", 1)
         else:
-            if sel == 15:
-                if el == 11:
-                    subprocess.Popen([remote, "-t", "all", "-r"], **shuddup)
-                else:
-                    subprocess.Popen([remote, "-t", str(el-1+pos), "-r"], **shuddup)
-            elif sel == 16:
+            if sel == 14:
                 if el == 11:
                     echo("", 1)
                 else:
                     subprocess.Popen([remote, "-t", str(el-1+pos), "-S"], **shuddup)
-            elif sel == 17:
+            elif sel == 15:
                 if el == 11:
                     echo("", 1)
                 else:
                     subprocess.Popen([remote, "-t", str(el-1+pos), "-s"], **shuddup)
             elif sel == 18:
                 if el == 11:
+                    subprocess.Popen([remote, "-t", "all", "-r"], **shuddup)
+                else:
+                    subprocess.Popen([remote, "-t", str(el-1+pos), "-r"], **shuddup)
+            elif sel == 19:
+                if el == 11:
                     echo("", 1)
                     continue
-                sele = 14
                 pose = 0
-                stdoute = "stop getting"
+                sele = 14
+                stdoute = "STOP getting"
+                i = 16
                 while True:
-                    i = input(f"Select FILE by number to {stdoute}, (A)ll: {f'{pose/10:g}' if pose else ''}", "0123456789adfsglm")
                     if i == 12:
                         pose -= 10 if pose > 0 else 0
                         echo("", 1)
@@ -4673,9 +4674,9 @@ def start_remote(remote):
                         sele = i
                         pose = 0
                         if i == 14:
-                            stdoute = "stop getting"
+                            stdoute = "STOP getting"
                         elif i == 15:
-                            stdoute = "get"
+                            stdoute = "GET"
                         echo("", 1)
                     else:
                         if sele == 14:
@@ -4688,6 +4689,7 @@ def start_remote(remote):
                                 subprocess.Popen([remote, "-t", str(el-1+pos), "-g", "all"], **shuddup)
                             else:
                                 subprocess.Popen([remote, "-t", str(el-1+pos), "-g", str(i-2+pose)], **shuddup)
+                    i = input(f"Select FILE by number to {stdoute}, (A)ll: {f'{pose/10:g}' if pose else ''}", keys[:17])
 
 
 

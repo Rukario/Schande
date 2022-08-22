@@ -152,11 +152,11 @@ Railscasts-like style (c) Visoft, Inc. (Damien White)
 </style>
 <script>
 function getfontcolor(c, v){
-  if(c[0] >= "cc" || c[1] >= "cc" || c[2] >= "cc"){
+  if(c[0] >= "cc" && c[1] >= "cc" && c[2] >= "cc"){
     return ".exitmenu{background-color:#" + v + "; color:#586e75;}"
-  } else if(c[0] >= "66" || c[1] >= "66" || c[2] >= "66"){
+  } else if(c[0] >= "99" || c[1] >= "99" || c[2] >= "99"){
     return ".exitmenu{background-color:#" + v + "; color:#000;}"
-  } else if(c[0] >= "20" && c[1] >= "20" && c[2] >= "20"){
+  } else if(c[0] >= "20" && c[1] >= "10" && c[2] >= "10"){
     return ".exitmenu{background-color:#" + v + "; color:#93a1a1;}"
   } else if(c[0] >= "20" && c[1] >= "07" && c[2] >= "07"){/* red */
     return ".exitmenu{background-color:#" + v + "; color:#f45;}"
@@ -531,12 +531,22 @@ function toolbar(d){
     editor.addEventListener("click", left);
   }
   bigdoc = false;
+  colorpicker.addEventListener('click', () => {
+    var s = document.createElement("style");
+    calc.placeholder = "#000000";
+    var a = document.createElement("a");
+    a.href = "#000000";
+    a.click()
+    s.innerHTML = getfontcolor(["00", "00", "00"], "000000")
+    document.getElementsByTagName("head")[0].appendChild(s)
+  });
   colorpicker.addEventListener('change', (event) => {
+    clearTimeout(timeoutID);
     var s = document.createElement("style");
     calc.placeholder = event.target.value;
     var a = document.createElement("a");
     a.href = event.target.value;
-    a.click()
+    var timeoutID = setTimeout(() => {a.click()}, 1000)
     var v = event.target.value.replace(/#/, "")
     s.innerHTML = getfontcolor(v.match(/.{1,2}/g), v)
     document.getElementsByTagName("head")[0].appendChild(s)

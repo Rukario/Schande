@@ -540,13 +540,14 @@ function toolbar(d){
     s.innerHTML = getfontcolor(["00", "00", "00"], "000000")
     document.getElementsByTagName("head")[0].appendChild(s)
   });
+  var timeoutID;
   colorpicker.addEventListener('change', (event) => {
     clearTimeout(timeoutID);
     var s = document.createElement("style");
     calc.placeholder = event.target.value;
     var a = document.createElement("a");
     a.href = event.target.value;
-    var timeoutID = setTimeout(() => {a.click()}, 1000)
+    timeoutID = setTimeout(() => {a.click()}, 1000)
     var v = event.target.value.replace(/#/, "")
     s.innerHTML = getfontcolor(v.match(/.{1,2}/g), v)
     document.getElementsByTagName("head")[0].appendChild(s)

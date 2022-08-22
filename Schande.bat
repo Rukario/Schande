@@ -448,7 +448,7 @@ def input(i="Your Input: ", choices=False):
     if choices:
         keys = ""
         for c in choices:
-            keys += c[0]
+            keys += c[0].lower()
         while True:
             el = choice(keys)
             if (c := choices[el-1])[1:]:

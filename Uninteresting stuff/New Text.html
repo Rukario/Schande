@@ -310,6 +310,10 @@ function decode(){
   }
 }
 
+function deuni() {
+  toolbar(editor.textContent.replace(/\\u[\dA-F]{4}/gi, function(match){return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));}))
+}
+
 function unraw(str) {
   return str.replace(/\\[0-9]|\\['"\bfnrtv]|\\x[0-9a-f]{2}|\\u[0-9a-f]{4}|\\u\{[0-9a-f]+\}|\\./ig, match => {
     switch (match[1]) {
@@ -495,8 +499,9 @@ function toolbar(d){
     <option value="2">Remove all new lines</option>
     <option value="3">Replace all tabs with 4 spaces each</option>
     <option value="4">Decode all percent signs</option>
-    <option value="5">Links only</option>
-    <option value="6">De-highlight (until empty text replacement)</option>
+    <option value="5">Unicode to characters</option>
+    <option value="6">Links only</option>
+    <option value="7">De-highlight (until empty text replacement)</option>
 </select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none">) <button class="next" onclick="fraktur();">${filel[4]} -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="display:block;"><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calculator" class="next" style="width:116px;" type="text" oninput="check(this);" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[5]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"><div id="local_tooltip" class="tooltip"></div></div></div><div id="tooltip" style="white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + (!bigdoc&&canihljs?hljs.highlightAuto(d).value:d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")).replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|\)| )/g, '<span class="hyperlink">$1</span>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
   editor = document.getElementById("editable");
   let left = () => {
@@ -589,8 +594,10 @@ function toolbar(d){
     } else if (x == 4){
       decode();
     } else if (x == 5){
-      linksonly();
+      deuni();
     } else if (x == 6){
+      linksonly();
+    } else if (x == 7){
       dehljs();
     }
   });

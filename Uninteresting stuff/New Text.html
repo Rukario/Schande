@@ -4,9 +4,9 @@
 <meta name="format-detection" content="telephone=no">
 <title>New Text.txt</title>
 <head><style>
-html,body {caret-color:#ff8228; font-family:courier; font-size:14px; white-space:pre-wrap; margin-top:0; padding:0px 2px;}
+html,body {caret-color:#ff8228; font-family:courier; font-size:14px; white-space:pre-wrap; margin:1px; margin-top:0; padding:0;}
 [contenteditable]:focus {outline: none;}
-.editor {padding-top:52px; min-width:calc(100% - 20px); min-height:81vh; line-height:1.1;}
+.editor {padding:10px; padding-top:52px; min-width:calc(100% - 20px); min-height:81vh; line-height:1.1;}
 a {color:#ff9449;}
 a:visited {color:#ffc66d;}
 .hyperlink{color:#bfddc6; text-decoration:underline;}
@@ -519,7 +519,7 @@ function opendiff(file){
 
 function toolbar(d){
   document.body.className = "exitmenu hljs";
-  document.body.innerHTML = `<div class="cursor_tooltip" id="cursor_tooltip"></div><div id="drag" style="z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); position:absolute; left:-16px;" onclick="relbar(this, '🫦')">👄</button><div id="dimm" style="display:none;"><button class="prev" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
+  document.body.innerHTML = `<div class="cursor_tooltip" id="cursor_tooltip"></div><div id="drag" style="margin:0px 10px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); position:absolute; left:-16px;" onclick="relbar(this, '🫦')">👄</button><div id="dimm" style="display:none;"><button class="prev" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
     <option value="0">Remove...</option>
     <option value="1">Remove all duplicate lines</option>
     <option value="2">Remove all new lines</option>

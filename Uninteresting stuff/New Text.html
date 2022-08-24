@@ -18,7 +18,7 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 .next {color:#6fe; background-color:#066;}
 ::placeholder {color:#3cb;}
 .prev {color:#6fe; background-color:#399;}
-.next, .prev {border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
+.next, .prev {white-space:nowrap; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
 .picker {font-family:arial; font-size:11px; padding:4px 11px 3px; position:relative;} /*Firefox: font-size:12px; padding:5px 11px 4px;*/
 .aczo {font-family:courier; font-size:12px; border:none; border-top:1px solid #033; border-bottom:1px solid #033; margin:-4px 2px; bottom:4px; padding:8px 5px 9px; text-align:center; width:34px; display:inline-block;
   clip-path: polygon(
@@ -36,6 +36,7 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 .backtip {display:none; position:relative; line-height:1.1; font-size:11px;}
 .backtip::before {content:''; position:absolute; left:0; top:0; z-index:1; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px);}
 .local_tooltip {z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
+.tooltip {white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; max-width:calc(100% - 36px); line-height:1.1; z-index:9999999; left:0px; top:0px; right:initial;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 ::selection {background:#ffb7b7;}
@@ -491,7 +492,19 @@ function position() {
 }
 
 var filel = ["File", "Diff", "File 1", "File 2", "🦊"]
-/*var filel = ["❨'▾'❩", "❨ ⤺ ❩", "❨ 1 ❩", "❨ 2 ❩", "🦦"]*/
+var ut = 0
+
+new URLSearchParams(window.location.search).forEach(function (val, key) {
+  if (!val){
+    if (Number(key)){
+      ut = key
+    } else if (key == "🦦"){
+      filel = ["❨'▾'❩", "❨ ⤺ ❩", "❨ 1 ❩", "❨ 2 ❩", "🦦"]
+    } else {
+      filel[4] = key
+    }
+  }
+});
 
 function opendiff(file){
   var fr = new FileReader();
@@ -506,7 +519,7 @@ function opendiff(file){
 
 function toolbar(d){
   document.body.className = "exitmenu hljs";
-  document.body.innerHTML = `<div class="cursor_tooltip" id="cursor_tooltip"></div><div id="drag" style="z-index:1; position:fixed; white-space:nowrap; background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); position:absolute; left:-16px;" onclick="relbar(this, '🫦')">👄</button><div id="dimm" style="display:none;"><button class="prev" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
+  document.body.innerHTML = `<div class="cursor_tooltip" id="cursor_tooltip"></div><div id="drag" style="z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); position:absolute; left:-16px;" onclick="relbar(this, '🫦')">👄</button><div id="dimm" style="display:none;"><button class="prev" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
     <option value="0">Remove...</option>
     <option value="1">Remove all duplicate lines</option>
     <option value="2">Remove all new lines</option>
@@ -515,7 +528,7 @@ function toolbar(d){
     <option value="5">Decode all unicode escapes</option>
     <option value="6">Links only</option>
     <option value="7">De-highlight (until empty text replacement)</option>
-</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none">) <button class="next" onclick="fraktur();">${filel[4]} -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="display:block;"><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calculator" class="next" style="width:116px;" type="text" oninput="check(this);" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[4]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"><div id="local_tooltip" class="local_tooltip"></div></div></div><div id="tooltip" style="white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + (!bigdoc&&canihljs?hljs.highlightAuto(d).value:d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")).replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| )/g, '<span class="hyperlink">$1</span>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
+</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none">) <button class="next" onclick="fraktur();">${filel[4]} -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="display:block;"><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calculator" class="next" style="width:116px;" type="text" oninput="check(this);" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[4]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"><div id="local_tooltip" class="local_tooltip"></div></div></div><div id="tooltip" class="tooltip"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + (!bigdoc&&canihljs?hljs.highlightAuto(d).value:d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")).replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| )/g, '<span class="hyperlink">$1</span>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
   editor = document.getElementById("editable");
   let left = () => {
     setTimeout(function(){
@@ -523,7 +536,7 @@ function toolbar(d){
     }, 40)
     editor.removeEventListener("click", left);
   }
-  if (window.location.search.includes("?") && !d){
+  if (!d && ut){
     tooltip.style.display = "inline-block";
     tooltip.innerHTML = "The clipboard is updated with page source, paste to view!";
     editor.addEventListener("click", left);
@@ -626,7 +639,7 @@ function toolbar(d){
       replace();
     }
   });
-  if(filel[0] != "File"){
+  if(filel[4] == "🦦"){
     picker.classList.add("aczo");
     pickerdiff.classList.add("aczo");
     if(aczo28){

@@ -101,8 +101,8 @@ ready
 
 - - - - Scraper - - - -
 http://192.168.1.
-relpages <li><a href="*">*</a></li> ends with /
-relfiles <li><a href="*">*</a></li> not ends with /
+relpages <a href="*">\*\</a> customize with */
+relfiles <a href="*">*</a> not ends with \
 meta http://192.168.1.*/*
 
 https://www.reddit.com/r/

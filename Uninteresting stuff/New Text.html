@@ -4,9 +4,9 @@
 <meta name="format-detection" content="telephone=no">
 <title>New Text.txt</title>
 <head><style>
-html,body {caret-color:#ff8228; font-family:courier; font-size:14px; white-space:pre-wrap; margin:1px; margin-top:0; padding:0;}
+html,body {caret-color:#ff8228; font-family:courier; font-size:14px; white-space:pre-wrap; margin:0; padding:0;}
 [contenteditable]:focus {outline: none;}
-.editor {padding:10px; padding-top:52px; min-width:calc(100% - 20px); min-height:81vh; line-height:1.1;}
+.editor {padding:12px; padding-top:52px; min-width:calc(100% - 20px); min-height:81vh; line-height:1.1;}
 a {color:#ff9449;}
 a:visited {color:#ffc66d;}
 .hyperlink{color:#bfddc6; text-decoration:underline;}
@@ -195,6 +195,7 @@ var FFdown = function(e) {
 document.addEventListener("click", FFdown);
 
 var link = false;
+var cur = 0;
 function pos() {
   let sel = editor.ownerDocument.defaultView.getSelection();
   if(link){
@@ -214,7 +215,7 @@ function pos() {
   let preCaretRange = sel.cloneRange();
   preCaretRange.selectNodeContents(editor);
   preCaretRange.setEnd(sel.endContainer, sel.endOffset);
-  let cur = preCaretRange.toString().length;
+  cur = preCaretRange.toString().length;
   calc.placeholder = "Ln:" + editor.textContent.substr(0, cur).split("\n").length + " Pos:" + cur;
 }
 
@@ -297,6 +298,16 @@ function decode(){
   } catch {
     alert("The percent sign in this document appears malformed and has killed decoder!");
   }
+}
+
+function del(c){
+  toolbar(editor.textContent.slice(...c));
+}
+
+function deamp() {
+  let t = document.createElement("textarea");
+  t.innerHTML = editor.textContent;
+  toolbar(t.value)
 }
 
 function deuni() {
@@ -519,15 +530,18 @@ function opendiff(file){
 
 function toolbar(d){
   document.body.className = "exitmenu hljs";
-  document.body.innerHTML = `<div class="cursor_tooltip" id="cursor_tooltip"></div><div id="drag" style="margin:0px 10px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); position:absolute; left:-16px;" onclick="relbar(this, '🫦')">👄</button><div id="dimm" style="display:none;"><button class="prev" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
+  document.body.innerHTML = `<div class="cursor_tooltip" id="cursor_tooltip"></div><div id="drag" style="margin:0px 12px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); position:absolute; left:-16px;" onclick="relbar(this, '🫦')">👄</button><div id="dimm" style="display:none;"><button class="prev" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
     <option value="0">Remove...</option>
     <option value="1">Remove all duplicate lines</option>
     <option value="2">Remove all new lines</option>
     <option value="3">Replace all tabs with 4 spaces each</option>
-    <option value="4">Decode all percent signs</option>
-    <option value="5">Decode all unicode escapes</option>
-    <option value="6">Links only</option>
-    <option value="7">De-highlight (until empty text replacement)</option>
+    <option value="4">Decode all ampersand signs</option>
+    <option value="5">Decode all percent signs</option>
+    <option value="6">Decode all unicode escapes</option>
+    <option value="7">Wipe before cursor</option>
+    <option value="8">Wipe after cursor</option>
+    <option value="9">Links only</option>
+    <option value="10">De-highlight (until empty text replacement)</option>
 </select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none">) <button class="next" onclick="fraktur();">${filel[4]} -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="display:block;"><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calculator" class="next" style="width:116px;" type="text" oninput="check(this);" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[4]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"><div id="local_tooltip" class="local_tooltip"></div></div></div><div id="tooltip" class="tooltip"></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + (!bigdoc&&canihljs?hljs.highlightAuto(d).value:d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")).replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| )/g, '<span class="hyperlink">$1</span>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
   editor = document.getElementById("editable");
   let left = () => {
@@ -578,7 +592,7 @@ function toolbar(d){
     calc.placeholder = event.target.value;
     var a = document.createElement("a");
     a.href = event.target.value;
-    timeoutID = setTimeout(() => {a.click()}, 1000)
+    timeoutID = setTimeout(() => {a.click()}, 5000)
     var v = event.target.value.replace(/#/, "")
     s.innerHTML = getfontcolor(v.match(/.{1,2}/g), v)
     document.getElementsByTagName("head")[0].appendChild(s)
@@ -618,12 +632,18 @@ function toolbar(d){
     } else if (x == 3){
       detab();
     } else if (x == 4){
-      decode();
+      deamp();
     } else if (x == 5){
-      deuni();
+      decode();
     } else if (x == 6){
-      linksonly();
+      deuni();
     } else if (x == 7){
+      del([cur]);
+    } else if (x == 8){
+      del([0, cur]);
+    } else if (x == 9){
+      linksonly();
+    } else if (x == 10){
       dehljs();
     }
   });

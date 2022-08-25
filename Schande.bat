@@ -381,8 +381,11 @@ def tcolorz(c):
 
 
 def whereami(e="echoed", b=0, f=1, kill=False):
-    c = inspect.getframeinfo(inspect.stack()[1][0])
-    echo(f"""{c.lineno} {c.function}(): {tcolorr if kill else tcolorz("CCCCCC")}{e}{tcolorx}""", b, f)
+    dep = []
+    for x in inspect.stack()[1:3]:
+        c = inspect.getframeinfo(x[0])
+        dep = [f"line {c.lineno} in {c.function}()"] + dep
+    echo(f"""{" > ".join(dep)}: {tcolorr if kill else tcolorz("CCCCCC")}{e}{tcolorx}""", b, f)
     if kill:
         while True:
             input("")
@@ -619,9 +622,10 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
         try:
             list = os.listdir(path)
         except OSError:
-            self.send_error(HTTPStatus.NOT_FOUND, "No permission to list directory")
+            self.send_error(404, "No permission to list directory")
             return None
         list.sort(key=lambda a: a.lower())
+
         try:
             displaypath = parse.unquote(self.path, errors='surrogatepass')
         except UnicodeDecodeError:
@@ -630,34 +634,43 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
             title = "Top directory"
         else:
             title = displaypath.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;").replace("/", "\\")
-        buffer = []
+        enc = sys.getfilesystemencoding()
+
+        dirs = []
+        files = []
         for name in list:
             fullname = os.path.join(path, name)
-            displayname = linkname = name
+            displayname = name.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
+            link = parse.quote(name, errors='surrogatepass')
             if os.path.isdir(fullname):
-                displayname = "\\" + name + "\\"
-                linkname = name + "/"
-            if os.path.islink(fullname):
-                displayname = name + "@"
-            buffer.append(' &gt; <a href="%s">%s</a>'
-                    % (parse.quote(linkname, errors='surrogatepass'), displayname.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")))
-        buffer = '\n'.join(buffer)
+                displayname = "\\" + displayname + "\\"
+                dirs.append(f' &gt; <a href="{link}/">{displayname}</a>')
+            elif os.path.islink(fullname):
+                displayname = displayname + "@"
+                dirs.append(f' &gt; <a href="{link}">{displayname}</a>')
+            elif os.path.isfile(fullname):
+                files.append(f' &gt;  <a href="{link}">{displayname}</a>')
+        buffer = '\n'.join(dirs + files)
+
         style = """html,body{white-space:pre; background-color:#10100c; color:#088; font-family:courier; font-size:14px;}
 a{color:#cb7; text-decoration:none;}
 a:visited{color:#efdfa8;}
 h2 {margin:4px;}"""
         htmldata = f"""<!DOCTYPE html>
 <html>
+<head>
 <meta charset="UTF-8"/>
 <meta name="format-detection" content="telephone=no">
 <title>{title}</title>
 <style>{style}</style>
+</head>
 <body><h2>{title}</h2>{buffer}</body>
-</html>"""
+</html>""".encode(enc, 'surrogateescape')
         f = io.BytesIO()
-        f.write(bytes(htmldata, 'utf-8'))
+        f.write(htmldata)
         f.seek(0)
         self.send_response(200)
+        self.send_header("Content-type", f"text/html; charset={enc}")
         self.send_header("Content-Length", str(len(htmldata)))
         self.end_headers()
         return f
@@ -792,8 +805,7 @@ def ast(rule, key="0", key1="0"):
 def saint(name=False, url=False):
     if url:
         url = list(parse.urlsplit(url))
-        url2 = url[2].rsplit("/", 1)
-        url[2] = url2[0] + "/" + parse.quote(url2[1], safe="%")
+        url[2] = parse.quote(url[2], safe="%/")
         return parse.urlunsplit(url)
     else:
         return "".join(i for i in parse.unquote(name).replace("/", "\\") if i not in "\":*?<>|")[:200]
@@ -4552,14 +4564,32 @@ def source_view():
 
 
 
+def list_remote(remote):
+    echo(f" - - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
+    with subprocess.Popen([remote, "-l"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
+        listed = False
+        for line in p.stdout:
+            if not line.startswith(tuple(["Sum: ", "    ID   Done"])):
+                listed = True
+                line = line.rstrip()
+                id = line[:6].strip()
+                percent = line[6:13].strip()
+                status = line[59:71].strip() 
+                name = line[72:].strip()
+                echo(f"{id:>3} {status} {percent} {name}", 0, 1, clamp='█')
+        if not listed:
+            echo("No torrents to list!", 0, 1)
+        echo("", 0, 1)
+
+
+
 def start_remote(remote):
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
-    keys = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "All", "d", "f", "s", "g", "l", "m", "r", "e", "i"]
+    keys = [*"0123456789", "All", *"dfsglmrei"]
     pos = 0
     sel = 14
     stdout = "STOP"
     if not torrent_menu[0]:
-        torrent_menu[0] = True
         echo(""" Key listener (torrent/file viewer):
   > Press D, F to decrease or increase number by 10
   > Press S, G to (S)top/start (G)etting selected item
@@ -4568,9 +4598,15 @@ def start_remote(remote):
  Key listener (torrent management):
   > Press R, E, I to (R)emove torrent, view fil(E)s of selected torrent, or (I)nput new torrent""", 0, 2)
     while True:
-        el = input(f"Select TORRENT by number to {stdout}: {f'{pos/10:g}' if pos else ''}", keys if sel == 18 else keys[:10] + keys[11:])
-        if not sel == 18 and el > 10:
-            el += 1
+        if torrent_menu[0]:
+            el = input(f"Select TORRENT by number to {stdout}: {f'{pos/10:g}' if pos else ''}", keys if sel == 18 else keys[:10] + keys[11:])
+            if not sel == 18 and el > 10:
+                el += 1
+        else:
+            el = 15 + input("(I)nput new torrent, (L)ist or return to (M)ain menu: ", [keys[15], keys[16], keys[19]])
+            if el == 18:
+                el = 20
+            torrent_menu[0] = True
         if el == 12:
             pos -= 10 if pos > 0 else 0
             echo("", 1)
@@ -4579,21 +4615,7 @@ def start_remote(remote):
             echo("", 1)
         elif el == 16:
             echo("", 1)
-            echo(f" - - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
-            with subprocess.Popen([remote, "-l"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
-                listed = False
-                for line in p.stdout:
-                    if not line.startswith(tuple(["Sum: ", "    ID   Done"])):
-                        listed = True
-                        line = line.rstrip()
-                        id = line[:6].strip()
-                        percent = line[6:13].strip()
-                        status = line[59:71].strip() 
-                        name = line[72:].strip()
-                        echo(f"{id:>3} {status} {percent} {name}", 0, 1, clamp='█')
-                if not listed:
-                    echo("No torrents to list!", 0, 1)
-                echo("", 0, 1)
+            list_remote(remote)
         elif el == 17:
             return
         elif el == 20:
@@ -4604,9 +4626,16 @@ def start_remote(remote):
                 if i.startswith("magnet:") or i.startswith("http") or i.endswith(".torrent"):
                     subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", i, "-sr", "0"], **shuddup)
                     buffer = "finish"
-                else:
+                    sel = 15
+                    stdout = "START"
+                elif not i:
                     echo("", 1)
+                    if buffer == "finish":
+                        list_remote(remote)
                     break
+                else:
+                    choice(bg=True)
+                    echo("Invalid input", 0, 2)
         elif el > 13:
             sel = el
             pos = 0

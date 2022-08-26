@@ -577,7 +577,7 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
         dir = batchdir.rstrip("/") + saint(self.path).replace("\\", "/").rsplit("/", 1)[0] + "/"
         if Bytes < 2000:
             data = self.rfile.read(Bytes).decode('utf-8')
-            self.send_response(200)
+            self.send_response(200, size=Bytes)
             self.send_header('Content-type', 'text/plain; charset=utf-8')
             self.end_headers()
             api = {"kind":"","ondisk":"","body":""}
@@ -612,7 +612,7 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
                 echo(f"Stray POST data: {data}", 0, 1)
                 self.wfile.write(bytes(f"Stray POST data sent", 'utf-8'))
         else:
-            self.send_response(200)
+            self.send_response(200, size=Bytes)
             self.send_header('Content-type', 'text/plain; charset=utf-8')
             self.end_headers()
             echo(f"Large POST data: {Bytes} in length exceeding 2000 allowance", 0, 1)
@@ -669,9 +669,10 @@ h2 {margin:4px;}"""
         f = io.BytesIO()
         f.write(htmldata)
         f.seek(0)
-        self.send_response(200)
+        size = str(len(htmldata))
+        self.send_response(200, size=size)
         self.send_header("Content-type", f"text/html; charset={enc}")
-        self.send_header("Content-Length", str(len(htmldata)))
+        self.send_header("Content-Length", size)
         self.end_headers()
         return f
 
@@ -724,19 +725,38 @@ h2 {margin:4px;}"""
         self.range = (start, end)
 
         try:
+            Bytes = str(end-start+1)
             if 'Range' in self.headers:
-                self.send_response(206)
+                self.send_response(206, size=Bytes)
             else:
-                self.send_response(200)
+                self.send_response(200, size=Bytes)
             self.send_header('Accept-Ranges', 'bytes')
-            self.send_header('Content-Range', 'bytes %s-%s/%s' % (start, end, size))
+            self.send_header('Content-Range', f'bytes {start}-{end}/{size}')
             self.send_header('Content-type', ctype)
-            self.send_header('Content-Length', str(end-start+1))
+            self.send_header('Content-Length', Bytes)
             self.send_header('Last-Modified', self.date_time_string(fs.st_mtime))
             self.end_headers()
             return f
         except:
             echo("DISCONNECTED", 0, 1)
+
+    def send_response(self, code, message=None, size=0, dead=False):
+        buffer = '' if dead else f' {size} bytes'
+        ondisk = self.translate_path(self.path).replace("/", "\\")
+        echo(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolorg}{self.address_string()} {tcolorr}<- {tcolorr if dead else tcolorb}{ondisk}{tcolorx}{buffer}", 0, 1)
+        self.send_response_only(code, message)
+        self.send_header('Server', self.version_string())
+        self.send_header('Date', self.date_time_string())
+
+    def send_error(self, code, message=None):
+        body = "<html><title>404</title><style>html,body{white-space:pre; background-color:#0c0c0c; color:#fff; font-family:courier; font-size:14px;}</style><body> .          .      .      . .          .       <p>      .              .         .             <p>         .     🦦 -( 404 )       .  <p>   .      .           .       .       . <p>     .         .           .       .     </body></html>"
+        size = str(len(body))
+        self.send_response(code, message, size, True)
+        self.send_header('Connection', 'close')
+        self.send_header("Content-Type", self.error_content_type)
+        self.send_header('Content-Length', size)
+        self.end_headers()
+        self.wfile.write(bytes(body, 'utf-8'))
 
     def copyfile(self, source, outputfile):
         dl = self.range[0]
@@ -759,7 +779,6 @@ h2 {margin:4px;}"""
 
 
 def handler(directory):
-    SimpleHTTPRequestHandler.error_message_format = "<html><title>404</title><style>html,body{white-space:pre; background-color:#0c0c0c; color:#fff; font-family:courier; font-size:14px;}</style><body> .          .      .      . .          .       <p>      .              .         .             <p>         .     🦦 -( 404 )       .  <p>   .      .           .       .       . <p>     .         .           .       .     </body></html>"
     def _init(self, *args, **kwargs):
         return RangeHTTPRequestHandler.__init__(self, *args, directory=self.directory, **kwargs)
     return type(f'RangeHTTPRequestHandler<{directory}>', (RangeHTTPRequestHandler,), {'__init__': _init, 'directory': directory})

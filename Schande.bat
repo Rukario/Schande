@@ -2116,8 +2116,8 @@ def linear(d, z):
 def branch(d, z):
     ds = []
     t = type(d).__name__
-    for y in z[0][0].split(" > "):
-        x = y.split(" >> ")
+    for x in z[0][0].split(" > "):
+        x = x.split(" >> ")
         if not x[0]:
             if len(z[0]) >= 2:
                 if t == "list":
@@ -2129,7 +2129,7 @@ def branch(d, z):
                 return ds
             else:
                 break
-        elif x[0] in d:
+        elif t == "dict" and x[0] in d:
             d = d[x[0]]
             if len(x) == 2:
                 d = json.loads(d)
@@ -2174,10 +2174,7 @@ def branch(d, z):
 
 def tree(d, z):
     # tree(dictionary, [branching keys, [[linear keys, choose, conditions, customize with, stderr and kill, replace slashes], [linear keys, 0 accept any, 0 no conditions, 0 no customization, 0 continue without, 0 no slash replacement]]])
-    for x in z[1::2]:
-        if not x[0][0]:
-            print(f"{tcoloro} Can't have > 0 for last.{tcolorx}")
-    z[0] = z[0].split(" > 0")
+    z[0] = [x.split(" > ", 1)[1] if x.startswith(" > ") else x for x in z[0].split(" > 0")]
     return branch(d, z)
 
 
@@ -2786,7 +2783,7 @@ def nextshelf(fromhtml):
                 if htmlpart[k]["keywords"] or htmlpart[k]["html"] or htmlpart[k]["files"]:
                     keywords = htmlpart[k]["keywords"]
                     title = keywords[0] if keywords and keywords[0] else f"ꍯ Part {k} ꍯ"
-                    timestamp = f"Timestamp: {keywords[1]}" if len(keywords) > 1 and keywords[1] else "No timestamp"
+                    timestamp = keywords[1] if len(keywords) > 1 and keywords[1] else "No timestamp"
                     afterwords = ", ".join(kw for kw in keywords[2:]) if len(keywords) > 2 else "None"
                     stdout += f"{tcolorx}{k} :: {tcolor}{tcolorb}{title} [{tcolor}{timestamp}{tcolorr} Keywords: {afterwords}{tcolorb}]\n"
                     for file in htmlpart[k]["files"]:
@@ -4532,7 +4529,6 @@ def syntax(html, api=False):
 savepage = [{}]
 def view_in_page(data, z, cw, a):
     if a:
-        whereami(z)
         if x := tree(data, [z[0], [[z[1], 0, 0, cw, 0, 0]]]):
             for y in x:
                 echo(syntax(str(y[0]), True), 0, 1)

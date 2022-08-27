@@ -2464,11 +2464,11 @@ def pick_in_page(scraper):
                             pos += 1
                             c = z[1].rsplit(" = ", 1)
                             found = tree(db, [z[0], [[c[0], c[1].split(" > ") if len(c) == 2 else 0, 0, 0, 0, 0, 0]]])
-                            if found:
+                            if y[0]["alt"] and found or not y[0]["alt"] and not found:
                                 break
                         else:
                             found = True if [x[1] for x in carrots(part, z, [], False)][0] else False
-                            if found:
+                            if y[0]["alt"] and found or not y[0]["alt"] and not found:
                                 break
                 if y[0]["alt"] and found or not y[0]["alt"] and not found:
                     found_all += [True]
@@ -2477,10 +2477,11 @@ def pick_in_page(scraper):
                     break
             if all(found_all):
                 proceed = True
-                if not pick["dismiss"] and Browser:
-                    os.system(f"""start "" "{Browser}" "{page}" """)
-                alerted_pages += [[start, page, pagen]]
-                alerted[0] = f"(C)ontinue (S)kip {len(alerted_pages)} alerted pages"
+                if not pick["dismiss"]:
+                    if Browser:
+                        os.system(f"""start "" "{Browser}" "{page}" """)
+                    alerted_pages += [[start, page, pagen]]
+                    alerted[0] = f"(C)ontinue (S)kip {len(alerted_pages)} alerted pages"
                 if pick["message"] and len(pick["message"]) >= pos:
                     buffer = pick["message"][pos-1]
                 else:
@@ -2488,7 +2489,7 @@ def pick_in_page(scraper):
                 alert(page, buffer, pick["dismiss"])
             else:
                 more_pages += [[start, page, pagen]]
-                timer(f"{alerted[0]}, resuming unalerted pages in"  if alerted[0] else "Not quite as expected! Reloading in", listen=[Keypress[3], Keypress[19]] if alerted[0] else [False])
+                timer(f"{alerted[0]}, resuming unalerted pages in" if alerted[0] else "Not quite as expected! Reloading in", listen=[Keypress[3], Keypress[19]] if alerted[0] else [False])
         if any(pick[x] for x in ["folder", "pages", "html", "icon", "dict", "file", "file_after"]) and not data:
             data, part = get_data(threadn, page, url, pick)
             if not data:

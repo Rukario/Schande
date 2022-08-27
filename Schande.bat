@@ -1241,7 +1241,7 @@ def timer(e="", ind=True, listen=[True], notlisten=[False]):
             if Keypress[26]:
                 Keypress[26] = False
                 break
-            if not all(not x for x in listen) or any(notlisten):
+            if not any(not x for x in listen) or any(notlisten):
                 break
         ticking[0] = False
     elif ind:
@@ -2488,7 +2488,7 @@ def pick_in_page(scraper):
                 alert(page, buffer, pick["dismiss"])
             else:
                 more_pages += [[start, page, pagen]]
-                timer(f"{alerted[0]}, resuming unalerted pages in"  if alerted[0] else "Not quite as expected! Reloading in", listen=[Keypress[3], Keypress[19]] if alerted[0] else [[False]])
+                timer(f"{alerted[0]}, resuming unalerted pages in"  if alerted[0] else "Not quite as expected! Reloading in", listen=[Keypress[3], Keypress[19]] if alerted[0] else [False])
         if any(pick[x] for x in ["folder", "pages", "html", "icon", "dict", "file", "file_after"]) and not data:
             data, part = get_data(threadn, page, url, pick)
             if not data:

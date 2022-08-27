@@ -380,7 +380,7 @@ def tcolorz(c):
 
 
 
-def whereami(e="echoed", b=0, f=1, kill=False):
+def whereami(e="echoed", b=0, f=1, kill=False, pause=False):
     dep = []
     for x in inspect.stack()[1:3]:
         c = inspect.getframeinfo(x[0])
@@ -389,7 +389,7 @@ def whereami(e="echoed", b=0, f=1, kill=False):
     if kill:
         while True:
             input("")
-    else:
+    elif pause:
         input("(C)ontinue?", "c")
         echo("", 1)
 
@@ -2196,54 +2196,57 @@ def opendb(data):
 
 
 
-def carrot_files(html, htmlpart, key, pick, abs_page, folder, after=False):
-    name_err = True
+def carrot_files(html, htmlpart, key, pick, abs_page, folder, file_after=False):
     update_html = []
     url = ""
-    name = ""
+    new_name = ""
+    new_name_err = True
     for array in html:
         update_array = [array[0], array[1]]
-        if after:
-            if not array[0]:
-                update_html += [["", array[1] if array[1] else ""]]
-                continue
+        if file_after:
+            update_html += [[array[0], '']]
             url = array[1]
-        if url:
+        if url and not isinstance(url, dict):
             url = abs_page + url
-            name = ""
+            new_name = ""
             for x in pick["name"]:
-                name_err = True
+                new_name_err = True
                 for z, cw, a in x[1:]:
-                    cw = ast(f"{cw[0]}*{cw[1]}", key, htmlpart[key]["keywords"][0] if key in htmlpart and len(htmlpart[key]["keywords"]) > 0 else "0").rsplit("*", 1)
                     if a:
                         continue
+                    cw = ast(f"{cw[0]}*{cw[1]}", key, htmlpart[key]["keywords"][0] if key in htmlpart and len(htmlpart[key]["keywords"]) > 0 else "0").rsplit("*", 1)
                     if not z:
-                        name_err = False
+                        new_name_err = False
                     elif x[0]["alt"]:
+                        # name
                         if len(n := carrots([[update_array[0], ""]], z, cw)) >= 2:
-                            name += n[-2 if after else 0][1]
-                            name_err = False
-                            # Developer note: Could be better
-                            update_array[0] = n[0][0] + n[1][0]
+                            new_name += n[-2 if file_after else 0][1]
+                            new_name_err = False
+                            if file_after:
+                                update_html[-1][0] = n[0][0] + n[1][0]
+                            else:
+                                update_array[0] = n[0][0] + n[1][0]
                             break
                     else:
                         # meta
                         if len(n := carrots([[url, ""]], z, cw, False)) == 2:
-                            name += n[-2][1]
-                            name_err = False
+                            new_name += n[-2][1]
+                            new_name_err = False
                             break
-                if name_err:
+                if new_name_err:
                     kill(0, "there's no name asset found in HTML for this file.")
             if e := pick["extfix"]:
-                if len(ext := carrots([[url, ""]], e, [".", ""], False)) == 2 and not name.endswith(ext := ext[-2][1]):
-                    name += ext
-            if after:
+                if len(ext := carrots([[url, ""]], e, [".", ""], False)) == 2 and not new_name.endswith(ext := ext[-2][1]):
+                    new_name += ext
+            if file_after:
                 url = array[1]
-            update_html += [[update_array[0], new_link(url, folder + parse.unquote(name), htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else 0)]]
-        else:
-            update_html += [[update_array[0], '']]
+            update_html[-1][1] = new_link(url, folder + parse.unquote(new_name), htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else 0)
+            if not file_after:
+                update_html += [[update_array[0], '']]
+        elif not file_after:
+            update_html += [[array[0], '']]
         url = array[1]
-    return update_html, name_err
+    return update_html, new_name_err
 
 
 
@@ -2321,7 +2324,7 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
 
 
 
-def pick_files(threadn, page, data, db, part, htmlpart, pick, pickf, folder, filelist, pos, after):
+def pick_files(threadn, page, data, db, part, htmlpart, pick, pickf, folder, filelist, pos, file_after):
     for y in pickf:
         name_err = True
         for z, cw, a in y[1:]:
@@ -2346,7 +2349,7 @@ def pick_files(threadn, page, data, db, part, htmlpart, pick, pickf, folder, fil
                         if len(d := carrots([p], k[1], [], False)) == 2:
                             key = d[0][1]
                             break
-                    html, name_err = carrot_files(carrots([p], z, cw, pick["files"]), htmlpart, key, pick, "" if y[0]["alt"] else page, folder, after)
+                    html, name_err = carrot_files(carrots([p], z, cw, pick["files"]), htmlpart, key, pick, "" if y[0]["alt"] else page, folder, file_after)
                     for h in html:
                         if not h[1]:
                             continue
@@ -2578,32 +2581,32 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
             fromhtml["makehtml"] = True
             k_html = []
             if pick["key"] and pick["key"][0]:
-                kx = pick["key"][0]
+                part_keys = pick["key"][0]
             else:
-                kx = [0, 0]
+                part_keys = [0, 0]
             pos = 0
             for y in pick["html"]:
                 for z, cw, a in y[1:]:
                     if a:
                         if not db:
                             db = opendb(data)
-                        for k in kx[1:]:
+                        for p_k in part_keys[1:]:
                             master_key = ["", [["0"]]]
-                            if not k:
+                            z0 =  z[0]
+                            if not p_k:
                                 key = [["0"]]
                             else:
-                                html =  z[0]
-                                if html == k[1][0]:
-                                    key = [[k[1][1], 0, 0, 0, 0, 0]]
+                                if z0 == p_k[1][0]:
+                                    key = [[p_k[1][1], 0, 0, 0, 0, 0]]
                                 else:
                                     continue
-                                if k[0][0]:
-                                    if len(x := k[1][0].split(k[0][0] if k[0][0].startswith("0") else k[0][0] + " > 0", 1)) == 2:
-                                        html = x[1]
-                                        master_key = [k[0][0], [[k[0][1], 0, 0, 0, 0, 0]]]
-                                elif k[0][1]:
-                                    master_key = ["", [[k[0][1], 0, 0, 0, 0, 0]]]
-                            for html in tree(db, master_key + [html, key + [[z[1], 0, 0, cw, 0, 0]]]):
+                                if p_k[0][0]:
+                                    if len(x := p_k[1][0].split(p_k[0][0], 1)) == 2:
+                                        z0 = x[1]
+                                        master_key = [p_k[0][0], [[p_k[0][1], 0, 0, 0, 0, 0]]]
+                                elif p_k[0][1]:
+                                    master_key = ["", [[p_k[0][1], 0, 0, 0, 0, 0]]]
+                            for html in tree(db, master_key + [z0, key + [[z[1], 0, 0, cw, 0, 0]]]):
                                 if pos == 1 or pos == 5:
                                     html[2] = html[2] + "\n"
                                 if pos > 3:
@@ -2614,8 +2617,8 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                         new = []
                         for p in part:
                             key = "0"
-                            for k in kx[1:]:
-                                if len(d := carrots([[p[0], ""]], k[1], [], False)) == 2:
+                            for p_k in part_keys[1:]:
+                                if len(d := carrots([[p[0], ""]], p_k[1], [], False)) == 2:
                                     key = d[0][1]
                                     break
                             c = carrots([[p[0], ""]], z, cw, False)
@@ -2626,18 +2629,14 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
             for k, html in k_html:
                 if not k in htmlpart:
                     htmlpart.update(new_p(k))
-                after = False
+                file_after = False
                 for x in [pick["file"], pick["file_after"]]:
                     for y in x:
                         for z, cw, a in y[1:]:
                             if a:
                                 continue
-                            html = carrot_files(carrots(html, z, cw, pick["files"]), htmlpart, k, pick, "" if y[0]["alt"] else page, folder, after)[0]
-                            new_html = []
-                            for h in html:
-                                new_html += [[h[0], ""], ["", h[1]]] if h[1] else [h] # Overkill?
-                            html = new_html
-                    after = True
+                            html = carrot_files(carrots(html, z, cw, pick["files"]), htmlpart, k, pick, "" if y[0]["alt"] else page, folder, file_after)[0]
+                    file_after = True
                 htmlpart[k]["html"] += html
             keywords = {}
             pos = 0
@@ -2647,12 +2646,12 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                     if a:
                         if not db:
                             db = opendb(data)
-                        for k in kx[1:]:
-                            if not k:
+                        for p_k in part_keys[1:]:
+                            if not p_k:
                                 key = [["0", 0, 0, 0, 0, 0]]
                             else:
-                                if z[0] == k[1][0]:
-                                    key = [[k[1][1], 0, 0, 0, 0, 0]]
+                                if z[0] == p_k[1][0]:
+                                    key = [[p_k[1][1], 0, 0, 0, 0, 0]]
                                 else:
                                     continue
                             for d in tree(db, [z[0], [[z[1], 0, 0, 0, 0, 0]] + key]):
@@ -2667,8 +2666,8 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                     else:
                         for p in part:
                             key = "0"
-                            for k in kx[1:]:
-                                if len(d := carrots([[p[0], ""]], k[1], [], False)) == 2:
+                            for p_k in part_keys[1:]:
+                                if len(d := carrots([[p[0], ""]], p_k[1], [], False)) == 2:
                                     key = d[0][1]
                                     break
                             if not key in keywords:
@@ -2782,21 +2781,21 @@ def nextshelf(fromhtml):
             if x := fromhtml["page"]:
                 stdout += f"""{tcoloro}<h2><a href="{x["link"]}">{x["name"]}</a></h2>\n"""
             for k in htmlpart.keys():
-                if k == "0" and not htmlpart[k]["files"]:
-                    continue
-                stdout += tcolorx + k + tcolor + "\n"
-                if x := htmlpart[k]["keywords"]:
-                    keywords = ", ".join(f"{kw}" for kw in x[2:])
-                    stdout += tcolorb + (x[0] if len(x) > 0 and x[0] else "No title for " + k) + tcolor + " Timestamp: " + (x[1] if len(x) > 1 and x[1] else "No timestamp") + tcolorr + " Keywords: " + (keywords if keywords else "None") + "\n"
-                for file in htmlpart[k]["files"]:
-                    stdout += tcolorg + file["name"].rsplit("\\")[-1] + "\n"
-                if html := htmlpart[k]["html"]:
-                    for h in html:
-                        if h[0]:
-                            stdout += tcoloro + h[0]
-                        if h[1]:
-                            stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
-                    stdout += "\n"
+                if htmlpart[k]["keywords"] or htmlpart[k]["html"] or htmlpart[k]["files"]:
+                    keywords = htmlpart[k]["keywords"]
+                    title = keywords[0] if keywords and keywords[0] else f"ꍯ Part {k} ꍯ"
+                    timestamp = f"Timestamp: {keywords[1]}" if len(keywords) > 1 and keywords[1] else "No timestamp"
+                    afterwords = ", ".join(kw for kw in keywords[2:]) if len(keywords) > 2 else "None"
+                    stdout += f"{tcolorx}{k} :: {tcolor}{tcolorb}{title} [{tcolor}{timestamp}{tcolorr} Keywords: {afterwords}{tcolorb}]\n"
+                    for file in htmlpart[k]["files"]:
+                        stdout += tcolorg + file["name"].rsplit("\\")[-1] + "\n"
+                    if html := htmlpart[k]["html"]:
+                        for h in html:
+                            if h[0]:
+                                stdout += tcoloro + h[0]
+                            if h[1]:
+                                stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
+                        stdout += "\n"
         echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or return to (M)ain menu: """, 0, 1)
         Keypress[13] = False
         Keypress[3] = False
@@ -4012,22 +4011,21 @@ def tohtml(subdir, htmlname, part, pattern):
 
     for key in part.keys():
         keywords = part[key]["keywords"]
+        title = f"<h2>{keywords[0]}</h2>" if keywords and keywords[0] else f"""<h2 style="color:#666;">ꍯ Part {key} ꍯ</h2>"""
+        content = ""
         if key == "0":
             if "stray_files" in part[key]:
                 title = "<h2>Unsorted</h2>"
                 content = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really strays.\n"
-            else:
+            elif not part[key]["html"]:
                 continue
-        else:
-            title = f"<h2>{keywords[0]}</h2>" if keywords and keywords[0] else f"""<h2 style="color:#666;">ꍯ Part {key} ꍯ</h2>"""
-            content = ""
         new_container = False
         end_container = False
         builder += """<div class="cell">\n""" if part[key]["visible"] else """<div class="cell" style="display:none;">\n"""
         if len(keywords) > 1:
-            time = keywords[1] if keywords[1] else "No timestamp"
-            buffer = ", ".join(x for x in keywords[2:] if x) if len(keywords) > 2 else "None"
-            builder += f"""<div class="time" id="{key}" style="float:right;">Part {key} ꍯ {time}\nKeywords: {buffer}</div>\n"""
+            timestamp = keywords[1] if keywords[1] else "No timestamp"
+            afterkeys = ", ".join(x for x in keywords[2:] if x) if len(keywords) > 2 else "None"
+            builder += f"""<div class="time" id="{key}" style="float:right;">Part {key} ꍯ {timestamp}\nKeywords: {afterkeys}</div>\n"""
         builder += title
         if part[key]["files"]:
             builder += "<div class=\"files\">\n"

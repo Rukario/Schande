@@ -2097,7 +2097,7 @@ def linear(d, z):
                 return
         if not dc:
             return
-        dc = str(dc)
+        # dc = str(dc)
         if x[5]:
             dc = x[5].join(s.strip() for s in dc.replace("\\", "/").split("/"))
         if x[1] and not any(c for c in x[1] if c == dc) or x[2] and not met(dc, x[2]):
@@ -2447,49 +2447,51 @@ def pick_in_page(scraper):
         if proceed and pick["expect"]:
             proceed = False
             pos = 0
+            found_all = []
             for y in pick["expect"]:
+                found = False
                 for z, cw, a in y[1:]:
                     if not z:
                         if not pick["ready"]:
                             echo(f""" {"into" if url else "Visiting"} {page}""", 0, 1)
-                        result = True if fetch(page)[0] else False
+                        found = True if fetch(page)[0] else False
                         title(monitor())
                     else:
                         if not data:
                             data, part = get_data(threadn, page, url, pick)
                             if not data:
                                 break
-                        if z[0] == " ":
-                            # standard
-                            pass
-                        else:
-                            # numbered
-                            pass
-
-
-
                         if a:
                             if not db:
                                 db = opendb(data)
                             pos += 1
                             c = z[1].rsplit(" = ", 1)
-                            result = tree(db, [z[0], [[c[0], c[1].split(" > ") if len(c) == 2 else 0, 0, 0, 0, 0, 0]]])
+                            found = tree(db, [z[0], [[c[0], c[1].split(" > ") if len(c) == 2 else 0, 0, 0, 0, 0, 0]]])
+                            if found:
+                                break
                         else:
-                            result = True if [x[1] for x in carrots(part, z, [], False)][0] else False
-                    if y[0]["alt"] and result or not y[0]["alt"] and not result:
-                        proceed = True
-                        if not pick["dismiss"] and Browser:
-                            os.system(f"""start "" "{Browser}" "{page}" """)
-                        alerted_pages += [[start, page, pagen]]
-                        alerted[0] = f"(C)ontinue (S)kip {len(alerted_pages)} alerted pages"
-                        if pick["message"] and len(pick["message"]) >= pos:
-                            buffer = pick["message"][pos-1]
-                        else:
-                            buffer = "As expected" if y[0]["alt"] and result else "Not any longer"
-                        alert(page, buffer, pick["dismiss"])
-                    else:
-                        more_pages += [[start, page, pagen]]
-                        timer(f"{alerted[0]}, resuming unalerted pages in"  if alerted[0] else "Not quite as expected! Reloading in", listen=[Keypress[3], Keypress[19]] if alerted[0] else [[False]])
+                            found = True if [x[1] for x in carrots(part, z, [], False)][0] else False
+                            if found:
+                                break
+                if y[0]["alt"] and found or not y[0]["alt"] and not found:
+                    found_all += [True]
+                else:
+                    found_all += [False]
+                    break
+            if all(found_all):
+                proceed = True
+                if not pick["dismiss"] and Browser:
+                    os.system(f"""start "" "{Browser}" "{page}" """)
+                alerted_pages += [[start, page, pagen]]
+                alerted[0] = f"(C)ontinue (S)kip {len(alerted_pages)} alerted pages"
+                if pick["message"] and len(pick["message"]) >= pos:
+                    buffer = pick["message"][pos-1]
+                else:
+                    buffer = "As expected" if y[0]["alt"] and found else "Not any longer"
+                alert(page, buffer, pick["dismiss"])
+            else:
+                more_pages += [[start, page, pagen]]
+                timer(f"{alerted[0]}, resuming unalerted pages in"  if alerted[0] else "Not quite as expected! Reloading in", listen=[Keypress[3], Keypress[19]] if alerted[0] else [[False]])
         if any(pick[x] for x in ["folder", "pages", "html", "icon", "dict", "file", "file_after"]) and not data:
             data, part = get_data(threadn, page, url, pick)
             if not data:
@@ -4530,9 +4532,10 @@ def syntax(html, api=False):
 savepage = [{}]
 def view_in_page(data, z, cw, a):
     if a:
-        if x := tree(opendb(data), [z[0], [[z[1], 0, 0, cw, 0, 0]]]):
+        whereami(z)
+        if x := tree(data, [z[0], [[z[1], 0, 0, cw, 0, 0]]]):
             for y in x:
-                echo(syntax(y[0], True), 0, 1)
+                echo(syntax(str(y[0]), True), 0, 1)
                 savepage[0]["part"] += [y[0]]
         else:
             echo(f"{tcoloro}Last few keys doesn't exist, try again.{tcolorx}", 0, 2)
@@ -4548,9 +4551,9 @@ def view_in_page(data, z, cw, a):
             echo(f"{tcolorr}Cannot find in page with no asterisk or too many.{tcolorx}", 0, 2)
 def source_view():
     while True:
-        page = input("Enter URL to view source, append URL with key > s > to read it as dictionary, enter nothing to exit: ").rstrip()
-        if page.startswith("http"):
-            page, key = page.split(" ", 1) if " " in page else [page, False]
+        i = input("Enter URL to view source, append URL with key > s > to read it as dictionary, enter nothing to exit: ").rstrip()
+        if i.startswith("http"):
+            page, key = i.split(" ", 1) if " " in i else [i, False]
             if not page in savepage[0]:
                 data, err = get(page, utf8=True)
                 if err:
@@ -4562,18 +4565,20 @@ def source_view():
             if not data.isdigit():
                 if key:
                     z, cw, a = peanut(key, [], False)
+                    if a:
+                        data = opendb(data)
                     view_in_page(data, z, cw, a)
                 else:
                     data = ''.join([s.strip() if s.strip() else "" for s in data.splitlines()])
                     echo(syntax(data), 0, 2)
             else:
                 echo(f"Error or dead (update cookie or referer if these are required to view: {data})", 0, 2)
-        elif not page:
+        elif not i:
             echo("", 1)
             echo("", 1)
             break
         else:
-            z, cw, a = peanut(page, [], False)
+            z, cw, a = peanut(i, [], False)
             part = savepage[0]["part"]
             savepage[0]["part"] = []
             for data in part:

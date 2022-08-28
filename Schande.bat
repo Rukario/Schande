@@ -4549,7 +4549,7 @@ def view_in_page(data, z, cw, a):
         else:
             echo(f"{tcoloro}Last few keys doesn't exist, try again.{tcolorx}", 0, 2)
     else:
-        if len(z.split("*")) == 2:
+        if len(z.split("*")) > 1:
             if len(c := carrots([[data, ""]], z, cw)) > 1:
                 for x in c:
                     echo(x[1], 0, 1)
@@ -4557,7 +4557,7 @@ def view_in_page(data, z, cw, a):
             else:
                 echo(f"{tcolorr}Pattern doesn't exist, try again.{tcolorx}", 0, 2)
         else:
-            echo(f"{tcolorr}Cannot find in page with no asterisk or too many.{tcolorx}", 0, 2)
+            echo(f"{tcolorr}Cannot find in page with no asterisk.{tcolorx}", 0, 2)
 def source_view():
     while True:
         i = input("Enter URL to view source, append URL with key > s > to read it as dictionary, enter nothing to exit: ").rstrip()

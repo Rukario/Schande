@@ -3769,6 +3769,12 @@ function hideSources() {
 function hideParts(e, t='', a=true) {
   if (t.length == 1) return;
   t = t.toLowerCase().split(" ");
+  var tp = []
+  for (var p=0; p < t.length; p++) {
+    if(t[p].length > 1){
+      tp.push(t[p])
+    }
+  }
   var x = document.getElementsByClassName("cell");
   var c, f;
   c = false;
@@ -3783,6 +3789,7 @@ function hideParts(e, t='', a=true) {
     e[0] = e[1]
     c = true
   }
+  var fx = tp.length
   for (var i=0; i < x.length; i++) {
     var fp = '';
     if (c){
@@ -3804,13 +3811,13 @@ function hideParts(e, t='', a=true) {
     }
     f = false;
     fp = fp.toLowerCase();
-    for (var p=0; p < t.length; p++) {
-      if (t[p] && fp.includes(t[p])){
+    for (var p=0; p < tp.length; p++) {
+      if (tp[p] && fp.includes(tp[p])){
         f = true;
         break;
       }
     };
-    if (!a && !f && fp || a && f && fp){
+    if (fx && !a && !f && fp || fx && a && f && fp){
       x[i].style.display = 'none';
     } else {
       x[i].style.display = 'inline-block';

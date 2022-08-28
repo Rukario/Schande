@@ -2072,12 +2072,17 @@ def carrots(arrays, x, cw=[], any=True, saint=False):
 
 
 
-def linear(d, z):
+def linear(d, z, r):
     dt = []
     for x in z:
         dc = d
         if not x[0]:
-            return [d]
+            if r:
+                dt += [d]
+            continue
+        elif x[0] == "0" or isinstance(x[0], int):
+            dt += [x[0]]
+            continue
         for y in x[0].split(" > "):
             y = y.split(" >> ")
             if not y[0]:
@@ -2110,7 +2115,7 @@ def linear(d, z):
 
 
 
-def branch(d, z):
+def branch(d, z, r):
     ds = []
     t = type(d).__name__
     for x in z[0][0].split(" > "):
@@ -2119,10 +2124,10 @@ def branch(d, z):
             if len(z[0]) >= 2:
                 if t == "list":
                     for x in d:
-                        ds += branch(x, [z[0][1:]] + z[1:])
+                        ds += branch(x, [z[0][1:]] + z[1:], r)
                 elif t == "dict":
                     for x in d.values():
-                        ds += branch(x, [z[0][1:]] + z[1:])
+                        ds += branch(x, [z[0][1:]] + z[1:], r)
                 return ds
             else:
                 break
@@ -2144,35 +2149,35 @@ def branch(d, z):
             dx = []
             if t == "list":
                 for dc in d:
-                    if dt := linear(dc, z[1]):
+                    if dt := linear(dc, z[1], r):
                         if len(z) > 2:
-                            dx += [dt + b for b in branch(dc, [z[2].split(" > 0")] + z[3:])]
+                            dx += [dt + b for b in branch(dc, [z[2].split(" > 0")] + z[3:], r)]
                         else:
                             dx += [dt]
             elif t == "dict":
                 for x in d.values():
-                    if dt := linear(x, z[1]):
+                    if dt := linear(x, z[1], r):
                         dx += [dt]
             return dx
         else:
-            if dt := linear(d, z[1]):
+            if dt := linear(d, z[1], r):
                 if len(z) > 2:
-                    return [dt + b for b in branch(d, [z[2].split(" > 0")] + z[3:])]
+                    return [dt + b for b in branch(d, [z[2].split(" > 0")] + z[3:], r)]
                 else:
                     return [dt]
     else:
         if t == "list":
             for x in d:
-                ds += branch(x, [z[0][1:]] + z[1:])
+                ds += branch(x, [z[0][1:]] + z[1:], r)
         elif t == "dict":
             for x in d.values():
-                ds += branch(x, [z[0][1:]] + z[1:])
+                ds += branch(x, [z[0][1:]] + z[1:], r)
     return ds
 
-def tree(d, z):
+def tree(d, z, r=False):
     # tree(dictionary, [branching keys, [[linear keys, choose, conditions, customize with, stderr and kill, replace slashes], [linear keys, 0 accept any, 0 no conditions, 0 no customization, 0 continue without, 0 no slash replacement]]])
     z[0] = [x.split(" > ", 1)[1] if x.startswith(" > ") else x for x in z[0].split(" > 0")]
-    return branch(d, z)
+    return branch(d, z, r)
 
 
 
@@ -4527,7 +4532,7 @@ def syntax(html, api=False):
 savepage = [{}]
 def view_in_page(data, z, cw, a):
     if a:
-        if x := tree(data, [z[0], [[z[1], 0, 0, cw, 0, 0]]]):
+        if x := tree(data, [z[0], [[z[1], 0, 0, cw, 0, 0]]], True):
             for y in x:
                 echo(syntax(str(y[0]), True), 0, 1)
                 savepage[0]["part"] += [y[0]]

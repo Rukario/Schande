@@ -2077,10 +2077,7 @@ def linear(d, z):
     for x in z:
         dc = d
         if not x[0]:
-            continue
-        elif x[0] == "0" or isinstance(x[0], int):
-            dt += [x[0]]
-            continue
+            return [d]
         for y in x[0].split(" > "):
             y = y.split(" >> ")
             if not y[0]:

@@ -2176,6 +2176,9 @@ def branch(d, z, r):
 
 def tree(d, z, r=False):
     # tree(dictionary, [branching keys, [[linear keys, choose, conditions, customize with, stderr and kill, replace slashes], [linear keys, 0 accept any, 0 no conditions, 0 no customization, 0 continue without, 0 no slash replacement]]])
+    for x in z[1::2]:
+        if not x[0][0]:
+            print(f"{tcoloro} Last key > 0 is view only. You must establish a next key for use in picker rules.{tcolorx}")
     z[0] = [x.split(" > ", 1)[1] if x.startswith(" > ") else x for x in z[0].split(" > 0")]
     return branch(d, z, r)
 

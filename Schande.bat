@@ -1,7 +1,7 @@
 @echo off && goto loaded
 
 import os, sys, io, ssl, socket, time, json, zlib, inspect, smtplib, hashlib, subprocess, mimetypes
-from datetime import datetime
+from datetime import datetime, timedelta
 from fnmatch import fnmatch
 from http import cookiejar
 from http.server import BaseHTTPRequestHandler
@@ -29,7 +29,6 @@ if "/" in batchdir and not batchdir.endswith("/"):
     batchdir += "/"
 os.chdir(batchdir)
 
-date = datetime.now().strftime('%Y') + "-" + datetime.now().strftime('%m') + "-XX"
 cd = batchname + " cd/"
 tcd = "\\" + batchname + " cd\\"
 htmlfile = batchname + ".html"
@@ -165,7 +164,7 @@ def help():
  - - - - Download directory - - - -
   Wildcard: Single asterisk only, capture for prepend/append before file extension, non-anchored http ending.
  +  "...\\* for http..."       custom dir for downloads, \\{batchname}\\ if no custom dir specified.
- |  "...*date\\* for http..."  custom dir for downloads, "*date" will become "{date}".
+ |  "...*date\\* for http..."  custom dir for downloads, "*date" will become "{fdate}".
  |  "...\\...*... for http..." and the file are also renamed (prepend/append).
  +  "...*... for http..."     and they go to \\{batchname}\\ while renamed.
 
@@ -493,18 +492,18 @@ else:
         rules = f.read().splitlines()
 
 new_setting = False
-offset = 0
-settings = ["Launch HTML server = ", "Browser = ", "Mail = ", "Geistauge = No", "Python = " + pythondir, "Proxy = socks5://"]
+pos = 0
+settings = ["Launch HTML server = ", "Browser = ", "Mail = ", "Geistauge = No", "Python = " + pythondir, f"UTC offset = {datetime.now().astimezone().strftime('%z')[:-2]}", "Proxy = socks5://"]
 for setting in settings:
-    if not rules[offset].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
-        if offset == 0:
+    if not rules[pos].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
+        if pos == 0:
             setting += "Yes" if input("Launch HTML server? (Y)es/(N)o: ", "yn") == 1 else "No"
             echo("", 1)
             echo("", 0, 1)
-        rules.insert(offset, setting)
+        rules.insert(pos, setting)
         print(f"""Added new setting "{setting}" to {rulefile}!""")
         new_setting = True
-    offset += 1
+    pos += 1
 if new_setting:
     with open(rulefile, 'wb') as f:
         f.write(bytes("\n".join(rules), 'utf-8'))
@@ -766,7 +765,7 @@ h2 {margin:4px;}"""
         buffer = '' if dead else f' {size} bytes'
         ondisk = http2ondisk(self.path, self.directory).replace("/", "\\")
         if not ondisk.rsplit("\\", 1)[-1] in ["favicon.ico"]:
-            echo(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolorg}{self.address_string()} {tcolorr}<- {tcolorr if dead else tcolorb}{ondisk}{tcolorx}{buffer}", 0, 1)
+            echo(f"{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolorg}{self.address_string()} {tcolorr}<- {tcolorr if dead else tcolorb}{ondisk}{tcolorx}{buffer}", 0, 1)
         self.send_response_only(code, message)
         self.send_header('Server', self.version_string())
         self.send_header('Date', self.date_time_string())
@@ -859,7 +858,7 @@ def new_cookie():
 
 
 def ast(rule, key="0", key1="0"):
-    return rule.replace("*date", date).replace("*id", key).replace("*title", key1).replace("/", "\\")
+    return rule.replace("*date", fdate).replace("*id", key).replace("*title", key1).replace("/", "\\")
 
 def saint(name=False, url=False):
     if url:
@@ -939,6 +938,19 @@ def at(s, r, cw=[], alt=0, key=False, name=False, meta=False):
     if name or meta:
         if len(s) > total_names[0]:
             total_names[0] = len(s)
+
+def y(y, yn=False):
+    y = y.split("=", 1)[1].strip()
+    if yn:
+        if os.path.exists(y):
+            return y
+        return True if y.lower()[0] == "y" else False
+    else:
+        return y
+
+offset = y(rules[5])
+date = datetime.utcnow() + timedelta(hours=int(offset))
+fdate = date.strftime('%Y') + "-" + date.strftime('%m') + "-XX"
 
 
 
@@ -1177,20 +1189,11 @@ if bgcolor:
 
 
 
-print(f"Reading settings from {rulefile} . . .")
-def y(y, yn=False):
-    y = y.split("=", 1)[1].strip()
-    if yn:
-        if os.path.exists(y):
-            return y
-        return True if y.lower()[0] == "y" else False
-    else:
-        return y
 HTMLserver = y(rules[0], True)
 Browser = y(rules[1])
 Mail = y(rules[2])
 Geistauge = y(rules[3], True)
-proxy = y(rules[5])
+proxy = y(rules[6])
 if HTMLserver:
     restartserver()
 else:
@@ -1213,7 +1216,8 @@ if Mail:
         import getpass
         Mail += [getpass.getpass(prompt=f" {Mail[0]}'s password (automatic if saved as third address): ")]
         echo("", 1)
-    if not shuddup == 2: shuddup = False
+    if not shuddup == 2:
+        shuddup = False
 else:
     print(" MAIL: NONE")
 if Geistauge:
@@ -4636,7 +4640,7 @@ def source_view():
 
 
 def list_remote(remote):
-    echo(f" - - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
+    echo(f" - - {(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
     with subprocess.Popen([remote, "-l"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
         listed = False
         for line in p.stdout:
@@ -4659,6 +4663,8 @@ def start_remote(remote):
     keys = [*"0123456789", "All", *"dfsglmrei"]
     pos = 0
     sel = 14
+    remove = []
+    lasttime = time.time()
     stdout = "STOP"
     if not torrent_menu[0]:
         echo(""" Key listener (torrent/file viewer):
@@ -4685,8 +4691,24 @@ def start_remote(remote):
             pos += 10
             echo("", 1)
         elif el == 16:
-            echo("", 1)
-            list_remote(remote)
+            if sel == 18 and remove:
+                intime = time.time()
+                if intime > lasttime+0.5:
+                    echo(f"Press L twice in quick succession to remove: {' '.join(x for x in remove)}", 1, 1)
+                    lasttime = intime
+                else:
+                    for r in remove:
+                        subprocess.Popen([remote, "-t", r, "-r"], **shuddup)
+                    remove = []
+                    pos = 0
+                    sel = 14
+                    stdout = "STOP"
+                    time.sleep(0.5)
+                    echo("", 1)
+                    list_remote(remote)
+            else:
+                echo("", 1)
+                list_remote(remote)
         elif el == 17:
             return
         elif el == 20:
@@ -4697,6 +4719,7 @@ def start_remote(remote):
                 if i.startswith("magnet:") or i.startswith("http") or i.endswith(".torrent"):
                     subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", i, "-sr", "0"], **shuddup)
                     buffer = "finish"
+                    pos = 0
                     sel = 15
                     stdout = "START"
                 elif not i:
@@ -4710,6 +4733,7 @@ def start_remote(remote):
         elif el > 13:
             sel = el
             pos = 0
+            remove = []
             if el == 14:
                 stdout = "STOP"
             elif el == 15:
@@ -4733,8 +4757,11 @@ def start_remote(remote):
             elif sel == 18:
                 if el == 11:
                     subprocess.Popen([remote, "-t", "all", "-r"], **shuddup)
+                    remove = []
+                    sel = 14
                 else:
-                    subprocess.Popen([remote, "-t", str(el-1+pos), "-r"], **shuddup)
+                    remove += [str(el-1+pos)]
+                    stdout = "REMOVE, (A)ll, press L twice to confirm above, press R to clear"
             elif sel == 19:
                 if el == 11:
                     echo("", 1)
@@ -4751,7 +4778,7 @@ def start_remote(remote):
                         pose += 10
                         echo("", 1)
                     elif i == 16:
-                        echo(f" - - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
+                        echo(f" - - {(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
                         with subprocess.Popen([remote, "-t", str(el-1+pos), "-f"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
                             listed = False
                             for line in p.stdout:

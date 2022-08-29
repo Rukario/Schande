@@ -5159,7 +5159,8 @@ setlocal enabledelayedexpansion
 set batchdir=!batchdir:\=\\!
 set filelist=
 if [%1]==[] goto skip
-if [%1]==[magnet:?xt] set filelist=%1=%2&&goto skip
+set n=!cmdcmdline:*%~f0=!
+if ["!n:~2,8!"]==["magnet:?"] set filelist=!n:~2,-1!&&goto skip
 :loop
 set file=%1
 set file=!file:"=!

@@ -1,12 +1,12 @@
 @echo off && goto loaded
 
-import os, sys, io, ssl, socket, time, json, zlib, inspect, smtplib, hashlib, subprocess
+import os, sys, io, ssl, socket, time, json, zlib, inspect, smtplib, hashlib, subprocess, mimetypes
 from datetime import datetime
 from fnmatch import fnmatch
 from http import cookiejar
-from http.server import SimpleHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 from queue import Queue
-from socketserver import ThreadingMixIn
+from socketserver import ThreadingMixIn, TCPServer
 from threading import Thread
 from urllib import parse, request
 from urllib.error import HTTPError, URLError
@@ -561,7 +561,20 @@ def monitor():
 
 
 
-class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
+def http2ondisk(url, directory):
+    subdir = filter(None, parse.unquote(url.split('?',1)[0].split('#',1)[0]).split('/'))
+    path = directory
+    for folder in subdir:
+        path = os.path.join(path, folder)
+    return path
+
+
+
+class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
+    def __init__(self, *args, directory=None):
+        self.directory = os.fspath(directory)
+        super().__init__(*args)
+
     def do_GET(self):
         if '?' in self.path:
             self.path = self.path.split('?')[0]
@@ -676,18 +689,27 @@ h2 {margin:4px;}"""
         self.end_headers()
         return f
 
+    extensions_map = {'.gz': 'application/gzip', '.z': 'application/octet-stream', '.bz2': 'application/x-bzip2', '.xz': 'application/x-xz',}
+
+    def guess_type(self, ondisk):
+        ext = os.path.splitext(ondisk)[1].lower()
+        if ext in self.extensions_map:
+            return self.extensions_map[ext]
+        guess, _ = mimetypes.guess_type(ondisk)
+        return guess if guess else 'application/octet-stream'
+
     def send_head(self):
         self.range = (0, 0)
         self.total = 0
-        path = self.translate_path(self.path)
-        if os.path.isdir(path):
-            return SimpleHTTPRequestHandler.send_head(self)
-        ctype = self.guess_type(path)
-        if path.endswith("/"):
+        ondisk = http2ondisk(self.path, self.directory)
+        if os.path.isdir(ondisk):
+            return self.list_directory(ondisk)
+
+        if ondisk.endswith("/"):
             self.send_error(404, "File not found")
             return None
         try:
-            f = open(path, 'rb')
+            f = open(ondisk, 'rb')
         except OSError:
             self.send_error(404, "File not found")
             return None
@@ -732,7 +754,7 @@ h2 {margin:4px;}"""
                 self.send_response(200, size=Bytes)
             self.send_header('Accept-Ranges', 'bytes')
             self.send_header('Content-Range', f'bytes {start}-{end}/{size}')
-            self.send_header('Content-type', ctype)
+            self.send_header('Content-type', self.guess_type(ondisk))
             self.send_header('Content-Length', Bytes)
             self.send_header('Last-Modified', self.date_time_string(fs.st_mtime))
             self.end_headers()
@@ -742,8 +764,9 @@ h2 {margin:4px;}"""
 
     def send_response(self, code, message=None, size=0, dead=False):
         buffer = '' if dead else f' {size} bytes'
-        ondisk = self.translate_path(self.path).replace("/", "\\")
-        echo(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolorg}{self.address_string()} {tcolorr}<- {tcolorr if dead else tcolorb}{ondisk}{tcolorx}{buffer}", 0, 1)
+        ondisk = http2ondisk(self.path, self.directory).replace("/", "\\")
+        if not ondisk.rsplit("\\", 1)[-1] in ["favicon.ico"]:
+            echo(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolorg}{self.address_string()} {tcolorr}<- {tcolorr if dead else tcolorb}{ondisk}{tcolorx}{buffer}", 0, 1)
         self.send_response_only(code, message)
         self.send_header('Server', self.version_string())
         self.send_header('Date', self.date_time_string())
@@ -760,7 +783,6 @@ h2 {margin:4px;}"""
 
     def copyfile(self, source, outputfile):
         dl = self.range[0]
-        total = self.total
         source.seek(dl)
         sf[0] += 1
         thread = sf[0]
@@ -769,7 +791,7 @@ h2 {margin:4px;}"""
             while buf := source.read(262144):
                 Bytes = len(buf)
                 dl += Bytes
-                echoMBs(-thread, -Bytes, -int(dl/total*256) if total else 0)
+                echoMBs(-thread, -Bytes, -int(dl/self.total*256) if self.total else 0)
                 outputfile.write(buf)
             echo("DONE", 0, 1)
         except:
@@ -778,9 +800,27 @@ h2 {margin:4px;}"""
 
 
 
+class HTTPServer(TCPServer):
+    def server_bind(self):
+        TCPServer.server_bind(self)
+        host, port = self.server_address[:2]
+        self.server_name = socket.getfqdn(host)
+        self.server_port = port
+
+class ThreadingHTTPServer(HTTPServer):
+    def process_request_thread(self, request, client_address):
+        self.finish_request(request, client_address)
+
+    def process_request(self, request, client_address):
+        t = Thread(target=self.process_request_thread, args=(request, client_address))
+        t.daemon = True
+        t.start()
+
+
+
 def handler(directory):
-    def _init(self, *args, **kwargs):
-        return RangeHTTPRequestHandler.__init__(self, *args, directory=self.directory, **kwargs)
+    def _init(self, *args):
+        return RangeHTTPRequestHandler.__init__(self, *args, directory=self.directory)
     return type(f'RangeHTTPRequestHandler<{directory}>', (RangeHTTPRequestHandler,), {'__init__': _init, 'directory': directory})
 def startserver(port, directory):
     d = directory.rsplit("/", 2)[1]

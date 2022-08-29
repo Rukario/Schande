@@ -630,9 +630,9 @@ class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
             echo(f"Large POST data: {Bytes} in length exceeding 2000 allowance", 0, 1)
             self.wfile.write(bytes(f"Large POST data sent", 'utf-8'))
 
-    def list_directory(self, path):
+    def list_directory(self, ondisk, st=False):
         try:
-            list = os.listdir(path)
+            list = os.listdir(ondisk)
         except OSError:
             self.send_error(404, "No permission to list directory")
             return None
@@ -641,7 +641,7 @@ class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
         try:
             displaypath = parse.unquote(self.path, errors='surrogatepass')
         except UnicodeDecodeError:
-            displaypath = parse.unquote(path)
+            displaypath = parse.unquote(self.path)
         if displaypath == "/":
             title = "Top directory"
         else:
@@ -651,17 +651,15 @@ class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
         dirs = []
         files = []
         for name in list:
-            fullname = os.path.join(path, name)
+            fullname = os.path.join(ondisk, name)
             displayname = name.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
             link = parse.quote(name, errors='surrogatepass')
+            ut = f" {os.path.getmtime(fullname)}" if st else ""
             if os.path.isdir(fullname):
                 displayname = "\\" + displayname + "\\"
-                dirs.append(f' &gt; <a href="{link}/">{displayname}</a>')
-            elif os.path.islink(fullname):
-                displayname = displayname + "@"
-                dirs.append(f' &gt; <a href="{link}">{displayname}</a>')
+                dirs.append(f' &gt; <a href="{link}/">{displayname}</a>{ut}')
             elif os.path.isfile(fullname):
-                files.append(f' &gt;  <a href="{link}">{displayname}</a>')
+                files.append(f' &gt;  <a href="{link}">{displayname}</a>{ut}')
         buffer = '\n'.join(dirs + files)
 
         style = """html,body{white-space:pre; background-color:#10100c; color:#088; font-family:courier; font-size:14px;}

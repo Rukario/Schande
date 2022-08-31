@@ -105,7 +105,8 @@ title(batchfile)
 def mainmenu():
     return f"""
  - - - - {batchname} HTML - - - -
- + Press B to launch HTML in your favorite browser.
+ + Press J to stop / restart HTTP server.
+ | Press B to launch HTML in your favorite browser.
  | Press G to re/compile HTML from Geistauge's database (your browser will be used as comparison GUI).
  + Press D to open delete mode.
 

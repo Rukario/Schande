@@ -32,6 +32,7 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 );
 }
 .aczo28 {bottom:5px; padding:10px 7px 11px; width:44px;}
+.bloom {border-radius: 12px; padding:0 12px; margin:0 -12px; background-color:#ffffff; box-shadow: 0 0 60px 30px rgba(255, 255, 255, 0.6), 0 0 100px 60px rgba(255, 0, 255, 0.4), 0 0 400px 200px rgba(255, 255, 255, 0.2);}
 .cursor_tooltip{position:absolute; left:0px; top:0px; right:initial; display:none;}
 .backtip {display:none; position:relative; line-height:1.1; font-size:11px;}
 .backtip::before {content:''; position:absolute; left:0; top:0; z-index:1; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none;}
@@ -311,8 +312,8 @@ function deamp() {
   toolbar(t.value)
 }
 
-function deuni() {
-  toolbar(editor.textContent.replace(/\\u[\dA-F]{4}/gi, function(match){return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));}))
+function deuni(e) {
+  return e.replace(/\\u[\dA-F]{4}/gi, function(match){return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));})
 }
 
 function unraw(str) {
@@ -349,24 +350,30 @@ function unraw(str) {
   });
 }
 
-function replace(x, y){
-  var x = document.getElementById("replace");
+function replace(){
+  let x = document.getElementById("replace");
   if(!x.value){
     canihljs = true;
     toolbar(editor.textContent);
   } else {
-    var y = document.getElementById("with");
-    var r = new RegExp(x.value, 'g');
+    let y = document.getElementById("with");
+    let r = new RegExp(x.value, 'g');
     toolbar(editor.textContent.replace(r, unraw(y.value)));
   }
 }
 
 function fraktur(){
-  var x = editor.textContent
+  let x = document.getElementById("replace");
+  if (x.value){
+    let r = new RegExp(`(${x.value})`, 'g');
+    editor.innerHTML = editor.innerHTML.replace(r, "<span class='bloom'>$1</span>")
+    return
+  }
+  var e = editor.textContent
   var str = '';
   var c = '';
 
-  for (var ch of x) {
+  for (var ch of e) {
     ch = '0x' + ch.codePointAt(0).toString(16)
     if (ch >= 0x41 && ch <= 0x5a) {
       c = ch - 0x41 + 0x1d56c;
@@ -378,19 +385,6 @@ function fraktur(){
     str += String.fromCodePoint(c);
   }
   toolbar(str);
-}
-
-function check(e){
-  if (!e.value){
-    e.style.backgroundColor = "#066"
-  } else {
-    try {
-      new Function('return ' + e.value)();
-      e.style.backgroundColor = "#066";
-    } catch {
-      e.style.backgroundColor = "#399";
-    }
-  }
 }
 
 function save(){
@@ -552,7 +546,7 @@ function toolbar(d){
     <option value="8">Wipe all after cursor</option>
     <option value="9">Links only</option>
     <option value="10">De-highlight (until empty text replacement)</option>
-</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none">) <button class="next" onclick="fraktur();">${filel[4]} -(𝕱𝖗𝖆𝖐𝖙𝖚𝖗)</button> (can't be undone)</div><div id="dim" style="display:block;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); left:-16px;" onclick="relbar(this, '🫦')">👄</button><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calculator" class="next" style="width:116px;" type="text" oninput="check(this);" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[4]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"></div><div id="tooltip" class="tooltip"></div></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + (!bigdoc&&canihljs?hljs.highlightAuto(d).value:d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")).replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| )/g, '<span class="hyperlink">$1</span>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
+</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none"><button class="next" onclick="fraktur()">where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗</button>) (can't be undone)</div><div id="dim" style="display:block;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); left:-16px;" onclick="relbar(this, '🫦')">👄</button><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calc" class="next" style="width:116px;" type="text" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[4]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"></div><div id="tooltip" class="tooltip"></div></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + (!bigdoc&&canihljs?hljs.highlightAuto(d).value:d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")).replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| )/g, '<span class="hyperlink">$1</span>$2') + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false></div>`;
   editor = document.getElementById("editable");
   let left = () => {
     setTimeout(function(){
@@ -624,12 +618,34 @@ function toolbar(d){
   });
   pickerdiff.innerHTML = filel[1];
   pickerdiff.appendChild(x);
-  calc = document.getElementById("calculator");
   calc.addEventListener("keyup", function(e) {
-    if (e.keyCode === 13) {
+    let c = calc.value;
+    if (!c){
+      calc.style.backgroundColor = "#066"
+    } else if (e.keyCode === 13) {
       try {
-        calc.value = new Function('return ' + calc.value)().toFixed(10)*1;
+        calc.value = new Function('return ' + c)().toFixed(10)*1;
       } catch {
+        if(c.startsWith("u")){
+          calc.value = deuni("\\" + c)
+        }
+      }
+    } else {
+      try {
+        new Function('return ' + c)();
+        calc.style.backgroundColor = "#066";
+      } catch {
+        if(c.startsWith("u") && (!c.slice(1) || Number('0x'+c.slice(1)))){
+          if (c.length == 5){
+            calc.style.backgroundColor = "#066";
+          } else if (c.length > 5){
+            calc.style.backgroundColor = "#399";
+          } else if (c.length < 5){
+            calc.style.backgroundColor = "#033";
+          }
+        } else {
+          calc.style.backgroundColor = "#399";
+        }
       }
     }
   });
@@ -646,7 +662,7 @@ function toolbar(d){
     } else if (x == 5){
       decode();
     } else if (x == 6){
-      deuni();
+      toolbar(deuni(editor.textContent));
     } else if (x == 7){
       del([cur]);
     } else if (x == 8){
@@ -679,7 +695,7 @@ function toolbar(d){
   }
 }
 
-var calc, editor, editdiff;
+var editor, editdiff;
 var dirs = [];
 var hljs = false;
 var canihljs = false;

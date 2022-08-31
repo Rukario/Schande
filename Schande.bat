@@ -836,7 +836,7 @@ def portkilled(port=8886):
     s.settimeout(1)
     r = s.connect_ex(("localhost", port))
     s.close()
-    if servers[0] and r:
+    if r:
         echo(f" HTTP SERVER: Port {port} is dead, Jim.", 0, 1)
         stopserver()
     return True if r else False
@@ -5028,10 +5028,10 @@ def keylistener():
                 else:
                     echo(" HTML SERVER: Press J twice in quick succession to stop servers.", 1, 1)
             else:
-                if portkilled():
-                    restartserver()
-                else:
+                if servers[0]:
                     stopserver()
+                else:
+                    restartserver()
             if not busy[0]:
                 ready_input()
         elif el == 11:

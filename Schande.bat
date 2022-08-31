@@ -631,7 +631,7 @@ class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
             echo(f"Large POST data: {Bytes} in length exceeding 2000 allowance", 0, 1)
             self.wfile.write(bytes(f"Large POST data sent", 'utf-8'))
 
-    def list_directory(self, ondisk, st=False):
+    def list_directory(self, ondisk, ntime=False):
         try:
             list = os.listdir(ondisk)
         except OSError:
@@ -639,14 +639,11 @@ class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
             return None
         list.sort(key=lambda a: a.lower())
 
-        try:
-            displaypath = parse.unquote(self.path, errors='surrogatepass')
-        except UnicodeDecodeError:
-            displaypath = parse.unquote(self.path)
-        if displaypath == "/":
+        parent = parse.unquote(self.path)
+        if parent == "/":
             title = "Top directory"
         else:
-            title = displaypath.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;").replace("/", "\\")
+            title = parent.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;").replace("/", "\\")
         enc = sys.getfilesystemencoding()
 
         dirs = []
@@ -654,8 +651,8 @@ class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
         for name in list:
             fullname = os.path.join(ondisk, name)
             displayname = name.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
-            link = parse.quote(name, errors='surrogatepass')
-            ut = f" {os.path.getmtime(fullname)}" if st else ""
+            link = parse.quote(name)
+            ut = f" {os.path.getmtime(fullname)}" if ntime else ""
             if os.path.isdir(fullname):
                 displayname = "\\" + displayname + "\\"
                 dirs.append(f' &gt; <a href="{link}/">{displayname}</a>{ut}')
@@ -682,8 +679,8 @@ h2 {margin:4px;}"""
         f.seek(0)
         size = str(len(htmldata))
         self.send_response(200, size=size)
-        self.send_header("Content-type", f"text/html; charset={enc}")
-        self.send_header("Content-Length", size)
+        self.send_header('Content-Type', f"text/html; charset={enc}")
+        self.send_header('Content-Length', size)
         self.end_headers()
         return f
 
@@ -730,8 +727,8 @@ h2 {margin:4px;}"""
                 start = int(start)
             except ValueError as e:
                 self.send_error(400, 'invalid range')
-            if start >= size:
-                self.send_error(416, self.responses.get(416)[0])
+            if start and start >= size:
+                self.send_error(416, 'Requested Range Not Satisfiable')
             if end == "":
                 end = size-1
             else:
@@ -752,7 +749,7 @@ h2 {margin:4px;}"""
                 self.send_response(200, size=Bytes)
             self.send_header('Accept-Ranges', 'bytes')
             self.send_header('Content-Range', f'bytes {start}-{end}/{size}')
-            self.send_header('Content-type', self.guess_type(ondisk))
+            self.send_header('Content-Type', self.guess_type(ondisk))
             self.send_header('Content-Length', Bytes)
             self.send_header('Last-Modified', self.date_time_string(fs.st_mtime))
             self.end_headers()

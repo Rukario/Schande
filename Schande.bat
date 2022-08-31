@@ -52,6 +52,7 @@ echoname = [batchfile]
 newfilen = [0]
 run_input = [False]*4
 Keypress_prompt = [False]
+Keypress_time = [time.time()]
 Keypress = [False]*27
 torrent_menu = [False]
 retries = [0]
@@ -762,21 +763,24 @@ h2 {margin:4px;}"""
     def send_response(self, code, message=None, size=0, dead=False):
         buffer = '' if dead else f' {size} bytes'
         ondisk = http2ondisk(self.path, self.directory).replace("/", "\\")
-        if not ondisk.rsplit("\\", 1)[-1] in ["favicon.ico"]:
+        if not ondisk.rsplit("\\", 1)[-1] in ["favicon.ico", "apple-touch-icon-precomposed.png", "apple-touch-icon.png"]:
             echo(f"{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolorg}{self.address_string()} {tcolorr}<- {tcolorr if dead else tcolorb}{ondisk}{tcolorx}{buffer}", 0, 1)
         self.send_response_only(code, message)
-        self.send_header('Server', self.version_string())
+        self.send_header('Server', batchname)
         self.send_header('Date', self.date_time_string())
 
     def send_error(self, code, message=None):
         body = "<html><title>404</title><style>html,body{white-space:pre; background-color:#0c0c0c; color:#fff; font-family:courier; font-size:14px;}</style><body> .          .      .      . .          .       <p>      .              .         .             <p>         .     🦦 -( 404 )       .  <p>   .      .           .       .       . <p>     .         .           .       .     </body></html>"
         size = str(len(body))
-        self.send_response(code, message, size, True)
-        self.send_header('Connection', 'close')
-        self.send_header("Content-Type", self.error_content_type)
-        self.send_header('Content-Length', size)
-        self.end_headers()
-        self.wfile.write(bytes(body, 'utf-8'))
+        try:
+            self.send_response(code, message, size, True)
+            self.send_header('Connection', 'close')
+            self.send_header("Content-Type", "text/html;charset=utf-8")
+            self.send_header('Content-Length', size)
+            self.end_headers()
+            self.wfile.write(bytes(body, 'utf-8'))
+        except:
+            echo("DISCONNECTED", 0, 1)
 
     def copyfile(self, source, outputfile):
         dl = self.range[0]
@@ -797,39 +801,30 @@ h2 {margin:4px;}"""
 
 
 
-class HTTPServer(TCPServer):
-    def server_bind(self):
-        TCPServer.server_bind(self)
-        host, port = self.server_address[:2]
-        self.server_name = socket.getfqdn(host)
-        self.server_port = port
-
-class ThreadingHTTPServer(HTTPServer):
-    def process_request_thread(self, request, client_address):
-        self.finish_request(request, client_address)
-
-    def process_request(self, request, client_address):
-        t = Thread(target=self.process_request_thread, args=(request, client_address))
-        t.daemon = True
-        t.start()
-
-
-
-def handler(directory):
-    def _init(self, *args):
-        return RangeHTTPRequestHandler.__init__(self, *args, directory=self.directory)
-    return type(f'RangeHTTPRequestHandler<{directory}>', (RangeHTTPRequestHandler,), {'__init__': _init, 'directory': directory})
+class httpserver(TCPServer, ThreadingMixIn):
+    allow_reuse_address = True
 def startserver(port, directory):
     d = directory.rsplit("/", 2)[1]
     d = f"\\{d}\\" if d else f"""DRIVE {directory.replace("/", "")}\\"""
     print(f""" HTML SERVER: Serving {d} at port {port}""")
-    ThreadingHTTPServer(("", port), handler(directory)).serve_forever()
+    def inj(self, *args):
+        return RangeHTTPRequestHandler.__init__(self, *args, directory=self.directory)
+    s = httpserver(("", port), type(f'RangeHTTPRequestHandler<{directory}>', (RangeHTTPRequestHandler,), {'__init__': inj, 'directory': directory}))
+    servers[0].append(s)
+    s.serve_forever()
+    echo(f" HTTP SERVER: Stopped serving {d} freeing port {port}", 0, 1)
+
 try:
     import certifi
     context = ssl.create_default_context(cafile=certifi.where())
 except:
     context = None
 # context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
+servers = [[]]
+def stopserver():
+    for s in servers[0]:
+        s.shutdown()
+    servers[0] = []
 def restartserver():
     port = 8885
     directories = [batchdir]
@@ -838,11 +833,14 @@ def restartserver():
         t = Thread(target=startserver, args=(port,directory,))
         t.daemon = True
         t.start()
-def portkilled():
+def portkilled(port=8886):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(1)
-    r = s.connect_ex(("localhost", 8886))
+    r = s.connect_ex(("localhost", port))
     s.close()
+    if servers[0] and r:
+        echo(f" HTTP SERVER: Port {port} is dead, Jim.", 0, 1)
+        stopserver()
     return True if r else False
 
 
@@ -4662,7 +4660,6 @@ def start_remote(remote):
     pos = 0
     sel = 14
     remove = []
-    lasttime = time.time()
     stdout = "STOP"
     if not torrent_menu[0]:
         echo(""" Key listener (torrent/file viewer):
@@ -4691,9 +4688,9 @@ def start_remote(remote):
         elif el == 16:
             if sel == 18 and remove:
                 intime = time.time()
-                if intime > lasttime+0.5:
+                if intime > Keypress_time[0]+0.5:
                     echo(f"Press L twice in quick succession to remove: {' '.join(x for x in remove)}", 1, 1)
-                    lasttime = intime
+                    Keypress_time[0] = intime
                 else:
                     for r in remove:
                         subprocess.Popen([remote, "-t", r, "-r"], **shuddup)
@@ -5025,11 +5022,18 @@ def keylistener():
                 echo("", 1)
             ready_input()
         elif el == 10:
-            if portkilled():
-                echo(" HTML SERVER: Dead, Jim (restart server induced)", 1, 1)
-                restartserver()
+            intime = time.time()
+            if intime > Keypress_time[0]+0.5:
+                Keypress_time[0] = intime
+                if not servers[0] or portkilled():
+                    echo(" HTML SERVER: Press J twice in quick succession to restart servers.", 1, 1)
+                else:
+                    echo(" HTML SERVER: Press J twice in quick succession to stop servers.", 1, 1)
             else:
-                echo(" HTML SERVER: I feel fine!", 1, 1)
+                if portkilled():
+                    restartserver()
+                else:
+                    stopserver()
             if not busy[0]:
                 ready_input()
         elif el == 11:

@@ -105,7 +105,7 @@ title(batchfile)
 def mainmenu():
     return f"""
  - - - - {batchname} HTML - - - -
- + Press J to stop / restart HTTP server.
+ + Press J twice to start or stop HTTP server. Server's dead, (J)im.
  | Press B to launch HTML in your favorite browser.
  | Press G to re/compile HTML from Geistauge's database (your browser will be used as comparison GUI).
  + Press D to open delete mode.
@@ -120,8 +120,7 @@ def mainmenu():
  + Enter valid site to start a scraper.
 """
 def ready_input():
-    sys.stdout.write(f"Ready input: ")
-    sys.stdout.flush()
+    echo(f"Your key: ", flush=True)
 def skull():
     return """                                    
               ______                
@@ -312,14 +311,18 @@ t.start()
 def columns():
     return os.get_terminal_size().columns
 
-def echo(t, b=0, f=0, clamp='', friction=False):
+def echo(t, b=0, f=0, clamp='', friction=False, flush=False):
     c = columns()
     if not isinstance(t, int):
         if clamp:
             t = f"{t[:c-1]}{(t[c-1:] and clamp)}"
         stdout[0] = ""
         stdout[1] = ""
-        sys.stdout.write("\033[A"*b + f"{t:<{c}}" + "\n"*f + "\r")
+        if flush:
+            sys.stdout.write("\033[A"*b + f"{'':<{c}}" + "\r" + t)
+            sys.stdout.flush()
+        else:
+            sys.stdout.write("\033[A"*b + f"{t:<{c}}" + "\n"*f + "\r")
     elif not echothreadn or t == echothreadn[0]:
         if clamp:
             b = f"{b[:c-1]}{(b[c-1:] and clamp)}"
@@ -434,8 +437,7 @@ done""")
             if el >= 256:
                 el /= 256
             el = int(el)
-            sys.stdout.write(f"{keys[el-1].upper()}\n")
-            sys.stdout.flush()
+            echo(f"{keys[el-1].upper()}\n", flush=True)
     if not keys:
         return
     if el == 0:
@@ -447,8 +449,7 @@ done""")
 
 
 def input(i="Your Input: ", choices=False):
-    sys.stdout.write(str(i))
-    sys.stdout.flush()
+    echo(str(i), flush=True)
     if choices:
         keys = ""
         for c in choices:
@@ -459,8 +460,7 @@ def input(i="Your Input: ", choices=False):
                 echo("", 1, 0)
                 nter = input("Type and enter to confirm, else to return: " + c + f"\033[{len(c)-1}D")
                 echo("", 1, 0)
-                sys.stdout.write(str(i))
-                sys.stdout.flush()
+                echo(str(i), flush=True)
                 if nter.lower() == choices[el-1][1:].lower():
                     echo(c, 0, 0)
                     return el
@@ -495,11 +495,11 @@ else:
 
 new_setting = False
 pos = 0
-settings = ["Launch HTML server = ", "Browser = ", "Mail = ", "Geistauge = No", "Python = " + pythondir, f"UTC offset = {datetime.now().astimezone().strftime('%z')[:-2]}", "Proxy = socks5://"]
+settings = ["Launch HTTP server = ", "Browser = ", "Mail = ", "Geistauge = No", "Python = " + pythondir, f"UTC offset = {datetime.now().astimezone().strftime('%z')[:-2]}", "Proxy = socks5://"]
 for setting in settings:
     if not rules[pos].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if pos == 0:
-            setting += "Yes" if input("Launch HTML server? (Y)es/(N)o: ", "yn") == 1 else "No"
+            setting += "Yes" if input("Launch HTTP server? (Y)es/(N)o: ", "yn") == 1 else "No"
             echo("", 1)
             echo("", 0, 1)
         rules.insert(pos, setting)
@@ -592,7 +592,7 @@ class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
         if Bytes < 2000:
             data = self.rfile.read(Bytes).decode('utf-8')
             self.send_response(200, size=Bytes)
-            self.send_header('Content-type', 'text/plain; charset=utf-8')
+            self.send_header('Content-Type', 'text/plain; charset=utf-8')
             self.end_headers()
             api = {"kind":"","ondisk":"","body":""}
             try:
@@ -627,7 +627,7 @@ class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(bytes(f"Stray POST data sent", 'utf-8'))
         else:
             self.send_response(200, size=Bytes)
-            self.send_header('Content-type', 'text/plain; charset=utf-8')
+            self.send_header('Content-Type', 'text/plain; charset=utf-8')
             self.end_headers()
             echo(f"Large POST data: {Bytes} in length exceeding 2000 allowance", 0, 1)
             self.wfile.write(bytes(f"Large POST data sent", 'utf-8'))
@@ -762,7 +762,7 @@ h2 {margin:4px;}"""
         buffer = '' if dead else f' {size} bytes'
         ondisk = http2ondisk(self.path, self.directory).replace("/", "\\")
         if not ondisk.rsplit("\\", 1)[-1] in ["favicon.ico", "apple-touch-icon-precomposed.png", "apple-touch-icon.png"]:
-            echo(f"{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolorg}{self.address_string()} {tcolorr}<- {tcolorr if dead else tcolorb}{ondisk}{tcolorx}{buffer}", 0, 1)
+            echo(f"{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorr if dead else tcolorb}{ondisk}{tcolorx}{buffer}", 0, 1)
         self.send_response_only(code, message)
         self.send_header('Server', batchname)
         self.send_header('Date', self.date_time_string())
@@ -773,7 +773,7 @@ h2 {margin:4px;}"""
         try:
             self.send_response(code, message, size, True)
             self.send_header('Connection', 'close')
-            self.send_header("Content-Type", "text/html;charset=utf-8")
+            self.send_header('Content-Type', "text/html;charset=utf-8")
             self.send_header('Content-Length', size)
             self.end_headers()
             self.wfile.write(bytes(body, 'utf-8'))
@@ -804,7 +804,7 @@ class httpserver(TCPServer, ThreadingMixIn):
 def startserver(port, directory):
     d = directory.rsplit("/", 2)[1]
     d = f"\\{d}\\" if d else f"""DRIVE {directory.replace("/", "")}\\"""
-    print(f""" HTML SERVER: Serving {d} at port {port}""")
+    print(f""" HTTP SERVER: Serving {d} at port {port}""")
     def inj(self, *args):
         return RangeHTTPRequestHandler.__init__(self, *args, directory=self.directory)
     s = httpserver(("", port), type(f'RangeHTTPRequestHandler<{directory}>', (RangeHTTPRequestHandler,), {'__init__': inj, 'directory': directory}))
@@ -1184,15 +1184,15 @@ if bgcolor:
 
 
 
-HTMLserver = y(rules[0], True)
+HTTPserver = y(rules[0], True)
 Browser = y(rules[1])
 Mail = y(rules[2])
 Geistauge = y(rules[3], True)
 proxy = y(rules[6])
-if HTMLserver:
+if HTTPserver:
     restartserver()
 else:
-    print(" HTML SERVER: OFF")
+    print(" HTTP SERVER: OFF")
 if Browser:
     print(" BROWSER: " + Browser.replace("\\", "/").rsplit("/", 1)[-1])
 else:
@@ -1252,8 +1252,8 @@ print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 if not shuddup:
     choice(bg=["4c", "%color%"])
     buffer = f"\n{tcolorr} TO YOURSELF: {rulefile} contains personal information like mail, password, cookies. Edit {rulefile} before sharing!"
-    if HTMLserver:
-        buffer += f"\n{tcoloro}{skull()} HTML SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookies"
+    if HTTPserver:
+        buffer += f"\n{tcoloro}{skull()} HTTP SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookies"
     echo(f"""{buffer}\n{tcoloro} Add "shuddup" to {rulefile} to dismiss this message.{tcolorx}""", 0, 1)
 
 
@@ -1307,8 +1307,7 @@ def retry(stderr):
                 if not Keypress[18]:
                     title(monitor())
                     Keypress_err[0] = f"{stderr} (R)etry (A)lways (S)kip once (X)auto defuse antibot with (F)irefox: "
-                    sys.stdout.write(Keypress_err[0])
-                    sys.stdout.flush()
+                    echo(Keypress_err[0], flush=True)
                     while True:
                         if Keypress[18] or Keypress[1]:
                             break
@@ -1475,8 +1474,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
         os.rename(todisk + ".part", todisk)
         if Keypress_prompt[0]:
-            sys.stdout.write(Keypress_err[0])
-            sys.stdout.flush()
+            echo(Keypress_err[0], flush=True)
         stdout[0] = ""
         stdout[1] = ""
         return 1, 0
@@ -1497,15 +1495,19 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                                     return zlib.decompress(data, 16+zlib.MAX_WBITS).decode("utf-8"), 0
                                 except:
                                     todisk = saint(parse.unquote(url.split("/")[-1]))
-                                    sys.stdout.write(f" Not an UTF-8 file! Save on disk as {todisk} to open it in another program? (S)ave (D)iscard: ")
-                                    sys.stdout.flush()
-                                    if choice("sd") == 1:
+                                    echo(f" Not an UTF-8 file! Save on disk as {todisk} to open it in another program? (S)ave or discard and (C)ontinue: ", flush=True)
+                                    Keypress[3] = False
+                                    Keypress[19] = False
+                                    while not Keypress[3] and not Keypress[19]:
+                                        time.sleep(0.1)
+                                    Keypress[3] = False
+                                    if Keypress[19]:
+                                        Keypress[19] = False
                                         with open(todisk, 'wb') as f:
                                             f.write(data);
                                         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
                                     if Keypress_prompt[0]:
-                                        sys.stdout.write(Keypress_err[0])
-                                        sys.stdout.flush()
+                                        echo(Keypress_err[0], flush=True)
                                     return 1, 0
                         else:
                             return data, 0
@@ -3057,7 +3059,7 @@ def container(dir, ondisk, pattern=False):
 
 
 def container_c(ondisk, label):
-    if HTMLserver:
+    if HTTPserver:
         if os.path.exists(batchdir + ondisk.replace(batchdir, "")):
             ondisk = ondisk.replace(batchdir, "").replace("#", "%23").replace("\\", "/")
         else:
@@ -3146,7 +3148,7 @@ function send(b, e){
       if (r.length <= 100){
         e.target.setAttribute("data-tooltip", r);
       } else {
-        e.target.setAttribute("data-tooltip", "Please connect to the HTML server");
+        e.target.setAttribute("data-tooltip", "Please connect to the HTTP server");
       }
       FFmove(e);
     }
@@ -3195,7 +3197,7 @@ function loadkeys(){
       } else {
         local_tooltip.style.display = "inline-block";
         local_tooltip.innerHTML = "⚠";
-        local_tooltip.setAttribute("data-tooltip", "Not loaded on HTML server: HTML server is used for custom keywords and interacting with Schande/Save buttons.");
+        local_tooltip.setAttribute("data-tooltip", "Not loaded on HTTP server: HTTP server is used for custom keywords and interacting with Schande/Save buttons.");
       }
     }
     isTainted = false
@@ -3508,7 +3510,7 @@ function quicklook(e) {
       }
       setTimeout(function(){
         if (isTainted) {
-          t.setAttribute("data-tooltip", `"Edge detect" and "Geistauge" are canvas features and they require Cross-Origin Resource Sharing (CORS)<br>(Google it but tl;dr: Try HTML server)`)
+          t.setAttribute("data-tooltip", `"Edge detect" and "Geistauge" are canvas features and they require Cross-Origin Resource Sharing (CORS)<br>(Google it but tl;dr: Try HTTP server)`)
           FFmove(e)
         }
       }, 1)
@@ -4518,8 +4520,7 @@ def finish_sort():
         choice(bg=True)
         print(f" Nothing to sort! Check and add or update pattern if there are files in \\{batchname}\\ needed to be sorted.")
         return
-    sys.stdout.write(f" ({tcolorb}From directory {tcolorr}-> {tcolorg}to a more deserving directory{tcolorx}) {tcd} for non-existent directories - (C)ontinue ")
-    sys.stdout.flush()
+    echo(f" ({tcolorb}From directory {tcolorr}-> {tcolorg}to a more deserving directory{tcolorx}) {tcd} for non-existent directories - (C)ontinue ", flush=True)
     if not choice("c") == 1:
         whereami("Bad choice", kill=True)
     for file, dir in mover.items():
@@ -4662,12 +4663,13 @@ def start_remote(remote):
     stdout = "STOP"
     if not torrent_menu[0]:
         echo(""" Key listener (torrent/file viewer):
-  > Press D, F to decrease or increase number by 10
-  > Press S, G to (S)top/start (G)etting selected item
-  > Press L, M to re/(L)ist all items or return to torrent (M)anager/(M)ain menu
+  > Press D, F to decrease or increase number by 10.
+  > Press S, G to (S)top/start (G)etting selected item.
+   > Finished torrent will stop automatically, start a finished torrent to seed indefinitely.
+  > Press L, M to re/(L)ist all items or return to torrent (M)anager/(M)ain menu.
 
  Key listener (torrent management):
-  > Press R, E, I to (R)emove torrent, view fil(E)s of selected torrent, or (I)nput new torrent""", 0, 2)
+  > Press R, E, I to (R)emove torrent, view fil(E)s of selected torrent, or (I)nput new torrent.""", 0, 2)
     while True:
         if torrent_menu[0]:
             el = input(f"Select TORRENT by number to {stdout}: {f'{pos/10:g}' if pos else ''}", keys if sel == 18 else keys[:10] + keys[11:])
@@ -4938,6 +4940,7 @@ def read_file():
 
 
 busy[0] = True
+demo = [0]
 if filelist:
     if len(filelist) > 1:
         kill(f"""
@@ -4974,10 +4977,10 @@ def keylistener():
                 if not Browser:
                     choice(bg=True)
                     echo(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""", 0, 1)
-                elif HTMLserver:
+                elif HTTPserver:
                     os.system(f"""start "" "{Browser}" "http://localhost:8886/" """)
                 else:
-                    echo(" HTML SERVER: Maybe not.", 0, 1)
+                    echo(" HTTP SERVER: Maybe not.", 0, 1)
             else:
                 echo(" BROWSER: Maybe not.", 0, 1)
             if not busy[0]:
@@ -5014,7 +5017,7 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            if fp := input("Enter input, enter nothing to cancel: ").rstrip().replace("\"", "").replace("\\", "/"):
+            if fp := input("Your input, enter nothing to cancel: ").rstrip().replace("\"", "").replace("\\", "/"):
                 read_input(fp)
             else:
                 echo("", 1)
@@ -5022,17 +5025,22 @@ def keylistener():
             ready_input()
         elif el == 10:
             intime = time.time()
-            if intime > Keypress_time[0]+0.5:
+            if intime > Keypress_time[0] + 0.5:
                 Keypress_time[0] = intime
                 if not servers[0] or portkilled():
-                    echo(" HTML SERVER: Press J twice in quick succession to restart servers.", 1, 1)
+                    echo("Press J twice in quick succession to restart servers.", 1, 1)
                 else:
-                    echo(" HTML SERVER: Press J twice in quick succession to stop servers.", 1, 1)
+                    echo("Press J twice in quick succession to stop servers.", 1, 1)
             else:
-                if servers[0]:
+                if demo[0] > intime - 2:
+                    echo(" HTTP SERVER: 10-second demo started (quadruple J)", 0, 1)
+                    time.sleep(10)
+                    stopserver()
+                elif servers[0]:
                     stopserver()
                 else:
                     restartserver()
+                    Keypress_time[0] = demo[0] = time.time() - 0.5
             if not busy[0]:
                 ready_input()
         elif el == 11:
@@ -5118,7 +5126,7 @@ print(f"""
   > Press 1 to 8 to set max parallel download of 8 available slots, 0 to pause.
   > Press Z or CtrlC to break and reconnect of the ongoing downloads or to end timer instantly.
 
- Key listener (ready input):
+ Key listener (main menu):
   > Press I, L to enter (I)nput or (L)oad list from {textfile}.
   > Press O to s(O)rt files.
   > Press M, E to open torrent (M)anager or h(E)lp document.""")

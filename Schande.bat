@@ -839,6 +839,7 @@ def portkilled(port=8886):
     if r:
         echo(f" HTTP SERVER: Port {port} is dead, Jim.", 1, 2)
         stopserver()
+        echo("", 0, 1)
     return True if r else False
 
 

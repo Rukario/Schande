@@ -319,7 +319,7 @@ def echo(t, b=0, f=0, clamp='', friction=False, flush=False):
         stdout[0] = ""
         stdout[1] = ""
         if flush:
-            sys.stdout.write("\033[A"*b + f"{'':<{c}}" + "\r" + t)
+            sys.stdout.write("\033[A"*b + t)
             sys.stdout.flush()
         else:
             sys.stdout.write("\033[A"*b + f"{t:<{c}}" + "\n"*f + "\r")
@@ -837,7 +837,7 @@ def portkilled(port=8886):
     r = s.connect_ex(("127.0.0.1", port))
     s.close()
     if r:
-        echo(f" HTTP SERVER: Port {port} is dead, Jim.", 1, 2)
+        echo(f" HTTP SERVER: Port {port} is dead, Jim.", 1, 1)
         stopserver()
         echo("", 0, 1)
     return True if r else False

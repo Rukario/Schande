@@ -1,4 +1,4 @@
-Launch HTML server = Yes
+Launch HTTP server = Yes
 Browser = C:\Program Files\Mozilla Firefox\firefox.exe
 Mail = 
 Geistauge = No

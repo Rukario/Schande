@@ -834,10 +834,10 @@ def restartserver():
 def portkilled(port=8886):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(1)
-    r = s.connect_ex(("localhost", port))
+    r = s.connect_ex(("127.0.0.1", port))
     s.close()
     if r:
-        echo(f" HTTP SERVER: Port {port} is dead, Jim.", 0, 1)
+        echo(f" HTTP SERVER: Port {port} is dead, Jim.", 1, 2)
         stopserver()
     return True if r else False
 

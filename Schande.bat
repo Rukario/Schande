@@ -5104,10 +5104,10 @@ def keylistener():
             Keypress[1] = True
         elif el == 25:
             if sys.platform == "linux":
-                os.system("htop")
+                os.system("top")
             else:
                 if os.path.exists("ntop.exe"):
-                    os.system("ntop.exe")
+                    os.system("ntop.exe -C")
                 else:
                     subdir = batchdir.replace("/", "\\")
                     echo(f"Save ntop.exe from https://github.com/gsass1/NTop/releases to {subdir} and then try again.", 0, 1)

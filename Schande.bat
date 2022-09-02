@@ -41,7 +41,8 @@ textfile = batchname + ".txt"
 archivefile = [".7z", ".rar", ".zip"]
 imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"]
 videofile = [".mkv", ".mp4", ".webm"]
-specialfile = ["mediocre.txt", "autosave.txt", "gallery.html", "keywords.json", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
+notstray = ["mediocre.txt", "autosave.txt", "gallery.html", "keywords.json", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
+mute404 = ["favicon.ico", "apple-touch-icon-precomposed.png", "apple-touch-icon.png", "apple-touch-icon-152x152-precomposed.png", "apple-touch-icon-152x152.png"]
 
 alerted = [False]
 busy = [False]
@@ -651,14 +652,14 @@ class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
         files = []
         for name in list:
             fullname = os.path.join(ondisk, name)
-            displayname = name.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
+            label = name.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
             link = parse.quote(name)
             ut = f" {os.path.getmtime(fullname)}" if ntime else ""
             if os.path.isdir(fullname):
-                displayname = "\\" + displayname + "\\"
-                dirs.append(f' &gt; <a href="{link}/">{displayname}</a>{ut}')
+                label = "\\" + label + "\\"
+                dirs.append(f' &gt; <a href="{link}/">{label}</a>{ut}')
             elif os.path.isfile(fullname):
-                files.append(f' &gt;  <a href="{link}">{displayname}</a>{ut}')
+                files.append(f' &gt;  <a href="{link}">{label}</a>{ut}')
         buffer = '\n'.join(dirs + files)
 
         style = """html,body{white-space:pre; background-color:#10100c; color:#088; font-family:courier; font-size:14px;}
@@ -761,7 +762,7 @@ h2 {margin:4px;}"""
     def send_response(self, code, message=None, size=0, dead=False):
         buffer = '' if dead else f' {size} bytes'
         ondisk = http2ondisk(self.path, self.directory).replace("/", "\\")
-        if not ondisk.rsplit("\\", 1)[-1] in ["favicon.ico", "apple-touch-icon-precomposed.png", "apple-touch-icon.png"]:
+        if not ondisk.rsplit("\\", 1)[-1] in mute404:
             echo(f"{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorr if dead else tcolorb}{ondisk}{tcolorx}{buffer}", 0, 1)
         self.send_response_only(code, message)
         self.send_header('Server', batchname)
@@ -3041,33 +3042,24 @@ def ren(filename, append):
 
 
 
-def container(dir, ondisk, pattern=False):
+def container(dir, ondisk, pattern, label=''):
+    link = ondisk.replace("#", "%23")
     if ondisk.lower().endswith(tuple(videofile)):
-        data = f"""<div class="frame"><video height="200" autoplay><source src="{ondisk.replace("#", "%23")}"></video><div class="sources">{ondisk}</div></div>\n"""
+        return f"""<div class="frame"><video height="200" autoplay><source src="{link}"></video>{label}</div>"""
     elif ondisk.lower().endswith(tuple(imagefile)):
+        # if not os.path.exists(dir + ondisk):
+        #     return f"""<div class="frame"><div class="edits">Rebuild HTML with<br>{batchfile} in another<br>dir is required to view</div>{label}</div>"""
         if buildthumbnail:
-            thumbnail = f"{subdir}{thumbnail_dir}" + ren(file.rsplit("/", 1), "_small")
+            thumbnail = f"{subdir}{thumbnail_dir}" + ren(link.rsplit("/", 1), "_small")
         else:
-            thumbnail = ondisk
-        data = f"""<div class="frame"><a class="fileThumb" href="{ondisk.replace("#", "%23")}"><img class="lazy" data-src="{thumbnail.replace("#", "%23")}"></a><div class="sources">{ondisk}</div></div>\n"""
+            thumbnail = link
+        return f"""<div class="frame"><a class="fileThumb" href="{link}"><img class="lazy" data-src="{thumbnail}"></a>{label}</div>"""
     else:
-        data = f"""<a href=\"{ondisk.replace("#", "%23")}"><div class="aqua" style="height:174px; width:126px;">{ondisk}</div></a>\n"""
+        label = f"""<div class="aqua" style="height:174px; width:126px;">{ondisk}</div>"""
+        buffer = f"""<a href="{link}">{label}</a>"""
         if os.path.exists(dir + ondisk.rsplit(".", 1)[0] + "/"):
-            data += f"""<a href="{ondisk.rsplit(".", 1)[0].replace("#", "%23")}"><div class="aqua" style="height:174px;"><i class="aqua" style="border-width:0 3px 3px 0; padding:3px; -webkit-transform: rotate(-45deg); margin-top:82px;"></i></div></a>\n"""
-    return data
-
-
-
-def container_c(ondisk, label):
-    if HTTPserver:
-        if os.path.exists(batchdir + ondisk.replace(batchdir, "")):
-            ondisk = ondisk.replace(batchdir, "").replace("#", "%23").replace("\\", "/")
-        else:
-            return f"""<div class="frame"><div class="edits">Rebuild HTML with<br />{batchfile} in another<br />dir is required to view</div>{label}</div> """
-    else:
-        ondisk = "file:///" + ondisk.replace("#", "%23")
-    return f"""<div class="frame"><a class="fileThumb" href="{ondisk}"><img class="lazy" data-src="{ondisk}"></a><br />{label}</div>
-"""
+            buffer += f"""<a href="{ondisk.rsplit(".", 1)[0].replace("#", "%23")}"><div class="aqua" style="height:174px;"><i class="aqua" style="border-width:0 3px 3px 0; padding:3px; -webkit-transform: rotate(-45deg); margin-top:82px;"></i></div></a>"""
+        return buffer
 
 
 
@@ -4000,7 +3992,7 @@ def frompart(partfile, relics, htmlpart, pattern):
 def parttohtml(subdir, htmlname, part, filelist, pattern):
     files = []
     for file in next(os.walk(subdir))[2]:
-        if not file.endswith(tuple(specialfile)) and not file.startswith("icon"):
+        if not file.endswith(tuple(notstray)) and not file.startswith("icon"):
             files += [file]
     stray_files = sorted(set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
 
@@ -4027,7 +4019,7 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
     tohtml(subdir, htmlname, part, pattern)
 
     for file in stray_files:
-        if not file.endswith(tuple(specialfile)) and isrej(file, pattern):
+        if not file.endswith(tuple(notstray)) and isrej(file, pattern):
             ondisk = f"{subdir}{file}".replace("/", "\\")
             echo(f"Blacklisted file saved on disk: {ondisk}", 0, 1)
             error[2] += [f"&gt; Blacklisted file saved on disk: {ondisk}"]
@@ -4038,7 +4030,7 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
 
 
 def tohtml(subdir, htmlname, part, pattern):
-    builder = ""
+    builder = []
     listurls = ""
 
 
@@ -4047,13 +4039,13 @@ def tohtml(subdir, htmlname, part, pattern):
     while True:
         icon = "icon.png" if not n else f"icon {n}.png"
         if os.path.exists(f"{subdir}{thumbnail_dir}{icon}"):
-            builder += f"""<img src="{thumbnail_dir}{icon}" height="100px">\n"""
+            builder += [f"""<img src="{thumbnail_dir}{icon}" height="100px">"""]
         else:
             break
         n += 1
     if os.path.exists(page := f"{subdir}{thumbnail_dir}savelink.URL"):
         with open(page, 'r') as f:
-            builder += f"""<h2><a href="{f.read().splitlines()[1].replace("URL=", "")}">{htmlname}</a></h2>"""
+            builder += [f"""<h2><a href="{f.read().splitlines()[1].replace("URL=", "")}">{htmlname}</a></h2>"""]
 
 
 
@@ -4065,70 +4057,69 @@ def tohtml(subdir, htmlname, part, pattern):
     for key in part.keys():
         keywords = part[key]["keywords"]
         title = f"<h2>{keywords[0]}</h2>" if keywords and keywords[0] else f"""<h2 style="color:#666;">ꍯ Part {key} ꍯ</h2>"""
-        content = ""
+        buffer = ""
         if key == "0":
             if "stray_files" in part[key]:
                 title = "<h2>Unsorted</h2>"
-                content = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really strays.\n"
+                buffer = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really strays.\n"
             elif not part[key]["html"]:
                 continue
         new_container = False
         end_container = False
-        builder += """<div class="cell">\n""" if part[key]["visible"] else """<div class="cell" style="display:none;">\n"""
+        builder += ["""<div class="cell">"""] if part[key]["visible"] else ["""<div class="cell" style="display:none;">"""]
         if len(keywords) > 1:
             timestamp = keywords[1] if keywords[1] else "No timestamp"
             afterkeys = ", ".join(x for x in keywords[2:] if x) if len(keywords) > 2 else "None"
-            builder += f"""<div class="time" id="{key}" style="float:right;">Part {key} ꍯ {timestamp}\nKeywords: {afterkeys}</div>\n"""
-        builder += title
+            builder += [f"""<div class="time" id="{key}" style="float:right;">Part {key} ꍯ {timestamp}\nKeywords: {afterkeys}</div>"""]
+        builder += [title]
         if part[key]["files"]:
-            builder += "<div class=\"files\">\n"
+            builder += ["""<div class="files">"""]
             for file in part[key]["files"]:
-                builder += container(subdir, file, pattern)
-            builder += "</div>\n"
+                builder += [container(subdir, file, pattern, f"""<div class="sources">{file}</div>""")]
+            builder += ["</div>"]
         if "stray_files" in part[key]:
-            builder += "<div class=\"edits\">\n"
+            builder += ["""<div class="edits">"""]
             for file in part[key]["stray_files"]:
                 # os.rename(subdir + file, subdir + "Stray files/" + file)
-                builder += container(subdir, file, pattern)
-            builder += "<br><br>File(s) not on server\n</div>\n"
+                builder += [container(subdir, file, pattern, f"""<div class="sources">{file}</div>""")]
+            builder += ["<br><br>File(s) not on server\n</div>"]
         if html := part[key]["html"]:
-            builder += """<div class="postMessage">"""
             for array in html:
                 if len(array) == 2:
                     if new_container:
-                        content += "<div class=\"carbon\">\n"
+                        buffer += "<div class=\"carbon\">\n"
                         end_container = True
                         new_container = False
                     if array[1]:
-                        content += f"""{array[0]}{container(subdir, array[1], pattern)}"""
+                        buffer += f"""{array[0]}{container(subdir, array[1], pattern, f'<div class="sources">{array[1]}</div>')}"""
                     else:
-                        content += array[0]
+                        buffer += array[0]
                 elif end_container:
                     if new_container:
-                        content += "<div class=\"carbon\">\n"
+                        buffer += "<div class=\"carbon\">\n"
                         new_container = False
                     else:
                         new_container = True
-                    content += array[0] + "</div>"
+                    buffer += array[0] + "</div>"
                 else:
-                    content += array[0]
+                    buffer += array[0]
                     new_container = True
-            if "<a href=\"" in content:
-                urls = content.split("<a href=\"")
+            if "<a href=\"" in buffer:
+                urls = buffer.split("<a href=\"")
                 links = ""
                 for link in urls[1:]:
                     link = link.split("\"", 1)[0]
                     links += f"""<a href="{link}">{link}</a><br>"""
                 listurls += f"""# From <a href="#{key}">#{key}</a> :: {keywords[0]}<br>{links}\n"""
-            builder += f"{content}</div>\n"
+            builder += [f"""<div class="postMessage">{buffer}</div>"""]
         elif not part[key]["files"]:
-            builder += "<div class=\"edits\">Rebuild HTML with a different login/tier may be required to view</div>\n"
-        builder += "</div>\n\n"
+            builder += ["<div class=\"edits\">Rebuild HTML with a different login/tier may be required to view</div>"]
+        builder += ["</div>\n"]
     gallery_is = "created"
     if os.path.exists(subdir + "gallery.html"):
         gallery_is = "updated"
     with open(subdir + "gallery.html", 'wb') as f:
-        f.write(bytes(new_html(builder, htmlname, listurls, pattern), "utf-8"))
+        f.write(bytes(new_html("\n".join(builder), htmlname, listurls, pattern), "utf-8"))
     buffer = subdir.replace("/", "\\")
     print(f" File {gallery_is}: \\{buffer}gallery.html ")
 
@@ -4157,6 +4148,7 @@ def label(m, s, html=False):
 
 
 def tohtml_geistauge(delete=False):
+    pattern = [[], [], False, False]
     start = time.time()
     print(f"\n Now compiling duplicates to {batchname} HTML . . . kill this CLI to cancel.\n")
     builder = ""
@@ -4224,12 +4216,12 @@ def tohtml_geistauge(delete=False):
                     continue
                 else:
                     break
-            builder2 += container_c(file2, label(fp, fp2, html=True))
+            builder2 += container(batchdir, file2.replace(batchdir, ""), pattern, "<br />" + label(fp, fp2, html=True))
             if not (file2 := next(fplist, None)):
                 break
         if builder2:
             builder += f"""<div class="container">
-{container_c(file, f"{fp[0]} x {fp[1]}")}{builder2}</div>
+{container(batchdir, file.replace(batchdir, ""), pattern, f"<br />{fp[0]} x {fp[1]}")}{builder2}</div>
 
 """
             counter += 1
@@ -4656,7 +4648,7 @@ def list_remote(remote):
 
 def start_remote(remote):
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
-    keys = [*"0123456789", "All", *"dfsglmrei"]
+    keys = [*"0123456789", "All", *"dfsglmkrei"]
     pos = 0
     sel = 14
     remove = []
@@ -4667,18 +4659,19 @@ def start_remote(remote):
   > Press S, G to (S)top/start (G)etting selected item.
    > Finished torrent will stop automatically, start a finished torrent to seed indefinitely.
   > Press L, M to re/(L)ist all items or return to torrent (M)anager/(M)ain menu.
+   > Press K to kill transmission-daemon and return to main menu.
 
  Key listener (torrent management):
   > Press R, E, I to (R)emove torrent, view fil(E)s of selected torrent, or (I)nput new torrent.""", 0, 2)
     while True:
         if torrent_menu[0]:
-            el = input(f"Select TORRENT by number to {stdout}: {f'{pos/10:g}' if pos else ''}", keys if sel == 18 else keys[:10] + keys[11:])
-            if not sel == 18 and el > 10:
+            el = input(f"Select TORRENT by number to {stdout}: {f'{pos/10:g}' if pos else ''}", keys if sel == 19 else keys[:10] + keys[11:])
+            if not sel == 19 and el > 10:
                 el += 1
         else:
-            el = 15 + input("(I)nput new torrent, (L)ist or return to (M)ain menu: ", [keys[15], keys[16], keys[19]])
-            if el == 18:
-                el = 20
+            el = 15 + input("(I)nput new torrent, (L)ist or return to (M)ain menu: ", [keys[15], keys[16], keys[20]])
+            if el == 19:
+                el = 21
             torrent_menu[0] = True
         if el == 12:
             pos -= 10 if pos > 0 else 0
@@ -4687,7 +4680,7 @@ def start_remote(remote):
             pos += 10
             echo("", 1)
         elif el == 16:
-            if sel == 18 and remove:
+            if sel == 19 and remove:
                 intime = time.time()
                 if intime > Keypress_time[0]+0.5:
                     echo(f"Press L twice in quick succession to remove: {' '.join(x for x in remove)}", 1, 1)
@@ -4707,7 +4700,10 @@ def start_remote(remote):
                 list_remote(remote)
         elif el == 17:
             return
-        elif el == 20:
+        elif el == 18:
+            os.system("killall -9 transmission-daemon")
+            return
+        elif el == 21:
             echo("", 1)
             buffer = "cancel"
             while True:
@@ -4734,9 +4730,9 @@ def start_remote(remote):
                 stdout = "STOP"
             elif el == 15:
                 stdout = "START"
-            elif el == 18:
-                stdout = "REMOVE, (A)ll"
             elif el == 19:
+                stdout = "REMOVE, (A)ll"
+            elif el == 20:
                 stdout = "VIEW file list"
             echo("", 1)
         else:
@@ -4750,7 +4746,7 @@ def start_remote(remote):
                     echo("", 1)
                 else:
                     subprocess.Popen([remote, "-t", str(el-1+pos), "-s"], **shuddup)
-            elif sel == 18:
+            elif sel == 19:
                 if el == 11:
                     subprocess.Popen([remote, "-t", "all", "-r"], **shuddup)
                     remove = []
@@ -4758,7 +4754,7 @@ def start_remote(remote):
                 else:
                     remove += [str(el-1+pos)]
                     stdout = "REMOVE, (A)ll, press L twice to confirm above, press R to clear"
-            elif sel == 19:
+            elif sel == 20:
                 if el == 11:
                     echo("", 1)
                     continue
@@ -4793,6 +4789,9 @@ def start_remote(remote):
                     elif i == 17:
                         echo("", 1)
                         break
+                    elif i == 18:
+                        os.system("killall -9 transmission-daemon")
+                        return
                     elif i > 13:
                         sele = i
                         pose = 0
@@ -5028,9 +5027,9 @@ def keylistener():
             if intime > Keypress_time[0] + 0.5:
                 Keypress_time[0] = intime
                 if not servers[0] or portkilled():
-                    echo("Press J twice in quick succession to restart servers.", 1, 1)
+                    echo("Press J twice in quick succession to start server.", 1, 1)
                 else:
-                    echo("Press J twice in quick succession to stop servers.", 1, 1)
+                    echo("Press J twice in quick succession to stop server.", 1, 1)
             else:
                 if demo[0] > intime - 2:
                     echo(" HTTP SERVER: 10-second demo started (quadruple J)", 0, 1)
@@ -5104,7 +5103,16 @@ def keylistener():
             pressed("X", False if Keypress[24] else True)
             Keypress[1] = True
         elif el == 25:
-            unrecognized("Y")
+            if sys.platform == "linux":
+                os.system("htop")
+            else:
+                if os.path.exists("ntop.exe"):
+                    os.system("ntop.exe")
+                else:
+                    subdir = batchdir.replace("/", "\\")
+                    echo(f"Save ntop.exe from https://github.com/gsass1/NTop/releases to {subdir} and then try again.", 0, 1)
+            if not busy[0]:
+                ready_input()
         elif el == 26:
             pressed("Z")
         elif 0 <= (n := min(el-27, 8)) < 9:

@@ -53,9 +53,9 @@ echoname = [batchfile]
 newfilen = [0]
 run_input = [False]*4
 Keypress_prompt = [False]
-Keypress_time = [time.time()]
+Keypress_time = [time.time()]*2
 Keypress = [False]*27
-torrent_menu = [False]
+transmission_running = [False]
 retries = [0]
 sf = [0]
 
@@ -411,7 +411,7 @@ def echo_pip():
 
 
 lostfocus = [False]
-def choice(keys="", bg=[]):
+def choice(keys="", bg=[], double=False):
     if sys.platform == "win32":
         if bg:
             lostfocus[0] = True
@@ -445,18 +445,23 @@ done""")
         echo("", 0, 1)
     if el < 0 or el > 100:
         whereami(f"Obscene return code {el}", kill=True)
+    if double and keys[el-1].lower() in double.lower():
+        Keypress_time[1] = time.time()
+        if Keypress_time[1] > Keypress_time[0] + 0.5:
+            Keypress_time[0] = Keypress_time[1]
+            return -el
     return el
 
 
 
-def input(i="Your Input: ", choices=False):
+def input(i="Your Input: ", choices=False, double=False):
     echo(str(i), flush=True)
     if choices:
         keys = ""
         for c in choices:
             keys += c[0].lower()
         while True:
-            el = choice(keys)
+            el = choice(keys, double=double)
             if (c := choices[el-1])[1:]:
                 echo("", 1, 0)
                 nter = input("Type and enter to confirm, else to return: " + c + f"\033[{len(c)-1}D")
@@ -4653,7 +4658,7 @@ def start_remote(remote):
     sel = 14
     remove = []
     stdout = "STOP"
-    if not torrent_menu[0]:
+    if not transmission_running[0]:
         echo(""" Key listener (torrent/file viewer):
   > Press D, F to decrease or increase number by 10.
   > Press S, G to (S)top/start (G)etting selected item.
@@ -4664,44 +4669,46 @@ def start_remote(remote):
  Key listener (torrent management):
   > Press R, E, I to (R)emove torrent, view fil(E)s of selected torrent, or (I)nput new torrent.""", 0, 2)
     while True:
-        if torrent_menu[0]:
-            el = input(f"Select TORRENT by number to {stdout}: {f'{pos/10:g}' if pos else ''}", keys if sel == 19 else keys[:10] + keys[11:])
-            if not sel == 19 and el > 10:
-                el += 1
+        if transmission_running[0]:
+            el = input(f"Select TORRENT by number to {stdout}: {f'{pos/10:g}' if pos else ''}", keys if sel == 19 else keys[:10] + keys[11:], double="l")
+            if not sel == 19 and abs(el) > 10:
+                el += 1 if el > 0 else -1
         else:
             el = 15 + input("(I)nput new torrent, (L)ist or return to (M)ain menu: ", [keys[15], keys[16], keys[20]])
             if el == 19:
                 el = 21
-            torrent_menu[0] = True
+            transmission_running[0] = True
         if el == 12:
             pos -= 10 if pos > 0 else 0
             echo("", 1)
         elif el == 13:
             pos += 10
             echo("", 1)
-        elif el == 16:
+        elif el in [16, -16]:
             if sel == 19 and remove:
-                intime = time.time()
-                if intime > Keypress_time[0]+0.5:
+                if el == -16:
                     echo(f"Press L twice in quick succession to remove: {' '.join(x for x in remove)}", 1, 1)
-                    Keypress_time[0] = intime
-                else:
-                    for r in remove:
-                        subprocess.Popen([remote, "-t", r, "-r"], **shuddup)
-                    remove = []
-                    pos = 0
-                    sel = 14
-                    stdout = "STOP"
-                    time.sleep(0.5)
-                    echo("", 1)
-                    list_remote(remote)
+                    continue
+                for r in remove:
+                    subprocess.Popen([remote, "-t", r, "-r"], **shuddup)
+                remove = []
+                pos = 0
+                sel = 14
+                stdout = "STOP"
+                time.sleep(0.5)
+                echo("", 1)
+                list_remote(remote)
             else:
                 echo("", 1)
                 list_remote(remote)
         elif el == 17:
             return
         elif el == 18:
-            os.system("killall -9 transmission-daemon")
+            if sys.platform == "linux":
+                os.system("killall -9 transmission-daemon")
+            else:
+                os.system("taskkill -f /im transmission-daemon.exe")
+            transmission_running[0] = False
             return
         elif el == 21:
             echo("", 1)
@@ -4832,7 +4839,8 @@ def torrent_get(fp=""):
         echo("Unimplemented for this system!")
         return
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
-    subprocess.Popen([daemon, "-f"], **shuddup, shell=True)
+    if not transmission_running[0]:
+        subprocess.Popen([daemon, "-f"], **shuddup, shell=True)
     if fp:
         subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", fp, "-sr", "0"], **shuddup)
     start_remote(remote)
@@ -4967,7 +4975,7 @@ def pressed(k, s=True):
 
 def keylistener():
     while True:
-        el = choice("abcdefghijklmnopqrstuvwxyz0123456789")
+        el = choice("abcdefghijklmnopqrstuvwxyz0123456789", double="j")
         if el == 1:
             pressed("A")
             Keypress[24] = True
@@ -5023,23 +5031,22 @@ def keylistener():
                 echo("", 1)
             ready_input()
         elif el == 10:
-            intime = time.time()
-            if intime > Keypress_time[0] + 0.5:
-                Keypress_time[0] = intime
-                if not servers[0] or portkilled():
-                    echo("Press J twice in quick succession to start server.", 1, 1)
-                else:
-                    echo("Press J twice in quick succession to stop server.", 1, 1)
+            if demo[0] > Keypress_time[1] - 2:
+                echo(" HTTP SERVER: 10-second demo started (quadruple J)", 0, 1)
+                time.sleep(10)
+                stopserver()
+            elif servers[0]:
+                stopserver()
             else:
-                if demo[0] > intime - 2:
-                    echo(" HTTP SERVER: 10-second demo started (quadruple J)", 0, 1)
-                    time.sleep(10)
-                    stopserver()
-                elif servers[0]:
-                    stopserver()
-                else:
-                    restartserver()
-                    Keypress_time[0] = demo[0] = time.time() - 0.5
+                restartserver()
+                Keypress_time[0] = demo[0] = time.time() - 0.5
+            if not busy[0]:
+                ready_input()
+        elif el == -10:
+            if not servers[0] or portkilled():
+                echo("Press J twice in quick succession to start server.", 1, 1)
+            else:
+                echo("Press J twice in quick succession to stop server.", 1, 1)
             if not busy[0]:
                 ready_input()
         elif el == 11:

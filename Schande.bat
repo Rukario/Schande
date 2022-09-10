@@ -163,6 +163,12 @@ def help():
  + {tcd} is used for manual operation to a different directory where the folder actually exists.
 
 
+ - - - - Torrent directory - - - -
+ Wildcard: None, non-anchored
+ +  "Transmission\\* for all other torrents" change folder name and "all other" to your desired directory and pattern.
+ + First rule will take its turn to designate a directory for torrent added.
+
+
  - - - - Download directory - - - -
   Wildcard: Single asterisk only, capture for prepend/append before file extension, non-anchored http ending.
  +  "...\\* for http..."       custom dir for downloads, \\{batchname}\\ if no custom dir specified.
@@ -1077,6 +1083,7 @@ def picker(s, rule):
 bgcolor = False
 fgcolor = "3"
 customdir = {}
+torrentdir = {}
 sorter = {}
 md5er = []
 referers = {}
@@ -1099,6 +1106,17 @@ for rule in rules:
         md5er += [rr[1]]
     elif len(rr) == 2 and rr[0].startswith("Mozilla/5.0"):
         mozilla.update({rr[1]: rr[0]})
+    elif len(rr) == 2 and rr[1].endswith("torrents"):
+        d = rr[0].replace("\\", "/")
+        r = rr[1].rsplit(" torrents", 1)
+        if len(r) == 2 and d.endswith("/*"):
+            d = d.rsplit("/*", 1)[0]
+            if r[0] == "all other":
+                torrentdir.update({"": d})
+            else:
+                torrentdir.update({r[0]: d})
+        else:
+            kill("\n There is at least one of the bad torrent dir rules (folder didn't end with /* or name had a spacing issue).")
     elif len(rr) == 2 and rr[1].startswith("http"):
         if rr[0].startswith("http"):
             referers.update({rr[1]: rr[0]})
@@ -1179,6 +1197,7 @@ for rule in rules:
         sorter[dir] += [rule]
     else:
         exempt += [rule]
+torrentdir.update({"": "Transmission"})
 
 for n in range(total_names[0]):
     if not pickers[site]["name"][n]:
@@ -2848,7 +2867,7 @@ def nextshelf(fromhtml):
                             if h[1]:
                                 stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
                         stdout += "\n"
-        echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or return to (M)ain menu: """, 0, 1)
+        echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or return to (M)ain menu: """, flush=True)
         Keypress[13] = False
         Keypress[3] = False
         while not Keypress[13] and not Keypress[3]:
@@ -4675,7 +4694,7 @@ def start_remote(remote):
                 el += 1 if el > 0 else -1
         else:
             el = 15 + input("(I)nput new torrent, (L)ist or return to (M)ain menu: ", [keys[15], keys[16], keys[20]])
-            if el == 19:
+            if el == 18:
                 el = 21
             transmission_running[0] = True
         if el == 12:
@@ -4687,7 +4706,7 @@ def start_remote(remote):
         elif el in [16, -16]:
             if sel == 19 and remove:
                 if el == -16:
-                    echo(f"Press L twice in quick succession to remove: {' '.join(x for x in remove)}", 1, 1)
+                    echo(f"Press L twice in fast sequence to remove: {' '.join(x for x in remove)}", 1, 1)
                     continue
                 for r in remove:
                     subprocess.Popen([remote, "-t", r, "-r"], **shuddup)
@@ -4714,9 +4733,18 @@ def start_remote(remote):
             echo("", 1)
             buffer = "cancel"
             while True:
-                i = input(f"Magnet/torrent link, enter nothing to {buffer}: ")
+                i = input(f"Magnet/torrent link, enter nothing to {buffer}: ").replace("\"", "")
                 if i.startswith("magnet:") or i.startswith("http") or i.endswith(".torrent"):
-                    subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", i, "-sr", "0"], **shuddup)
+                    dir = ""
+                    if m := parse.parse_qs(i):
+                        m = m["dn"][0]
+                    else:
+                        m = i
+                    if d := [v for k, v in torrentdir.items() if k in m]:
+                        dir = d[0]
+                    else:
+                        dir = torrentdir[""]
+                    subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", i, "-sr", "0"], **shuddup)
                     buffer = "finish"
                     pos = 0
                     sel = 15
@@ -4842,7 +4870,16 @@ def torrent_get(fp=""):
     if not transmission_running[0]:
         subprocess.Popen([daemon, "-f"], **shuddup, shell=True)
     if fp:
-        subprocess.Popen([remote, "-w", batchdir + "Transmission", "--start-paused", "-a", fp, "-sr", "0"], **shuddup)
+        dir = ""
+        if m := parse.parse_qs(fp):
+            m = m["dn"][0]
+        else:
+            m = fp
+        if d := [v for k, v in torrentdir.items() if k in m]:
+            dir = d[0]
+        else:
+            dir = torrentdir[""]
+        subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", fp, "-sr", "0"], **shuddup)
     start_remote(remote)
     return
 
@@ -4857,7 +4894,7 @@ def read_input(fp):
             echo(" I don't have a scraper for that!", 0, 2)
         else:
             run_input[1] = fp
-    elif fp.startswith("magnet"):
+    elif fp.startswith("magnet") or fp.endswith(".torrent"):
         torrent_get(fp)
     elif os.path.exists(fp):
         if fp.endswith("partition.json"):
@@ -5031,8 +5068,9 @@ def keylistener():
                 echo("", 1)
             ready_input()
         elif el == 10:
+            echo("", 1)
             if demo[0] > Keypress_time[1] - 2:
-                echo(" HTTP SERVER: 10-second demo started (quadruple J)", 0, 1)
+                echo(" HTTP SERVER: 10-second demo", 0, 1)
                 time.sleep(10)
                 stopserver()
             elif servers[0]:
@@ -5044,9 +5082,9 @@ def keylistener():
                 ready_input()
         elif el == -10:
             if not servers[0] or portkilled():
-                echo("Press J twice in quick succession to start server.", 1, 1)
+                echo("Press J twice in fast sequence to start server.", 1, 1)
             else:
-                echo("Press J twice in quick succession to stop server.", 1, 1)
+                echo("Press J twice in fast sequence to stop server.", 1, 1)
             if not busy[0]:
                 ready_input()
         elif el == 11:

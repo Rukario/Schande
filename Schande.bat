@@ -165,7 +165,8 @@ def help():
 
  - - - - Torrent directory - - - -
  Wildcard: None, non-anchored
- +  "Transmission\\* for all other torrents" change folder name and "all other" to your desired directory and pattern.
+ +  "Transmission\\* for |all other| torrents" to download all torrents to \\Transmission\\, revise example to customize.
+ |                      |(pattern)|
  + First rule will take its turn to designate a directory for torrent added.
 
 

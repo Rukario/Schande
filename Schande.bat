@@ -55,7 +55,7 @@ run_input = [False]*4
 Keypress_prompt = [False]
 Keypress_time = [time.time()]*2
 Keypress = [False]*27
-transmission_running = [False]
+task = {"transmission":False}
 retries = [0]
 sf = [0]
 
@@ -312,9 +312,7 @@ def echolistener():
             stdout[0] = ""
             stdout[1] = ""
         time.sleep(1/eps)
-t = Thread(target=echolistener)
-t.daemon = True
-t.start()
+Thread(target=echolistener, daemon=True).start()
 
 def columns():
     return os.get_terminal_size().columns
@@ -438,6 +436,7 @@ def choice(keys="", bg=[], double=False):
         if keys:
             el = os.system("""while true; do
 read -s -n 1 el || break
+read -s -n 400 -t 0.01
 case $el in
 """ + "\n".join([f"{k} ) exit {e+1};;" for e, k in enumerate(keys)]) + """
 esac
@@ -650,7 +649,7 @@ class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
             list = os.listdir(ondisk)
         except OSError:
             self.send_error(404, "No permission to list directory")
-            return None
+            return
         list.sort(key=lambda a: a.lower())
 
         parent = parse.unquote(self.path)
@@ -712,16 +711,22 @@ h2 {margin:4px;}"""
         self.total = 0
         ondisk = http2ondisk(self.path, self.directory)
         if os.path.isdir(ondisk):
-            return self.list_directory(ondisk)
+            for x in ["gallery.html", "index.html"]:
+                x = os.path.join(ondisk, x)
+                if os.path.exists(x):
+                    ondisk = x
+                    break
+            else:
+                return self.list_directory(ondisk)
 
         if ondisk.endswith("/"):
             self.send_error(404, "File not found")
-            return None
+            return
         try:
             f = open(ondisk, 'rb')
         except OSError:
             self.send_error(404, "File not found")
-            return None
+            return
         fs = os.fstat(f.fileno())
         size = fs[6]
         self.total = size
@@ -841,9 +846,7 @@ def restartserver():
     directories = [batchdir]
     for directory in directories:
         port += 1
-        t = Thread(target=startserver, args=(port,directory,))
-        t.daemon = True
-        t.start()
+        Thread(target=startserver, args=(port,directory,), daemon=True).start()
 def portkilled(port=8886):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(1)
@@ -868,11 +871,16 @@ def new_cookie():
 def ast(rule, key="0", key1="0"):
     return rule.replace("*date", fdate).replace("*id", key).replace("*title", key1).replace("/", "\\")
 
-def saint(name=False, url=False):
+def saint(name=False, url=False, scheme=True):
     if url:
         url = list(parse.urlsplit(url))
-        url[2] = parse.quote(url[2], safe="%/")
-        return parse.urlunsplit(url)
+        scheme = f"{url[0]}://{url[1]}" if scheme else f"""{url[1].split("www.", 1)[-1]}"""
+        new_url = f"""{scheme}{parse.quote(url[2], safe="%/")}"""
+        if url[3]:
+            new_url += "?" + url[3]
+        if url[4]:
+            new_url += "#" + url[4]
+        return new_url
     else:
         return "".join(i for i in parse.unquote(name).replace("/", "\\") if i not in "\":*?<>|")[:200]
 
@@ -1315,7 +1323,7 @@ def timer(e="", ind=True, listen=[True], notlisten=[False]):
 
 
 
-Keypress_err = ["Some error happened. (R)etry (A)lways (S)kip once (X)auto defuse antibot with (F)irefox: "]
+Keypress_err = ["Some error happened. (R)etry un(P)ause (S)kip once (X)auto defuse antibot with (F)irefox: "]
 def retry(stderr):
     # Warning: urllib has slight memory leak
     Keypress[18] = False
@@ -1323,19 +1331,19 @@ def retry(stderr):
         if not Keypress_prompt[0]:
             Keypress_prompt[0] = True
             if stderr:
-                if Keypress[1]:
+                if Keypress[16]:
                     e = f"{retries[0]} retries (P)ause (S)kip once"
                     if Keypress[20]:
-                        timer(f"{e}, reloading in", listen=[Keypress[1]], notlisten=[Keypress[19]])
+                        timer(f"{e}, reloading in", listen=[Keypress[16]], notlisten=[Keypress[19]])
                     else:
                         echo(e)
-                    Keypress[18] = True if Keypress[1] else False
+                    Keypress[18] = True if Keypress[16] else False
                 if not Keypress[18]:
                     title(monitor())
-                    Keypress_err[0] = f"{stderr} (R)etry (A)lways (S)kip once (X)auto defuse antibot with (F)irefox: "
+                    Keypress_err[0] = f"{stderr} (R)etry un(P)ause (S)kip once (X)auto defuse antibot with (F)irefox: "
                     echo(Keypress_err[0], flush=True)
                     while True:
-                        if Keypress[18] or Keypress[1]:
+                        if Keypress[18] or Keypress[16]:
                             break
                         if Keypress[19]:
                             Keypress[19] = False
@@ -1580,9 +1588,9 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
 
 
 
-def echolinks(download):
+def echolinks(task):
     while True:
-        threadn, todisk, onserver, sleep = download.get()
+        threadn, todisk, onserver, sleep = task["download"].get()
         conflict = [[], []]
         for n in range(len(onserver)):
             if n and not collisionisreal:
@@ -1603,12 +1611,7 @@ def echolinks(download):
                 error[2] += [f"&gt; Error downloading ({err}): {url}"]
                 echo(f"{threadn:>3} Error downloading ({err}): {url}", 0, 1)
         echothreadn.remove(threadn)
-        download.task_done()
-download = Queue()
-for i in range(8):
-    t = Thread(target=echolinks, args=(download,))
-    t.daemon = True
-    t.start()
+        task["download"].task_done()
 
 
 
@@ -1720,16 +1723,20 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
 
 
 def downloadtodisk(fromhtml, oncomplete, makedirs=False):
+    if not "download" in task:
+        task.update({"download":Queue()})
+        for i in range(8):
+            Thread(target=echolinks, args=(task,), daemon=True).start()
     if not fromhtml:
         threadn = 0
         while True:
             threadn += 1
             echothreadn.append(threadn)
-            download.put((threadn, "Key listener test", ["Key listener test"], random()*0.5))
+            task["download"].put((threadn, "Key listener test", ["Key listener test"], random()*0.5))
             if threadn == 200:
                 break
         try:
-            download.join()
+            task["download"].join()
         except KeyboardInterrupt:
             pass
         return
@@ -1804,9 +1811,9 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         return
     if len(filelist) == 1:
         echothreadn.append(0)
-        download.put((0, filelist[0][1], [filelist[0][0]], 0))
+        task["download"].put((0, filelist[0][1], [filelist[0][0]], 0))
         try:
-            download.join()
+            task["download"].join()
         except KeyboardInterrupt:
             pass
         return
@@ -1887,9 +1894,9 @@ URL={page["link"]}""")
     for ondisk, onserver in queued.items():
         threadn += 1
         echothreadn.append(threadn)
-        download.put((threadn, ondisk, onserver, 0))
+        task["download"].put((threadn, ondisk, onserver, 0))
     try:
-        download.join()
+        task["download"].join()
     except KeyboardInterrupt:
         pass
 
@@ -2476,11 +2483,11 @@ def get_data(threadn, page, url, pick):
 
 
 
-def pick_in_page(scraper):
+def pick_in_page(task):
     while True:
         data = 0
         url = 0
-        threadn, pick, start, page, pagen, more_pages, alerted_pages, fromhtml = scraper.get()
+        threadn, pick, start, page, pagen, more_pages, alerted_pages, fromhtml = task["scraper"].get()
         htmlpart = fromhtml["partition"][threadn]
         folder = fromhtml["folder"]
         proceed = True
@@ -2810,15 +2817,7 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
         if proceed and not pick["ready"]:
             fromhtml["ready"] = False
         echothreadn.remove(threadn)
-        scraper.task_done()
-
-
-
-scraper = Queue()
-for i in range(8):
-    t = Thread(target=pick_in_page, args=(scraper,))
-    t.daemon = True
-    t.start()
+        task["scraper"].task_done()
 
 
 
@@ -2883,6 +2882,10 @@ def nextshelf(fromhtml):
 
 pgs = [8]
 def scrape(startpages):
+    if not "scraper" in task:
+        task.update({"scraper":Queue()})
+        for i in range(8):
+            Thread(target=pick_in_page, args=(task,), daemon=True).start()
     shelf = {}
     threadn = 0
     pages = startpages
@@ -2908,9 +2911,9 @@ def scrape(startpages):
             else:
                 fromhtml = shelf[start]
                 fromhtml["partition"].update({threadn:new_p("0")})
-            scraper.put((threadn, pick, start, page, pagen, more_pages, alerted_pages, fromhtml))
+            task["scraper"].put((threadn, pick, start, page, pagen, more_pages, alerted_pages, fromhtml))
         try:
-            scraper.join()
+            task["scraper"].join()
         except KeyboardInterrupt:
             pass # Ctrl + C
         pgs[0] = 8
@@ -2965,9 +2968,9 @@ def ph(file):
 
 
 
-def phthread(ph_q):
+def phthread(task):
     while True:
-        threadn, total, file, filevs, accu = ph_q.get()
+        threadn, total, file, filevs, accu = task["ingest"].get()
         try:
             hash = ph(file)
             f = file.rsplit("/", 1)
@@ -2981,23 +2984,22 @@ def phthread(ph_q):
             error[0] += [file]
         if threadn%16 == 0:
             echo(str(int((threadn / total) * 100)) + "%")
-        ph_q.task_done()
-ph_q = Queue()
-for i in range(8):
-    t = Thread(target=phthread, args=(ph_q,))
-    t.daemon = True
-    t.start()
+        task["ingest"].task_done()
 
 
 
 def scanthread(filelist, filevs, savwrite):
+    if not "ingest" in task:
+        task.update({"ingest":Queue()})
+        for i in range(8):
+            Thread(target=phthread, args=(task,), daemon=True).start()
     accu = []
     threadn = 0
     total = len(filelist)
     for file in filelist:
         threadn += 1
-        ph_q.put((threadn, total, file, filevs, accu))
-    ph_q.join()
+        task["ingest"].put((threadn, total, file, filevs, accu))
+    task["ingest"].join()
     if accu:
         savwrite.write(bytes('\n'.join(accu) + "\n", 'utf-8'))
         savwrite.flush()
@@ -4014,6 +4016,27 @@ def frompart(partfile, relics, htmlpart, pattern):
 
 
 
+def gethread(task):
+    while True:
+        gethreadn, htmlname, total, file = task["verify"].get()
+        ondisk = f"{batchname}/{htmlname}/{file}"
+        if file.endswith(tuple(imagefile)):
+            try:
+                image = Image.open(ondisk)
+                image.verify()
+            except:
+                print(f" Corrupted on disk: {ondisk}")
+                error[2] += [f"&gt; Corrupted on disk: {ondisk}"]
+        elif False and file.endswith(tuple(archivefile)):
+            if subprocess.call(f'"{sevenz}" t -pBadPassword "{ondisk}"', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL):
+                print(f" Corrupted on disk: {ondisk}")
+                error[2] += [f"&gt; Corrupted on disk: {ondisk}"]
+        if gethreadn%8 == 0:
+            echo(" GEISTAUGE: " + str(int((gethreadn / total) * 100)) + "%")
+        task["verify"].task_done()
+
+
+
 def parttohtml(subdir, htmlname, part, filelist, pattern):
     files = []
     for file in next(os.walk(subdir))[2]:
@@ -4022,11 +4045,15 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
     stray_files = sorted(set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
 
     if verifyondisk:
+        if not "verify" in task:
+            task.update({"verify":Queue()})
+            for i in range(8):
+                Thread(target=gethread, args=(task,), daemon=True).start()
         gethreadn = 0
         for file in files:
             gethreadn += 1
-            ge_q.put((gethreadn, htmlname, len(files), file))
-        ge_q.join()
+            task["verify"].put((gethreadn, htmlname, len(files), file))
+        task["verify"].join()
         echo(" GEISTAUGE: 100%", 0, 1)
 
     for file in stray_files:
@@ -4678,7 +4705,7 @@ def start_remote(remote):
     sel = 14
     remove = []
     stdout = "STOP"
-    if not transmission_running[0]:
+    if not task["transmission"]:
         echo(""" Key listener (torrent/file viewer):
   > Press D, F to decrease or increase number by 10.
   > Press S, G to (S)top/start (G)etting selected item.
@@ -4689,7 +4716,7 @@ def start_remote(remote):
  Key listener (torrent management):
   > Press R, E, I to (R)emove torrent, view fil(E)s of selected torrent, or (I)nput new torrent.""", 0, 2)
     while True:
-        if transmission_running[0]:
+        if task["transmission"]:
             el = input(f"Select TORRENT by number to {stdout}: {f'{pos/10:g}' if pos else ''}", keys if sel == 19 else keys[:10] + keys[11:], double="l")
             if not sel == 19 and abs(el) > 10:
                 el += 1 if el > 0 else -1
@@ -4697,7 +4724,7 @@ def start_remote(remote):
             el = 15 + input("(I)nput new torrent, (L)ist or return to (M)ain menu: ", [keys[15], keys[16], keys[20]])
             if el == 18:
                 el = 21
-            transmission_running[0] = True
+            task["transmission"] = True
         if el == 12:
             pos -= 10 if pos > 0 else 0
             echo("", 1)
@@ -4728,7 +4755,7 @@ def start_remote(remote):
                 os.system("killall -9 transmission-daemon")
             else:
                 os.system("taskkill -f /im transmission-daemon.exe")
-            transmission_running[0] = False
+            task["transmission"] = False
             return
         elif el == 21:
             echo("", 1)
@@ -4868,7 +4895,7 @@ def torrent_get(fp=""):
         echo("Unimplemented for this system!")
         return
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
-    if not transmission_running[0]:
+    if not task["transmission"]:
         subprocess.Popen([daemon, "-f"], **shuddup, shell=True)
     if fp:
         dir = ""
@@ -4943,12 +4970,7 @@ def read_input(fp):
 
 
 
-def read_file():
-    if not os.path.exists(textfile):
-        open(textfile, 'w').close()
-    print(f"Reading {textfile} . . .")
-    with open(textfile, 'r', encoding="utf-8") as f:
-        textread = f.read().splitlines()
+def read_file(textread):
     startpages = []
     nextpages = []
     fromhtml = new_part()
@@ -5011,12 +5033,26 @@ def pressed(k, s=True):
     if not busy[0]:
         ready_input()
 
+def has(i, x):
+    if not x:
+        return
+    x = saint(url=x, scheme=False)
+    for z in i:
+        if z in x:
+            x = x.split(z, 1)[-1]
+        else:
+            return
+    return True
+
 def keylistener():
     while True:
-        el = choice("abcdefghijklmnopqrstuvwxyz0123456789", double="j")
+        el = input("", ["All", *"bcdefghijklmnopqrstuvwxyz0123456789"], double="jp")
         if el == 1:
-            pressed("A")
-            Keypress[24] = True
+            if busy[0]:
+                echo("Please wait for another operation to finish", 1, 1)
+                continue
+            echo(f"Reading {textfile} . . .", 0, 1)
+            run_input[2] = opensav(textfile).splitlines()
         elif el == 2:
             if sys.platform == "win32":
                 if not Browser:
@@ -5100,7 +5136,39 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            run_input[2] = True
+            textread = opensav(textfile).splitlines()
+            textread = filter(None, [x.lstrip("# ") for x in textread])
+            echo(f"Reading {textfile} . . .", 0, 1)
+            d = input(f"Enter domain name starting with, enter nothing to cancel: ").lower()
+            echo("", 1)
+            if not d:
+                ready_input()
+                continue
+            textread = [x for x in textread if saint(url=x, scheme=False).lower().startswith(d)]
+            for line in textread:
+                line = line.replace(d, f"{tcolorg}{d}{tcoloro}", 1)
+                echo(f" > {tcolorb}{line}{tcolorx}", 0, 1)
+            urls = textread
+            while True:
+                i = input(f"Enter url containing, (C)ontinue or enter nothing to cancel: ").lower()
+                if i.lower() == "c":
+                    if urls:
+                        echo("", 1, 1)
+                        run_input[2] = urls
+                    else:
+                        echo("Canceled", 1, 2)
+                        ready_input()
+                    break
+                elif i:
+                    urls = [x for x in textread if i in saint(url=x, scheme=False).lower()]
+                    echo(f"{len(urls)} result(s)", 1, 1)
+                    for line in urls:
+                        line = line.replace(d, f"{tcolor}{d}{tcoloro}", 1).replace(i, f"{tcolorg}{i}{tcoloro}", 1)
+                        echo(f" > {tcolorb}{line}{tcolorx}", 0, 1)
+                else:
+                    echo("Canceled", 1, 2)
+                    ready_input()
+                    break
         elif el == 13:
             if busy[0]:
                 pressed("M")
@@ -5118,7 +5186,12 @@ def keylistener():
             finish_sort()
             ready_input()
         elif el == 16:
-            pressed("A", False)
+            echo("Unpaused", 1, 2)
+            pressed("P")
+            Keypress[24] = True
+        elif el == -16:
+            echo("Paused (press P twice in fast sequence to unpause)", 1, 2)
+            pressed("P", False)
         elif el == 17:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -5147,7 +5220,7 @@ def keylistener():
         elif el == 24:
             echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if Keypress[24] else "RETRY"}""", 1, 2)
             pressed("X", False if Keypress[24] else True)
-            Keypress[1] = True
+            Keypress[16] = True
         elif el == 25:
             if sys.platform == "linux":
                 # Developer note: Update to use htop if iSH app adds support to use it.
@@ -5169,9 +5242,7 @@ def keylistener():
                 ready_input()
         else:
             pressed("Z")
-t = Thread(target=keylistener)
-t.daemon = True
-t.start()
+Thread(target=keylistener, daemon=True).start()
 print(f"""
  Key listener:
   > Press X to enable or disable indefinite retry on error downloading files (for this session).
@@ -5182,7 +5253,7 @@ print(f"""
   > Press Z or CtrlC to break and reconnect of the ongoing downloads or to end timer instantly.
 
  Key listener (main menu):
-  > Press I, L to enter (I)nput or (L)oad list from {textfile}.
+  > Press I, L, A to enter (I)nput or (L)oad select/(A)ll list from {textfile}.
   > Press O to s(O)rt files.
   > Press M, E to open torrent (M)anager or h(E)lp document.""")
 
@@ -5209,7 +5280,7 @@ while True:
         ready_input()
     if run_input[2]:
         busy[0] = True
-        read_file()
+        read_file(run_input[2])
         run_input[2] = False
         busy[0] = False
         echo("", 0, 1)

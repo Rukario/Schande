@@ -12,6 +12,11 @@ from urllib import parse, request
 from urllib.error import HTTPError, URLError
 from random import random
 
+class Queue(Queue):
+    def clear(self):
+        while not self.empty():
+            self.get()
+
 batchfile = os.path.basename(__file__)
 batchname = os.path.splitext(batchfile)[0]
 batchdir = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
@@ -51,11 +56,10 @@ echothreadn = []
 error = [[]]*4
 echoname = [batchfile]
 newfilen = [0]
-run_input = [False]*4
 Keypress_prompt = [False]
 Keypress_time = [time.time()]*2
 Keypress = [False]*27
-task = {"transmission":False}
+task = {"transmission":False, "run":Queue()}
 retries = [0]
 sf = [0]
 
@@ -83,8 +87,8 @@ def ansi_color(b=False, f="F9F1A5"):
 
 
 
-def title(echo):
-    sys.stdout.write("\033]0;" + echo + "\007")
+def title(t):
+    sys.stdout.write("\033]0;" + t + "\007")
 cls = "\033[H\033[2J"
 tcolor = ansi_color("0")
 tcolorr = ansi_color("0", "1")
@@ -303,27 +307,23 @@ def help():
 
 
 eps = 30
-echofriction = [int(time.time()*eps)]
-stdout = ["", ""]
-def echolistener():
+stdtime = [int(time.time()*eps)]*2
+stdout = Queue()
+stdin = ["", ""]
+def echofriction():
     while True:
-        if stdout[0] or stdout[1]:
-            sys.stdout.write(f"{stdout[1]}{stdout[0]}")
-            stdout[0] = ""
-            stdout[1] = ""
+        sys.stdout.write("".join(stdout.get()))
+        stdin[0] = ""
+        stdin[1] = ""
         time.sleep(1/eps)
-Thread(target=echolistener, daemon=True).start()
-
-def columns():
-    return os.get_terminal_size().columns
+Thread(target=echofriction, daemon=True).start()
 
 def echo(t, b=0, f=0, clamp='', friction=False, flush=False):
-    c = columns()
+    c = os.get_terminal_size().columns
     if not isinstance(t, int):
+        stdout.clear()
         if clamp:
             t = f"{t[:c-1]}{(t[c-1:] and clamp)}"
-        stdout[0] = ""
-        stdout[1] = ""
         if flush:
             sys.stdout.write("\033[A"*b + t)
             sys.stdout.flush()
@@ -333,10 +333,15 @@ def echo(t, b=0, f=0, clamp='', friction=False, flush=False):
         if clamp:
             b = f"{b[:c-1]}{(b[c-1:] and clamp)}"
         if friction:
-            stdout[0] = f"{b:<{c}}\r"
+            s = time.time()
+            if stdtime[1] < int(s*eps):
+                stdtime[1] = int(s*eps)
+                stdin[1] = f"{b:<{c}}\r"
+                stdout.put((stdin))
+            else:
+                stdtime[1] = int(s*eps)
         else:
-            stdout[0] = ""
-            stdout[1] = ""
+            stdout.clear()
             sys.stdout.write(f"{b:<{c}}\r")
 
 
@@ -525,7 +530,6 @@ if new_setting:
 
 
 def status():
-    # return f"""[{newfilen[0]} new{f" after {retries[0]} retries" if retries[0] else ""}] {echoname[0]}"""
     return f"""🗎×{newfilen[0]}{f" ↺×{retries[0]}" if retries[0] else ""} {echoname[0]}"""
 
 
@@ -544,11 +548,12 @@ def echoMBs(threadn, Bytes, total):
     if not threadn or (x := echothreadn.index(threadn)) < len(Barray[0]):
         Barray[0][x if threadn else 0] = Ba[total%257]
     s = time.time()
-    if echofriction[0] < int(s*eps):
-        echofriction[0] = int(s*eps)
-        stdout[1] = "\n\033]0;" + f"""{status()} {''.join(Barray[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
+    if stdtime[0] < int(s*eps):
+        stdtime[0] = int(s*eps)
+        stdin[0] = "\n\033]0;" + f"""{status()} {''.join(Barray[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
+        stdout.put((stdin))
     else:
-        echofriction[0] = int(s*eps)
+        stdtime[0] = int(s*eps)
     if Bstime[0] < int(s):
         Bstime[0] = int(s)
         MBs[0] = f"{(Bs[0]+Bytes)/1048576:.2f}"
@@ -1509,18 +1514,16 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
         os.rename(todisk + ".part", todisk)
         if Keypress_prompt[0]:
             echo(Keypress_err[0], flush=True)
-        stdout[0] = ""
-        stdout[1] = ""
+        stdout.clear()
         return 1, 0
     else:
-        data = b''
+        data = bytearray()
         while True:
             try:
                 block = resp.read(262144)
                 if not block:
                     if not total or dl == total:
-                        stdout[0] = ""
-                        stdout[1] = ""
+                        stdout.clear()
                         if utf8:
                             try:
                                 return data.decode("utf-8"), 0
@@ -1551,7 +1554,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                     if not resp:
                         return 0, err
                     if resp.status == 200:
-                        data = b''
+                        data = bytearray()
                         dl = 0
                     continue
             except KeyboardInterrupt:
@@ -1559,7 +1562,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                 if not resp:
                     return 0, err
                 if resp.status == 200:
-                    data = b''
+                    data = bytearray()
                     dl = 0
                 continue
             except:
@@ -1569,7 +1572,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                 if not resp:
                     return 0, err
                 if resp.status == 200:
-                    data = b''
+                    data = bytearray()
                     dl = 0
                 continue
             data += block
@@ -1582,13 +1585,13 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                 if not resp:
                     return 0, err
                 if resp.status == 200:
-                    data = b''
+                    data = bytearray()
                     dl = 0
                 Keypress[26] = False
 
 
 
-def echolinks(task):
+def echolinks():
     while True:
         threadn, todisk, onserver, sleep = task["download"].get()
         conflict = [[], []]
@@ -1726,7 +1729,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
     if not "download" in task:
         task.update({"download":Queue()})
         for i in range(8):
-            Thread(target=echolinks, args=(task,), daemon=True).start()
+            Thread(target=echolinks, daemon=True).start()
     if not fromhtml:
         threadn = 0
         while True:
@@ -2467,7 +2470,7 @@ def get_data(threadn, page, url, pick):
         if err:
             print(f" Error visiting ({err}): {url if url else page}")
             return 0, 0
-        elif len(data) < 4:
+        elif isinstance(data, int) or len(data) < 4:
             return 0, 0
     title(monitor())
     data = ''.join([x.strip() for x in data.splitlines()])
@@ -2483,7 +2486,7 @@ def get_data(threadn, page, url, pick):
 
 
 
-def pick_in_page(task):
+def pick_in_page():
     while True:
         data = 0
         url = 0
@@ -2885,7 +2888,7 @@ def scrape(startpages):
     if not "scraper" in task:
         task.update({"scraper":Queue()})
         for i in range(8):
-            Thread(target=pick_in_page, args=(task,), daemon=True).start()
+            Thread(target=pick_in_page, daemon=True).start()
     shelf = {}
     threadn = 0
     pages = startpages
@@ -2968,9 +2971,9 @@ def ph(file):
 
 
 
-def phthread(task):
+def phthread():
     while True:
-        threadn, total, file, filevs, accu = task["ingest"].get()
+        threadn, total, file, filevs, accu = task["verify"].get()
         try:
             hash = ph(file)
             f = file.rsplit("/", 1)
@@ -2984,22 +2987,22 @@ def phthread(task):
             error[0] += [file]
         if threadn%16 == 0:
             echo(str(int((threadn / total) * 100)) + "%")
-        task["ingest"].task_done()
+        task["verify"].task_done()
 
 
 
 def scanthread(filelist, filevs, savwrite):
-    if not "ingest" in task:
-        task.update({"ingest":Queue()})
+    if not "verify" in task:
+        task.update({"verify":Queue()})
         for i in range(8):
-            Thread(target=phthread, args=(task,), daemon=True).start()
+            Thread(target=phthread, daemon=True).start()
     accu = []
     threadn = 0
     total = len(filelist)
     for file in filelist:
         threadn += 1
-        task["ingest"].put((threadn, total, file, filevs, accu))
-    task["ingest"].join()
+        task["verify"].put((threadn, total, file, filevs, accu))
+    task["verify"].join()
     if accu:
         savwrite.write(bytes('\n'.join(accu) + "\n", 'utf-8'))
         savwrite.flush()
@@ -4016,9 +4019,9 @@ def frompart(partfile, relics, htmlpart, pattern):
 
 
 
-def gethread(task):
+def gethread():
     while True:
-        gethreadn, htmlname, total, file = task["verify"].get()
+        threadn, htmlname, total, file = task["geistauge"].get()
         ondisk = f"{batchname}/{htmlname}/{file}"
         if file.endswith(tuple(imagefile)):
             try:
@@ -4031,9 +4034,9 @@ def gethread(task):
             if subprocess.call(f'"{sevenz}" t -pBadPassword "{ondisk}"', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL):
                 print(f" Corrupted on disk: {ondisk}")
                 error[2] += [f"&gt; Corrupted on disk: {ondisk}"]
-        if gethreadn%8 == 0:
-            echo(" GEISTAUGE: " + str(int((gethreadn / total) * 100)) + "%")
-        task["verify"].task_done()
+        if threadn%8 == 0:
+            echo(" GEISTAUGE: " + str(int((threadn / total) * 100)) + "%")
+        task["geistauge"].task_done()
 
 
 
@@ -4045,15 +4048,15 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
     stray_files = sorted(set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
 
     if verifyondisk:
-        if not "verify" in task:
-            task.update({"verify":Queue()})
+        if not "geistauge" in task:
+            task.update({"geistauge":Queue()})
             for i in range(8):
-                Thread(target=gethread, args=(task,), daemon=True).start()
-        gethreadn = 0
+                Thread(target=gethread, daemon=True).start()
+        threadn = 0
         for file in files:
-            gethreadn += 1
-            task["verify"].put((gethreadn, htmlname, len(files), file))
-        task["verify"].join()
+            threadn += 1
+            task["geistauge"].put((threadn, htmlname, len(files), file))
+        task["geistauge"].join()
         echo(" GEISTAUGE: 100%", 0, 1)
 
     for file in stray_files:
@@ -4361,7 +4364,7 @@ def savenow(trashdir=False):
 
 
 def delnow():
-    buffer = ""
+    stdout = ""
     trashlist = {}
     for file in delfiles[0]:
         if os.path.exists(file):
@@ -4369,12 +4372,12 @@ def delnow():
             if not f[0] in trashlist:
                 trashlist.update({f[0]:[]})
             trashlist[f[0]] += [f[1]]
-            stdout = f[0].replace("/", "\\")
-            buffer += f"{tcolorb}{stdout}\\{f[1]}{tcolorr} -> {tcolorg}{stdout} Trash\\{f[1]}{tcolorx}\n"
+            buffer = f[0].replace("/", "\\")
+            stdout += f"{tcolorb}{buffer}\\{f[1]}{tcolorr} -> {tcolorg}{buffer} Trash\\{f[1]}{tcolorx}\n"
     if not trashlist:
         echo("No schande'd files!", 0, 1)
         return
-    echo(buffer, 0, 1)
+    echo(stdout, 0, 1)
     if input(" Press D again to confirm or return to (M)ain menu: ", "dm") == 1:
         for dir in trashlist.keys():
             trashdir = dir + " Trash/"
@@ -4704,7 +4707,7 @@ def start_remote(remote):
     pos = 0
     sel = 14
     remove = []
-    stdout = "STOP"
+    switch = "STOP"
     if not task["transmission"]:
         echo(""" Key listener (torrent/file viewer):
   > Press D, F to decrease or increase number by 10.
@@ -4717,7 +4720,7 @@ def start_remote(remote):
   > Press R, E, I to (R)emove torrent, view fil(E)s of selected torrent, or (I)nput new torrent.""", 0, 2)
     while True:
         if task["transmission"]:
-            el = input(f"Select TORRENT by number to {stdout}: {f'{pos/10:g}' if pos else ''}", keys if sel == 19 else keys[:10] + keys[11:], double="l")
+            el = input(f"Select TORRENT by number to {switch}: {f'{pos/10:g}' if pos else ''}", keys if sel == 19 else keys[:10] + keys[11:], double="l")
             if not sel == 19 and abs(el) > 10:
                 el += 1 if el > 0 else -1
         else:
@@ -4741,7 +4744,7 @@ def start_remote(remote):
                 remove = []
                 pos = 0
                 sel = 14
-                stdout = "STOP"
+                switch = "STOP"
                 time.sleep(0.5)
                 echo("", 1)
                 list_remote(remote)
@@ -4776,7 +4779,7 @@ def start_remote(remote):
                     buffer = "finish"
                     pos = 0
                     sel = 15
-                    stdout = "START"
+                    switch = "START"
                 elif not i:
                     echo("", 1)
                     if buffer == "finish":
@@ -4790,13 +4793,13 @@ def start_remote(remote):
             pos = 0
             remove = []
             if el == 14:
-                stdout = "STOP"
+                switch = "STOP"
             elif el == 15:
-                stdout = "START"
+                switch = "START"
             elif el == 19:
-                stdout = "REMOVE, (A)ll"
+                switch = "REMOVE, (A)ll"
             elif el == 20:
-                stdout = "VIEW file list"
+                switch = "VIEW file list"
             echo("", 1)
         else:
             if sel == 14:
@@ -4816,21 +4819,21 @@ def start_remote(remote):
                     sel = 14
                 else:
                     remove += [str(el-1+pos)]
-                    stdout = "REMOVE, (A)ll, press L twice to confirm above, press R to clear"
+                    switch = "REMOVE, (A)ll, press L twice to confirm above, press R to clear"
             elif sel == 20:
                 if el == 11:
                     echo("", 1)
                     continue
-                pose = 0
-                sele = 14
-                stdoute = "STOP getting"
+                pos2 = 0
+                sel2 = 14
+                switch2 = "STOP getting"
                 i = 16
                 while True:
                     if i == 12:
-                        pose -= 10 if pose > 0 else 0
+                        pos2 -= 10 if pos2 > 0 else 0
                         echo("", 1)
                     elif i == 13:
-                        pose += 10
+                        pos2 += 10
                         echo("", 1)
                     elif i == 16:
                         echo(f" - - {(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
@@ -4856,25 +4859,25 @@ def start_remote(remote):
                         os.system("killall -9 transmission-daemon")
                         return
                     elif i > 13:
-                        sele = i
-                        pose = 0
+                        sel2 = i
+                        pos2 = 0
                         if i == 14:
-                            stdoute = "STOP getting"
+                            switch2 = "STOP getting"
                         elif i == 15:
-                            stdoute = "GET"
+                            switch2 = "GET"
                         echo("", 1)
                     else:
-                        if sele == 14:
+                        if sel2 == 14:
                             if i == 11:
                                 subprocess.Popen([remote, "-t", str(el-1+pos), "-G", "all"], **shuddup)
                             else:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", str(i-2+pose)], **shuddup)
-                        elif sele == 15:
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", str(i-2+pos2)], **shuddup)
+                        elif sel2 == 15:
                             if i == 11:
                                 subprocess.Popen([remote, "-t", str(el-1+pos), "-g", "all"], **shuddup)
                             else:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", str(i-2+pose)], **shuddup)
-                    i = input(f"Select FILE by number to {stdoute}, (A)ll: {f'{pose/10:g}' if pose else ''}", keys[:17])
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", str(i-2+pos2)], **shuddup)
+                    i = input(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", keys[:17])
 
 
 
@@ -4915,13 +4918,13 @@ def torrent_get(fp=""):
 
 def read_input(fp):
     if any(word for word in pickers.keys() if fp.startswith(word)):
-        run_input[0] = fp
+        task["run"].put((0, fp))
     elif fp.startswith("http") and not fp.startswith("http://localhost"):
         if fp.endswith("/"):
             choice(bg=True)
             echo(" I don't have a scraper for that!", 0, 2)
         else:
-            run_input[1] = fp
+            task["run"].put((1, fp))
     elif fp.startswith("magnet") or fp.endswith(".torrent"):
         torrent_get(fp)
     elif os.path.exists(fp):
@@ -5052,7 +5055,7 @@ def keylistener():
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             echo(f"Reading {textfile} . . .", 0, 1)
-            run_input[2] = opensav(textfile).splitlines()
+            task["run"].put((2, opensav(textfile).splitlines()))
         elif el == 2:
             if sys.platform == "win32":
                 if not Browser:
@@ -5154,7 +5157,7 @@ def keylistener():
                 if i.lower() == "c":
                     if urls:
                         echo("", 1, 1)
-                        run_input[2] = urls
+                        task["run"].put((2, urls))
                     else:
                         echo("Canceled", 1, 2)
                         ready_input()
@@ -5196,7 +5199,7 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            run_input[3] = True
+            task["run"].put((3, True))
         elif el == 18:
             pressed("R")
         elif el == 19:
@@ -5241,6 +5244,7 @@ def keylistener():
             if not busy[0]:
                 ready_input()
         else:
+            echo("", 1)
             pressed("Z")
 Thread(target=keylistener, daemon=True).start()
 print(f"""
@@ -5262,42 +5266,21 @@ print(f"""
 echo(mainmenu(), 0, 1)
 ready_input()
 while True:
-    if run_input[0]:
-        busy[0] = True
-        scrape([["", run_input[0], [0]]])
-        run_input[0] = False
-        busy[0] = False
-        echo("", 0, 1)
-        ready_input()
-    if run_input[1]:
-        busy[0] = True
+    i, m = task["run"].get()
+    busy[0] = True
+    if i == 0:
+        scrape([["", m, [0]]])
+    elif i == 1:
         x = new_part()
-        x["partition"]["0"]["files"] = [new_link(run_input[1], parse.unquote(run_input[1].split("/")[-1]), 0)]
+        x["partition"]["0"]["files"] = [new_link(m, parse.unquote(m.split("/")[-1]), 0)]
         downloadtodisk(x, "Autosave declared completion.")
-        run_input[1] = False
-        busy[0] = False
-        echo("", 0, 1)
-        ready_input()
-    if run_input[2]:
-        busy[0] = True
-        read_file(run_input[2])
-        run_input[2] = False
-        busy[0] = False
-        echo("", 0, 1)
-        ready_input()
-    if run_input[3]:
-        busy[0] = True
+    elif i == 2:
+        read_file(m)
+    elif i == 3:
         downloadtodisk(False, "Key listener test")
-        run_input[3] = False
-        busy[0] = False
-        echo("", 0, 1)
-        ready_input()
-    try:
-        time.sleep(0.1)
-    except KeyboardInterrupt:
-        echo(skull(), 0, 1)
-        choice(bg=["4c", "%color%"])
-        ready_input()
+    busy[0] = False
+    echo("", 0, 1)
+    ready_input()
 
 
 

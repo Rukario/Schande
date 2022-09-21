@@ -516,7 +516,18 @@ settings = ["Launch HTTP server = ", "Browser = ", "Mail = ", "Geistauge = No", 
 for setting in settings:
     if not rules[pos].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if pos == 0:
-            setting += "Yes" if input("Launch HTTP server? (Y)es/(N)o: ", "yn") == 1 else "No"
+            while True:
+                i = input("Launch HTTP server? (Y)es/(N)o: ", "yn")
+                if i == 1:
+                    echo("", 1)
+                    i = input("Quick password for sensitive files serving, enter nothing to return to last prompt: ")
+                    if not i:
+                        echo("", 1)
+                        continue
+                    setting += i
+                else:
+                    setting += "No"
+                break
             echo("", 1)
             echo("", 0, 1)
         rules.insert(pos, setting)
@@ -593,9 +604,17 @@ class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
         self.directory = os.fspath(directory)
         super().__init__(*args)
 
+    def AUTH(self, ondisk):
+        if self.qs == HTTPserver:
+            return True
+        buffer = ondisk.replace("/", "\\")
+        echo(f"""{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorz("CCCCCC")}{buffer}{tcolorx} add "?{HTTPserver}" query-string to access this url.""", 0, 1)
+        self.close_connection = False
+
     def do_GET(self):
+        self.qs = ""
         if '?' in self.path:
-            self.path = self.path.split('?')[0]
+            self.path, self.qs = self.path.split('?', 1)
         f = self.send_head()
         if f:
             try:
@@ -658,24 +677,31 @@ class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
         list.sort(key=lambda a: a.lower())
 
         parent = parse.unquote(self.path)
+        parent += "" if parent.endswith("/") else "/ (please fix missing slash in url)"
         if parent == "/":
             title = "Top directory"
+            if not self.AUTH(ondisk):
+                return
         else:
             title = parent.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;").replace("/", "\\")
         enc = sys.getfilesystemencoding()
 
         dirs = []
         files = []
+        ondisk += "" if ondisk.endswith("/") else "/"
         for name in list:
-            fullname = os.path.join(ondisk, name)
+            fullname = f"{ondisk}{name}"
             label = name.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
             link = parse.quote(name)
-            ut = f" {os.path.getmtime(fullname)}" if ntime else ""
+            ut = f" {os.path.getmtime(fullname):.7f}" if ntime else "&gt;"
             if os.path.isdir(fullname):
                 label = "\\" + label + "\\"
-                dirs.append(f' &gt; <a href="{link}/">{label}</a>{ut}')
+                gallery = ""
+                if os.path.exists(fullname + "/gallery.html"):
+                    gallery = f' - <a href="{link}/gallery.html">gallery.html</a>'
+                dirs.append(f' {ut} <a href="{link}/">{label}</a>{gallery}')
             elif os.path.isfile(fullname):
-                files.append(f' &gt;  <a href="{link}">{label}</a>{ut}')
+                files.append(f' {ut}  <a href="{link}">{label}</a>')
         buffer = '\n'.join(dirs + files)
 
         style = """html,body{white-space:pre; background-color:#10100c; color:#088; font-family:courier; font-size:14px;}
@@ -712,20 +738,17 @@ h2 {margin:4px;}"""
         return guess if guess else 'application/octet-stream'
 
     def send_head(self):
+        ntime = True
         self.range = (0, 0)
         self.total = 0
         ondisk = http2ondisk(self.path, self.directory)
         if os.path.isdir(ondisk):
-            for x in ["gallery.html", "index.html"]:
-                x = os.path.join(ondisk, x)
-                if os.path.exists(x):
-                    ondisk = x
-                    break
-            else:
-                return self.list_directory(ondisk)
+            return self.list_directory(ondisk, ntime)
 
         if ondisk.endswith("/"):
             self.send_error(404, "File not found")
+            return
+        if ondisk.endswith(".cd") and not self.AUTH(ondisk):
             return
         try:
             f = open(ondisk, 'rb')
@@ -960,16 +983,14 @@ def at(s, r, cw=[], alt=0, key=False, name=False, meta=False):
         if len(s) > total_names[0]:
             total_names[0] = len(s)
 
-def y(y, yn=False):
-    y = y.split("=", 1)[1].strip()
-    if yn:
-        if os.path.exists(y):
-            return y
-        return True if y.lower()[0] == "y" else False
-    else:
-        return y
+def declare(rule, boolean=False):
+    rule = rule.split("=", 1)
+    rule[1] = rule[1].strip()
+    if boolean and not rule[1] == "Yes" and not rule[1] == "No":
+        return
+    return rule[1]
 
-offset = y(rules[5])
+offset = declare(rules[5])
 date = datetime.utcnow() + timedelta(hours=int(offset))
 fdate = date.strftime('%Y') + "-" + date.strftime('%m') + "-XX"
 
@@ -1223,11 +1244,13 @@ if bgcolor:
 
 
 
-HTTPserver = y(rules[0], True)
-Browser = y(rules[1])
-Mail = y(rules[2])
-Geistauge = y(rules[3], True)
-proxy = y(rules[6])
+HTTPserver = declare(rules[0])
+if HTTPserver == "No":
+    HTTPserver = False
+Browser = declare(rules[1])
+Mail = declare(rules[2])
+Geistauge = declare(rules[3], True)
+proxy = declare(rules[6])
 if HTTPserver:
     restartserver()
 else:
@@ -1244,7 +1267,7 @@ if Mail:
         else:
             print(" MAIL: Non-Gmail as sender is unimplemented for now.\n\n Please try again . . .")
     else:
-        print(" MAIL: Please add your two email addresses (sender/receiver)\n\n TRY AGAIN!")
+        print(" MAIL: Please add your two email addresses (sender/receiver)\n\n Corrupted rule encountered, please read above and then try again.")
         sys.exit()
     if len(Mail) < 3:
         import getpass
@@ -1254,6 +1277,9 @@ if Mail:
         shuddup = False
 else:
     print(" MAIL: NONE")
+if Geistauge == None:
+    kill(' GEISTAUGE: I am neither "Yes" nor "No" (case sensitive)\n\n Corrupted rule encountered, please read above and then try again.')
+Geistauge = True if Geistauge == "Yes" else False
 if Geistauge:
     try:
         import numpy, cv2
@@ -1270,7 +1296,7 @@ else:
     print(" GEISTAUGE: OFF")
 if "socks5://" in proxy and proxy[10:]:
     if not ":" in proxy[10:]:
-        kill(" PROXY: Invalid socks5:// address, it must be socks5://X.X.X.X:port OR socks5://user:pass@X.X.X.X:port\n\n TRY AGAIN!")
+        kill(" PROXY: Invalid socks5:// address, it must be socks5://X.X.X.X:port OR socks5://user:pass@X.X.X.X:port\n\n Corrupted rule encountered, please read above and then try again.")
     try:
         import socks
     except:

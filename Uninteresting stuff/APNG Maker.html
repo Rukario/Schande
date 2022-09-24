@@ -1083,6 +1083,7 @@ function compileframes(multi=true){
 function compileapngs(){
   newAPNG = [];
   let seqAPNG = al.innerHTML.split("\n").filter(function(el) { return el; })
+  let reuse = [false, false, false]
   function readFile(interAPNG){
     ti[0] = performance.now()
     ti[1] = performance.now()
@@ -1097,7 +1098,21 @@ function compileapngs(){
       //echo((frame.denominator/frame.numerator) + "fps")
       new_dim = [frame.left, frame.top, frame.width, frame.height]
 
-      var next = "Frame " + interFrameN + " of APNG " + seqAPNG[interAPNG]
+      function toAPNG(arri){
+        newframe.arri = arri;
+        reuse[0] = seqAPNG[interAPNG];
+        document.title = next;
+        echo(next)
+        //echoIMG(img, next + ".png")
+        toFrame([frame.numerator, frame.denominator], [frame.disposeOp, frame.blendOp]);
+        if(interFrameN+1 == frames.length){
+          readFile(interAPNG+1);
+        } else {
+          readFrame(interFrameN+1);
+        }
+      }
+
+      let next = "Frame " + interFrameN + " of APNG " + seqAPNG[interAPNG]
       arri = frame.arri
       img = ABtoIMG(ABtoAB(arri))
       img.onload = () => {
@@ -1110,51 +1125,35 @@ function compileapngs(){
             c.height = dim[3];
             context.drawImage(img, ...dim);
             frameSaver(0);
-            document.title = next;
-            echo(next)
-            //echoIMG(img, next + ".png")
-            newframe.arri = arri;
-            toFrame([frame.numerator, frame.denominator], [frame.disposeOp, frame.blendOp]);
-            if(interFrameN+1 == frames.length){
-              readFile(interAPNG+1);
-            } else {
-              readFrame(interFrameN+1);
-            }
+            toAPNG(arri);
           } else {
-            context.drawImage(img, ...new_dim);
-            frameSaver(1);
-            var promise = new Promise(canvasToAB(c))
-            promise.then(function(arri){
-              arri = Array.from(arri);
-              img = ABtoIMG(ABtoAB(arri))
-              document.title = next;
-              echo(next)
-              //echoIMG(img, next + ".png")
-              newframe.arri = arri;
-              toFrame([frame.numerator, frame.denominator], [frame.disposeOp, frame.blendOp]);
-              c.width = dim[2];
-              c.height = dim[3];
-              context.putImageData(new_frames[0], 0, 0);
-              if(interFrameN+1 == frames.length){
-                readFile(interAPNG+1);
-              } else {
-                readFrame(interFrameN+1);
-              }
-            });
+            if(reuse[0] == seqAPNG[interAPNG] && reuse[1]){
+              new_dim = reuse[1]
+              toAPNG(reuse[2])
+            } else {
+              context.drawImage(img, ...new_dim);
+              frameSaver(1);
+              var promise = new Promise(canvasToAB(c))
+              promise.then(function(arri){
+                arri = Array.from(arri);
+                if (reuse[0] == seqAPNG[interAPNG]){
+                  reuse[1] = new_dim
+                  reuse[2] = arri
+                } else {
+                  reuse[1] = false
+                }
+                img = ABtoIMG(ABtoAB(arri))
+                c.width = dim[2];
+                c.height = dim[3];
+                context.putImageData(new_frames[0], 0, 0);
+                toAPNG(arri);
+              });
+            }
           }
         } else {
           context.drawImage(img, ...new_dim);
           frameSaver(0);
-          document.title = next;
-          echo(next)
-          //echoIMG(img, next + ".png")
-          newframe.arri = arri;
-          toFrame([frame.numerator, frame.denominator], [frame.disposeOp, frame.blendOp]);
-          if(interFrameN+1 == frames.length){
-            readFile(interAPNG+1);
-          } else {
-            readFrame(interFrameN+1);
-          }
+          toAPNG(arri);
         }
       }
     }

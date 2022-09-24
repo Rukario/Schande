@@ -18,9 +18,9 @@ input[type="file"] {display:none;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 .tooltip {background:#2d0710; border:1px solid #772227; color:inherit; position:relative; cursor:default; font-size:12px; padding:4px 11px; line-height:1.1;}
-.previous, .reverse, .inverse, .next {border-radius:0px; cursor:pointer; font-size:12px; padding:4px 11px; font-family:Arial;}
+.previous, .reverse, .inverse, .next {border-radius:0px; cursor:pointer; font-size:12px; padding:4px 11px; font-family:Arial; margin:6px 0px;}
 .cell {display:inline-block; width: 360px; vertical-align: text-top; border:2px solid #772227; padding-left:10px;}
-.stdout {line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
+.stdout {white-space:pre-wrap; line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px; min-height:0px;}
 </style>
 <script>
 var FFdown = function(e) {
@@ -360,7 +360,7 @@ function canvasToFrame(callback, interFrameN, fpsm=1, callback2=false, filler=fa
   ti[1] = performance.now()
   let promise = new Promise(canvasToAB(c))
   promise.then(function(arri){
-    ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=false)
+    ABtoFrame(arri, callback, interFrameN, fpsm, callback2, filler)
   })
 }
 
@@ -466,7 +466,7 @@ function ghost(a) {
 }
 
 function detect() {
-  let seqFrameN = fl.innerHTML.split("<br>").filter(function(el) { return el; })
+  let seqFrameN = fl.innerHTML.split("\n").filter(function(el) { return el; })
   c.width = dim[2];
   c.height = dim[3];
   new_dim = [...dim]
@@ -1001,12 +1001,12 @@ var start = [true, true];
 var fpsm = 1;
 function compileframes(multi=true){
   newAPNG = [];
-  let seqFrameN = fl.innerHTML.split("<br>").filter(function(el) { return el; })
+  let seqFrameN = fl.innerHTML.split("\n").filter(function(el) { return el; })
   var lastFrameN;
 
   start = [true, true];
   fpsm = 1;
-  function updateFrame(interFrameN){
+  function updateFrame(interFrameN, fpsm){
     if(interFrameN+1 == seqFrameN.length){
       if(1 == seqFrameN.length){
         name = framearray[seqFrameN[interFrameN]-1][1];
@@ -1044,13 +1044,13 @@ function compileframes(multi=true){
       } else {
         frameSaver(interFrameN);
       }
-      updateFrame(interFrameN)
+      updateFrame(interFrameN, fpsm)
     } else {
       name = framearray[seqFrameN[interFrameN]-1][1];
       if(interFrameN+1 == seqFrameN.length){
-        canvasToFrame(staticAPNG, interFrameN, 1)
+        canvasToFrame(staticAPNG, interFrameN, fpsm)
       } else {
-        canvasToFrame(staticAPNG, interFrameN, 1, delayFrame)
+        canvasToFrame(staticAPNG, interFrameN, fpsm, delayFrame)
       }
     }
   }
@@ -1066,7 +1066,7 @@ function compileframes(multi=true){
       } else {
         if (lastFrameN == seqFrameN[interFrameN]){
           fpsm += 1;
-          echo(" Frame " + interFrameN + " (delay)")
+          echo("Frame " + interFrameN + " (delay)")
           delayFrame(interFrameN+1)
         } else {
           lastFrameN = seqFrameN[interFrameN]
@@ -1082,7 +1082,7 @@ function compileframes(multi=true){
 
 function compileapngs(){
   newAPNG = [];
-  let seqAPNG = al.innerHTML.split("<br>").filter(function(el) { return el; })
+  let seqAPNG = al.innerHTML.split("\n").filter(function(el) { return el; })
   function readFile(interAPNG){
     ti[0] = performance.now()
     ti[1] = performance.now()
@@ -1094,6 +1094,7 @@ function compileapngs(){
     function readFrame(interFrameN){
       if(interFrameN == frames.length) return;
       var frame = frames[interFrameN];
+      //echo((frame.denominator/frame.numerator) + "fps")
       new_dim = [frame.left, frame.top, frame.width, frame.height]
 
       var next = "Frame " + interFrameN + " of APNG " + seqAPNG[interAPNG]
@@ -1165,7 +1166,7 @@ function compileapngs(){
 function editlist(){
   fl.innerHTML = ""
   for(var i=1; i<framearray.length+1; i++){
-    fl.innerHTML += i + "<br>"
+    fl.innerHTML += i + "\n"
   }
   ready();
 }
@@ -1173,7 +1174,7 @@ function editlist(){
 function apnglist(){
   al.innerHTML = ""
   for(var i=1;i<apngarray.length+1;i++){
-    al.innerHTML += i + "<br>"
+    al.innerHTML += i + "\n"
   }
 
   let e = document.getElementById("mergeapng");
@@ -1267,6 +1268,13 @@ function loaded(){
   fl = document.getElementById("framelist");
   al = document.getElementById("apnglist");
   stdout = document.getElementById("stdout");
+
+  if(!fl.isContentEditable){
+    fl.setAttribute("onpaste", "plaintext(this, event)");
+    fl.setAttribute("contenteditable", "true");
+    al.setAttribute("onpaste", "plaintext(this, event)");
+    al.setAttribute("contenteditable", "true");
+  }
 
   document.getElementById("viewer").addEventListener('change', (event) => {
     stdout.insertAdjacentHTML("beforeend", "<br>");
@@ -1402,13 +1410,13 @@ window.onload = () => {
 <label class="next"><input id="frames" type="file" multiple></input>Load Frames</label>
 <label class="next"><input id="more" type="file" multiple></input>Load more</label>
 <button id="resave" class="next" style="display:none; position:absolute; right:10px; top:10px;">Resave</button>
-<p>
+<div></div>
 
 <div style="display:inline-block; width:340px; vertical-align: text-top;">
-<p id="framelist" class="stdout" style="color:#fd6;" onpaste="plaintext(this, event);" contenteditable>
-<div style="float:right; width:300px;">Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.</div>
+<div id="framelist" class="stdout" style="color:#fd6; display:inline-block;" contenteditable="plaintext-only" spellcheck=false></div>
+<div style="margin:6px 12px; float:right; width:300px;">Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.</div>
 </div>
-<p>
+<div></div>
 
 <button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">Make APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">emphasizing diffs</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 3px 11px; width:22px;" placeholder="Bad"> fps in dimension: <span id="di">-- &times; --</span>
 </div>
@@ -1419,13 +1427,13 @@ window.onload = () => {
 <div class="tooltip" style="top:-8px; position:relative; display:table;">🦦 -(Merge)</div>
 <label class="next"><input id="apngframes" type="file" multiple></input>Load APNG</label>
 <label class="next"><input id="apngmore" type="file" multiple></input>Load more</label>
-<p>
+<div></div>
 
 <div style="display:inline-block; width:340px; vertical-align: text-top;">
-<p id="apnglist" class="stdout" style="color:#fd6;" onpaste="plaintext(this, event);" contenteditable>
-<div style="float:right; width:300px;">Edit list to rearrange, repeat, or skip APNG series.</div>
+<div id="apnglist" class="stdout" style="color:#fd6; display:inline-block;" contenteditable="plaintext-only" spellcheck=false></div>
+<div style="margin:6px 12px; float:right; width:300px;">Edit list to rearrange, repeat, or skip APNG series.</div>
 </div>
-<p>
+<div></div>
 
 <button class="previous" onclick="echo('APNG list is empty!')" id="mergeapng">Merge APNG</button>
 </div>
@@ -1433,7 +1441,7 @@ window.onload = () => {
 
 
 
-<p class="stdout" id="stdout">🦦 -(Output)</p>`
+<div class="stdout" id="stdout">🦦 -(Output)</div>`
   loaded();
   lazyload();
   //document.addEventListener("click", Expander);

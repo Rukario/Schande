@@ -185,7 +185,7 @@ function setfps(text) {
     d.style.backgroundColor = "#399"
     fps = 0;
   } else {
-    if(0<text && text<=60){
+    if(0<text && text<=120){
       d.style.backgroundColor = "#066"
       fps = Number(text);
     } else {
@@ -1029,11 +1029,14 @@ function compileframes(multi=true){
     ti[0] = performance.now()
     ti[1] = performance.now()
 
-    if (1 == seqFrameN.length||!multi){
+    if (interFrameN == 0&&!bg||!multi&&!bg){
       get_dim(framearray[seqFrameN[interFrameN]-1][0])
     }
     c.width = dim[2];
     c.height = dim[3];
+    if(bg){
+      context.drawImage(bg, ...dim);
+    }
     context.drawImage(framearray[seqFrameN[interFrameN]-1][0], ...dim);
 
     new_dim = [...dim]
@@ -1209,7 +1212,6 @@ function read(filelist){
       img = ABtoIMG([arri])
       img.onload = () => {
         if (i == 0){
-          get_dim(img, true);
           name = filelist[0].name;
         }
         framearray.push([img, filelist[i].name]);
@@ -1259,6 +1261,21 @@ function readapng(filelist){
     }
   }
   readFile(0);
+}
+
+function changebg(f){
+  bg = new Image();
+  bg.src = window.URL.createObjectURL(f);
+  bg.onload = () => {
+    get_dim(bg);
+    echo("Success loading background")
+    addbg.style.display = "none";
+    removebg.style.display = "block";
+  };
+  bg.onerror = () => {
+    echo("Failed to load background")
+    bg = false;
+  };
 }
 
 function loaded(){
@@ -1334,12 +1351,23 @@ function loaded(){
 
   document.getElementById("resave").setAttribute("onclick", "compileframes(false);")
 
-  document.getElementById("apngframes").addEventListener('change', (e) => {
+  background.addEventListener('change', (e) => {
+    changebg(e.target.files[0]);
+  });
+
+  removebg.addEventListener('click', () => {
+    bg = false;
+    echo("Unloaded background")
+    removebg.style.display = "none";
+    addbg.style.display = "block";
+  });
+
+  apngframes.addEventListener('change', (e) => {
     apngarray = [];
     readapng(e.target.files);
   });
 
-  document.getElementById("apngmore").addEventListener('change', (e) => {
+  apngmore.addEventListener('change', (e) => {
     readapng(e.target.files);
   });
 
@@ -1389,6 +1417,7 @@ var ti = [0, 0, 0, 0];
 var c = document.createElement("canvas");
 var context = c.getContext("2d");
 var new_frames = [false, false, false, false, false, false]
+var bg = false;
 var di, dim, orig_dim, new_dim, al, fl, arri, arro, stdout, dl, img, Module, name, rgb, tooltip, decoder;
 
 window.onload = () => {
@@ -1409,6 +1438,8 @@ window.onload = () => {
 <label class="next"><input id="frames" type="file" multiple></input>Load Frames</label>
 <label class="next"><input id="more" type="file" multiple></input>Load more</label>
 <button id="resave" class="next" style="display:none; position:absolute; right:10px; top:10px;">Resave</button>
+<label id="addbg" class="next" style="position:absolute; right:10px; top:10px;"><input id="background" type="file"></input>Background</label>
+<button id="removebg" class="reverse" style="display:none; position:absolute; right:10px; top:10px;">Remove background</button>
 <div></div>
 
 <div style="display:inline-block; width:340px; vertical-align: text-top;">

@@ -257,31 +257,31 @@ function echoHEIC(image, B) {
 
 function echoPalette(h=8, s=1){
   palette.sort();
-  var cc = document.createElement("canvas");
-  var ccontext = cc.getContext("2d");
+  var c2 = document.createElement("canvas");
+  var context2 = c2.getContext("2d");
   var w = Math.ceil(palette.length/h)
-  cc.width = w*s;
-  cc.height = h*s;
+  c2.width = w*s;
+  c2.height = h*s;
 
-  var img = ccontext.createImageData(w, h);
-  var data = img.data;
+  img = context2.createImageData(w, h);
+  var d = img.data;
   for(var i=0;i<palette.length;i++){
-    data[i*4] = parseInt(palette[i].slice(0, 2), 16);
-    data[i*4+1] = parseInt(palette[i].slice(2, 4), 16);
-    data[i*4+2] = parseInt(palette[i].slice(4, 6), 16);
-    data[i*4+3] = 255;
+    d[i*4] = parseInt(palette[i].slice(0, 2), 16);
+    d[i*4+1] = parseInt(palette[i].slice(2, 4), 16);
+    d[i*4+2] = parseInt(palette[i].slice(4, 6), 16);
+    d[i*4+3] = 255;
   }
-  ccontext.putImageData(img, 0, 0);
+  context2.putImageData(img, 0, 0);
 
-  var p = document.createElement("canvas");
-  var pcontext = p.getContext("2d");
-  p.width = cc.width;
-  p.height = cc.height;
+  var c3 = document.createElement("canvas");
+  var context3 = c3.getContext("2d");
+  c3.width = c2.width;
+  c3.height = c2.height;
 
-  pcontext.imageSmoothingEnabled = false;
-  pcontext.scale(s, s)
-  pcontext.drawImage(cc, 0, 0, p.width, p.height, 0, 0, cc.width, cc.height);
-  echoIMGfromCanvas(p);
+  context3.imageSmoothingEnabled = false;
+  context3.scale(s, s)
+  context3.drawImage(c2, 0, 0, c3.width, c3.height, 0, 0, c2.width, c2.height);
+  echoIMGfromCanvas(c3);
   palette = [];
 }
 
@@ -311,7 +311,7 @@ function canvasToAB(c, ext="png") {
 
 function fullres() {
   dim = [...orig_dim];
-  di.innerHTML = dim[2] + " &times; " + dim[3];
+  dimension.innerHTML = dim[2] + " &times; " + dim[3];
 }
 
 function get_dim(image, enablescaling) {
@@ -322,9 +322,9 @@ function get_dim(image, enablescaling) {
     var leny = Math.ceil(image.height / 4000)
     if (leny > len) len = leny;
     dim = [0, 0, Math.floor(orig_dim[2] / len), Math.floor(orig_dim[3] / len)]
-    di.innerHTML = dim[2] + " &times; " + dim[3];
+    dimension.innerHTML = dim[2] + " &times; " + dim[3];
     if (len > 1){
-      di.innerHTML += " <button class='tooltip' onclick='fullres()'>use original</button>"
+      dimension.innerHTML += " <button class='tooltip' onclick='fullres()'>use original</button>"
     }
   } else {
     dim = [...orig_dim];
@@ -343,7 +343,6 @@ function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=
     toFrame([1000, 1000]);
     callback(0, callback2);
   } else {
-    let buffer;
     if (filler){
       echo("APNGified")
     } else {
@@ -405,13 +404,11 @@ function Convolute(pixels, weights) {
   return output;
 }
 
-function edge(img) {
+function edge(m) {
   ti[0] = performance.now()
   ti[1] = performance.now()
-  context.drawImage(img, ...dim);
-  rgb = context.getImageData(...dim);
-  rgb = Convolute(rgb, [-1, -1, -1, -1,  8, -1, -1, -1, -1])
-  context.putImageData(rgb, 0, 0);
+  context.drawImage(m, ...dim);
+  context.putImageData(Convolute(context.getImageData(...dim), [-1, -1, -1, -1,  8, -1, -1, -1, -1]), 0, 0);
   canvasToFrame(staticAPNG, -2, 1)
 }
 
@@ -466,7 +463,10 @@ function ghost(a) {
 }
 
 function detect() {
-  let seqFrameN = fl.innerHTML.split("\n").filter(function(el) { return el; })
+  seqFrameN = framelist.innerHTML.split("\n").filter(function(el) { return el; })
+  if(!bg){
+    get_dim(framearray[seqFrameN[0]-1][0]);
+  }
   c.width = dim[2];
   c.height = dim[3];
   new_dim = [...dim]
@@ -507,42 +507,46 @@ function frame_diff(a, b) {
 function draw(x, i) {
   ti[0] = performance.now()
   ti[1] = performance.now()
-  c.width = dim[2];
-  c.height = dim[3];
+  if(bg){
+    context.drawImage(bg, ...dim);
+  } else {
+    c.width = dim[2];
+    c.height = dim[3];
+  }
   context.drawImage(x, ...dim);
-  new_frames[i] = context.getImageData(...dim);
+  frameBuffer[i] = context.getImageData(...dim);
 }
 
 function difference(a, b) {
-  let d = new_frames[b].data;
-  let e = new_frames[a].data;
+  let d = frameBuffer[b].data;
+  let e = frameBuffer[a].data;
   for (let i = 0; i < d.length; i += 4) {
     d[i] = Math.abs(d[i] - e[i]);
     d[i+1] = Math.abs(d[i+1] - e[i+1]);
     d[i+2] = Math.abs(d[i+2] - e[i+2]);
   }
   ghost(d);
-  context.putImageData(new_frames[b], 0, 0);
+  context.putImageData(frameBuffer[b], 0, 0);
 }
 
 function subtract(a, b) {
-  let d = new_frames[b].data;
-  let e = new_frames[a].data;
+  let d = frameBuffer[b].data;
+  let e = frameBuffer[a].data;
   for (let i = 0; i < d.length; i += 4) {
     d[i] -= e[i];
     d[i+1] -= e[i+1];
     d[i+2] -= e[i+2];
   }
   ghost(d);
-  context.putImageData(new_frames[b], 0, 0);
+  context.putImageData(frameBuffer[b], 0, 0);
 }
 
 function cropdiff(a, b, c=true){
-  frame_diff(new_frames[a].data, new_frames[b].data)
+  frame_diff(frameBuffer[a].data, frameBuffer[b].data)
   if(c){
-    new_frames[0] = context.getImageData(...dim);
+    frameBuffer[0] = context.getImageData(...dim);
   }
-  context.putImageData(new_frames[b], 0, 0);
+  context.putImageData(frameBuffer[b], 0, 0);
   crop()
 }
 
@@ -643,23 +647,23 @@ function apngdiff(m, s, s2=false) {
 
 function canvasdiff(m, s) {
   context.drawImage(m, ...dim)
-  new_frames[0] = context.getImageData(...dim);
+  frameBuffer[0] = context.getImageData(...dim);
   setTimeout(function() {
     context.drawImage(s, ...dim)
-    new_frames[1] = context.getImageData(...dim);
-    subtract(new_frames[0].data, new_frames[1]);
+    frameBuffer[1] = context.getImageData(...dim);
+    subtract(frameBuffer[0].data, frameBuffer[1]);
     setTimeout(function() {
-      context.putImageData(new_frames[1], 0, 0);
+      context.putImageData(frameBuffer[1], 0, 0);
       setTimeout(function() {
         context.drawImage(s, ...dim);
-        new_frames[1] = context.getImageData(...dim);
-        difference(new_frames[0].data, new_frames[1]);
-        context.putImageData(new_frames[1], 0, 0);
+        frameBuffer[1] = context.getImageData(...dim);
+        difference(frameBuffer[0].data, frameBuffer[1]);
+        context.putImageData(frameBuffer[1], 0, 0);
         setTimeout(function() {
           context.drawImage(s, ...dim);
-          new_frames[1] = context.getImageData(...dim);
-          subtract(new_frames[1].data, new_frames[0]);
-          context.putImageData(new_frames[0], 0, 0);
+          frameBuffer[1] = context.getImageData(...dim);
+          subtract(frameBuffer[1].data, frameBuffer[0]);
+          context.putImageData(frameBuffer[0], 0, 0);
           setTimeout(function() {
             requestAnimationFrame(canvasdiff(m, s));
           }, 1000/fps);
@@ -694,9 +698,9 @@ function Frame() {
 }
 
 function findPos(ab, type) {
-  var offset = 8;
+  let offset = 8;
   while (offset < ab.length) {
-    var len = ABtoInt32(ab.slice(offset, offset + 4));
+    let len = ABtoInt32(ab.slice(offset, offset + 4));
     if (readString(ab.slice(offset + 4, offset + 8)) === type) {
       return new Chunk(offset, len, type);
     }
@@ -713,13 +717,13 @@ function Chunk(offset, len, type) {
 
 
 function fromAPNG(arri){
-  var IHDR = null;
-  var frame = null;
-  var frameNumber = 0;
-  var apng = new APNG();
+  let IHDR = null;
+  let frame = null;
+  let frameNumber = 0;
+  let apng = new APNG();
 
   function inapng(type, arri, offset, length) {
-    var dv = new DataView(arri.buffer);
+    let dv = new DataView(arri.buffer);
     switch (type) {
       case 'IHDR':
         IHDR = arri.subarray(offset + 8, offset + 8 + length);
@@ -786,11 +790,11 @@ function fromAPNG(arri){
 
 
 function eachChunk(arri, callback) {
-  var dv = new DataView(arri.buffer);
-  var offset = 8;
-  var type, len, arr;
+  let dv = new DataView(arri.buffer);
+  let offset = 8;
+  let type, arr;
   do {
-    len = dv.getUint32(offset);
+    let len = dv.getUint32(offset);
     type = readString(arri.subarray(offset + 4, offset + 8));
     arr = callback(type, arri, offset, len);
     offset += 12 + len;
@@ -802,18 +806,18 @@ function readString(arri) {
 }
 
 function utf8ToAB(utf8) {
-  var len = utf8.length;
-  var arr = new Uint8Array(len);
-  for (var i = 0; i < len; i++) {
+  let len = utf8.length;
+  let arr = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
     arr[i] = utf8.charCodeAt(i);
   }
   return arr;
 }
 
 function makeChunkBytes(type, dataBytes) {
-    var crc = type.length + dataBytes.length;
-    var bytes = new Uint8Array(crc + 8);
-    var dv = new DataView(bytes.buffer);
+    let crc = type.length + dataBytes.length;
+    let bytes = new Uint8Array(crc + 8);
+    let dv = new DataView(bytes.buffer);
 
     dv.setUint32(0, dataBytes.length);
     bytes.set(utf8ToAB(type), 4);
@@ -844,7 +848,7 @@ function toFrame(fps, bp=[0, 1]){
   frame_counter += 1;
 
   if (!frame_counter) {
-    var IHDR = findPos(newframe.arri, "IHDR");
+    let IHDR = findPos(newframe.arri, "IHDR");
     IHDR = newframe.arri.slice(IHDR.offset, IHDR.offset + 12 + IHDR.len)
 
     newAPNG.push(new Uint8Array(PNG_signature));
@@ -909,15 +913,15 @@ function toFrame(fps, bp=[0, 1]){
   echo("in " + (ti[3] - ti[0])/1000 + "s", 1)
 }
 
-function makeAPNG(i, callback=false) {
+function makeAPNG(interFrameN, callback=false) {
   newAPNG.push(new Uint8Array(IEND));
 
-  var acTL = new Array(0)
+  let acTL = new Array(0)
   acTL = acTL.concat([0, 0, 0, 0x08, 0x61, 0x63, 0x54, 0x4C])
   acTL = acTL.concat(int32ToAB(frame_counter + 1));
   acTL = acTL.concat([0, 0, 0, 0]) //loop times, infinity
 
-  var crc = acTL.slice(4, 16);
+  let crc = acTL.slice(4, 16);
   acTL = acTL.concat(int32ToAB(crc32(crc, crc.length)))
   newAPNG[2] = new Uint8Array(acTL);
 
@@ -930,27 +934,28 @@ function makeAPNG(i, callback=false) {
   document.title = "Make APNG";
   newAPNG = [];
   if (callback){
-    callback(i-1)
+    callback(interFrameN-1)
   }
 }
 
 
 
 var table = new Uint32Array(256);
-for (var i = 0; i < 256; i++) {
+for (let i = 0; i < 256; i++) {
   let x = i;
-  for (var k = 0; k < 8; k++){
+  for (let k = 0; k < 8; k++){
     x = (x & 1) ? 0xEDB88320 ^ (x >>> 1) : x >>> 1;
   }
   table[i] = x;
 }
+
 function crc32(ab, start=0, len=0) {
   if (!len){
     len = ab.length - start
   }
 
-  var crc = -1;
-  for (var i=start, l = start + len; i < l; i++) {
+  let crc = -1;
+  for (let i=start, l = start + len; i < l; i++) {
     crc = crc >>> 8 ^ table[(crc ^ ab[i]) & 0xFF];
   }
   return crc ^ -1;
@@ -973,12 +978,12 @@ function crop(){
 function frameSaver(interFrameN){
   ti[1] = performance.now()
   if(interFrameN == 0){
-    new_frames[0] = context.getImageData(...dim);
+    frameBuffer[0] = context.getImageData(...dim);
   } else {
-    new_frames[1] = context.getImageData(...dim);
-    frame_diff(new_frames[0].data, new_frames[1].data)
-    new_frames[0] = context.getImageData(...dim);
-    context.putImageData(new_frames[1], 0, 0);
+    frameBuffer[1] = context.getImageData(...dim);
+    frame_diff(frameBuffer[0].data, frameBuffer[1].data)
+    frameBuffer[0] = context.getImageData(...dim);
+    context.putImageData(frameBuffer[1], 0, 0);
     crop()
   }
   ti[2] = performance.now()
@@ -1000,8 +1005,9 @@ var nextFrame = 1;
 var start = [true, true];
 var fpsm = 1;
 function compileframes(multi=true){
+  frameBuffer = [false, false, false, false]
   newAPNG = [];
-  let seqFrameN = fl.innerHTML.split("\n").filter(function(el) { return el; })
+  seqFrameN = framelist.innerHTML.split("\n").filter(function(el) { return el; })
   var lastFrameN;
 
   start = [true, true];
@@ -1084,9 +1090,9 @@ function compileframes(multi=true){
 }
 
 function compileapngs(){
+  frameBuffer = [false, false, false, false]
   newAPNG = [];
-  let seqAPNG = al.innerHTML.split("\n").filter(function(el) { return el; })
-  let reuse = [false, false, false]
+  seqAPNG = apnglist.innerHTML.split("\n").filter(function(el) { return el; })
   function readFile(interAPNG){
     ti[0] = performance.now()
     ti[1] = performance.now()
@@ -1094,16 +1100,16 @@ function compileapngs(){
       makeAPNG();
       return;
     }
-    var frames = apngarray[seqAPNG[interAPNG]-1].frames
+    let frames = apngarray[seqAPNG[interAPNG]-1].frames
     function readFrame(interFrameN){
       if(interFrameN == frames.length) return;
-      var frame = frames[interFrameN];
+      let frame = frames[interFrameN];
       //echo((frame.denominator/frame.numerator) + "fps")
       new_dim = [frame.left, frame.top, frame.width, frame.height]
 
       function toAPNG(arri){
         newframe.arri = arri;
-        reuse[0] = seqAPNG[interAPNG];
+        frameBuffer[1] = seqAPNG[interAPNG];
         document.title = next;
         echo(next)
         //echoIMG(img, next + ".png")
@@ -1130,25 +1136,25 @@ function compileapngs(){
             frameSaver(0);
             toAPNG(arri);
           } else {
-            if(reuse[0] == seqAPNG[interAPNG] && reuse[1]){
-              new_dim = reuse[1]
-              toAPNG(reuse[2])
+            if(frameBuffer[1] == seqAPNG[interAPNG] && frameBuffer[2]){
+              new_dim = frameBuffer[2]
+              toAPNG(frameBuffer[3])
             } else {
               context.drawImage(img, ...new_dim);
               frameSaver(1);
               var promise = new Promise(canvasToAB(c))
               promise.then(function(arri){
                 arri = Array.from(arri);
-                if (reuse[0] == seqAPNG[interAPNG]){
-                  reuse[1] = new_dim
-                  reuse[2] = arri
+                if (frameBuffer[1] == seqAPNG[interAPNG]){
+                  frameBuffer[2] = new_dim
+                  frameBuffer[3] = arri
                 } else {
-                  reuse[1] = false
+                  frameBuffer[2] = false
                 }
                 img = ABtoIMG(ABtoAB(arri))
                 c.width = dim[2];
                 c.height = dim[3];
-                context.putImageData(new_frames[0], 0, 0);
+                context.putImageData(frameBuffer[0], 0, 0);
                 toAPNG(arri);
               });
             }
@@ -1165,26 +1171,12 @@ function compileapngs(){
   readFile(0);
 }
 
-function editlist(){
-  fl.innerHTML = ""
+function editframelist(){
+  framelist.innerHTML = ""
   for(var i=1; i<framearray.length+1; i++){
-    fl.innerHTML += i + "\n"
-  }
-  ready();
-}
-
-function apnglist(){
-  al.innerHTML = ""
-  for(var i=1;i<apngarray.length+1;i++){
-    al.innerHTML += i + "\n"
+    framelist.innerHTML += i + "\n"
   }
 
-  let e = document.getElementById("mergeapng");
-  e.setAttribute("onclick", "compileapngs();")
-  e.classList = "next";
-}
-
-function ready(){
   let e = document.getElementById("makeapng");
   e.setAttribute("onclick", "compileframes();")
   e.classList = "next";
@@ -1201,7 +1193,18 @@ function ready(){
   }
 }
 
-function read(filelist){
+function editapnglist(){
+  apnglist.innerHTML = ""
+  for(var i=1;i<apngarray.length+1;i++){
+    apnglist.innerHTML += i + "\n"
+  }
+
+  let e = document.getElementById("mergeapng");
+  e.setAttribute("onclick", "compileapngs();")
+  e.classList = "next";
+}
+
+function readframes(filelist){
   filelist = Array.from(filelist).sort((a,b) => a.name > b.name);
   function readFile(i){
     if(i == filelist.length) return;
@@ -1216,7 +1219,7 @@ function read(filelist){
         }
         framearray.push([img, filelist[i].name]);
         if(i+1 == filelist.length){
-          editlist();
+          editframelist();
         } else {
           readFile(i+1);
         }
@@ -1230,14 +1233,13 @@ function readapng(filelist){
   filelist = Array.from(filelist).sort((a,b) => a.name > b.name);
   name = filelist[0].name;
   function readFile(i){
-    var fr = new FileReader();
+    let fr = new FileReader();
     fr.readAsArrayBuffer(filelist[i]);
     fr.onload = () => {
       arri = new Uint8Array(fr.result);
       img = ABtoIMG([arri])
       img.onload = () => {
-
-        var isAPNG = false;
+        let isAPNG = false;
         if (Array.prototype.some.call(PNG_signature, function (b, i) {
           return b !== arri[i];
         })) {
@@ -1253,7 +1255,7 @@ function readapng(filelist){
           }
         }
         if(i+1 == filelist.length){
-          apnglist();
+          editapnglist();
         } else {
           readFile(i+1);
         }
@@ -1279,17 +1281,11 @@ function changebg(f){
 }
 
 function loaded(){
-  tooltip = document.getElementById("tooltip");
-  di = document.getElementById("di");
-  fl = document.getElementById("framelist");
-  al = document.getElementById("apnglist");
-  stdout = document.getElementById("stdout");
-
-  if(!fl.isContentEditable){
-    fl.setAttribute("onpaste", "plaintext(this, event)");
-    fl.setAttribute("contenteditable", "true");
-    al.setAttribute("onpaste", "plaintext(this, event)");
-    al.setAttribute("contenteditable", "true");
+  if(!framelist.isContentEditable){
+    framelist.setAttribute("onpaste", "plaintext(this, event)");
+    framelist.setAttribute("contenteditable", "true");
+    apnglist.setAttribute("onpaste", "plaintext(this, event)");
+    apnglist.setAttribute("contenteditable", "true");
   }
 
   document.getElementById("viewer").addEventListener('change', (event) => {
@@ -1304,7 +1300,7 @@ function loaded(){
       stdout.appendChild(v);
       v.play();
     } else if (isImage(get_ext(f))) {
-      var img = document.createElement("img")
+      img = document.createElement("img")
       if (isImage(get_ext(f)) == "heic"){
         if (convert){
           var fr = new FileReader();
@@ -1319,7 +1315,7 @@ function loaded(){
         var src = window.URL.createObjectURL(f);
         img.src = src;
         img.style = "max-height:400px;"
-        var dl = document.createElement("a");
+        dl = document.createElement("a");
         dl.download = f.name;
         dl.href = src;
         dl.appendChild(img);
@@ -1340,13 +1336,13 @@ function loaded(){
     }
   });
 
-  document.getElementById("frames").addEventListener('change', (e) => {
+  loadframes.addEventListener('change', (e) => {
     framearray = [];
-    read(e.target.files);
+    readframes(e.target.files);
   });
 
-  document.getElementById("more").addEventListener('change', (e) => {
-    read(e.target.files);
+  moreframes.addEventListener('change', (e) => {
+    readframes(e.target.files);
   });
 
   document.getElementById("resave").setAttribute("onclick", "compileframes(false);")
@@ -1362,12 +1358,12 @@ function loaded(){
     addbg.style.display = "block";
   });
 
-  apngframes.addEventListener('change', (e) => {
+  loadapng.addEventListener('change', (e) => {
     apngarray = [];
     readapng(e.target.files);
   });
 
-  apngmore.addEventListener('change', (e) => {
+  moreapng.addEventListener('change', (e) => {
     readapng(e.target.files);
   });
 
@@ -1379,7 +1375,7 @@ function loaded(){
   document.addEventListener("drop", (e) => {
     e.preventDefault();
     framearray = [];
-    read(e.dataTransfer.files);
+    readframes(e.dataTransfer.files);
   });
 
   var s = document.createElement("script");
@@ -1392,7 +1388,7 @@ function loaded(){
     document.getElementById("oload").style.display = "inline-block";
   }
 
-  var s = document.createElement("script");
+  s = document.createElement("script");
   s.src = "libheif.js";
   document.body.appendChild(s);
   s.onload = () => {
@@ -1403,7 +1399,7 @@ function loaded(){
     document.getElementById("lload").style.display = "inline-block";
   }
 
-  var s = document.createElement("script");
+  s = document.createElement("script");
   s.src = "ruffle.js?" + Date.now();
   document.body.appendChild(s);
 }
@@ -1416,14 +1412,14 @@ var convert = false;
 var ti = [0, 0, 0, 0];
 var c = document.createElement("canvas");
 var context = c.getContext("2d");
-var new_frames = [false, false, false, false, false, false]
+var frameBuffer = [false, false, false, false]
 var bg = false;
-var di, dim, orig_dim, new_dim, al, fl, arri, arro, stdout, dl, img, Module, name, rgb, tooltip, decoder;
+var dim, orig_dim, new_dim, arri, seqFrameN, seqAPNG, img, dl, Module, name, decoder;
 
 window.onload = () => {
   document.body.innerHTML = `<div style="margin-bottom:12px;">
 <label class="next"><input id="viewer" type="file"></input>🦦 -(Echo file)</label>
-<div class="tooltip" style="display:inline-block;" data-tooltip='APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Load optipng.js for additional file size reduction.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">🦦 -(Production advices)</div>
+<div class="tooltip" style="display:inline-block;" data-tooltip='APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">🦦 -(Production advices)</div>
 <div class="tooltip" id="oload" style="display:none;" data-tooltip='Optimize frames with <a href="https://github.com/LI-NA/optipng.js/tree/master/demo/js" target="_blank">optipng.min.js</a>, save next to HTML then reload this page'>🦦 -(Optimize frames)</div>
 <div class="tooltip" id="lload" style="display:none;" data-tooltip='Read HEIC files with <a href="https://github.com/alexcorvi/heic2any/raw/master/src" target="_blank">libheif.js</a>, save next to HTML then reload this page'>🦦 -(HEICide)</div>
 </div>
@@ -1435,8 +1431,8 @@ window.onload = () => {
 <div>
 <div class="cell" style="position:relative;">
 <div class="tooltip" style="top:-8px; position:relative; display:table;">🦦 -(Make)</div>
-<label class="next"><input id="frames" type="file" multiple></input>Load Frames</label>
-<label class="next"><input id="more" type="file" multiple></input>Load more</label>
+<label class="next"><input id="loadframes" type="file" multiple></input>Load Frames</label>
+<label class="next"><input id="moreframes" type="file" multiple></input>Load more</label>
 <button id="resave" class="next" style="display:none; position:absolute; right:10px; top:40px;">Resave</button>
 <label id="addbg" class="next" style="position:absolute; right:10px; top:10px;"><input id="background" type="file"></input>Load background</label>
 <button id="removebg" class="reverse" style="display:none; position:absolute; right:10px; top:10px;">Remove background</button>
@@ -1448,15 +1444,15 @@ window.onload = () => {
 </div>
 <div></div>
 
-<button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">Make APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">emphasizing diffs</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 3px 11px; width:22px;" placeholder="Bad"> fps in dimension: <span id="di">-- &times; --</span>
+<button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">Make APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">emphasizing diffs</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 3px 11px; width:22px;" placeholder="Bad"> fps in dimension: <span id="dimension">-- &times; --</span>
 </div>
 
 
 
 <div class="cell">
 <div class="tooltip" style="top:-8px; position:relative; display:table;">🦦 -(Merge)</div>
-<label class="next"><input id="apngframes" type="file" multiple></input>Load APNG</label>
-<label class="next"><input id="apngmore" type="file" multiple></input>Load more</label>
+<label class="next"><input id="loadapng" type="file" multiple></input>Load APNG</label>
+<label class="next"><input id="moreapng" type="file" multiple></input>Load more</label>
 <div></div>
 
 <div style="display:inline-block; width:340px; vertical-align: text-top;">

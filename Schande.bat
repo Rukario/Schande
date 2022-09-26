@@ -604,11 +604,21 @@ class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
         self.directory = os.fspath(directory)
         super().__init__(*args)
 
+    def handle(self):
+        self.close_connection = True
+        try:
+            self.handle_one_request()
+        except:
+            echo("DISCONNECTED", 0, 1)
+            self.close_connection = True
+        while not self.close_connection:
+            self.handle_one_request()
+
     def AUTH(self, ondisk):
         if self.qs == HTTPserver:
             return True
         buffer = ondisk.replace("/", "\\")
-        echo(f"""{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorz("CCCCCC")}{buffer}{tcolorx} add "?{HTTPserver}" query-string to access this url.""", 0, 1)
+        echo(f"""{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorz("CCCCCC")}{buffer}{tcolorx} use {tcolorg}?{HTTPserver}{tcolorx} query string to authorize this connection.""", 0, 1)
         self.close_connection = False
 
     def do_GET(self):

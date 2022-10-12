@@ -23,6 +23,7 @@ https://thebarchive.com/ for https://thebarchive.com/
 Authorization ... for .discord.com
 ipb_member_id ... for .exhentai.org
 ipb_pass_hash ... for .exhentai.org
+session_id ... for .patreon.com
 PHPSESSID ... for .pixiv.net
 FANBOXSESSID ... for .fanbox.cc
 _session_id ... for .fantia.jp
@@ -216,7 +217,7 @@ files <a href="https://dl.dropbox.com*</a> customize with https://dl.dropbox.com
 meta ^/*^?dl=0
 
 https://www.patreon.com/
-defuse session_id
+defuse
 title /patreon-media/p/user/*/ customize with *
 folder1 ^/*^/ customize with  *\
 pages /patreon-media/p/campaign/*/ customize with https://www.patreon.com/api/posts?include=attachments%2Cimages.null%2Caudio.null&fields[post]=content%2Ccurrent_user_can_view%2Cedited_at%2Cembed%2Cpost_file%2Cpost_type%2Ctitle&fields[media]=download_url%2Cfile_name%2Cowner_id&sort=-published_at&filter[campaign_id]=*
@@ -224,6 +225,7 @@ pages "creator_id": *} customize with https://www.patreon.com/api/user/*
 savelink Patreon
 
 https://www.pixiv.net/en/artworks/
+defuse PHPSESSID
 urlfix https://www.pixiv.net/en/artworks/* with https://www.pixiv.net/ajax/illust/*/pages
 replace \ with 
 files "original":"*" not ends with ugoira0.jpg
@@ -237,10 +239,10 @@ files "originalSrc":"*"
 meta ^/*
 
 https://www.fanbox.cc/@
+defuse FANBOXSESSID
 title /fanbox/public/images/creator/*/cover/
 pages /fanbox/public/images/creator/*/cover/ customize with https://api.fanbox.cc/post.listCreator?userId=*&limit=100
 savelink FANBOX
-
 
 https://api.fanbox.cc/post.info?postId=
 key body > id

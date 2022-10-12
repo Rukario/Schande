@@ -59,7 +59,7 @@ newfilen = [0]
 Keypress_prompt = [False]
 Keypress_time = [time.time()]*2
 Keypress = [False]*27
-task = {"transmission":False, "run":Queue()}
+task = {"httpserver":[], "transmission":False, "run":Queue()}
 retries = [0]
 sf = [0]
 
@@ -102,7 +102,6 @@ else:
     os.system("")
 if sys.platform == "linux":
     dlslot[0] = 1
-    os.system("cat /dev/location > /dev/null &")
 title(batchfile)
 
 
@@ -864,7 +863,7 @@ def startserver(port, directory):
     def inj(self, *args):
         return RangeHTTPRequestHandler.__init__(self, *args, directory=self.directory)
     s = httpserver(("", port), type(f'RangeHTTPRequestHandler<{directory}>', (RangeHTTPRequestHandler,), {'__init__': inj, 'directory': directory}))
-    servers[0].append(s)
+    task["httpserver"].append(s)
     s.serve_forever()
     echo(f" HTTP SERVER: Stopped serving {d} freeing port {port}", 0, 1)
 
@@ -874,12 +873,15 @@ try:
 except:
     context = None
 # context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
-servers = [[]]
 def stopserver():
-    for s in servers[0]:
+    if sys.platform == "linux" and not busy[0] and not task["transmission"]:
+        os.system("killall -9 cat")
+    for s in task["httpserver"]:
         s.shutdown()
-    servers[0] = []
+    task["httpserver"] = []
 def restartserver():
+    if sys.platform == "linux" and not busy[0] and not task["transmission"]:
+        os.system("cat /dev/location > /dev/null &")
     port = 8885
     directories = [batchdir]
     for directory in directories:
@@ -1017,7 +1019,7 @@ def picker(s, rule):
         rule = rule.split(" ", 2)
         s["send"] += [[rule[1], rule[2]] if len(rule) == 2 else [rule[1], []]]
     elif rule.startswith("defuse"):
-        s["defuse"] = True
+        s["defuse"] = [True, rule.split(" ", 1)[1]] if " " in rule else [True, False]
     elif rule.startswith("visit"):
         s["visit"] = True
     elif rule.startswith("part "):
@@ -1054,10 +1056,10 @@ def picker(s, rule):
     elif rule.startswith("message "):
         s["message"] += [rule.split("message ", 1)[1]]
     elif rule.startswith("choose "):
-        c = rule.split("choose ", 1)[1].rsplit(" = ", 1)
-        c[0] = peanut(c[0], [], False)[0][1]
-        c[1] = c[1].split(" > ")
-        s["choose"] += [c]
+        choose = rule.split("choose ", 1)[1].rsplit(" = ", 1)
+        choose[0] = peanut(choose[0], [], False)[0][1]
+        choose[1] = choose[1].split(" > ")
+        s["choose"] += [choose]
     elif rule.startswith("file "):
         at(s[file_pos[0]], rule.split("file", 1)[1], [], 1)
     elif rule.startswith("relfile "):
@@ -1326,10 +1328,10 @@ print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 
 if not shuddup:
     choice(bg=["4c", "%color%"])
-    buffer = f"\n{tcolorr} TO YOURSELF: {rulefile} contains personal information like mail, password, cookies. Edit {rulefile} before sharing!"
+    buffer = f"\n{tcoloro} TO YOURSELF: {rulefile} contains personal information\n like mail, password, cookies. Edit {rulefile} before sharing!"
     if HTTPserver:
-        buffer += f"\n{tcoloro}{skull()} HTTP SERVER: Anyone accessing your server can open {rulefile} reading personal information like mail, password, cookies"
-    echo(f"""{buffer}\n{tcoloro} Add "shuddup" to {rulefile} to dismiss this message.{tcolorx}""", 0, 1)
+        buffer += f"\n{skull()}\n HTTP SERVER: Anyone accessing your server can open {rulefile} reading personal information\n like mail, password, cookies."
+    echo(f"""{buffer}\n\nAdd "shuddup" to {rulefile} to dismiss this message.{tcolorx}""", 0, 1)
 
 
 
@@ -2215,7 +2217,7 @@ def linear(d, z, r):
         # dc = str(dc)
         if x[5]:
             dc = x[5].join(s.strip() for s in dc.replace("\\", "/").split("/"))
-        if x[1] and not any(c for c in x[1] if c == dc) or x[2] and not met(dc, x[2]):
+        if x[1] and not any(c for c in x[1] if c == str(dc)) or x[2] and not met(dc, x[2]):
             if x[4]:
                 kill(0, x[4])
             else:
@@ -2382,9 +2384,9 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
 
 
     if pick["choose"]:
-        c = pick["choose"][pos-1]
+        choose = pick["choose"][pos-1]
     else:
-        c = ["", []]
+        choose = ["", []]
     meta = []
     linear_name = []
     off_branch_name = []
@@ -2410,11 +2412,11 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
         else:
             x = tree(db, [z[0], [[z[1], 0, 0, cwf, stderr, 0]]])
             off_branch_name += [x[0][0]] if x else []
-    files = tree(db, master_key + [file, key + [[c[0], c[1], 0, 0, 0, 0], [f[1], 0, f[2], cw, 0, 0]] + linear_name])
-    if c[1]:
+    files = tree(db, master_key + [file, key + [[choose[0], choose[1], 0, 0, 0, 0], [f[1], 0, f[2], cw, 0, 0]] + linear_name])
+    if choose[1]:
         cf = []
-        for cc in c[1]:
-            if [cx := x[:2] + x[3:] for x in files if x[2] == cc]:
+        for cc in choose[1]:
+            if [cx := x[:2] + x[3:] for x in files if str(x[2]) == cc]:
                 cf = cx
                 break
         files = [cf]
@@ -2425,8 +2427,8 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
         fp = []
         for x in meta:
             for y, cwf in x:
-                if len(c := carrots([[file[2], ""]], y, cwf, False)) == 2 and c[-2][1]:
-                    fp += [c[-2][1]]
+                if len(ret := carrots([[file[2], ""]], y, cwf, False)) == 2 and ret[-2][1]:
+                    fp += [ret[-2][1]]
                     break
                 elif not y:
                     fp += [""]
@@ -2490,7 +2492,18 @@ def get_data(threadn, page, url, pick):
     if not pick["ready"]:
         echo(f""" {"into" if url else "Visiting"} {page}""", 0, 1)
     if pick["defuse"]:
-        driver(page)
+        if x := pick["defuse"][1]:
+            cookie_err = f"I'll need a cookie named {x}."
+            while cookie_err:
+                for c in cookies:
+                    if pick["defuse"][1] == c.name:
+                        cookie_err = False
+                if cookie_err:
+                    echo(cookie_err, 0, 1)
+                    cookie_err = f"Hmm, I haven't gotten the cookie named {x} yet. Try again?"
+                    driver(page)
+        else:
+            driver(page)
     if pick["visit"]:
         fetch(page, stderr="Error visiting the page to visit")
     if pick["send"]:
@@ -2545,7 +2558,7 @@ def pick_in_page():
                     page = page.replace(y[1], y[0])
                     redir = True
             if redir and not pick["ready"]:
-                echo(f" Updated url with a permanent redirection from {url}", 0, 1)
+                echo(f" Updated url with a permanent redirection", 0, 1)
         if x := pick["url"]:
             url = page
             for y in x:
@@ -4892,7 +4905,11 @@ def start_remote(remote):
                         echo("", 1)
                         break
                     elif i == 18:
-                        os.system("killall -9 transmission-daemon")
+                        if sys.platform == "linux":
+                            os.system("killall -9 transmission-daemon")
+                        else:
+                            os.system("taskkill -f /im transmission-daemon.exe")
+                        task["transmission"] = False
                         return
                     elif i > 13:
                         sel2 = i
@@ -4930,6 +4947,8 @@ def torrent_get(fp=""):
             os.system("apk add transmission-cli")
         daemon = "transmission-daemon"
         remote = "transmission-remote"
+        if not task["httpserver"]:
+            os.system("cat /dev/location > /dev/null &")
     else:
         echo("Unimplemented for this system!")
         return
@@ -4948,7 +4967,8 @@ def torrent_get(fp=""):
             dir = torrentdir[""]
         subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", fp, "-sr", "0"], **shuddup)
     start_remote(remote)
-    return
+    if sys.platform == "linux" and not task["httpserver"]:
+        os.system("killall -9 cat")
 
 
 
@@ -5045,9 +5065,11 @@ def read_file(textread):
 
 
 
-busy[0] = True
 demo = [0]
 if filelist:
+    busy[0] = True
+    if sys.platform == "linux" and not task["httpserver"]:
+        os.system("cat /dev/location > /dev/null &")
     if len(filelist) > 1:
         kill(f"""
  Only one input at a time is allowed! It's a good indication that you should reorganize better
@@ -5056,7 +5078,9 @@ if filelist:
  Geistauge is also disabled which can be a reminder that this is not the setup to run Geistauge.
  May I suggest having another copy of this script with Geistauge enabled in different directory?''' if not Geistauge else ""}""")
     read_input(filelist[0])
-busy[0] = False
+    busy[0] = False
+    if sys.platform == "linux" and not task["httpserver"]:
+        os.system("killall -9 cat")
 
 
 
@@ -5149,7 +5173,7 @@ def keylistener():
                 echo(" HTTP SERVER: 10-second demo", 0, 1)
                 time.sleep(10)
                 stopserver()
-            elif servers[0]:
+            elif task["httpserver"]:
                 stopserver()
             else:
                 restartserver()
@@ -5157,7 +5181,7 @@ def keylistener():
             if not busy[0]:
                 ready_input()
         elif el == -10:
-            if not servers[0] or portkilled():
+            if not task["httpserver"] or portkilled():
                 echo("Press J twice in fast sequence to start server.", 1, 1)
             else:
                 echo("Press J twice in fast sequence to stop server.", 1, 1)
@@ -5304,6 +5328,8 @@ ready_input()
 while True:
     i, m = task["run"].get()
     busy[0] = True
+    if sys.platform == "linux" and not task["httpserver"] and not task["transmission"]:
+        os.system("cat /dev/location > /dev/null &")
     if i == 0:
         scrape([["", m, [0]]])
     elif i == 1:
@@ -5315,6 +5341,8 @@ while True:
     elif i == 3:
         downloadtodisk(False, "Key listener test")
     busy[0] = False
+    if sys.platform == "linux" and not task["httpserver"] and not task["transmission"]:
+        os.system("killall -9 cat")
     echo("", 0, 1)
     ready_input()
 
@@ -5333,10 +5361,28 @@ set color=0e && set stopcolor=05
 color %color%
 set batchfile=%~0
 if %cd:~-1%==\ (set batchdir=%cd%) else (set batchdir=%cd%\)
-set txtfile=%~n0.txt
-set txtfilex=%~dpn0.txt
+set pythondir=%userprofile%\AppData\Local\Programs\Python\
+if exist "%~n0.cd" (set tcd=%~n0.cd&&set TXT=%~dpn0.cd) else if exist "%~n0.txt" (set tcd=%~n0.txt&&set TXT=%~dpn0.txt)
 
 setlocal enabledelayedexpansion
+chcp 65001>nul
+if not "!TXT!"=="" for /f "delims=" %%i in ('findstr /b /i "Python = " "!TXT!"') do set string=%%i&& set string=!string:~9!&& goto check
+:check
+chcp 437>nul
+if not "!string!"=="" (set pythondir=!string!)
+set x=Python 3.10
+set cute=!x:.=!
+set cute=!cute: =!
+set pythondirx=!pythondir!!cute!
+if exist "!pythondirx!\python.exe" (cd /d "!pythondirx!" && color %color%) else (color %stopcolor%
+echo.
+if "!string!"=="" (echo  I can't seem to find \!cute!\python.exe^^! Install !x! in default location please, or edit this batch file.&&echo.&&echo  Download the latest !x!.x from https://www.python.org/downloads/) else (echo  Please fix path to \!cute!\python.exe in "Python =" setting in !tcd!)
+echo.
+echo  I must exit^^!
+pause%>nul
+exit)
+set pythondir=!pythondir:\=\\!
+
 set batchdir=!batchdir:\=\\!
 set filelist=
 if [%1]==[] goto skip
@@ -5349,25 +5395,6 @@ set filelist=!filelist!//!file!
 shift
 if not [%1]==[] goto loop
 :skip
-
-set pythondir=%userprofile%\AppData\Local\Programs\Python\
-chcp 65001>nul
-if exist "!txtfilex!" for /f "delims=" %%i in ('findstr /b /i "Python = " "!txtfilex!"') do set string=%%i&& set string=!string:~9!&& goto check
-:check
-chcp 437>nul
-if not "!string!"=="" (set pythondir=!string!)
-set x=Python 3.10
-set cute=!x:.=!
-set cute=!cute: =!
-set pythondirx=!pythondir!!cute!
-if exist "!pythondirx!\python.exe" (cd /d "!pythondirx!" && color %color%) else (color %stopcolor%
-echo.
-if "!string!"=="" (echo  I can't seem to find \!cute!\python.exe^^! Install !x! in default location please, or edit this batch file.&&echo.&&echo  Download the latest !x!.x from https://www.python.org/downloads/) else (echo  Please fix path to \!cute!\python.exe in "Python =" setting in !txtfile!)
-echo.
-echo  I must exit^^!
-pause%>nul
-exit)
-set pythondir=!pythondir:\=\\!
 
 if exist Lib\site-packages\ (echo.) else (goto install)
 if exist Lib\site-packages\ (goto start) else (echo.)

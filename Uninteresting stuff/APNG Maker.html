@@ -1035,7 +1035,7 @@ function compileframes(multi=true){
     ti[0] = performance.now()
     ti[1] = performance.now()
 
-    if (interFrameN == 0&&!bg||!multi&&!bg){
+    if (!multi&&!bg){
       get_dim(framearray[seqFrameN[interFrameN]-1][0])
     }
     c.width = dim[2];
@@ -1070,6 +1070,9 @@ function compileframes(multi=true){
     } else {
       if (start[0]){
         start[0] = false
+        if (multi&&!bg){
+          get_dim(framearray[seqFrameN[0]-1][0])
+        }
         lastFrameN = seqFrameN[0]
         delayFrame(interFrameN+1)
       } else {

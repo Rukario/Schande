@@ -1416,8 +1416,8 @@ def fetch(url, stderr="", dl=0, threadn=0, data=None):
     headers = {x[0][0]:x[0][1]} if (x := [v for k, v in hydras.items() if url.startswith(k)]) else {}
     headers.update({'User-Agent':ua, 'Referer':referer, 'Origin':referer})
     while True:
+        headers.update({'Range':f'bytes={dl}-', 'Accept':"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"})
         try:
-            headers.update({'Range':f'bytes={dl}-', 'Accept':"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"})
             resp = request.urlopen(request.Request(saint(url=url), headers=headers, data=data))
             break
         except HTTPError as e:
@@ -1994,7 +1994,9 @@ def new_driver():
         # import undetected_chromedriver as uc
         # return uc.Chrome()
         options = webdriver.ChromeOptions()
-        options.arguments.extend([f'user-data-dir={batchdir}chromedriver', f"user-agent={mozilla['http']}", '--disable-blink-features=AutomationControlled', "--no-default-browser-check", "--no-first-run"])
+        options.arguments.extend([f'user-data-dir={batchdir}chromedriver', '--disable-blink-features=AutomationControlled', "--no-default-browser-check", "--no-first-run"])
+        if "http" in mozilla:
+            options.add_argument(f"user-agent={mozilla['http']}")
         driver = webdriver.Chrome(options=options)
         driver.execute_cdp_cmd(
             "Page.addScriptToEvaluateOnNewDocument",
@@ -2057,7 +2059,9 @@ def driver(url):
             return
     # url = "https://www.whatsmyua.info/"
     driver_running[0].get(url)
-    if not driver_running[0].execute_script('return navigator.userAgent') == mozilla['http']:
+    if not 'http' in mozilla:
+        echo(f" BROWSER: Update your user-agent spoofer with:\n\n {driver_running[0].execute_script('return navigator.userAgent')}\n", 0, 1)
+    elif not driver_running[0].execute_script('return navigator.userAgent') == mozilla['http']:
         echo(f" BROWSER: My user-agent didn't match to an user-agent spoofer.", 0, 1)
     # ff_login(url)
     echo("(C)ontinue when finished defusing.")
@@ -4886,9 +4890,10 @@ def start_remote(remote):
                         echo("", 1)
                     elif i == 16:
                         echo(f" - - {(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
-                        with subprocess.Popen([remote, "-t", str(el-1+pos), "-f"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
+                        with subprocess.Popen([remote, "-t", str(el-1+pos), "-f"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as p:
                             listed = False
-                            for line in p.stdout:
+                            buffer = p.communicate()[0].decode().splitlines()
+                            for line in buffer:
                                 line = line.rstrip()
                                 if line and not line.startswith("  #  Done") and not line.endswith("files):"):
                                     listed = True

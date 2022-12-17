@@ -3231,7 +3231,6 @@ function send(b, e){
 }
 
 function lazykeys() {
-  lazykey = document.querySelectorAll(".time");
   var partObserver = new IntersectionObserver(function(parts, observer) {
     parts.forEach(function(e) {
       if (e.isIntersecting) {
@@ -3250,8 +3249,21 @@ function lazykeys() {
     });
   });
 
+  var lazykey = document.querySelectorAll(".time");
   lazykey.forEach(function(e) {
-    partObserver.observe(e);
+    if(e.style.display !== 'none' && keywords[e.id]){
+      var d = document.createElement("div");
+      d.classList.add("nextword");
+      d.addEventListener("click", edit_key);
+      if(keywords[e.id]){
+        d.innerHTML = keywords[e.id]
+      } else {
+        d.innerHTML = "+"
+      }
+      e.appendChild(d);
+    } else {
+      partObserver.observe(e);
+    }
   });
 }
 

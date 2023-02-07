@@ -63,14 +63,6 @@ task = {"httpserver":[], "transmission":False, "run":Queue()}
 retries = [0]
 sf = [0]
 
-# Probably useless settings
-collisionisreal = False
-editisreal = False
-buildthumbnail = False
-shuddup = True
-showpreview = False
-verifyondisk = False
-
 
 
 def ansi(c):
@@ -992,8 +984,8 @@ def at(s, r, cw=[], alt=0, key=False, name=False, meta=False):
     if name and r[0] and not r[2]:
         file_pos[0] = "file_after"
     if name or meta:
-        if len(s) > total_names[0]:
-            total_names[0] = len(s)
+        if len(s) > site["seqN"]:
+            site["seqN"] = len(s)
 
 def declare(rule, boolean=False):
     rule = rule.split("=", 1)
@@ -1014,7 +1006,7 @@ def new_picker():
 
 
 file_pos = ["file"]
-def picker(s, rule):
+def add_picker(s, rule):
     if rule.startswith("send "):
         rule = rule.split(" ", 2)
         s["send"] += [[rule[1], rule[2]] if len(rule) == 2 else [rule[1], []]]
@@ -1126,132 +1118,136 @@ def picker(s, rule):
 
 
 
-# Loading referer, sort, and custom dir rules, pickers, and inline file rejection by file types from rulefile
-bgcolor = False
-fgcolor = "3"
-customdir = {}
-torrentdir = {}
-sorter = {}
-md5er = []
-referers = {}
-hydras = {}
-mozilla = {}
-exempt = []
-dir = ""
-ticks = []
-site = "inline"
-pickers = {site:new_picker()}
-total_names = [0]
-for rule in rules:
+def getrule(rule):
     if not rule or rule.startswith("#"):
-        continue
+        return
 
 
 
     rr = rule.split(" for ")
     if len(rr) == 2 and rr[0].startswith("md5"):
-        md5er += [rr[1]]
+        sorter["md5"] += [rr[1]]
     elif len(rr) == 2 and rr[0].startswith("Mozilla/5.0"):
-        mozilla.update({rr[1]: rr[0]})
+        navigator["agent"].update({rr[1]: rr[0]})
     elif len(rr) == 2 and rr[1].endswith("torrents"):
         d = rr[0].replace("\\", "/")
         r = rr[1].rsplit(" torrents", 1)
         if len(r) == 2 and d.endswith("/*"):
             d = d.rsplit("/*", 1)[0]
             if r[0] == "all other":
-                torrentdir.update({"": d})
+                sorter["torrentdirs"].update({"": d})
             else:
-                torrentdir.update({r[0]: d})
+                sorter["torrentdirs"].update({r[0]: d})
         else:
             kill("\n There is at least one of the bad torrent dir rules (folder didn't end with /* or name had a spacing issue).")
     elif len(rr) == 2 and rr[1].startswith("http"):
         if rr[0].startswith("http"):
-            referers.update({rr[1]: rr[0]})
+            navigator["referers"].update({rr[1]: rr[0]})
         elif len(r := ast(rr[0]).split("*")) == 2:
-            customdir.update({rr[1]: r})
+            sorter["customdirs"].update({rr[1]: r})
         elif len(r := rr[0].split(" ")) == 2:
-            hydras.update({rr[1]: r})
+            navigator["headers"].update({rr[1]: r})
         else:
             kill("\n There is at least one of the bad custom dir rules (no asterisk or too many).")
     elif len(rr) == 2 and rr[1].startswith('.') or len(rr) == 2 and rr[1].startswith('www.'):
         c = new_cookie()
         c.update({'domain': rr[1], 'name': rr[0].split(" ")[0], 'value': rr[0].split(" ")[1]})
         cookies.set_cookie(cookiejar.Cookie(**c))
-        if not shuddup == 2: shuddup = False
+        if not cli["dismiss"] == 2:
+            cli["dismiss"] = False
 
 
 
     elif len(sr := rule.split(" seconds rarity ")) == 2:
-        ticks += [[int(x) for x in sr[0].split("-")]]*int(sr[1].split("%")[0])
+        navigator["timeout"] += [[int(x) for x in sr[0].split("-")]]*int(sr[1].split("%")[0])
     elif rule == "collisionisreal":
-        collisionisreal = True
+        sorter["collisionisreal"] = True
     elif rule == "editisreal":
-        editisreal = True
+        sorter["editisreal"] = True
     elif rule == "buildthumbnail":
-        buildthumbnail = True
-    elif rule == "showpreview":
-        showpreview = True
+        sorter["buildthumbnail"] = True
     elif rule == "verifyondisk":
-        verifyondisk = True
+        sorter["verifyondisk"] = True
     elif rule == "theyfuckedup":
         ssl._create_default_https_context = ssl._create_unverified_context
-    elif rule == "shuddup":
-        shuddup = 2
     elif rule.startswith('bgcolor '):
-        bgcolor = rule.replace("bgcolor ", "")
+        cli["bgcolor"] = rule.replace("bgcolor ", "")
     elif rule.startswith('fgcolor '):
-        fgcolor = rule.replace("fgcolor ", "")
+        cli["fgcolor"] = rule.replace("fgcolor ", "")
+    elif rule == "silence":
+        cli["dismiss"] = 2
+    elif rule == "showpreview":
+        cli["showpreview"] = True
     elif rule.startswith('!'):
-        pickers[site]["pattern"][1 if rule.startswith("!!") else 0] += [rule.lstrip("!")]
+        navigator["pickers"][site["http"]]["pattern"][1 if rule.startswith("!!") else 0] += [rule.lstrip("!")]
     elif rule.startswith('.'):
-        pickers[site]["pattern"][1] += [rule]
+        navigator["pickers"][site["http"]]["pattern"][1] += [rule]
     elif rule.startswith("\\"):
-        dir = rule.split("\\", 1)[1]
-        if dir.endswith("\\"):
-            if dir in sorter:
-                print(f"{tcoloro} SORTER: \\{dir} must be announced only once.{tcolorx}")
-            sorter.update({dir: [False]})
+        site["dir"] = rule.split("\\", 1)[1]
+        if site["dir"].endswith("\\"):
+            if site["dir"] in sorter["dirs"]:
+                print(f"""{tcoloro} SORTER: \\{site["dir"]} must be announced only once.{tcolorx}""")
+            sorter["dirs"].update({site["dir"]: [False]})
         else:
-            dir = dir.rsplit("\\", 1)
+            dir = site["dir"].rsplit("\\", 1)
             dir[0] += "\\"
-            if dir[0] in sorter:
-                print(f"{tcoloro} SORTER: \\{dir[0]} must be announced only once.{tcolorx}")
-            sorter.update({dir[0]: [False, dir[1]]})
+            site["dir"] = dir[0]
+            if dir[0] in sorter["dirs"]:
+                print(f"""{tcoloro} SORTER: \\{dir[0]} must be announced only once.{tcolorx}""")
+            sorter["dirs"].update({dir[0]: [False, dir[1]]})
     elif rule.startswith("!\\"):
-        dir = rule.split("!\\", 1)[1]
-        if dir.endswith("\\"):
-            if dir in sorter:
-                print(f"{tcoloro} SORTER: \\{dir} must be announced only once.{tcolorx}")
-            sorter.update({dir: [True]})
+        site["dir"] = rule.split("!\\", 1)[1]
+        if site["dir"].endswith("\\"):
+            if site["dir"] in sorter["dirs"]:
+                print(f"""{tcoloro} SORTER: \\{site["dir"]} must be announced only once.{tcolorx}""")
+            sorter["dirs"].update({site["dir"]: [True]})
         else:
-            dir = dir.rsplit("\\", 1)
+            dir = site[1].rsplit("\\", 1)
             dir[0] += "\\"
-            if dir[0] in sorter:
+            site["dir"] = dir[0]
+            if dir[0] in sorter["dirs"]:
                 print(f"{tcoloro} SORTER: \\{dir[0]} must be announced only once.{tcolorx}")
-            sorter.update({dir[0]: [True, dir[1]]})
+            sorter["dirs"].update({dir[0]: [True, dir[1]]})
     elif rule.startswith("http"):
-        for n in range(total_names[0]):
-            if not pickers[site]["name"][n]:
+        for n in range(site["seqN"]):
+            if not navigator["pickers"][site["http"]]["name"][n]:
                 kill(f"\n One of the name pickers for sequential name assemblement was skipped.")
-        total_names[0] = 0
-        site = rule
-        if not site in pickers:
-            pickers.update({site:new_picker()})
+        site["seqN"] = 0
+        site["http"] = rule
+        if not site["http"] in navigator["pickers"]:
+            navigator["pickers"].update({site["http"]:new_picker()})
         file_pos[0] = "file"
-    elif picker(pickers[site], rule):
+    elif add_picker(navigator["pickers"][site["http"]], rule):
         pass
-    elif dir:
-        sorter[dir] += [rule]
+    elif site["dir"]:
+        sorter["dirs"][site["dir"]] += [rule]
     else:
-        exempt += [rule]
-torrentdir.update({"": "Transmission"})
+        sorter["exempts"] += [rule]
 
-for n in range(total_names[0]):
-    if not pickers[site]["name"][n]:
-        kill(f"\n One of the name pickers for sequential name assemblement was skipped.")
 
-if bgcolor:
-    tcolorx = ansi_color(bgcolor, fgcolor)
+
+def loadrule():
+    navigator["pickers"] = {site["http"]:new_picker()}
+    sorter["torrentdirs"] = {"":"Transmission"}
+
+    for rule in rules:
+        getrule(rule)
+
+    for n in range(site["seqN"]):
+        if not navigator["pickers"][site["http"]]["name"][n]:
+            kill(f"\n One of the name pickers for sequential name assemblement was skipped.")
+
+
+
+cli = {"bgcolor":False, "fgcolor":"3", "dismiss":0, "showpreview":False}
+navigator = {"referers":{}, "headers":{}, "agent":{"http":"Mozilla/5.0"}, "timeout":[], "pickers":{}}
+sorter = {"md5":[], "customdirs":{}, "torrentdirs":{}, "dirs":{}, "exempts":[], "buildthumbnail":False, "verifyondisk":False, "collisionisreal":False, "editisreal":False}
+site = {"http":"inline", "dir":"", "seqN":0}
+
+# Loading referer, sort, and custom dir rules, pickers, and inline file rejection by file types from rulefile
+loadrule()
+if cli["bgcolor"]:
+    tcolorx = ansi_color(cli["bgcolor"], cli["fgcolor"])
     sys.stdout.write(tcolorx + cls)
 
 
@@ -1285,8 +1281,8 @@ if Mail:
         import getpass
         Mail += [getpass.getpass(prompt=f" {Mail[0]}'s password (automatic if saved as third address): ")]
         echo("", 1)
-    if not shuddup == 2:
-        shuddup = False
+    if not cli["dismiss"] == 2:
+        cli["dismiss"] = False
 else:
     print(" MAIL: NONE")
 if Geistauge == None:
@@ -1300,9 +1296,9 @@ if Geistauge:
         print(" GEISTAUGE: ON")
     except:
         kill(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install pillow\n{echo_pip()} install numpy\n{echo_pip()} install opencv-python")
-elif verifyondisk:
+elif sorter["verifyondisk"]:
     kill(f""" GEISTAUGE: I must be enabled for "verifyondisk" declared in {rulefile}.""")
-elif buildthumbnail:
+elif sorter["buildthumbnail"]:
     kill(f""" GEISTAUGE: I must be enabled for "buildthumbnail" declared in {rulefile}.""")
 else:
     print(" GEISTAUGE: OFF")
@@ -1326,26 +1322,26 @@ print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 
 
 
-if not shuddup:
+if not cli["dismiss"]:
     choice(bg=["4c", "%color%"])
     buffer = f"\n{tcoloro} TO YOURSELF: {rulefile} contains personal information\n like mail, password, cookies. Edit {rulefile} before sharing!"
     if HTTPserver:
         buffer += f"\n{skull()}\n HTTP SERVER: Anyone accessing your server can open {rulefile} reading personal information\n like mail, password, cookies."
-    echo(f"""{buffer}\n\nAdd "shuddup" to {rulefile} to dismiss this message.{tcolorx}""", 0, 1)
+    echo(f"""{buffer}\n\nAdd "silence" to {rulefile} to dismiss this message.{tcolorx}""", 0, 1)
 
 
 
-tn = [len(ticks)]
+tn = [len(navigator["timeout"])]
 ticking = [False]
 def timer(e="", ind=True, listen=[True], notlisten=[False]):
-    if not ticks:
-        ticks.append([4, 8])
-        tn[0] = len(ticks)
+    if not navigator["timeout"]:
+        navigator["timeout"].append([4, 8])
+        tn[0] = len(navigator["timeout"])
         echo(f"""\n"#-# seconds rarity 100%" in {rulefile} to customize timer, add another timer to manipulate rarity.\n""", 1, 1)
         return
     if not ticking[0]:
         ticking[0] = True
-        r = ticks[int(tn[0]*random())]
+        r = navigator["timeout"][int(tn[0]*random())]
         s = r[0]+int((r[1]-r[0]+1)*random())
         for sec in range(s):
             echo(f"{e} {s-sec} . . .")
@@ -1411,9 +1407,9 @@ def retry(stderr):
 
 
 def fetch(url, stderr="", dl=0, threadn=0, data=None):
-    referer = x[0] if (x := [v for k, v in referers.items() if url.startswith(k)]) else ""
-    ua = x[0] if (x := [v for k, v in mozilla.items() if url.startswith(k)]) else 'Mozilla/5.0'
-    headers = {x[0][0]:x[0][1]} if (x := [v for k, v in hydras.items() if url.startswith(k)]) else {}
+    referer = x[0] if (x := [v for k, v in navigator["referers"].items() if url.startswith(k)]) else ""
+    ua = x[0] if (x := [v for k, v in navigator["agent"].items() if url.startswith(k)]) else 'Mozilla/5.0'
+    headers = {x[0][0]:x[0][1]} if (x := [v for k, v in navigator["headers"].items() if url.startswith(k)]) else {}
     headers.update({'User-Agent':ua, 'Referer':referer, 'Origin':referer})
     while True:
         headers.update({'Range':f'bytes={dl}-', 'Accept':"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"})
@@ -1634,7 +1630,7 @@ def echolinks():
         threadn, todisk, onserver, sleep = task["download"].get()
         conflict = [[], []]
         for n in range(len(onserver)):
-            if n and not collisionisreal:
+            if n and not sorter["collisionisreal"]:
                 continue
             url = onserver[n]
             if n:
@@ -1676,7 +1672,7 @@ def check(string, patterns, whitelist=False):
 
 
 def isrej(filename, pattern):
-    inline = pickers["inline"]["pattern"]
+    inline = navigator["pickers"]["inline"]["pattern"]
     rejected = ""
     origin = ""
     if "/" in filename:
@@ -1703,7 +1699,7 @@ def isrej(filename, pattern):
     elif not rejected and inline[0]:
         origin = rulefile
         rejected = check(filename, inline[0])
-    if rejected and showpreview:
+    if rejected and cli["showpreview"]:
         if rejected in filename.lower():
             print(f"{tcolor}{origin:>18}: {dir}{filename.lower().replace(rejected, tcolorr + rejected + tcolor)}{tcolorx}")
         else:
@@ -1715,7 +1711,7 @@ def isrej(filename, pattern):
 def get_cd(subdir, file, pattern, makedirs=False, preview=False):
     link = file["link"]
     todisk = batchname + "/" + file["name"].replace("\\", "/")
-    if rule := [v for k, v in customdir.items() if k in link]:
+    if rule := [v for k, v in sorter["customdirs"].items() if k in link]:
         name, ext = os.path.splitext(file["name"])
         name = name.rsplit("/", 1)
         if len(name) == 2:
@@ -1730,7 +1726,7 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
         if isrej(todisk, pattern):
             link = ""
         elif not preview and not os.path.exists(dir):
-            if makedirs or [ast(x) for x in exempt if ast(x) == dir.replace("/", "\\")]:
+            if makedirs or [ast(x) for x in sorter["exempts"] if ast(x) == dir.replace("/", "\\")]:
                 try:
                     os.makedirs(dir)
                 except:
@@ -1882,7 +1878,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
             k = htmldirs[dir][key]["keywords"][1]
             if not edited == "0" and not edited == k:
                 if os.path.exists(ondisk):
-                    if editisreal:
+                    if sorter["editisreal"]:
                         old = ".old_file_" + k
                         os.rename(ondisk, ren(ondisk, old))
                         thumbnail = ren(ondisk, '_small')
@@ -1922,7 +1918,7 @@ URL={page["link"]}""")
 
 
 
-        if (part := frompart(f"{dir}{thumbnail_dir}partition.json", htmldirs[dir], htmlpart, pattern)) or verifyondisk:
+        if (part := frompart(f"{dir}{thumbnail_dir}partition.json", htmldirs[dir], htmlpart, pattern)) or sorter["verifyondisk"]:
             new_relics = {}
             for key in part.keys():
                 part[key].update({"visible": False if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern) else True})
@@ -1944,7 +1940,7 @@ URL={page["link"]}""")
 
 
     # Autosave (3/3), build thumbnails and errorHTML
-    if buildthumbnail:
+    if sorter["buildthumbnail"]:
         echo("Building thumbnails . . .")
         for dir in htmldirs.keys():
             for file in next(os.walk(dir))[2]:
@@ -1995,8 +1991,8 @@ def new_driver():
         # return uc.Chrome()
         options = webdriver.ChromeOptions()
         options.arguments.extend([f'user-data-dir={batchdir}chromedriver', '--disable-blink-features=AutomationControlled', "--no-default-browser-check", "--no-first-run"])
-        if "http" in mozilla:
-            options.add_argument(f"user-agent={mozilla['http']}")
+        if "http" in navigator["agent"]:
+            options.add_argument(f"user-agent={navigator['agent']['http']}")
         driver = webdriver.Chrome(options=options)
         driver.execute_cdp_cmd(
             "Page.addScriptToEvaluateOnNewDocument",
@@ -2018,7 +2014,7 @@ def new_driver():
             os.makedirs(batchdir + "geckodriver")
         options = webdriver.FirefoxOptions()
         options.arguments.extend(['--profile', batchdir + "geckodriver"])
-        options.set_preference('general.useragent.override', mozilla['http'])
+        options.set_preference('general.useragent.override', navigator['agent']['http'])
         driver = webdriver.Firefox(options=options)
         # driver.execute_script("")
         return driver
@@ -2059,9 +2055,9 @@ def driver(url):
             return
     # url = "https://www.whatsmyua.info/"
     driver_running[0].get(url)
-    if not 'http' in mozilla:
+    if not 'http' in navigator:
         echo(f" BROWSER: Update your user-agent spoofer with:\n\n {driver_running[0].execute_script('return navigator.userAgent')}\n", 0, 1)
-    elif not driver_running[0].execute_script('return navigator.userAgent') == mozilla['http']:
+    elif not driver_running[0].execute_script('return navigator.userAgent') == navigator['agent']['http']:
         echo(f" BROWSER: My user-agent didn't match to an user-agent spoofer.", 0, 1)
     # ff_login(url)
     echo("(C)ontinue when finished defusing.")
@@ -2953,16 +2949,16 @@ def scrape(startpages):
             pgs[0] -= 1
             threadn += 1
             echothreadn.append(threadn)
-            get_pick = [x for x in pickers.keys() if page.startswith(x)]
+            get_pick = [x for x in navigator["pickers"].keys() if page.startswith(x)]
             if not get_pick:
                 print(f"I don't have a scraper for {page}")
                 break
-            pick = pickers[get_pick[0]]
+            pick = navigator["pickers"][get_pick[0]]
             if not start:
                 start = page
                 shelf.update({start: new_part(threadn)})
                 fromhtml = shelf[start]
-                fromhtml["pattern"] = pickers[get_pick[0]]["pattern"]
+                fromhtml["pattern"] = navigator["pickers"][get_pick[0]]["pattern"]
                 fromhtml["inlinefirst"] = pick["inlinefirst"]
             else:
                 fromhtml = shelf[start]
@@ -3132,7 +3128,7 @@ def container(dir, ondisk, pattern, label=''):
     elif ondisk.lower().endswith(tuple(imagefile)):
         # if not os.path.exists(dir + ondisk):
         #     return f"""<div class="frame"><div class="edits">Rebuild HTML with<br>{batchfile} in another<br>dir is required to view</div>{label}</div>"""
-        if buildthumbnail:
+        if sorter["buildthumbnail"]:
             thumbnail = f"{subdir}{thumbnail_dir}" + ren(link.rsplit("/", 1), "_small")
         else:
             thumbnail = link
@@ -3722,7 +3718,7 @@ var geistauge = false;
 var co = "position:fixed; right:0; top:0; z-index:1; pointer-events:none;"
 var cf = co + "max-height: 100vh; max-width: 100vw;";
 var cs = co
-var fit = false;
+var shiftable = false;
 var slideIndex = 1;
 function swap(e) {
   var t = e.target;
@@ -3772,8 +3768,7 @@ function swap(e) {
         geistauge = false;
       }
     });
-  } else if(e.which == 16 && !fit) {
-    fit = true;
+  } else if(e.which == 16 && shiftable) {
     cs = cf
     let tc = document.getElementById("quicklook")
     if(tc) {
@@ -3785,7 +3780,7 @@ function swap(e) {
     d.innerHTML = a[1];
     document.addEventListener("mouseover", quicklook);
     t.addEventListener("keyup", function(k) {
-      if(k.which == 16) {
+      if(k.which == 16 && shiftable) {
         d.classList = "tangerine";
         d.innerHTML = a[2];
         cs = co
@@ -3793,7 +3788,6 @@ function swap(e) {
         if(tc) {
           tc.style = cs;
         }
-        fit = false;
       }
     });
   }
@@ -3832,25 +3826,25 @@ function preview(e) {
     e.classList = "previous";
     e.innerHTML = a[1];
     document.addEventListener("mouseover", quicklook);
-    fit = true;
+    shiftable = false;
     cs = cf
   } else if(e.classList.contains("previous")) {
     e.classList = "tangerine";
     e.innerHTML = a[2];
     cs = co
-    fit = false;
+    shiftable = true;
   } else if(e.classList.contains("tangerine")) {
     e.classList = "next";
     e.innerHTML = a[0];
     cs = co
     document.removeEventListener("mouseover", quicklook);
-    fit = false;
+    shiftable = false;
   } else {
     e.classList = "next";
     e.innerHTML = a[0];
     cs = co
     document.removeEventListener("mouseover", quicklook);
-    fit = false;
+    shiftable = false;
   }
 }
 
@@ -3897,61 +3891,79 @@ function hideSources() {
   }
 }
 
-function hideParts(e, t='', a=true) {
-  if (t.length == 1) return;
-  t = t.toLowerCase().split(" ");
-  var tp = []
-  for (var p=0; p < t.length; p++) {
-    if(t[p].length > 1){
-      tp.push(t[p])
+function hideParts(e) {
+  if (search.length == 1 || ignore.length == 1) return;
+  var ignored = ignore.value.toLowerCase().split(" ");
+  var searched = search.value.toLowerCase().split(" ");
+
+  var pattern = [[], []]
+  for (var i=0; i < ignored.length; i++) {
+    if(ignored[i].length > 1){
+      pattern[0].push(ignored[i])
     }
   }
-  var x = document.getElementsByClassName("cell");
-  var c, f;
-  c = false;
+  for (var i=0; i < searched.length; i++) {
+    if(searched[i].length > 1){
+      pattern[1].push(searched[i])
+    }
+  }
+
+  var nodes = document.getElementsByClassName("cell");
+  var isClass = false;
   if (!e){
-    for (var i=0; i < x.length; i++) {
-      x[i].style.display = 'inline-block';
+    for (var i=0; i < nodes.length; i++) {
+      nodes[i].style.display = 'inline-block';
     }
     return
   }
+
   e = e.split('.');
   if (e.length > 1){
     e[0] = e[1]
-    c = true
+    isClass = true
   }
-  var fx = tp.length
-  for (var i=0; i < x.length; i++) {
-    var fp = '';
-    if (c){
-      fp = x[i].getElementsByClassName(e[0])
-      if (fp.length > 0){
-        fp = fp[0].textContent;
+
+  for (var i=0; i < nodes.length; i++) {
+    var subNodes = '';
+    if (isClass){
+      subNodes = nodes[i].getElementsByClassName(e[0])
+      if (subNodes.length > 0){
+        subNodes = subNodes[0].textContent;
       } else {
-        x[i].style.display = 'none';
+        nodes[i].style.display = 'none';
         continue
       }
     } else {
-      fp = x[i].getElementsByTagName(e[0])
-      if (fp.length > 0){
-        fp = fp[0].textContent;
+      subNodes = nodes[i].getElementsByTagName(e[0])
+      if (subNodes.length > 0){
+        subNodes = subNodes[0].textContent;
       } else {
-        x[i].style.display = 'none';
+        nodes[i].style.display = 'none';
         continue
       }
     }
-    f = false;
-    fp = fp.toLowerCase();
-    for (var p=0; p < tp.length; p++) {
-      if (tp[p] && fp.includes(tp[p])){
-        f = true;
+    subNodes = subNodes.toLowerCase();
+
+    var hide = false;
+    for (var p=0; p < pattern[0].length; p++) {
+      if (pattern[0][p] && subNodes.includes(pattern[0][p])){
+        hide = true;
         break;
       }
     };
-    if (fx && !a && !f && fp || fx && a && f && fp){
-      x[i].style.display = 'none';
+    if (!hide && pattern[1].length) {
+      hide = true;
+      for (var p=0; p < pattern[1].length; p++) {
+        if (pattern[1][p] && subNodes.includes(pattern[1][p])){
+          hide = false;
+          break;
+        }
+      };
+    }
+    if (hide && subNodes){
+      nodes[i].style.display = 'none';
     } else {
-      x[i].style.display = 'inline-block';
+      nodes[i].style.display = 'inline-block';
     }
   }
 }
@@ -4012,11 +4024,11 @@ function lazyload() {
 <button class="next" onclick="resizeCell('calc(50% - 33px)')">. .</button>
 <button class="next" onclick="resizeCell('calc(33.33% - 34px)')">...</button>
 <button class="next" onclick="resizeCell('calc(25% - 35px)')">....</button>
-<button id="fi" class="next" onclick="preview(this)" data-sel="Preview, Preview [ ], Preview 1:1" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel">Preview</button>
+<button id="fi" class="next" onclick="preview(this)" data-sel="Preview, Preview [ ], Preview 1:1" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel<br>Choose 1:1 mode to enable shift key.">Preview</button>
 <button id="ge" class="next" onclick="previewg(this)" data-sel="Original, vs left, vs left &lt;, vs left &gt;, Find Edge" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
 <button class="next" onclick="hideSources()">Sources</button>
-<input class="next" type="text" oninput="hideParts('h2', this.value, false);" style="padding-left:8px; padding-right:8px; width:140px;" value="{" ".join(pattern[1])}" placeholder="Search title">
-<input class="next" type="text" oninput="hideParts('h2', this.value);" style="padding-left:8px; padding-right:8px; width:140px;" value="{" ".join(pattern[0])}" placeholder="Ignore title">
+<input class="next" id="search" type="text" oninput="hideParts('h2');" style="padding-left:8px; padding-right:8px; width:140px;" value="{" ".join(pattern[1])}" placeholder="Search title">
+<input class="next" id="ignore" type="text" oninput="hideParts('h2');" style="padding-left:8px; padding-right:8px; width:140px;" value="{" ".join(pattern[0])}" placeholder="Ignore title">
 <button class="next" onclick="hideParts('.edits')">Edits</button>
 <button class="next" onclick="hideParts()">&times;</button>
 <div class="dark local_tooltip" id="local_tooltip"></div>
@@ -4112,7 +4124,7 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
             files += [file]
     stray_files = sorted(set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
 
-    if verifyondisk:
+    if sorter["verifyondisk"]:
         if not "geistauge" in task:
             task.update({"geistauge":Queue()})
             for i in range(8):
@@ -4144,7 +4156,7 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
             echo(f"Blacklisted file saved on disk: {ondisk}", 0, 1)
             error[2] += [f"&gt; Blacklisted file saved on disk: {ondisk}"]
 
-    if buildthumbnail:
+    if sorter["buildthumbnail"]:
         echo("Building thumbnails . . .")
 
 
@@ -4169,7 +4181,7 @@ def tohtml(subdir, htmlname, part, pattern):
 
 
 
-    if buildthumbnail:
+    if sorter["buildthumbnail"]:
         echo("Building thumbnails . . .")
 
 
@@ -4298,7 +4310,7 @@ def tohtml_geistauge(delete=False):
             continue
         Perfectexemption = True
         for file in fplist:
-            if not any(word in file for word in exempt):
+            if not any(word in file for word in sorter["exempts"]):
                 Perfectexemption = False
         if Perfectexemption:
             continue
@@ -4325,10 +4337,10 @@ def tohtml_geistauge(delete=False):
                     fp = whsm(file)
                     new_savx += [" ".join([str(x) for x in fp]) + f" {file}"]
             if fp[3] == fp2[3] and delete:
-                if not any(word in file2 for word in exempt):
+                if not any(word in file2 for word in sorter["exempts"]):
                     if os.path.exists(file2):
                         os.remove(file2)
-                elif not any(word in file for word in exempt):
+                elif not any(word in file for word in sorter["exempts"]):
                     if os.path.exists(file):
                         os.remove(file)
                     file = file2
@@ -4596,8 +4608,8 @@ def finish_sort():
         return
     mover = {}
     for file in next(os.walk(batchname + "/"))[2]:
-        for n in md5er:
-            if len(c := carrots([[file,""]], n, [], False)) == 2 and not c[0][0] and not c[-1][0]:
+        for hash in sorter["md5"]:
+            if len(c := carrots([[file,""]], hash, [], False)) == 2 and not c[0][0] and not c[-1][0]:
                 ondisk = batchname + "/" + file
                 with open(ondisk, 'rb') as f:
                     s = f.read()
@@ -4611,10 +4623,10 @@ def finish_sort():
                     if choice("d") == 1:
                         os.remove(ondisk)
                 break
-        for dir in sorter.keys():
-            if sorter[dir][0]:
+        for dir in sorter["dirs"].keys():
+            if sorter["dirs"][dir][0]:
                 found = False
-                for n in sorter[dir][1:]:
+                for n in sorter["dirs"][dir][1:]:
                     if fnmatch(file, n):
                         found = True
                         break
@@ -4623,7 +4635,7 @@ def finish_sort():
                     mover.update({file:dir})
                     break
             else:
-                for n in sorter[dir][1:]:
+                for n in sorter["dirs"][dir][1:]:
                     if fnmatch(file, n):
                         print(f"{tcolorb}{batchname}\\ {tcolorr}-> {tcolorg}{dir}{tcolor}{file}{tcolorx}")
                         mover.update({file:dir})
@@ -4767,7 +4779,7 @@ def list_remote(remote):
 
 
 def start_remote(remote):
-    shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
+    silence = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
     keys = [*"0123456789", "All", *"dfsglmkrei"]
     pos = 0
     sel = 14
@@ -4805,7 +4817,7 @@ def start_remote(remote):
                     echo(f"Press L twice in fast sequence to remove: {' '.join(x for x in remove)}", 1, 1)
                     continue
                 for r in remove:
-                    subprocess.Popen([remote, "-t", r, "-r"], **shuddup)
+                    subprocess.Popen([remote, "-t", r, "-r"], **silence)
                 remove = []
                 pos = 0
                 sel = 14
@@ -4836,11 +4848,11 @@ def start_remote(remote):
                         m = m["dn"][0]
                     else:
                         m = i
-                    if d := [v for k, v in torrentdir.items() if k in m]:
+                    if d := [v for k, v in sorter["torrentdirs"].items() if k in m]:
                         dir = d[0]
                     else:
-                        dir = torrentdir[""]
-                    subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", i, "-sr", "0"], **shuddup)
+                        dir = sorter["torrentdirs"][""]
+                    subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", i, "-sr", "0"], **silence)
                     buffer = "finish"
                     pos = 0
                     sel = 15
@@ -4871,15 +4883,15 @@ def start_remote(remote):
                 if el == 11:
                     echo("", 1)
                 else:
-                    subprocess.Popen([remote, "-t", str(el-1+pos), "-S"], **shuddup)
+                    subprocess.Popen([remote, "-t", str(el-1+pos), "-S"], **silence)
             elif sel == 15:
                 if el == 11:
                     echo("", 1)
                 else:
-                    subprocess.Popen([remote, "-t", str(el-1+pos), "-s"], **shuddup)
+                    subprocess.Popen([remote, "-t", str(el-1+pos), "-s"], **silence)
             elif sel == 19:
                 if el == 11:
-                    subprocess.Popen([remote, "-t", "all", "-r"], **shuddup)
+                    subprocess.Popen([remote, "-t", "all", "-r"], **silence)
                     remove = []
                     sel = 14
                 else:
@@ -4939,14 +4951,14 @@ def start_remote(remote):
                     else:
                         if sel2 == 14:
                             if i == 11:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", "all"], **shuddup)
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", "all"], **silence)
                             else:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", str(i-2+pos2)], **shuddup)
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", str(i-2+pos2)], **silence)
                         elif sel2 == 15:
                             if i == 11:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", "all"], **shuddup)
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", "all"], **silence)
                             else:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", str(i-2+pos2)], **shuddup)
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", str(i-2+pos2)], **silence)
                     i = input(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", keys[:17])
 
 
@@ -4969,20 +4981,20 @@ def torrent_get(fp=""):
     else:
         echo("Unimplemented for this system!")
         return
-    shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
+    silence = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
     if not task["transmission"]:
-        subprocess.Popen([daemon, "-f"], **shuddup, shell=True)
+        subprocess.Popen([daemon, "-f"], **silence, shell=True)
     if fp:
         dir = ""
         if m := parse.parse_qs(fp):
             m = m["dn"][0]
         else:
             m = fp
-        if d := [v for k, v in torrentdir.items() if k in m]:
+        if d := [v for k, v in sorter["torrentdirs"].items() if k in m]:
             dir = d[0]
         else:
-            dir = torrentdir[""]
-        subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", fp, "-sr", "0"], **shuddup)
+            dir = sorter["torrentdirs"][""]
+        subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", fp, "-sr", "0"], **silence)
     start_remote(remote)
     if sys.platform == "linux" and not task["httpserver"]:
         os.system("killall -9 cat")
@@ -4990,7 +5002,7 @@ def torrent_get(fp=""):
 
 
 def read_input(fp):
-    if any(word for word in pickers.keys() if fp.startswith(word)):
+    if any(word for word in navigator["pickers"].keys() if fp.startswith(word)):
         task["run"].put((0, fp))
     elif fp.startswith("http") and not fp.startswith("http://localhost"):
         if fp.endswith("/"):
@@ -5009,10 +5021,10 @@ def read_input(fp):
                     page = f.read().splitlines()[1].replace("URL=", "")
             else:
                 page = input("URL file not found, please guess original url to provide pattern for this partition: ")
-            get_pick = [x for x in pickers.keys() if page.startswith(x)]
+            get_pick = [x for x in navigator["pickers"].keys() if page.startswith(x)]
             if not get_pick:
                 kill("Couldn't recognize this url, I must exit!")
-            pattern = pickers[get_pick[0]]["pattern"]
+            pattern = navigator["pickers"][get_pick[0]]["pattern"]
             # pattern = [[], [], False]
             with open(fp, 'r') as f:
                 htmlpart = json.loads(f.read())
@@ -5061,7 +5073,7 @@ def read_file(textread):
             break
         elif not line.startswith("http"):
             continue
-        if any(word for word in pickers.keys() if line.startswith(word)):
+        if any(word for word in navigator["pickers"].keys() if line.startswith(word)):
             startpages += [["", line, [0]]]
         else:
             name = parse.unquote(line.split("/")[-1])
@@ -5282,7 +5294,7 @@ def keylistener():
         elif el == 19:
             pressed("S")
         elif el == 20:
-            if ticks:
+            if navigator["timeout"]:
                 echo(f"""COOLDOWN {"DISABLED" if Keypress[20] else "ENABLED"}""", 1, 2)
             else:
                 echo(f"""Timer not enabled, please add "#-# seconds rarity 100%" in {rulefile}, add another timer to manipulate rarity.""", 1, 2)

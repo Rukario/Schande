@@ -1366,7 +1366,7 @@ def getrule(rule):
 
 def loadrule():
     navigator["pickers"] = {site["http"]:new_picker()}
-    sorter["torrentdirs"] = {"":"Transmission"}
+    sorter["torrentdirs"] = {}
 
     for rule in rules:
         getrule(rule)
@@ -5127,7 +5127,7 @@ def start_remote(remote):
                     if d := [v for k, v in sorter["torrentdirs"].items() if k in m]:
                         dir = d[0]
                     else:
-                        dir = sorter["torrentdirs"][""]
+                        dir = "Transmission"
                     subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", i, "-sr", "0"], **silence)
                     buffer = "finish"
                     pos = 0
@@ -5272,7 +5272,7 @@ def torrent_get(fp=""):
         if d := [v for k, v in sorter["torrentdirs"].items() if k in m]:
             dir = d[0]
         else:
-            dir = sorter["torrentdirs"][""]
+            dir = "Transmission"
         subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", fp, "-sr", "0"], **silence)
     start_remote(remote)
     if sys.platform == "linux" and not task["httpserver"]:

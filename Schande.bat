@@ -47,7 +47,7 @@ archivefile = [".7z", ".rar", ".zip"]
 imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"]
 videofile = [".mkv", ".mp4", ".webm"]
 notstray = ["mediocre.txt", "autosave.txt", "gallery.html", "keywords.json", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
-mute404 = ["favicon.ico", "apple-touch-icon-precomposed.png", "apple-touch-icon.png", "apple-touch-icon-152x152-precomposed.png", "apple-touch-icon-152x152.png"]
+mute404 = ["favicon.ico", "apple-touch-icon-precomposed.png", "apple-touch-icon.png", "apple-touch-icon-152x152-precomposed.png", "apple-touch-icon-152x152.png", "apple-touch-icon-120x120-precomposed.png", "apple-touch-icon-120x120.png"]
 
 alerted = [False]
 busy = [False]
@@ -59,7 +59,7 @@ newfilen = [0]
 Keypress_prompt = [False]
 Keypress_time = [time.time()]*2
 Keypress = [False]*27
-task = {"httpserver":[], "transmission":False, "run":Queue()}
+task = {"httpserver":[], "transmission":False, "run":Queue(), "makedirs":set(), "nodirs":set()}
 retries = [0]
 sf = [0]
 
@@ -211,6 +211,7 @@ def help():
  |  "folder ...*..."  from url.
  |  "choose .. > .. = X" choose file by a match in another key. "X > X" for multiple possibilities in preference order.
  |  "file(s) ...*..." pick first or all files to download, "relfile(s)" for relative urls.
+ |  "time ...*..."    pick time stamp for each file downloading.
  |  "name ...*..."    pick name for each file downloading. There's no file on disk without a filename!
  |  "meta ...*..."    from url.
  |  "extfix ...*..."  fix name without extension from url (detected by ending mismatch).
@@ -588,12 +589,103 @@ def http2ondisk(url, directory):
         path = os.path.join(path, folder)
     return path
 
+from datetime import timezone
+day = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+def httpdate(ut):
+    dt = datetime.fromtimestamp(ut, timezone.utc).timetuple()
+    return f'{day[dt[6]]}, {dt[2]:02} {month[dt[1]-1]} {dt[0]} {dt[3]:02}:{dt[4]:02}:{dt[5]:02} GMT'
 
-class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
+# delete if BaseHTTPRequestHandler is due
+from socketserver import StreamRequestHandler
+from email.feedparser import FeedParser as dumbass
+from email.message import Message as thinkingprocess
+
+class RangeHTTPRequestHandler(StreamRequestHandler):
     def __init__(self, *args, directory=None):
         self.directory = os.fspath(directory)
         super().__init__(*args)
+
+    # delete if BaseHTTPRequestHandler is due
+    def parse_request(self):
+        self.command = None
+        self.close_connection = True
+        requestline = str(self.raw_requestline, 'iso-8859-1')
+        requestline = requestline.rstrip('\r\n')
+        self.requestline = requestline
+        words = requestline.split()
+        if len(words) == 0:
+            return
+
+        if len(words) >= 3:
+            try:
+                version_number = words[-1].split('/', 1)[1].split(".")
+                version_number = int(version_number[0]), int(version_number[1])
+            except:
+                self.send_error(400, "Bad request version ({words[-1]})")
+                return
+            if version_number >= (2, 0):
+                self.send_error(505, f"Invalid HTTP version")
+                return
+
+        if not 2 <= len(words) <= 3:
+            self.send_error(400, f"Bad request syntax ({requestline})")
+            return
+        command, path = words[:2]
+
+        if len(words) == 2:
+            self.close_connection = True
+            if command != 'GET':
+                self.send_error(400, f"Bad HTTP/0.9 request type ({command})")
+                return
+
+        self.command = command
+        self.path = '/' + path.lstrip('/') if path.startswith('//') else path
+
+        try:
+            headers = []
+            while True:
+                line = self.rfile.readline(4096 + 1)
+                if len(line) > 4096:
+                    self.send_error(431, 'One of the headers is too long')
+                headers.append(line)
+                if len(headers) > 24:
+                    self.send_error(431, "Too many headers")
+                if line in (b'\r\n', b'\n', b''):
+                    break
+            hstring = b''.join(headers).decode('iso-8859-1')
+            dum = dumbass(thinkingprocess)
+            dum.feed(hstring)
+            self.headers = dum.close()
+        except:
+            self.send_error(431, "Obscene headers")
+
+        conntype = self.headers.get('Connection', "")
+        if conntype.lower() == 'close':
+            self.close_connection = True
+        return True
+
+    # delete if BaseHTTPRequestHandler is due
+    def handle_one_request(self):
+        self.raw_requestline = self.rfile.readline(65537)
+        if len(self.raw_requestline) > 65536:
+            self.requestline = ''
+            self.command = ''
+            self.send_error(414)
+            return
+        if not self.raw_requestline:
+            self.close_connection = True
+            return
+        if not self.parse_request():
+            return
+        mname = 'do_' + self.command
+        if not hasattr(self, mname):
+            self.send_error(501, f"Unsupported method ({self.command})")
+            return
+        method = getattr(self, mname)
+        method()
+        self.wfile.flush()
 
     def handle(self):
         self.close_connection = True
@@ -799,7 +891,11 @@ h2 {margin:4px;}"""
             self.send_header('Content-Range', f'bytes {start}-{end}/{size}')
             self.send_header('Content-Type', self.guess_type(ondisk))
             self.send_header('Content-Length', Bytes)
-            self.send_header('Last-Modified', self.date_time_string(fs.st_mtime))
+            self.send_header('Last-Modified', httpdate(fs.st_mtime))
+
+            # Developer note: use this if BaseHTTPRequestHandler is due?
+            # self.send_header('Last-Modified', self.date_time_string(fs.st_mtime))
+
             self.end_headers()
             return f
         except:
@@ -810,9 +906,38 @@ h2 {margin:4px;}"""
         ondisk = http2ondisk(self.path, self.directory).replace("/", "\\")
         if not ondisk.rsplit("\\", 1)[-1] in mute404:
             echo(f"{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorr if dead else tcolorb}{ondisk}{tcolorx}{buffer}", 0, 1)
-        self.send_response_only(code, message)
+
+        if not hasattr(self, '_headers_buffer'):
+            self._headers_buffer = []
+        self._headers_buffer.append(f"""HTTP/1.0 {code} {message}
+""".encode('latin-1', 'strict'))
+        # Developer note: use this if BaseHTTPRequestHandler is due?
+        # self.send_response_only(code, message)
+
         self.send_header('Server', batchname)
-        self.send_header('Date', self.date_time_string())
+
+        self.send_header('Date', httpdate(time.time()))
+        # Developer note: use this if BaseHTTPRequestHandler is due?
+        # self.send_header('Date', self.date_time_string())
+
+    # Developer note: delete if BaseHTTPRequestHandler is due?
+    def send_header(self, keyword, value):
+        if not hasattr(self, '_headers_buffer'):
+            self._headers_buffer = []
+        self._headers_buffer.append(f"""{keyword}: {value}
+""".encode('latin-1', 'strict'))
+        if keyword.lower() == 'connection':
+            if value.lower() == 'close':
+                self.close_connection = True
+            elif value.lower() == 'keep-alive':
+                self.close_connection = False
+
+    # Developer note: delete if BaseHTTPRequestHandler is due?
+    def end_headers(self):
+        self._headers_buffer.append(b"\r\n")
+        if hasattr(self, '_headers_buffer'):
+            self.wfile.write(b"".join(self._headers_buffer))
+            self._headers_buffer = []
 
     def send_error(self, code, message=None):
         body = "<html><title>404</title><style>html,body{white-space:pre; background-color:#0c0c0c; color:#fff; font-family:courier; font-size:14px;}</style><body> .          .      .      . .          .       <p>      .              .         .             <p>         .     🦦 -( 404 )       .  <p>   .      .           .       .       . <p>     .         .           .       .     </body></html>"
@@ -848,6 +973,17 @@ h2 {margin:4px;}"""
 
 class httpserver(TCPServer, ThreadingMixIn):
     allow_reuse_address = True
+
+    # Developer note: Delete below they don't provide anything useful?
+    def server_bind(self):
+        TCPServer.server_bind(self)
+        host, port = self.server_address[:2]
+        self.server_name = socket.getfqdn(host)
+        self.server_port = port
+    def process_request_thread(self, request, client_address):
+        self.finish_request(request, client_address)
+    def process_request(self, request, client_address):
+        Thread(target=self.process_request_thread, args=(request, client_address), daemon=True).start()
 def startserver(port, directory):
     d = directory.rsplit("/", 2)[1]
     d = f"\\{d}\\" if d else f"""DRIVE {directory.replace("/", "")}\\"""
@@ -1001,7 +1137,7 @@ fdate = date.strftime('%Y') + "-" + date.strftime('%m') + "-XX"
 
 
 def new_picker():
-    return {"replace":[], "send":[], "defuse":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "pattern":[[], [], False, False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "send":[], "defuse":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "pattern":[[], [], False, False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "time":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
 
 
 
@@ -1062,6 +1198,8 @@ def add_picker(s, rule):
     elif rule.startswith("relfiles "):
         at(s[file_pos[0]], rule.split("relfiles", 1)[1])
         s["files"] = True
+    elif rule.startswith("time"):
+        s["time"] = rule.split("time ", 1)[1]
     elif rule.startswith("name"):
         at(s["name"], rule.split("name", 1)[1], ["", ""], 1, name=True)
     elif rule.startswith("meta"):
@@ -1406,6 +1544,26 @@ def retry(stderr):
 
 
 
+def overwrite(ondisk, todisk):
+    if os.path.basename(todisk) == "desktop.ini":
+        os.system(f"attrib -s -h \"{todisk}\"")
+    try:
+        with open(ondisk, 'rb') as fsrc:
+            with open(todisk, 'wb') as fdst:
+                while True:
+                    buffer = fsrc.read(16*1024)
+                    if not buffer:
+                        break
+                    fdst.write(buffer)
+        os.utime(todisk, (os.path.getatime(ondisk), os.path.getmtime(ondisk)))
+    except:
+        # raise
+        kill("Write protected or in use (by COM surrogate probably).\n\nTry again!")
+    if os.path.basename(todisk) == "desktop.ini":
+        os.system(f"attrib +s +h \"{todisk}\"")
+
+
+
 def fetch(url, stderr="", dl=0, threadn=0, data=None):
     referer = x[0] if (x := [v for k, v in navigator["referers"].items() if url.startswith(k)]) else ""
     ua = x[0] if (x := [v for k, v in navigator["agent"].items() if url.startswith(k)]) else 'Mozilla/5.0'
@@ -1725,14 +1883,28 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
         dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
         if isrej(todisk, pattern):
             link = ""
-        elif not preview and not os.path.exists(dir):
+        elif not preview:
             if makedirs or [ast(x) for x in sorter["exempts"] if ast(x) == dir.replace("/", "\\")]:
-                try:
-                    os.makedirs(dir)
-                except:
-                    buffer = "\\" + dir.replace("/", "\\")
-                    kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
-            else:
+                if not dir in task["makedirs"] and not task["makedirs"].add(dir) and not os.path.exists(dir):
+                    if makedirs == 2:
+                        echo(f"(C)ontinue or (S)kip making a new directory: {dir}", 0, 1)
+                        Keypress[19] = False
+                        Keypress[3] = False
+                        while not Keypress[19] and not Keypress[3]:
+                            time.sleep(0.1)
+                        Keypress[3] = False
+                        if Keypress[19]:
+                            Keypress[19] = False
+                            task["nodirs"].add(dir)
+                    if not dir in task["nodirs"]:
+                        try:
+                            os.makedirs(dir)
+                        except:
+                            buffer = "\\" + dir.replace("/", "\\")
+                            kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
+            elif not dir in task["makedirs"] and not task["makedirs"].add(dir) and not os.path.exists(dir):
+                task["nodirs"].add(dir)
+            if dir in task["nodirs"]:
                 error[1] += [todisk]
                 error[2] += [f"&gt; Error downloading (dir): {link}"]
                 print(f" Error downloading (dir): {link}")
@@ -1741,19 +1913,30 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
         dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
         if isrej(todisk, pattern):
             link = ""
-        elif not os.path.exists(batchname + "/"):
+        elif not dir in task["makedirs"] and not task["makedirs"].add(dir) and not os.path.exists(batchname + "/"):
             try:
                 os.makedirs(batchname + "/")
             except:
-                buffer = "\\" + dir.replace("/", "\\")
+                buffer = "\\" + batchname.replace("/", "\\")
                 kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
     if not preview:
-        if makedirs and not os.path.exists(dir):
-            try:
-                os.makedirs(dir)
-            except:
-                buffer = "\\" + dir.replace("/", "\\")
-                kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
+        if makedirs and not dir in task["makedirs"] and not task["makedirs"].add(dir) and not os.path.exists(dir):
+            if makedirs == 2:
+                echo(f"(C)ontinue or (S)kip making a new directory: {dir}", 0, 1)
+                Keypress[19] = False
+                Keypress[3] = False
+                while not Keypress[19] and not Keypress[3]:
+                    time.sleep(0.1)
+                Keypress[3] = False
+                if Keypress[19]:
+                    Keypress[19] = False
+                    task["nodirs"].add(dir)
+            if not dir in task["nodirs"]:
+                try:
+                    os.makedirs(dir)
+                except:
+                    buffer = "\\" + dir.replace("/", "\\")
+                    kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
         file.update({"name":todisk, "edited":file["edited"]})
     return [link, todisk, file["edited"]]
 
@@ -1780,17 +1963,16 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
     error[0] = []
     error[1] = []
     error[2] = []
-    htmlname = fromhtml["name"]
     htmlpart = fromhtml["partition"]
     pattern = fromhtml["pattern"]
     subdir = ""
-    queued = {}
     lastfilen = newfilen[0]
 
 
 
     # Partition and rebuild HTML
     filelist = [[], []]
+    # whereami("Getting filelist")
     for key in htmlpart.keys():
         files = []
         duplicates = set()
@@ -1811,7 +1993,6 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
                     if (x := get_cd(subdir, h[1], pattern, makedirs) + [key])[0]:
                         filelist[1] += [x]
                 h[1] = h[1]["name"].rsplit("/", 1)[-1]
-
     if fromhtml["inlinefirst"]:
         filelist = filelist[1] + filelist[0]
     else:
@@ -1842,7 +2023,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
                 for key in part.keys():
                     part[key].update({"visible": False if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern) else True})
                     new_relics.update({key: part[key]})
-                parttohtml(subdir, htmlname, new_relics, filelist, pattern)
+                parttohtml(subdir, fromhtml["name"], new_relics, filelist, pattern)
         else:
             echo("Filelist is empty!", 0, 1)
         return
@@ -1858,8 +2039,10 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
 
 
     # Autosave (1/3)
+    new_files = {}
     dirs = set()
     htmldirs = {}
+    # whereami("Assessing files")
     for onserver, ondisk, edited, key in filelist:
 
 
@@ -1875,11 +2058,11 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         if dir in htmldirs and key in htmldirs[dir] and not pattern[3]:
             if len(htmldirs[dir][key]["keywords"]) < 2:
                 continue
-            k = htmldirs[dir][key]["keywords"][1]
-            if not edited == "0" and not edited == k:
+            timestamp = htmldirs[dir][key]["keywords"][1]
+            if not edited == "0" and not edited == timestamp:
                 if os.path.exists(ondisk):
                     if sorter["editisreal"]:
-                        old = ".old_file_" + k
+                        old = ".old_file_" + timestamp
                         os.rename(ondisk, ren(ondisk, old))
                         thumbnail = ren(ondisk, '_small')
                         if os.path.exists(thumbnail):
@@ -1890,19 +2073,30 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
             else:
                 continue
 
-        if not onserver:
-            continue
-        if conflict := [k for k in queued.keys() if ondisk.lower() == k.lower()]:
-            ondisk = conflict[0]
-        queued.update({ondisk: [onserver] + (queued[ondisk] if queued.get(ondisk) else [])})
+        key = ondisk.lower()
+        if key in new_files:
+            new_files[key] = [onserver] + new_files[key]
+        else:
+            new_files.update({key: [onserver, ondisk]})
 
 
 
     for dir in htmldirs.keys():
+        if not os.path.exists(dir):
+            continue
+        # whereami("Compiling parts")
         for icon in fromhtml["icons"]:
             if not os.path.exists(dir + thumbnail_dir + icon["name"]):
-                if err := get(icon["link"], dir + thumbnail_dir + icon["name"])[1]:
+                if icon["premade"]:
+                    if not icon["premade"] == 2:
+                        overwrite(icon["premade"], dir + thumbnail_dir + icon["name"])
+                elif err := get(icon["link"], dir + thumbnail_dir + icon["name"])[1]:
                     echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
+                    icon["premade"] = 2
+                else:
+                    icon["premade"] = dir + thumbnail_dir + icon["name"]
+            elif not icon["premade"]:
+                icon["premade"] = dir + thumbnail_dir + icon["name"]
 
         if page := fromhtml["page"]:
             file = dir + page["name"] + ".URL"
@@ -1918,20 +2112,25 @@ URL={page["link"]}""")
 
 
 
-        if (part := frompart(f"{dir}{thumbnail_dir}partition.json", htmldirs[dir], htmlpart, pattern)) or sorter["verifyondisk"]:
-            new_relics = {}
-            for key in part.keys():
-                part[key].update({"visible": False if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern) else True})
-                new_relics.update({key: part[key]})
-            parttohtml(dir, htmlname, new_relics, filelist, pattern)
+        if fromhtml["premade"]:
+            overwrite(f"{dir}{thumbnail_dir}gallery.html", fromhtml["premade"])
+        else:
+            if (part := frompart(f"{dir}{thumbnail_dir}partition.json", htmldirs[dir], htmlpart, pattern)) or sorter["verifyondisk"]:
+                new_relics = {}
+                for key in part.keys():
+                    part[key].update({"visible": False if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern) else True})
+                    new_relics.update({key: part[key]})
+                parttohtml(dir, fromhtml["name"], new_relics, filelist, pattern)
+                # fromhtml["premade"] = f"{dir}{thumbnail_dir}gallery.html"
+                # Developer note: Need to handle editisreal in Autosave (2/3), unimplemented for now.
 
 
 
     threadn = 0
-    for ondisk, onserver in queued.items():
+    for key in new_files.keys():
         threadn += 1
         echothreadn.append(threadn)
-        task["download"].put((threadn, ondisk, onserver, 0))
+        task["download"].put((threadn, new_files[key][-1], new_files[key][:-1], 0))
     try:
         task["download"].join()
     except KeyboardInterrupt:
@@ -2055,7 +2254,7 @@ def driver(url):
             return
     # url = "https://www.whatsmyua.info/"
     driver_running[0].get(url)
-    if not 'http' in navigator:
+    if not 'http' in navigator["agent"]:
         echo(f" BROWSER: Update your user-agent spoofer with:\n\n {driver_running[0].execute_script('return navigator.userAgent')}\n", 0, 1)
     elif not driver_running[0].execute_script('return navigator.userAgent') == navigator['agent']['http']:
         echo(f" BROWSER: My user-agent didn't match to an user-agent spoofer.", 0, 1)
@@ -2325,6 +2524,7 @@ def carrot_files(html, htmlpart, key, pick, abs_page, folder, file_after=False):
             url = array[1]
         if url and not isinstance(url, dict):
             url = abs_page + url
+            new_time = 0
             new_name = ""
             for x in pick["name"]:
                 new_name_err = True
@@ -2352,12 +2552,32 @@ def carrot_files(html, htmlpart, key, pick, abs_page, folder, file_after=False):
                             break
                 if new_name_err:
                     kill(0, "there's no name asset found in HTML for this file.")
+            for x in pick["time"]:
+                new_time_err = True
+                for z, cw, a in x[1:]:
+                    if a:
+                        continue
+                    cw = ast(f"{cw[0]}*{cw[1]}", key, htmlpart[key]["keywords"][0] if key in htmlpart and len(htmlpart[key]["keywords"]) > 0 else "0").rsplit("*", 1)
+                    if not z:
+                        new_time_err = False
+                    elif len(n := carrots([[update_array[0], ""]], z, cw)) >= 2:
+                        new_time += n[-2 if file_after else 0][1]
+                        new_time_err = False
+                        if file_after:
+                            update_html[-1][0] = n[0][0] + n[1][0]
+                        else:
+                            update_array[0] = n[0][0] + n[1][0]
+                        break
+                if new_time_err:
+                    kill(0, "there's no time stamp asset found in HTML for this file.")
             if e := pick["extfix"]:
                 if len(ext := carrots([[url, ""]], e, [".", ""], False)) == 2 and not new_name.endswith(ext := ext[-2][1]):
                     new_name += ext
             if file_after:
                 url = array[1]
-            update_html[-1][1] = new_link(url, folder + parse.unquote(new_name), htmlpart[key]["keywords"][1] if key in htmlpart and len(htmlpart[key]["keywords"]) > 1 else 0)
+            if not new_time and key in htmlpart and len(htmlpart[key]["keywords"]) > 1:
+                new_time = htmlpart[key]["keywords"][1]
+            update_html[-1][1] = new_link(url, folder + parse.unquote(new_name), new_time)
             if not file_after:
                 update_html += [[update_array[0], '']]
         elif not file_after:
@@ -2387,6 +2607,8 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
         choose = pick["choose"][pos-1]
     else:
         choose = ["", []]
+    if pick["time"]:
+        whereami()
     meta = []
     linear_name = []
     off_branch_name = []
@@ -2655,6 +2877,7 @@ def pick_in_page():
                 if name_err:
                     break
                 fromhtml["folder"] = folder
+                fromhtml["name"] = folder
                 echo("", 0, 1)
                 echo(f"Folder assets assembled! From now on the downloaded files will go to this directory: {tcolorg}\\{folder}{tcolorx}*\nAdditional folders are made by custom dir rules in {rulefile}.", 0, 2)
             elif proceed and (x := pick["savelink"]):
@@ -2827,7 +3050,9 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                             for x in imagefile:
                                 if x in url:
                                     ext = x
-                            fromhtml["icons"] += [new_link(url, f"""icon{" " + str(pos) if pos else ""}{ext}""", 0)]
+                            icon = new_link(url, f"""icon{" " + str(pos) if pos else ""}{ext}""", 0)
+                            icon.update({"premade":False})
+                            fromhtml["icons"] += [icon]
                         else:
                             if len(c := carrots(part, z, [], False)) == 2:
                                 url = c[0][1]
@@ -2835,7 +3060,9 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                                 for x in imagefile:
                                     if x in url:
                                         ext = x
-                                fromhtml["icons"] += [new_link(url, f"""icon{" " + str(pos) if pos else ""}{ext}""", 0)]
+                                icon = new_link(url, f"""icon{" " + str(pos) if pos else ""}{ext}""", 0)
+                                icon.update({"premade":False})
+                                fromhtml["icons"] += [icon]
                 pos += 1
         if proceed and (pick["file"] or pick["file_after"]):
             pos = 0
@@ -2878,7 +3105,7 @@ def new_p(z):
 
 def new_part(threadn=0):
     new = {threadn:new_p("0")} if threadn else new_p("0")
-    return {"ready":True, "page":"", "name":"", "folder":"", "makehtml":False, "pattern":[[], [], False, False], "icons":[], "inlinefirst":True, "partition":new}
+    return {"ready":True, "page":"", "name":"", "folder":"", "makehtml":False, "pattern":[[], [], False, False], "icons":[], "inlinefirst":True, "partition":new, "premade":False}
 
 def new_link(l, n, e):
     return {"link":l, "name":saint(n), "edited":e}
@@ -2894,7 +3121,6 @@ def nextshelf(fromhtml):
     fromhtml["partition"] = sort_part
 
     if not fromhtml["ready"]:
-        htmlname = fromhtml["name"]
         htmlpart = fromhtml["partition"]
         stdout = ""
         if fromhtml["makehtml"]:
@@ -2928,7 +3154,7 @@ def nextshelf(fromhtml):
         if Keypress[13]:
             Keypress[13] = False
             return
-    downloadtodisk(fromhtml, "Autosave declared completion.", makedirs=True)
+    downloadtodisk(fromhtml, "Autosave declared completion.", makedirs=2)
 
 
 
@@ -3487,12 +3713,6 @@ var FFover = function(e) {
   }
 }
 
-document.addEventListener("click", FFclick);
-document.addEventListener("touchstart", FFdown);
-document.addEventListener("mousedown", FFdown);
-document.addEventListener("mousemove", FFmove);
-document.addEventListener("mouseover", FFover);
-
 Filters = {};
 Filters.tmpCtx = document.createElement('canvas').getContext('2d');
 
@@ -3850,117 +4070,132 @@ function preview(e) {
 
 function showDivs(n) {
   var i;
-  var x = document.getElementsByClassName("mySlides");
-  if (n > x.length) {slideIndex = 1}
-  if (n < 1) {slideIndex = x.length} ;
-  for (i = 0; i < x.length; i++) {
-    x[i].style.display = "none";
+  var nodes = document.getElementsByClassName("mySlides");
+  if (n > nodes.length) {slideIndex = 1}
+  if (n < 1) {slideIndex = nodes.length} ;
+  for (i = 0; i < nodes.length; i++) {
+    nodes[i].style.display = "none";
   }
-  x[slideIndex-1].style.display = "block";
+  nodes[slideIndex-1].style.display = "block";
   var expandImg = document.getElementById("expandedImg");
   expandImg.parentElement.style.display = "inline-block";
 }
 
 function resizeImg(n) {
-  var x = document.getElementsByClassName("lazy");
-  for (var i=0; i < x.length; i++) {
+  var nodes = document.getElementsByClassName("lazy");
+  for (var i=0; i < nodes.length; i++) {
     if (n === 'auto') {
-      x[i].style.maxWidth = '100%';
+      nodes[i].style.maxWidth = '100%';
     } else {
-      x[i].style.maxWidth = 'none';
+      nodes[i].style.maxWidth = 'none';
     };
-    x[i].style.height = n;
+    nodes[i].style.height = n;
   }
 }
 
 function resizeCell(n) {
-  var x = document.getElementsByClassName("cell");
-  for (var i=0; i < x.length; i++) {
-    x[i].style.width = n;
+  var nodes = document.getElementsByClassName("cell");
+  for (var i=0; i < nodes.length; i++) {
+    nodes[i].style.width = n;
   }
 }
 
-function hideSources() {
-  var x = document.getElementsByClassName("sources");
-  for (var i=0; i < x.length; i++) {
-    if (x[i].style.display === "none") {
-      x[i].style.display = "";
+function hideDetails(e) {
+  var nodes = document.getElementsByClassName("sources");
+  var hide = false;
+  if (e.classList.contains("next")){
+    e.classList = "previous";
+    hide = true;
+  } else {
+    e.classList = "next";
+  }
+  for (var i=0; i < nodes.length; i++) {
+    if (hide) {
+      nodes[i].style.display = "none";
     } else {
-      x[i].style.display = "none";
+      nodes[i].style.display = "";
     }
   }
 }
 
-function hideParts(e) {
-  if (search.length == 1 || ignore.length == 1) return;
-  var ignored = ignore.value.toLowerCase().split(" ");
-  var searched = search.value.toLowerCase().split(" ");
-
-  var pattern = [[], []]
-  for (var i=0; i < ignored.length; i++) {
-    if(ignored[i].length > 1){
-      pattern[0].push(ignored[i])
-    }
-  }
-  for (var i=0; i < searched.length; i++) {
-    if(searched[i].length > 1){
-      pattern[1].push(searched[i])
-    }
-  }
-
+function hideParts(tagName, className, filterNode) {
   var nodes = document.getElementsByClassName("cell");
   var isClass = false;
-  if (!e){
+
+  //shamefur dispray
+  if (!tagName){
     for (var i=0; i < nodes.length; i++) {
       nodes[i].style.display = 'inline-block';
     }
     return
   }
 
-  e = e.split('.');
-  if (e.length > 1){
-    e[0] = e[1]
-    isClass = true
-  }
-
   for (var i=0; i < nodes.length; i++) {
-    var subNodes = '';
-    if (isClass){
-      subNodes = nodes[i].getElementsByClassName(e[0])
-      if (subNodes.length > 0){
-        subNodes = subNodes[0].textContent;
-      } else {
-        nodes[i].style.display = 'none';
-        continue
-      }
-    } else {
-      subNodes = nodes[i].getElementsByTagName(e[0])
-      if (subNodes.length > 0){
-        subNodes = subNodes[0].textContent;
-      } else {
-        nodes[i].style.display = 'none';
-        continue
-      }
-    }
-    subNodes = subNodes.toLowerCase();
-
     var hide = false;
-    for (var p=0; p < pattern[0].length; p++) {
-      if (pattern[0][p] && subNodes.includes(pattern[0][p])){
-        hide = true;
-        break;
-      }
-    };
-    if (!hide && pattern[1].length) {
+
+
+
+    var tagNode = nodes[i].getElementsByTagName(tagName);
+    if (tagNode.length > 0){
+      tagNode = tagNode[0].textContent;
+      tagNode = tagNode.toLowerCase();
+    } else {
+      //no content no dispray!
+      nodes[i].style.display = 'none';
+      continue
+    }
+
+    if (filterNode["ignored"].length) {
+      for (var p=0; p < filterNode["ignored"].length; p++) {
+        if (filterNode["ignored"][p] && tagNode.includes(filterNode["ignored"][p])){
+          hide = true;
+          break;
+        }
+      };
+    }
+    if (!hide && filterNode["searched"].length) {
       hide = true;
-      for (var p=0; p < pattern[1].length; p++) {
-        if (pattern[1][p] && subNodes.includes(pattern[1][p])){
+      for (var p=0; p < filterNode["searched"].length; p++) {
+        if (filterNode["searched"][p] && tagNode.includes(filterNode["searched"][p])){
           hide = false;
           break;
         }
       };
     }
-    if (hide && subNodes){
+
+
+
+    var classNode = nodes[i].getElementsByClassName(className);
+    if (classNode.length > 0){
+      classNode = classNode[0].textContent;
+      classNode = classNode.toLowerCase();
+    } else {
+      //no content no dispray!
+      nodes[i].style.display = 'none';
+      continue
+    }
+
+    if (!hide && filterNode["excluding"].length) {
+      for (var p=0; p < filterNode["excluding"].length; p++) {
+        if (filterNode["excluding"][p] && classNode.includes(filterNode["excluding"][p])){
+          hide = true;
+          break;
+        }
+      };
+    }
+    if (!hide && filterNode["contains"].length) {
+      hide = true;
+      for (var p=0; p < filterNode["contains"].length; p++) {
+        if (filterNode["contains"][p] && classNode.includes(filterNode["contains"][p])){
+          hide = false;
+          break;
+        }
+      };
+    }
+
+
+
+    if (hide){
       nodes[i].style.display = 'none';
     } else {
       nodes[i].style.display = 'inline-block';
@@ -3968,9 +4203,48 @@ function hideParts(e) {
   }
 }
 
+function hidePattern(){
+  if (ignore.length == 1 || search.length == 1 || searchb.length == 1 || ignoreb.length == 1) return;
+
+  var ignored = ignore.value.toLowerCase().split(" ");
+  var searched = search.value.toLowerCase().split(" ");
+  var contains = searchb.value.toLowerCase().split(" ");
+  var excluding = ignoreb.value.toLowerCase().split(" ");
+
+  var filterNode = {"ignored":[], "searched":[], "contains":[], "excluding":[]}
+  for (var i=0; i < ignored.length; i++) {
+    if(ignored[i].length > 1){
+      filterNode["ignored"].push(ignored[i])
+    }
+  }
+  for (var i=0; i < searched.length; i++) {
+    if(searched[i].length > 1){
+      filterNode["searched"].push(searched[i])
+    }
+  }
+  for (var i=0; i < contains.length; i++) {
+    if(contains[i].length > 1){
+      filterNode["contains"].push(contains[i])
+    }
+  }
+  for (var i=0; i < excluding.length; i++) {
+    if(excluding[i].length > 1){
+      filterNode["excluding"].push(excluding[i])
+    }
+  }
+
+  hideParts('h2', 'postMessage', filterNode);
+}
+
 var isTouch, keywords, stdout;
 var dir = location.href.substring(0, location.href.lastIndexOf('/')) + "/";
 window.onload = () => {
+  document.addEventListener("click", FFclick);
+  document.addEventListener("touchstart", FFdown);
+  document.addEventListener("mousedown", FFdown);
+  document.addEventListener("mousemove", FFmove);
+  document.addEventListener("mouseover", FFover);
+
   var links = document.getElementsByTagName('a');
   for(var i=0; i<links.length; i++) {
     if (!links[i].href.startsWith(dir)){
@@ -4026,9 +4300,11 @@ function lazyload() {
 <button class="next" onclick="resizeCell('calc(25% - 35px)')">....</button>
 <button id="fi" class="next" onclick="preview(this)" data-sel="Preview, Preview [ ], Preview 1:1" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel<br>Choose 1:1 mode to enable shift key.">Preview</button>
 <button id="ge" class="next" onclick="previewg(this)" data-sel="Original, vs left, vs left &lt;, vs left &gt;, Find Edge" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
-<button class="next" onclick="hideSources()">Sources</button>
+<button class="next" onclick="hideDetails(this)">Filename</button>
 <input class="next" id="search" type="text" oninput="hideParts('h2');" style="padding-left:8px; padding-right:8px; width:140px;" value="{" ".join(pattern[1])}" placeholder="Search title">
 <input class="next" id="ignore" type="text" oninput="hideParts('h2');" style="padding-left:8px; padding-right:8px; width:140px;" value="{" ".join(pattern[0])}" placeholder="Ignore title">
+<input class="next" id="searchb" type="text" oninput="hidePattern();" style="padding-left:8px; padding-right:8px; width:100px;" value="" placeholder="Contains">
+<input class="next" id="ignoreb" type="text" oninput="hidePattern();" style="padding-left:8px; padding-right:8px; width:100px;" value="" placeholder="Excluding">
 <button class="next" onclick="hideParts('.edits')">Edits</button>
 <button class="next" onclick="hideParts()">&times;</button>
 <div class="dark local_tooltip" id="local_tooltip"></div>
@@ -4759,7 +5035,7 @@ def source_view():
 
 
 
-def list_remote(remote):
+def list_remote(remote, nolist):
     echo(f" - - {(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
     with subprocess.Popen([remote, "-l"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
         listed = False
@@ -4773,7 +5049,7 @@ def list_remote(remote):
                 name = line[72:].strip()
                 echo(f"{id:>3} {status} {percent} {name}", 0, 1, clamp='█')
         if not listed:
-            echo("No torrents to list!", 0, 1)
+            echo(nolist, 0, 1)
         echo("", 0, 1)
 
 
@@ -4824,10 +5100,10 @@ def start_remote(remote):
                 switch = "STOP"
                 time.sleep(0.5)
                 echo("", 1)
-                list_remote(remote)
+                list_remote(remote, "All torrents removed!")
             else:
                 echo("", 1)
-                list_remote(remote)
+                list_remote(remote, "No torrents to list!")
         elif el == 17:
             return
         elif el == 18:
@@ -4860,7 +5136,7 @@ def start_remote(remote):
                 elif not i:
                     echo("", 1)
                     if buffer == "finish":
-                        list_remote(remote)
+                        list_remote(remote, "Daemon's dead, Jim.")
                     break
                 else:
                     choice(bg=True)
@@ -4894,6 +5170,9 @@ def start_remote(remote):
                     subprocess.Popen([remote, "-t", "all", "-r"], **silence)
                     remove = []
                     sel = 14
+                    time.sleep(0.5)
+                    echo("", 1)
+                    list_remote(remote, "All torrents removed!")
                 else:
                     remove += [str(el-1+pos)]
                     switch = "REMOVE, (A)ll, press L twice to confirm above, press R to clear"

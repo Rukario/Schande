@@ -1506,10 +1506,11 @@ def timer(e="", ind=True, listen=[False], notlisten=[False]):
         randindex = int(tn*random())
         r = navigator["timeout"][clock][randindex]
         s = r[0]+int((r[1]-r[0]+1)*random())
-        usenext = int((datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y%m%d') + f'{nextclock:04}')
-        end = int((datetime.utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%Y%m%d%H%M'))
-        if end > usenext:
-            s = int(datetime.strptime(str(usenext), '%Y%m%d%H%M').timestamp()) - int(time.time())
+        if nextclock:
+            usenext = int((datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y%m%d') + f'{nextclock:04}')
+            end = int((datetime.utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%Y%m%d%H%M'))
+            if end > usenext:
+                s = int(datetime.strptime(str(usenext), '%Y%m%d%H%M').timestamp()) - int(time.time())
         end = int(time.time()) + s
         endclock = (datetime.utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%H:%M')
         while True:

@@ -1304,7 +1304,10 @@ def getrule(rule):
             y = [[int(z) for z in x]]
         else:
             y = [[int(x[0])]*2]
-        clock = int(sr[1].split(" ")[-1].replace(":", ""))
+        if len(x := sr[1].split(" ", 1)) == 2:
+            clock = int(x[-1].replace(":", ""))
+        else:
+            clock = 0
         arri = navigator["timeout"][clock] if clock in navigator["timeout"] else []
         navigator["timeout"].update({clock:arri + y*int(sr[1].split("%")[0])})
     elif rule == "collisionisreal":

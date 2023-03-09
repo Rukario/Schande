@@ -1297,7 +1297,16 @@ def getrule(rule):
 
 
     elif len(sr := rule.split(" seconds rarity ")) == 2:
-        navigator["timeout"] += [[int(x) for x in sr[0].split("-")]]*int(sr[1].split("%")[0])
+        x = sr[0].split("-", 1)
+        if x[0] == "paused":
+            y = [[86400]*2]
+        elif len(x) == 2:
+            y = [[int(z) for z in x]]
+        else:
+            y = [[int(x[0])]*2]
+        clock = int(sr[1].split(" ")[-1].replace(":", ""))
+        arri = navigator["timeout"][clock] if clock in navigator["timeout"] else []
+        navigator["timeout"].update({clock:arri + y*int(sr[1].split("%")[0])})
     elif rule == "collisionisreal":
         sorter["collisionisreal"] = True
     elif rule == "editisreal":
@@ -1378,7 +1387,7 @@ def loadrule():
 
 
 cli = {"bgcolor":False, "fgcolor":"3", "dismiss":0, "showpreview":False}
-navigator = {"referers":{}, "headers":{}, "agent":{"http":"Mozilla/5.0"}, "timeout":[], "pickers":{}}
+navigator = {"referers":{}, "headers":{}, "agent":{"http":"Mozilla/5.0"}, "timeout":{}, "pickers":{}}
 sorter = {"md5":[], "customdirs":{}, "torrentdirs":{}, "dirs":{}, "exempts":[], "buildthumbnail":False, "verifyondisk":False, "collisionisreal":False, "editisreal":False}
 site = {"http":"inline", "dir":"", "seqN":0}
 
@@ -1469,21 +1478,54 @@ if not cli["dismiss"]:
 
 
 
-tn = [len(navigator["timeout"])]
 ticking = [False]
-def timer(e="", ind=True, listen=[True], notlisten=[False]):
-    if not navigator["timeout"]:
-        navigator["timeout"].append([4, 8])
-        tn[0] = len(navigator["timeout"])
-        echo(f"""\n"#-# seconds rarity 100%" in {rulefile} to customize timer, add another timer to manipulate rarity.\n""", 1, 1)
-        return
+def timer(e="", ind=True, listen=[False], notlisten=[False]):
     if not ticking[0]:
         ticking[0] = True
-        r = navigator["timeout"][int(tn[0]*random())]
+        if not navigator["timeout"]:
+            navigator["timeout"].update({0:[4, 8]})
+            echo(f"""\n"#-# seconds rarity 100% 00:00" in {rulefile} to customize timer, add another timer to manipulate rarity/schedule.\n""", 1, 1)
+
+        now = int((datetime.utcnow() + timedelta(hours=int(offset))).strftime('%H%M'))
+        clock = None
+        nextclock = None
+        bigclock = 0
+        for key in navigator["timeout"].keys():
+            if now < key:
+                if not nextclock or nextclock >= key:
+                    nextclock = key
+            if now >= key:
+                if not clock or clock < key:
+                    clock = key
+            if bigclock < key:
+                bigclock = key
+        if clock == None:
+            clock = bigclock
+
+        tn = len(navigator["timeout"][clock])
+        randindex = int(tn*random())
+        r = navigator["timeout"][clock][randindex]
         s = r[0]+int((r[1]-r[0]+1)*random())
-        for sec in range(s):
-            echo(f"{e} {s-sec} . . .")
-            time.sleep(1)
+        usenext = int((datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y%m%d') + f'{nextclock:04}')
+        end = int((datetime.utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%Y%m%d%H%M'))
+        if end > usenext:
+            s = int(datetime.strptime(str(usenext), '%Y%m%d%H%M').timestamp()) - int(time.time())
+        end = int(time.time()) + s
+        endclock = (datetime.utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%H:%M')
+        while True:
+            now = int(time.time())
+            s = end - now
+            if s < 60:
+                echo(f"{e} {s} . . .")
+                time.sleep(1)
+            else:
+                h = int(s / 60 / 60)
+                h = f"{h} hour and " if h == 1 else f"{h} hours and " if h else ""
+                m = int(s / 60 % 60)
+                m = f"{m} minute" if m == 1 else f"{m} minutes"
+                sec = int(s % 60)
+                echo(f"{e} {h}{m} until {endclock}")
+                time.sleep(sec)
             if pgtime[0] < int(time.time()/5):
                 pgtime[0] = int(time.time()/5)
                 pg[0] = 0
@@ -1491,7 +1533,7 @@ def timer(e="", ind=True, listen=[True], notlisten=[False]):
             if Keypress[26]:
                 Keypress[26] = False
                 break
-            if not any(not x for x in listen) or any(notlisten):
+            if now > end-2 or not any(not x for x in listen) or any(notlisten):
                 break
         ticking[0] = False
     elif ind:

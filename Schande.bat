@@ -4347,8 +4347,8 @@ function lazyload() {
 <button id="fi" class="next" onclick="preview(this)" data-sel="Preview, Preview [ ], Preview 1:1" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel<br>Choose 1:1 mode to enable shift key.">Preview</button>
 <button id="ge" class="next" onclick="previewg(this)" data-sel="Original, vs left, vs left &lt;, vs left &gt;, Find Edge" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
 <button class="next" onclick="hideDetails(this)">Filename</button>
-<input class="next" id="search" type="text" oninput="hidePattern();" style="padding-left:8px; padding-right:8px; width:140px;" value="{" ".join(pattern[1])}" placeholder="Search title">
-<input class="next" id="ignore" type="text" oninput="hidePattern();" style="padding-left:8px; padding-right:8px; width:140px;" value="{" ".join(pattern[0])}" placeholder="Ignore title">
+<input class="next" id="search" type="text" oninput="hidePattern();" style="padding-left:8px; padding-right:8px; width:100px;" value="{" ".join(pattern[1])}" placeholder="Search title">
+<input class="next" id="ignore" type="text" oninput="hidePattern();" style="padding-left:8px; padding-right:8px; width:100px;" value="{" ".join(pattern[0])}" placeholder="Ignore title">
 <input class="next" id="searchb" type="text" oninput="hidePattern();" style="padding-left:8px; padding-right:8px; width:100px;" value="" placeholder="Contains">
 <input class="next" id="ignoreb" type="text" oninput="hidePattern();" style="padding-left:8px; padding-right:8px; width:100px;" value="" placeholder="Excluding">
 <button class="next" onclick="hideParts('.edits')">Edits</button>

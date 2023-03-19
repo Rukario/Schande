@@ -964,7 +964,8 @@ h2 {margin:4px;}"""
                 dl += Bytes
                 echoMBs(-thread, -Bytes, -int(dl/self.total*256) if self.total else 0)
                 outputfile.write(buf)
-            echo("DONE", 0, 1)
+            if len(echothreadn) == 1:
+                echo("DONE", 0, 1)
         except:
             echo("DISCONNECTED", 0, 1)
         echothreadn.remove(-thread)
@@ -1304,12 +1305,12 @@ def getrule(rule):
             y = [[int(z) for z in x]]
         else:
             y = [[int(x[0])]*2]
-        if len(x := sr[1].split(" ", 1)) == 2:
-            clock = int(x[-1].replace(":", ""))
+        y = y*int(sr[1].split("%")[0])
+        time_at = int(sr[1].split(" ", 1)[-1].replace(":", ""))
+        if time_at in navigator["timeout"]:
+            navigator["timeout"][time_at] += y
         else:
-            clock = 0
-        arri = navigator["timeout"][clock] if clock in navigator["timeout"] else []
-        navigator["timeout"].update({clock:arri + y*int(sr[1].split("%")[0])})
+            navigator["timeout"].update({time_at:y})
     elif rule == "collisionisreal":
         sorter["collisionisreal"] = True
     elif rule == "editisreal":
@@ -1490,30 +1491,29 @@ def timer(e="", ind=True, listen=[False], notlisten=[False]):
             echo(f"""\n"#-# seconds rarity 100% 00:00" in {rulefile} to customize timer, add another timer to manipulate rarity/schedule.\n""", 1, 1)
 
         now = int((datetime.utcnow() + timedelta(hours=int(offset))).strftime('%H%M'))
-        clock = None
-        nextclock = None
-        bigclock = 0
+        time_at = None
+        next_clock = None
+        big_clock = 0
         for key in navigator["timeout"].keys():
-            if now < key:
-                if not nextclock or nextclock >= key:
-                    nextclock = key
+            if now <= key:
+                if next_clock >= key:
+                    next_clock = key
             if now >= key:
-                if not clock or clock < key:
-                    clock = key
-            if bigclock < key:
-                bigclock = key
-        if clock == None:
-            clock = bigclock
+                if not time_at or time_at < key:
+                    time_at = key
+            if big_clock < key:
+                big_clock = key
+        if time_at == None:
+            time_at = big_clock
 
-        tn = len(navigator["timeout"][clock])
-        randindex = int(tn*random())
-        r = navigator["timeout"][clock][randindex]
+        randindex = int(len(navigator["timeout"][time_at])*random())
+        r = navigator["timeout"][time_at][randindex]
         s = r[0]+int((r[1]-r[0]+1)*random())
-        if nextclock:
-            usenext = int((datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y%m%d') + f'{nextclock:04}')
+        if next_clock:
+            next_clock = int((datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y%m%d') + f'{next_clock:04}')
             end = int((datetime.utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%Y%m%d%H%M'))
-            if end > usenext:
-                s = int(datetime.strptime(str(usenext), '%Y%m%d%H%M').timestamp()) - int(time.time())
+            if end > next_clock:
+                s = int(datetime.strptime(str(next_clock), '%Y%m%d%H%M').timestamp()) - int(time.time())
         end = int(time.time()) + s
         endclock = (datetime.utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%H:%M')
         while True:

@@ -369,7 +369,7 @@ var c = {
   "Con Matsuri Red":[["red", 0], ["orange", 0], ["white", 2]],
   "Con Matsuri Green":[["lime", 0], ["violet", 0], ["forest", 3]],
   "Con Matsuri Blue":[["grape", 0], ["blue", 2], ["white", 0]],
-  "Con Trash Bandit":[["teal", 0], ["smoke", 0]],
+  "Con Trash Bandit":[["teal", 0], ["cream", 2]],
   "Con Pastel Vulpine":[["pink", 0], ["glaucous", 0]],
   "Con Canine Party":[["glaucous", 0], ["sky", 0], ["violet", 0]],
   "Con Feline Fine":[["orchid", 2], ["lemon", 0], ["beige", 0], ["lavender", 0]],
@@ -426,14 +426,14 @@ var c = {
   "Razor's Signature":[["crimson", 0], ["red", 0]],
   "Rex's Signature":[["red", 0], ["magenta", 0], ["black", 0]],
   "Ridley's Signature":[["forest", 0], ["grape", 0], ["maroon", 0], ["black", 0]],
-  "Roland's Signature":[["beige", 2], ["lime", 0], ["black", 0], ["machine", 0]],
+  "Roland's Signature":[["beige", 2], ["lime", 2], ["black", 0], ["machine", 0]],
   "Scorn's Signature":[["blue", 0], ["violet", 0], ["sky", 0]],
   "Seraphina's Signature":[["white", 0], ["brass", 3], ["sky", 2], ["psychic", 2]],
   "Sleipnir's Signature":[["blue", 0], ["forest", 0], ["black", 0]],
   "Spitfire's Signature":[["cerise", 0], ["maroon", 0], ["black", 0]],
   "Spritz's Signature":[["xanadu", 0], ["teal", 0], ["cyan", 0]],
   "Stan's Signature":[["anubis", 0], ["maroon", 0]],
-  "Sveinn's Signature":[["coral", 2], ["walnut", 1]],
+  "Sveinn's Signature":[["coral", 2], ["walnut", 0]],
   "Tako's Signature":[["lime", 0], ["psychic", 0]],
   "Tempestt's Signature":[["cyan", 0], ["lavender", 0], ["magenta", 0], ["black", 0]],
   "Terra's Signature":[["blue", 0], ["maroon", 0], ["black", 0]],
@@ -461,7 +461,7 @@ var c = {
   "Janine's Signature":[["orchid", 0], ["grape", 0], ["lavender", 3]],
   "JT's Signature":[["blue", 0], ["orange", 0]],
   "Ledo's Signature":[["black", 0], ["white", 0], ["lime", 2]],
-  "Leilani's Signature":[["blue", 0], ["smoke", 0]],
+  "Leilani's Signature":[["blue", 2], ["smoke", 2]],
   "Lily's Signature":[["forest", 0], ["anubis", 0]],
   "Mary's Signature":[["white", 0], ["black", 0]],
   "Monet's Signature":[["tennis ball", 0], ["blue", 0], ["grape", 0]],
@@ -477,16 +477,16 @@ var c = {
   "Apollo's Natural":[["lavender", 0], ["beeswax", 0]],
   "Austin's Natural":[["cerise", 0], ["cream", 0], ["chestnut", 3]],
   "Baron's Natural":[["crimson", 0], ["red", 0]],
-  "Bishop's Natural":[["white", 0], ["smoke", 0], ["orange", 0]],
+  "Bishop's Natural":[["white", 0], ["smoke", 0], ["orange", 2]],
   "Blaze's Natural":[["honey", 0], ["orange", 0]],
   "Bruiser's Natural":[["rose", 0], ["violet", 0]],
   "Chance's Natural":[["black", 0], ["coral", 0]],
   "Clayton's Natural":[["red", 0], ["chocolate", 0]],
   "Cole's Natural":[["crimson", 0], ["white", 0], ["black", 0]],
-  "Crackers' Natural":[["gold", 0], ["smoke", 0]],
+  "Crackers' Natural":[["gold", 0], ["cream", 0]],
   "Cuttlefish Natural":[["black", 0], ["red", 0]],
   "David's Natural":[["maroon", 0], ["black", 0]],
-  "Delmar's Natural":[["coral", 0], ["teal", 0], ["concrete", 0]],
+  "Delmar's Natural":[["coral", 2], ["teal", 0], ["concrete", 0]],
   "Demogorgon's Natural":[["crimson", 0], ["red", 0]],
   "Demon Dick's Natural":[["crimson", 0], ["red", 0], ["cerise", 0]],
   "Dexter's Natural":[["blue", 0], ["lime", 0]],
@@ -808,7 +808,7 @@ function FFdown(e) {
       for (var o=0; o<k.length; o++){
         if (k[o][0] == t){
           if (translucents.classList == "prev"){
-            if (k[o][1] > 0){
+            if (k[o][1] > 1){
               featured = true;
             }
           } else {          

@@ -12,7 +12,7 @@ a{color:#cb7; text-decoration:none;}
 a:visited{color:#efdfa8;}
 img {vertical-align:top;}
 h3 {margin:4px;}
-.theme{color:#bfddc6; cursor:pointer;}
+.colorset{color:#bfddc6; cursor:pointer;}
 .blink{animation: bl 1000ms steps(1, end) infinite;}
 @keyframes bl{0%{opacity:75%;} 50%{opacity:100%;}}
 .cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:54px; cursor:pointer; -webkit-user-select:none; line-height:1.1;}
@@ -101,7 +101,7 @@ var c = {
   "Celestial Light":[["white", 0]],
   "Brilliant White":[["white", 0]],
   "Slasher Silver":[["glaucous", 0], ["rose", 0]],
-  "Fatality":[["honey", 0], ["coral", 2], ["crimson", 0]],
+  "Fatality":[["honey", 0], ["coral", 2]],
   "Meat":[["honey", 0], ["coral", 2]],
   "Scandalous":[["cream", 0], ["crimson", 0], ["psychic", 0], ["lavender", 3]],
   "Wicked":[["copper", 0], ["forest", 0], ["violet", 0]],
@@ -378,7 +378,7 @@ var c = {
   "Spooky Seconds":[["white", 3], ["glaucous", 3]],
   "Apollo's Signature":[["white", 0], ["blue", 2], ["mold", 0]],
   "Austin's Signature":[["white", 0], ["blue", 2], ["sky", 0]],
-  "Baron's Signature":[["honey", 0], ["coral", 0], ["crimson", 0]],
+  "Baron's Signature":[["honey", 0], ["coral", 0]],
   "Bishop's Signature":[["cyan", 0], ["blue", 0], ["black", 0]],
   "Blaze's Signature":[["sky", 0], ["ink", 0], ["machine", 0]],
   "Bruiser's Signature":[["blue", 0], ["sky", 0], ["teal", 0]],
@@ -662,8 +662,8 @@ function makegallery(n){
 }
 
 function FFdown(e) {
-  if(theme){
-    theme.classList.remove("blink");
+  if(colorset){
+    colorset.classList.remove("blink");
     gallery_tooltip.style.display = "none";
   }
 
@@ -674,7 +674,7 @@ function FFdown(e) {
       translucents.classList = "next";
     }
   } else if (e.target.getAttribute("id") == "odnary"){
-    makegallery(odnary.getAttribute("data-theme"));
+    makegallery(odnary.getAttribute("data-colorset"));
   } else if (e.target.getAttribute("id") == "replace"){
     more.style.display = "none"; 
     var buffer = ""
@@ -689,36 +689,36 @@ function FFdown(e) {
     gallery.innerHTML = buffer;
     lazyload()
   } else if (e.target.getAttribute("id") == "cs"){
-    makegallery(cs.getAttribute("data-theme"));
+    makegallery(cs.getAttribute("data-colorset"));
   } else if (e.target.getAttribute("id") == "mas"){
-    makegallery(mas.getAttribute("data-theme"));
+    makegallery(mas.getAttribute("data-colorset"));
   } else if (e.target.getAttribute("id") == "more"){
     galleryset2();
-  } else if (e.target.classList.contains("theme")){
-    theme = e.target;
-    theme.classList.add("blink");
+  } else if (e.target.classList.contains("colorset")){
+    colorset = e.target;
+    colorset.classList.add("blink");
     odnary.style.display = "none";
     cs.style.display = "none";
     mas.style.display = "none";
     var dispray = false;
-    var t = theme.innerHTML.toLowerCase()
+    var t = colorset.innerHTML.toLowerCase()
     if(Object.keys(p).includes(t)){
       odnary.style.display = "inline-block";
-      odnary.setAttribute("data-theme", t);
+      odnary.setAttribute("data-colorset", t);
       dispray = true;
     }
     if(Object.keys(p).includes("cs " + t)){
       cs.style.display = "inline-block";
-      cs.setAttribute("data-theme", "cs " + t);
+      cs.setAttribute("data-colorset", "cs " + t);
       dispray = true;
     }
     if(Object.keys(p).includes(t + " mas")){
       mas.style.display = "inline-block";
-      mas.setAttribute("data-theme", t + " mas");
+      mas.setAttribute("data-colorset", t + " mas");
       dispray = true;
     }
     if (dispray){
-      where = theme.getBoundingClientRect();
+      where = colorset.getBoundingClientRect();
       gallery_tooltip.style.left = (window.scrollX + where.left -2) + "px";
       gallery_tooltip.style.top = (window.scrollY + where.top -28) + "px";
       gallery_tooltip.style.display = "inline-block";
@@ -787,19 +787,19 @@ function FFdown(e) {
       }
     }
   } else if (e.target.getAttribute("id") == "viewall"){
-    themelist.innerHTML = "<h3>Choose a color!</h3>";
+    colorlist.innerHTML = "<h3>Choose a color!</h3>";
     newgallery = Object.keys(c)
-    listthemes()
+    listcolors()
   } else if (e.target.hasAttribute("data-color")){
     if(isTouch && e.target.hasAttribute("data-tooltip")){
       return;
     }
     var t = e.target.getAttribute("data-color");
     if(!t){
-      themelist.innerHTML = "<h3>Fat finger</h3>";
+      colorlist.innerHTML = "<h3>Fat finger</h3>";
       return;
     }
-    themelist.innerHTML = "<h3>Themes using " + t + "-like silicone</h3>";
+    colorlist.innerHTML = "<h3>Color sets using " + t + "-like silicone</h3>";
     newgallery = []
     var keys = Object.keys(c);
     for (var i=0; i<keys.length; i++){
@@ -820,15 +820,15 @@ function FFdown(e) {
         newgallery.push(keys[i])
       }
     }
-    listthemes()
+    listcolors()
   }
 }
 
-function listthemes(){
+function listcolors(){
   var buffer = "";
   for (var i=0; i<newgallery.length; i++){
     var k = c[newgallery[i]]
-    buffer += "> <span class='theme'>" + newgallery[i] + "</span>"
+    buffer += "> <span class='colorset'>" + newgallery[i] + "</span>"
     for (var o=0; o<k.length; o++){
       var tr = ""
       if (k[o][1] == 2){
@@ -846,7 +846,7 @@ function listthemes(){
     }
     buffer += "\n"
   }
-  themelist.innerHTML += buffer
+  colorlist.innerHTML += buffer
 }
 
 function plaintext(elem, e) {
@@ -938,7 +938,7 @@ var FFmove = function(e) {
   }
 }
 
-var theme = false;
+var colorset = false;
 var isTouch, gallerylist, newgallery;
 var savedlist = [];
 window.onload = () => {
@@ -949,7 +949,7 @@ window.onload = () => {
       colortable.innerHTML += "<div class='cell' style='vertical-align:top; background-color:" + fc[cn[i]] + "'; data-color='" + cn[i] + "'>" + cn[i] + "</div>"
     }
   }
-  themelist.innerHTML = "<h3>Choose a color!</h3>"
+  colorlist.innerHTML = "<h3>Choose a color!</h3>"
   document.addEventListener("click", FFclick);
   document.addEventListener("mousemove", FFmove);
   document.addEventListener("mouseover", FFover);
@@ -986,12 +986,12 @@ window.onload = () => {
 
 <div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div></div>
 
-<div class="next" id="translucents" data-tooltip="Fetch themes using jam-like or translucent of selected color">Translucents</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find theme? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><div class="dark local_tooltip" id="local_tooltip"></div>
+<div class="next" id="translucents" data-tooltip="Fetch color sets using jam-like or translucent of selected color">Translucents</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><div class="dark local_tooltip" id="local_tooltip"></div>
 <div></div>
 
 <div style="display:inline-block; position:relative; vertical-align:top; display:flex;">
 <div id="colortable" style="vertical-align:top; display:inline-block; position:relative; color:#000; min-width:316px; max-width:316px;"></div>
-<div id="themelist" style="display:inline-block; vertical-align:top; white-space:pre;"></div>
+<div id="colorlist" style="display:inline-block; vertical-align:top; white-space:pre;"></div>
 <div style="display:inline-block; vertical-align:top;">
 <div class="stdout" id="stdout" style="white-space:pre; padding:0;"><div style="padding:4px 4px 0px 4px;">🦦 -(Bookmarked pictures) <div class="next" id="replace" style="cursor:pointer;">Replace gallery</div></div><div id="saved" style="padding:8px 12px; position:relative; display:inline-block; min-width:596px; min-height:12px; line-height:1.1; box-sizing: border-box;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
 <div></div>

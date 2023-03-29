@@ -632,14 +632,14 @@ function galleryset2(){
 
 var galleryset = [[], []];
 function makegallery(n){
-  if(!saved.innerHTML.startsWith("Connect to Bad Dragon")){
+  if(!editor.innerHTML.startsWith("Connect to Bad Dragon")){
     echo("Replace this text field with 'Connect to Bad Dragon' and release me from liability.\nThis might strain Bad Dragon server/your computer and I'll not be held responsibility for that.\n")
     return;
   }
-  more.style.display = "none"; 
+  more.style.display = "none";
   var buffer = ""
   galleryset = [[], []];
-  savedlist = saved.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
+  savedlist = editor.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
   for (var i=0; i<savedlist.length; i++){
     galleryset[0].push(savedlist[i])
   }
@@ -676,10 +676,11 @@ function FFdown(e) {
   } else if (e.target.getAttribute("id") == "odnary"){
     makegallery(odnary.getAttribute("data-colorset"));
   } else if (e.target.getAttribute("id") == "replace"){
+
     more.style.display = "none"; 
     var buffer = ""
     galleryset = [[], []];
-    savedlist = saved.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
+    savedlist = editor.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
     for (var i=0; i<savedlist.length; i++){
       galleryset[0].push(savedlist[i])
     }
@@ -688,6 +689,9 @@ function FFdown(e) {
     }
     gallery.innerHTML = buffer;
     lazyload()
+  } else if (e.target.getAttribute("id") == "gallerysave"){
+    document.cookie = "gallerysave=" + encodeURIComponent(editor.innerHTML) + "; path=/; SameSite=Strict;";
+    gallerysave.classList="prev"
   } else if (e.target.getAttribute("id") == "cs"){
     makegallery(cs.getAttribute("data-colorset"));
   } else if (e.target.getAttribute("id") == "mas"){
@@ -740,7 +744,8 @@ function FFdown(e) {
             savedlist.push(t.getAttribute("data-schande"))
             echo(t.getAttribute("data-schande"))
             t.removeEventListener('touchend', listener);
-            t.removeAttribute("busy")
+            t.removeAttribute("busy");
+            edit();
           }
         };
         if (!t.hasAttribute("busy")){
@@ -755,6 +760,7 @@ function FFdown(e) {
           savedlist.push(t.getAttribute("data-schande"))
           echo(t.getAttribute("data-schande"))
           t.removeEventListener("mouseup", listener);
+          edit();
         }
         t.addEventListener("mouseup", listener);
       }
@@ -768,7 +774,8 @@ function FFdown(e) {
             d.classList.remove("left");
             echo("SHAME " + t.getAttribute("data-schande"))
             t.removeEventListener('touchend', listener);
-            t.removeAttribute("busy")
+            t.removeAttribute("busy");
+            edit();
           }
         };
         if (!t.hasAttribute("busy")){
@@ -782,6 +789,7 @@ function FFdown(e) {
         let listener = () => {
           echo("SHAME " + t.getAttribute("data-schande"))
           t.removeEventListener("mouseup", listener);
+          edit();
         }
         t.addEventListener("mouseup", listener);
       }
@@ -858,7 +866,17 @@ function plaintext(elem, e) {
 function echo(B, b) {
   if (!b) B = "\n" + B
   if (b) B = " " + B
-  saved.innerHTML += B;
+  editor.innerHTML += B;
+}
+
+function edit(){
+  n = 4085 - encodeURIComponent(editor.innerHTML).length;
+  gallerysave.innerHTML = "Save (" + n + " chars left)"
+  if (0 > n){
+    gallerysave.classList = "prev";
+  } else {
+    gallerysave.classList = "next";
+  }
 }
 
 var Expand = function(c, t) {
@@ -956,9 +974,9 @@ window.onload = () => {
   //document.addEventListener("touchstart", FFdown);
   document.addEventListener("mousedown", FFdown);
 
-  if(!saved.isContentEditable){
-    saved.setAttribute("onpaste", "plaintext(this, event)");
-    saved.setAttribute("contenteditable", "true");
+  if(!editor.isContentEditable){
+    editor.setAttribute("onpaste", "plaintext(this, event)");
+    editor.setAttribute("contenteditable", "true");
   }
 
   if('ontouchstart' in window){isTouch = true;};
@@ -971,13 +989,27 @@ window.onload = () => {
     }
   }, false);
 
-  saved.addEventListener("drop", function(e) {
+  editor.addEventListener("drop", function(e) {
     if(fileThumb){
       e.preventDefault();
       echo(fileThumb.childNodes[0].getAttribute("src"))
       fileThumb = null;
     }
   }, false);
+
+  var ca = document.cookie.split(';');
+  for(var i=0; i < ca.length; i++) {
+    var c = ca[i];
+
+    while (c.charAt(0) == ' '){
+      var c = c.substring(1, c.length)
+    };
+
+    if (c.indexOf("gallerysave=") == 0){
+      editor.innerHTML = decodeURIComponent(c.substring("gallerysave=".length, c.length));
+    }
+  }
+  editor.setAttribute("oninput", "edit()")
 }
 </script>
 </head>
@@ -993,7 +1025,7 @@ window.onload = () => {
 <div id="colortable" style="vertical-align:top; display:inline-block; position:relative; color:#000; min-width:316px; max-width:316px;"></div>
 <div id="colorlist" style="display:inline-block; vertical-align:top; white-space:pre;"></div>
 <div style="display:inline-block; vertical-align:top;">
-<div class="stdout" id="stdout" style="white-space:pre; padding:0;"><div style="padding:4px 4px 0px 4px;">🦦 -(Bookmarked pictures) <div class="next" id="replace" style="cursor:pointer;">Replace gallery</div></div><div id="saved" style="padding:8px 12px; position:relative; display:inline-block; min-width:596px; min-height:12px; line-height:1.1; box-sizing: border-box;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
+<div class="stdout" id="stdout" style="white-space:pre; padding:0;"><div style="padding:4px 4px 0px 4px;">🦦 -(Bookmarked pictures) <div class="next" id="replace" style="cursor:pointer;">Replace gallery</div><div class="prev" id="gallerysave" style="cursor:pointer;" data-tooltip="Save text field as cookie for next page visit">Save</div></div><div id="editor" style="padding:8px 12px; position:relative; display:inline-block; min-width:596px; min-height:12px; line-height:1.1; box-sizing: border-box;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
 <div></div>
 <div id="gallery" style="display:inline-block;"></div>
 <div></div>

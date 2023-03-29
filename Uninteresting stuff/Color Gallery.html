@@ -48,7 +48,7 @@ h3 {margin:4px;}
 }
 </style>
 <script>
-var fc = {"black":"#000000", "machine":"#202229", "anubis":"#292220", "mold":"#222922", "concrete":"#666666", "smoke":"#999999", "cream":"#dcd6cc", "white":"#ffffff", "magenta":"#ff00e2", "cherry blossom":"#ffc9e8", "maroon":"#820045", "rose":"#d60159", "orchid":"#ff6c9b", "crimson":"#7a0002", "red":"#d90003", "cerise":"#ff4648", "pink":"#ffc5c6", "chestnut":"#bd3f20", "coral":"#f17f6a", "walnut":"#9f400f", "copper":"#e86423", "tan":"#ffc397", "chocolate":"#61300b", "bronze":"#c26718", "orange":"#ff8a00", "honey":"#ffbe6a", "gold":"#ffc11d", "brass":"#ffd76b", "beeswax":"#c4af22", "lemon":"#ffe900", "beige":"#fff8a8", "olive":"#707916", "fern":"#b4cd20", "tennis ball":"#e5ff00", "pistachio":"#e5ff9f", "forest":"#234d00", "green":"#64c900", "lime":"#adff69", "xanadu":"#c2ffaf", "teal":"#009677", "cyan":"#2deacf", "mist":"#a3ffe1", "ink":"#00228c", "blue":"#1a7dff", "sky":"#5ed5ff", "glaucous":"#caf6ff", "grape":"#4b0078", "violet":"#8904d1", "psychic":"#bb6eff", "lavender":"#e0caff"}
+var fc = {"black":"#000000", "machine":"#202229", "anubis":"#292220", "mold":"#222922", "concrete":"#666666", "smoke":"#999999", "cream":"#dcd6cc", "white":"#ffffff", "magenta":"#ff00e2", "cherry blossom":"#ffc9e8", "maroon":"#820045", "rose":"#d60159", "orchid":"#ff6c9b", "crimson":"#7a0002", "red":"#d90003", "cerise":"#ff4648", "pink":"#ffc5c6", "chestnut":"#bd3f20", "coral":"#f17f6a", "walnut":"#9f400f", "copper":"#e86423", "peach":"#ffc397", "chocolate":"#61300b", "bronze":"#c26718", "orange":"#ff8a00", "honey":"#ffbe6a", "gold":"#ffc11d", "brass":"#ffd76b", "beeswax":"#c4af22", "lemon":"#ffe900", "beige":"#fff8a8", "olive":"#707916", "fern":"#b4cd20", "tennis ball":"#e5ff00", "pistachio":"#e5ff9f", "forest":"#234d00", "green":"#64c900", "lime":"#adff69", "xanadu":"#c2ffaf", "teal":"#009677", "cyan":"#2deacf", "mist":"#a3ffe1", "ink":"#00228c", "blue":"#1a7dff", "sky":"#5ed5ff", "glaucous":"#caf6ff", "grape":"#4b0078", "violet":"#8904d1", "psychic":"#bb6eff", "lavender":"#e0caff"}
 
 var cn = [
   "black", "machine", "anubis", "mold",
@@ -57,7 +57,7 @@ var cn = [
   "maroon", "rose", "orchid", null,
   "crimson", "red", "cerise", "pink",
   null, "chestnut", "coral", null,
-  null, "walnut", "copper", "tan",
+  null, "walnut", "copper", "peach",
   "chocolate", "bronze", "orange", "honey",
   null, null, "gold", "brass",
   null, "beeswax", "lemon", "beige",
@@ -89,14 +89,14 @@ var c = {
   "Unicorn Cake":[["glaucous", 0], ["grape", 0], ["pink", 0]],
   "Sweet Serenade":[["black", 0], ["cream", 0]],
   "Lemon Blueberry Cake":[["cherry blossom", 0], ["lemon", 0], ["grape", 0]],
-  "Peanut Butter Chocolate Cheesecake":[["lemon", 0], ["tan", 0], ["copper", 0], ["black", 0]],
+  "Peanut Butter Chocolate Cheesecake":[["lemon", 0], ["peach", 0], ["copper", 0], ["black", 0]],
   "Kiss from a Rose":[["orchid", 0], ["orchid", 3], ["cherry blossom", 0]],
   "Make it Blue":[["red", 0], ["magenta", 0], ["cream", 0]],
   "Prissy Pink":[["orchid", 3]],
   "Cherry Tart":[["pink", 2], ["psychic", 0], ["red", 0]],
   "Cherry Red":[["cerise", 0]],
   "Cherry Cordial":[["anubis", 0], ["red", 0]],
-  "World Soul":[["sky", 2], ["lavender", 0], ["tan", 0]],
+  "World Soul":[["sky", 2], ["lavender", 0], ["peach", 0]],
   "Sherwood Fox":[["cherry blossom", 0], ["psychic", 0], ["chestnut", 0]],
   "Celestial Light":[["white", 0]],
   "Brilliant White":[["white", 0]],
@@ -250,7 +250,7 @@ var c = {
   "Frozen Fox":[["white", 0], ["blue", 0]],
   "Split Red Stone":[["maroon", 0], ["black", 0]],
   "Split Arctic Ice":[["sky", 0], ["ink", 0]],
-  "Proper Belle":[["beige", 0], ["tan", 0], ["fern", 0]],
+  "Proper Belle":[["beige", 0], ["peach", 0], ["fern", 0]],
   "Angelic Mist":[["mist", 0], ["psychic", 0], ["xanadu", 0]],
   "Prim Rose":[["pink", 0], ["lavender", 0], ["coral", 0]],
   "Wicked Haze":[["concrete", 0], ["teal", 0], ["grape", 0]],
@@ -258,8 +258,8 @@ var c = {
   "Pacific Hurricane":[["white", 3], ["gold", 0], ["cerise", 0]],
   "Magic Butterfly":[["white", 3], ["magenta", 0], ["blue", 0]],
   "Tropical Storm":[["white", 3], ["tennis ball", 0], ["forest", 0]],
-  "vida":[["coral", 0]],
-  "chi-chi":[["tan", 0]],
+  "vida":[["peach", 0]],
+  "chi-chi":[["honey", 0]],
   "noxeema":[["chocolate", 0]],
   "Aquarius":[["teal", 0], ["blue", 0], ["honey", 0]],
   "Pisces":[["grape", 0], ["tennis ball", 0], ["cherry blossom", 0]],
@@ -290,7 +290,7 @@ var c = {
   "Merlot":[["crimson", 0]],
   "Tangerine":[["chestnut", 0]],
   "Sunset":[["gold", 0]],
-  "Peach":[["tan", 0]],
+  "Peach":[["peach", 0]],
   "Bone":[["cream", 0]],
   "Butterfly":[["beige", 0]],
   "Forest":[["mold", 0]],

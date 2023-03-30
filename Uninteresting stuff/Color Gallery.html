@@ -690,7 +690,9 @@ function FFdown(e) {
     gallery.innerHTML = buffer;
     lazyload()
   } else if (e.target.getAttribute("id") == "gallerysave"){
-    document.cookie = "gallerysave=" + encodeURIComponent(editor.innerHTML) + "; path=/; SameSite=Strict;";
+    let expires = new Date(Date.now() + 365 * 864e5).toUTCString()
+    document.cookie = "gallerysave=" + encodeURIComponent(editor.innerHTML) + "; expires=" + expires + "; path=/; SameSite=Strict;";
+    //no expiry would allow the cookie to be automatically deleted upon browser exit.
     gallerysave.classList="prev"
   } else if (e.target.getAttribute("id") == "cs"){
     makegallery(cs.getAttribute("data-colorset"));

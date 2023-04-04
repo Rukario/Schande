@@ -38,7 +38,7 @@ input[type="file"] {display:none;}
 .previous, .reverse, .inverse, .next {border-radius:0px; cursor:pointer; font-size:12px; padding:4px 11px; font-family:Arial; margin:6px 0px;}
 .cell {width:352px; vertical-align:text-top; font-size:14px;}
 .cell::before {border:2px solid rgba(255, 255, 255, 0.75); width:calc(100% - 4px); height:calc(100% - 4px);}
-.stdout {line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px; min-height:0px;}
+.stdout {white-space:pre; line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px; min-height:0px;}
 
 input[type="range"] {
   position:relative;
@@ -1114,7 +1114,7 @@ var fpsm = 1;
 function compileframes(multi=true){
   frameBuffer = [false, false, false, false]
   newAPNG = [];
-  seqFrameN = framelist.innerHTML.split("\n").filter(function(el) { return el; })
+  seqFrameN = framelist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return e;})
   var lastFrameN;
 
   start = [true, true];
@@ -1202,7 +1202,7 @@ function compileframes(multi=true){
 function compileapngs(){
   frameBuffer = [false, false, false, false]
   newAPNG = [];
-  seqAPNG = apnglist.innerHTML.split("\n").filter(function(el) { return el; })
+  seqAPNG = apnglist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return e;})
   function readFile(interAPNG){
     ti[0] = performance.now()
     ti[1] = performance.now()
@@ -1686,8 +1686,7 @@ window.onload = () => {
 
 
 
-<div>
-<div class="backtip cell" style="position:relative;">
+<div class="backtip cell">
 <div class="backtip" style="top:-11px; display:table;">🦦 -(Make)</div>
 <label class="next"><input id="loadframes" type="file" multiple></input>Load Frames</label>
 <label class="next"><input id="moreframes" type="file" multiple></input>Load more</label>
@@ -1696,9 +1695,9 @@ window.onload = () => {
 <button id="removebg" class="reverse" style="display:none; position:absolute; right:10px; top:10px;">Remove background</button>
 <div></div>
 
-<div style="display:inline-block; width:350px; vertical-align: text-top;">
-<div id="framelist" class="stdout" style="color:#fd6; display:inline-block;" contenteditable="plaintext-only" spellcheck=false></div>
-<div style="margin:6px 12px; float:right; width:300px;">Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.</div>
+<div style="display:flex; width:350px; vertical-align:top;">
+<div id="framelist" class="stdout" style="color:#fd6;" contenteditable="plaintext-only" spellcheck=false><br></div>
+<div style="margin:12px;">Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.</div>
 </div>
 <div></div>
 
@@ -1713,19 +1712,19 @@ window.onload = () => {
 <label class="next"><input id="moreapng" type="file" multiple></input>Load more</label>
 <div></div>
 
-<div style="display:inline-block; width:350px; vertical-align: text-top;">
-<div id="apnglist" class="stdout" style="color:#fd6; display:inline-block;" contenteditable="plaintext-only" spellcheck=false></div>
-<div style="margin:6px 12px; float:right; width:300px;">Edit list to rearrange, repeat, or skip APNG series.</div>
+<div style="display:flex; width:350px; vertical-align:top;">
+<div id="apnglist" class="stdout" style="color:#fd6;" contenteditable="plaintext-only" spellcheck=false><br></div>
+<div style="margin:12px;">Edit list to rearrange, repeat, or skip APNG series.</div>
 </div>
 <div></div>
 
 <button class="previous" onclick="echo('APNG list is empty!')" id="mergeapng">Merge APNG</button>
 </div>
-</div>
+<div></div>
 
 
 
-<div class="stdout" id="stdout">🦦 -(Output)</div>`
+<div class="stdout" id="stdout" style="white-space:initial;">🦦 -(Output)</div>`
   loaded();
   lazyload();
   //document.addEventListener("click", Expander);

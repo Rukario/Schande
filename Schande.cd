@@ -5,17 +5,17 @@ Geistauge = No
 Python = 
 Proxy = socks5://
 
-silence
+shuddup
 
 
 
 - - - - Spoofer - - - -
 Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:107.0) Gecko/20100101 Firefox/107.0 for http
 # Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 for http
-4-8 seconds rarity 100%
-# 4-8 seconds rarity 75%
-# 12-24 seconds rarity 23%
-# 64-128 seconds rarity 2%
+4-8 seconds rarity 100% 00:00
+# 4-8 seconds rarity 75% 00:00
+# 12-24 seconds rarity 23% 00:00
+# 64-128 seconds rarity 2% 00:00
 
 https://www.pixiv.net/ for https://i.pximg.net
 https://www.fanbox.cc for https://api.fanbox.cc

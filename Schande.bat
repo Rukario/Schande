@@ -7,7 +7,7 @@ from http import cookiejar
 from http.server import BaseHTTPRequestHandler
 from queue import Queue
 from socketserver import ThreadingMixIn, TCPServer
-from threading import Thread
+from threading import Thread, Event
 from urllib import parse, request
 from urllib.error import HTTPError, URLError
 from random import random
@@ -198,7 +198,7 @@ def help():
  |    Alternatively "X with Y".
  |  "url ..*.. with ..*.. redirector. Original url will be used for statement and scraper loop.
  |    Alternatively "X with Y".
- |  "send X Y"        send data (X) to url (Y) or to current page url (no Y) before accessing page.
+ |  "POST X Y"        POST data (X) to url (Y) or to current page url (no Y) before accessing page.
  |
  | Alert
  |  "expect ...*..."  put scraper into loop, alarm when a pattern is found in page. "unexpect" for opposition.
@@ -465,7 +465,7 @@ def input(i="Your Input: ", choices=False, double=False):
             keys += c[0].lower()
         while True:
             el = choice(keys, double=double)
-            if (c := choices[el-1])[1:]:
+            if el > 0 and (c := choices[el-1])[1:]:
                 echo("", 1, 0)
                 nter = input("Type and enter to confirm, else to return: " + c + f"\033[{len(c)-1}D")
                 echo("", 1, 0)
@@ -646,8 +646,8 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
         try:
             headers = []
             while True:
-                line = self.rfile.readline(4096 + 1)
-                if len(line) > 4096:
+                line = self.rfile.readline(4096+11 + 1)
+                if len(line) > 4096+11:
                     self.send_error(431, 'One of the headers is too long')
                 headers.append(line)
                 if len(headers) > 24:
@@ -1138,15 +1138,18 @@ fdate = date.strftime('%Y') + "-" + date.strftime('%m') + "-XX"
 
 
 def new_picker():
-    return {"replace":[], "send":[], "defuse":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "pattern":[[], [], False, False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "time":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "POST":[], "DELETE":[], "defuse":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "pattern":[[], [], False, False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "time":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
 
 
 
 file_pos = ["file"]
 def add_picker(s, rule):
-    if rule.startswith("send "):
+    if rule.startswith("POST "):
         rule = rule.split(" ", 2)
-        s["send"] += [[rule[1], rule[2]] if len(rule) == 2 else [rule[1], []]]
+        s["POST"] += [[rule[1], rule[2]] if len(rule) == 2 else [rule[1], []]]
+    elif rule.startswith("DELETE "):
+        rule = rule.split(" ", 2)
+        s["DELETE"] += [[rule[1], rule[2]] if len(rule) == 2 else [rule[1], []]]
     elif rule.startswith("defuse"):
         s["defuse"] = [True, rule.split(" ", 1)[1]] if " " in rule else [True, False]
     elif rule.startswith("visit"):
@@ -1328,7 +1331,7 @@ def getrule(rule):
         cli["bgcolor"] = rule.replace("bgcolor ", "")
     elif rule.startswith('fgcolor '):
         cli["fgcolor"] = rule.replace("fgcolor ", "")
-    elif rule == "silence":
+    elif rule == "shuddup":
         cli["dismiss"] = 2
     elif rule == "showpreview":
         cli["showpreview"] = True
@@ -1481,14 +1484,16 @@ if not cli["dismiss"]:
     buffer = f"\n{tcoloro} TO YOURSELF: {rulefile} contains personal information\n like mail, password, cookies. Edit {rulefile} before sharing!"
     if HTTPserver:
         buffer += f"\n{skull()}\n HTTP SERVER: Anyone accessing your server can open {rulefile} reading personal information\n like mail, password, cookies."
-    echo(f"""{buffer}\n\nAdd "silence" to {rulefile} to dismiss this message.{tcolorx}""", 0, 1)
+    echo(f"""{buffer}\n\nAdd "shuddup" to {rulefile} to dismiss this message.{tcolorx}""", 0, 1)
 
 
 
-ticking = [False]
-def timer(e="", ind=True, listen=[False], notlisten=[False]):
-    if not ticking[0]:
-        ticking[0] = True
+ticking = [Event()]*2
+for t in ticking:
+    t.set()
+def timer(e="", ind=True, listen=[0]):
+    if ticking[0].is_set():
+        ticking[0].clear()
         if not navigator["timeout"]:
             navigator["timeout"].update({0:[4, 8]})
             echo(f"""\n"#-# seconds rarity 100% 00:00" in {rulefile} to customize timer, add another timer to manipulate rarity/schedule.\n""", 1, 1)
@@ -1520,11 +1525,12 @@ def timer(e="", ind=True, listen=[False], notlisten=[False]):
         end = int(time.time()) + s
         endclock = (datetime.utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%H:%M')
         while True:
+            ticking[1].clear()
             now = int(time.time())
             s = end - now
-            if s < 60:
+            if s < 61:
                 echo(f"{e} {s} . . .")
-                time.sleep(1)
+                ticking[1].wait(timeout=1)
             else:
                 h = int(s / 60 / 60)
                 h = f"{h} hour and " if h == 1 else f"{h} hours and " if h else ""
@@ -1532,7 +1538,7 @@ def timer(e="", ind=True, listen=[False], notlisten=[False]):
                 m = f"{m} minute" if m == 1 else f"{m} minutes"
                 sec = int(s % 60)
                 echo(f"{e} {h}{m} until {endclock}")
-                time.sleep(sec)
+                ticking[1].wait(timeout=sec)
             if pgtime[0] < int(time.time()/5):
                 pgtime[0] = int(time.time()/5)
                 pg[0] = 0
@@ -1540,12 +1546,11 @@ def timer(e="", ind=True, listen=[False], notlisten=[False]):
             if Keypress[26]:
                 Keypress[26] = False
                 break
-            if now > end-2 or not any(not x for x in listen) or any(notlisten):
+            if now > end-2 or any(Keypress[n] for n in listen):
                 break
-        ticking[0] = False
+        ticking[0].set()
     elif ind:
-        while ticking[0]:
-            time.sleep(0.5)
+        ticking[0].wait()
 
 
 
@@ -1560,7 +1565,7 @@ def retry(stderr):
                 if Keypress[16]:
                     e = f"{retries[0]} retries (P)ause (S)kip once"
                     if Keypress[20]:
-                        timer(f"{e}, reloading in", listen=[Keypress[16]], notlisten=[Keypress[19]])
+                        timer(f"{e}, reloading in", listen=[16])
                     else:
                         echo(e)
                     Keypress[18] = True if Keypress[16] else False
@@ -1613,15 +1618,18 @@ def overwrite(ondisk, todisk):
 
 
 
-def fetch(url, stderr="", dl=0, threadn=0, data=None):
+def fetch(url, stderr="", dl=0, threadn=0, data=None, method=None):
     referer = x[0] if (x := [v for k, v in navigator["referers"].items() if url.startswith(k)]) else ""
     ua = x[0] if (x := [v for k, v in navigator["agent"].items() if url.startswith(k)]) else 'Mozilla/5.0'
     headers = {x[0][0]:x[0][1]} if (x := [v for k, v in navigator["headers"].items() if url.startswith(k)]) else {}
     headers.update({'User-Agent':ua, 'Referer':referer, 'Origin':referer})
     while True:
-        headers.update({'Range':f'bytes={dl}-', 'Accept':"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"})
+        # accept = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        accept = "application/json"
+        ct = "application/json"
+        headers.update({'Range':f'bytes={dl}-', 'Accept':accept, 'Content-Type':ct})
         try:
-            resp = request.urlopen(request.Request(saint(url=url), headers=headers, data=data))
+            resp = request.urlopen(request.Request(saint(url=url), headers=headers, data=data, method=method if method else "POST" if data else "GET"))
             break
         except HTTPError as e:
             if stderr or Keypress[24] and not Keypress[19]:
@@ -2777,10 +2785,18 @@ def get_data(threadn, page, url, pick):
             driver(page)
     if pick["visit"]:
         fetch(page, stderr="Error visiting the page to visit")
-    if pick["send"]:
-        for x in pick["send"]:
+    if pick["POST"]:
+        for x in pick["POST"]:
             post = x[1] if x[1] else url
             data, err = fetch(post, stderr="Error sending data", data=str(x[0]).encode('utf-8'))
+            if err:
+                print(f" Error visiting ({err}): {page}")
+                return 0, 0
+        data = data.read()
+    if pick["DELETE"]:
+        for x in pick["DELETE"]:
+            post = x[1] if x[1] else url
+            data, err = fetch(post, stderr="Error sending data", data=str(x[0]).encode('utf-8'), method="DELETE")
             if err:
                 print(f" Error visiting ({err}): {page}")
                 return 0, 0
@@ -2891,7 +2907,7 @@ def pick_in_page():
                 alert(page, buffer, pick["dismiss"])
             else:
                 more_pages += [[start, page, pagen]]
-                timer(f"{alerted[0]}, resuming unalerted pages in" if alerted[0] else "Not quite as expected! Reloading in", listen=[Keypress[3], Keypress[19]] if alerted[0] else [False])
+                timer(f"{alerted[0]}, resuming unalerted pages in" if alerted[0] else "Not quite as expected! Reloading in", listen=[3, 19])
         if any(pick[x] for x in ["folder", "pages", "html", "icon", "dict", "file", "file_after"]) and not data:
             data, part = get_data(threadn, page, url, pick)
             if not data:
@@ -5103,8 +5119,21 @@ def list_remote(remote, nolist):
 
 
 
+def killdaemon(el):
+    if el < 0:
+        echo(f"Press K twice in fast sequence to kill transmission-daemon and return to main menu.", 1, 1)
+        return
+    if sys.platform == "linux":
+        os.system("killall -9 transmission-daemon")
+    else:
+        os.system("taskkill -f /im transmission-daemon.exe")
+    task["transmission"] = False
+    return True
+
+
+
 def start_remote(remote):
-    silence = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
+    shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
     keys = [*"0123456789", "All", *"dfsglmkrei"]
     pos = 0
     sel = 14
@@ -5122,7 +5151,7 @@ def start_remote(remote):
   > Press R, E, I to (R)emove torrent, view fil(E)s of selected torrent, or (I)nput new torrent.""", 0, 2)
     while True:
         if task["transmission"]:
-            el = input(f"Select TORRENT by number to {switch}: {f'{pos/10:g}' if pos else ''}", keys if sel == 19 else keys[:10] + keys[11:], double="l")
+            el = input(f"Select TORRENT by number to {switch}: {f'{pos/10:g}' if pos else ''}", keys if sel == 19 else keys[:10] + keys[11:], double="lk")
             if not sel == 19 and abs(el) > 10:
                 el += 1 if el > 0 else -1
         else:
@@ -5142,7 +5171,7 @@ def start_remote(remote):
                     echo(f"Press L twice in fast sequence to remove: {' '.join(x for x in remove)}", 1, 1)
                     continue
                 for r in remove:
-                    subprocess.Popen([remote, "-t", r, "-r"], **silence)
+                    subprocess.Popen([remote, "-t", r, "-r"], **shuddup)
                 remove = []
                 pos = 0
                 sel = 14
@@ -5155,13 +5184,10 @@ def start_remote(remote):
                 list_remote(remote, "No torrents to list!")
         elif el == 17:
             return
-        elif el == 18:
-            if sys.platform == "linux":
-                os.system("killall -9 transmission-daemon")
-            else:
-                os.system("taskkill -f /im transmission-daemon.exe")
-            task["transmission"] = False
-            return
+        elif el in [18, -18]:
+            if killdaemon(el):
+                return
+            continue
         elif el == 21:
             echo("", 1)
             buffer = "cancel"
@@ -5177,7 +5203,7 @@ def start_remote(remote):
                         dir = d[0]
                     else:
                         dir = "Transmission"
-                    subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", i, "-sr", "0"], **silence)
+                    subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", i, "-sr", "0"], **shuddup)
                     buffer = "finish"
                     pos = 0
                     sel = 15
@@ -5208,15 +5234,15 @@ def start_remote(remote):
                 if el == 11:
                     echo("", 1)
                 else:
-                    subprocess.Popen([remote, "-t", str(el-1+pos), "-S"], **silence)
+                    subprocess.Popen([remote, "-t", str(el-1+pos), "-S"], **shuddup)
             elif sel == 15:
                 if el == 11:
                     echo("", 1)
                 else:
-                    subprocess.Popen([remote, "-t", str(el-1+pos), "-s"], **silence)
+                    subprocess.Popen([remote, "-t", str(el-1+pos), "-s"], **shuddup)
             elif sel == 19:
                 if el == 11:
-                    subprocess.Popen([remote, "-t", "all", "-r"], **silence)
+                    subprocess.Popen([remote, "-t", "all", "-r"], **shuddup)
                     remove = []
                     sel = 14
                     time.sleep(0.5)
@@ -5261,13 +5287,11 @@ def start_remote(remote):
                     elif i == 17:
                         echo("", 1)
                         break
-                    elif i == 18:
-                        if sys.platform == "linux":
-                            os.system("killall -9 transmission-daemon")
-                        else:
-                            os.system("taskkill -f /im transmission-daemon.exe")
-                        task["transmission"] = False
-                        return
+                    elif i in [18, -18]:
+                        if killdaemon(i):
+                            return
+                        i = input(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", keys[:18], double="k")
+                        continue
                     elif i > 13:
                         sel2 = i
                         pos2 = 0
@@ -5279,18 +5303,19 @@ def start_remote(remote):
                     else:
                         if sel2 == 14:
                             if i == 11:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", "all"], **silence)
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", "all"], **shuddup)
                             else:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", str(i-2+pos2)], **silence)
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", str(i-2+pos2)], **shuddup)
                         elif sel2 == 15:
                             if i == 11:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", "all"], **silence)
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", "all"], **shuddup)
                             else:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", str(i-2+pos2)], **silence)
-                    i = input(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", keys[:17])
+                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", str(i-2+pos2)], **shuddup)
+                    i = input(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", keys[:18], double="k")
 
 
 
+strayrun = [False]
 def torrent_get(fp=""):
     if sys.platform == "win32":
         daemon = "C:/Program Files/Transmission/transmission-daemon.exe"
@@ -5309,9 +5334,10 @@ def torrent_get(fp=""):
     else:
         echo("Unimplemented for this system!")
         return
-    silence = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
+    shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
     if not task["transmission"]:
-        subprocess.Popen([daemon, "-f"], **silence, shell=True)
+        strayrun[0] = subprocess.Popen([daemon, "-f"], **shuddup, shell=True)
+        # Developer note: needs a way to echo tutorial when transmission-daemon ran as Windows service (a stray process; since subprocess with shell=True should still spawn that process as child). It's to do with installer setting it to automatic startup. Ctrl + Shift + Esc > Services > Open Services > Right-click on "Transmission Daemon" > Properties > set Startup type to Manual
     if fp:
         dir = ""
         if m := parse.parse_qs(fp):
@@ -5322,7 +5348,7 @@ def torrent_get(fp=""):
             dir = d[0]
         else:
             dir = "Transmission"
-        subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", fp, "-sr", "0"], **silence)
+        subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", fp, "-sr", "0"], **shuddup)
     start_remote(remote)
     if sys.platform == "linux" and not task["httpserver"]:
         os.system("killall -9 cat")
@@ -5452,6 +5478,8 @@ def pressed(k, s=True):
     Keypress["?ABCDEFGHIJKLMNOPQRSTUVWXYZ".index(k)] = s
     if not busy[0]:
         ready_input()
+    if ticking[1]:
+        ticking[1].set()
 
 def has(i, x):
     if not x:

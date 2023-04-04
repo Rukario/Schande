@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8">
 <meta name="format-detection" content="telephone=no">
 <title>Make APNG</title>
-<style>
+<head><style>
 html,body {caret-color:#ff8228; font-family:courier; font-size:14px; margin-bottom:-2px; padding-top:2px; padding:2px;}
 [contenteditable]:focus {outline: none;}
 a {color:#ff9449;}
@@ -15,12 +15,30 @@ input[type="file"] {display:none;}
 .previous{background-color:#4bb; color:#133; border:1px solid #033}
 .reverse{background-color:#428; color:#d9f; border:1px solid #214}
 .inverse{background-color:#d9f; color:#428; border:1px solid #214}
+.aczo {font-family:courier; font-size:12px; border:none; border-top:1px solid #033; border-bottom:1px solid #033; margin:-4px 2px; bottom:4px; padding:8px 5px 9px; text-align:center; width:34px; display:inline-block;
+  clip-path: polygon(
+14% 12%,
+50% 0%,
+86% 12%,
+100% 68%,
+82% 100%,
+18% 100%,
+0% 68%
+);
+}
+.aczo28 {bottom:5px; padding:10px 7px 11px; width:44px;}
+.tooltip {display:none; position:absolute; margin-top:37px; white-space:initial; background-color:#2d0710; padding:2px 8px; font-family:sans-serif; font-size:90%; max-width:calc(100% - 36px); line-height:1.1; z-index:9999999; left:0px; top:0px; right:initial;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
-.tooltip {background:#2d0710; border:1px solid #772227; color:inherit; position:relative; cursor:default; font-size:12px; padding:4px 11px; line-height:1.1;}
+.cursor_tooltip{position:absolute; left:0px; top:0px; right:initial; display:none;}
+.backtip {cursor:default; position:relative; display:inline-block; line-height:1.1; font-size:12px; padding:5px 12px;}
+.backtip::before {content:''; position:absolute; left:0; top:0; z-index:1; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none;}
+.backtip {background:#2d0710; z-index:1;}
+.local_tooltip {z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
 .previous, .reverse, .inverse, .next {border-radius:0px; cursor:pointer; font-size:12px; padding:4px 11px; font-family:Arial; margin:6px 0px;}
-.cell {display:inline-block; width: 360px; vertical-align: text-top; border:2px solid #772227; padding-left:10px;}
-.stdout {white-space:pre-wrap; line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px; min-height:0px;}
+.cell {width:352px; vertical-align:text-top; font-size:14px;}
+.cell::before {border:2px solid rgba(255, 255, 255, 0.75); width:calc(100% - 4px); height:calc(100% - 4px);}
+.stdout {line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px; min-height:0px;}
 
 input[type="range"] {
   position:relative;
@@ -75,6 +93,42 @@ input[type="range"]::-moz-range-thumb {
 .ogv-seek{width:0;margin:0;flex-grow:1}
 </style>
 <script>
+function getfontcolor(c, v){
+  if(c[0] >= "cc" && c[1] >= "cc" && c[2] >= "cc"){
+    return ".exitmenu{background-color:#" + v + "; color:#586e75;}"
+  } else if(c[0] >= "99" || c[1] >= "99" || c[2] >= "99"){
+    return ".exitmenu{background-color:#" + v + "; color:#000;}"
+  } else if(c[0] >= "20" && c[1] >= "10" && c[2] >= "10"){
+    return ".exitmenu{background-color:#" + v + "; color:#93a1a1;}"
+  } else if(c[0] >= "20" && c[1] >= "07" && c[2] >= "07"){/* red */
+    return ".exitmenu{background-color:#" + v + "; color:#f45;}"
+  } else {
+    return ".exitmenu{background-color:#" + v + "; color:#fff;}"
+  }
+}
+var sharp = [false, false];
+if(window.location.href.includes("#")){
+  sharp[0] = window.location.href.split('#')[1]
+}
+if (sharp[0]){
+  if(sharp[0].endsWith(".css")){
+    var link = document.createElement("link");
+    link.href = sharp[0];
+    link.rel = "stylesheet"
+    document.getElementsByTagName("head")[0].appendChild(link);
+    link.onerror = () => {
+      sharp[1] = true;
+    }
+  } else {
+    var s = document.createElement("style")
+    s.innerHTML = getfontcolor(sharp[0].match(/.{1,2}/g), sharp[0]);
+    document.getElementsByTagName("head")[0].appendChild(s)
+  }
+} else {
+  var a = document.createElement("a");
+  a.href = "#2d0710";
+  a.click()
+}
 var FFdown = function(e) {
   var t = e.target;
   var a = t.parentNode;
@@ -377,7 +431,7 @@ function get_dim(image, enablescaling) {
     dim = [0, 0, Math.floor(orig_dim[2] / len), Math.floor(orig_dim[3] / len)]
     dimension.innerHTML = dim[2] + " &times; " + dim[3];
     if (len > 1){
-      dimension.innerHTML += " <button class='tooltip' onclick='fullres()'>use original</button>"
+      dimension.innerHTML += " <button class='backtip' onclick='fullres()'>use original</button>"
     }
   } else {
     dim = [...orig_dim];
@@ -1412,7 +1466,7 @@ OgvCtrl.ctrl.ts.textContent=`${a}:${i.toString().padStart(2,"0")} / ${e}:${t.toS
 
 
 
-var currentvideo;
+var currentvideo = null;
 function getogvplayer(){
   pload.style.display = "none";
   OgvCtrl.init()
@@ -1457,7 +1511,7 @@ function loaded(){
     var f = event.target.files[0];
     if (isVideo(get_ext(f))) {
       if (isVideo(get_ext(f)) == "webm" && window.OGVPlayer == undefined){
-        currentvideo = window.URL.createObjectURL(f)
+        currentvideo = window.URL.createObjectURL(f);
         if (/iPhone|iPad/.test(navigator.userAgent)){
           getogvplayer()
           return;
@@ -1467,7 +1521,7 @@ function loaded(){
         }
       }
       if (window.OGVPlayer){
-        currentvideo = window.URL.createObjectURL(f)
+        currentvideo = window.URL.createObjectURL(f);
         webmplayer()
       } else {
         var v = document.createElement("video");
@@ -1583,6 +1637,30 @@ function loaded(){
   document.body.appendChild(s);
 }
 
+var filel = ["File", "Diff", "File 1", "File 2", "🦊"]
+var ut = 0
+
+new URLSearchParams(window.location.search).forEach(function (val, key) {
+  if (!val){
+    if (Number(key)){
+      ut = key
+    } else if (key == "🦦"){
+      filel = ["❨'▾'❩", "❨ ꊱ ❩", "❨ 1 ❩", "❨ 2 ❩", "🦦"]
+    } else {
+      filel[4] = key
+    }
+  }
+});
+
+function newtip(y, z){
+  let x = document.createElement("div");
+  x.innerHTML = y;
+  x.setAttribute("data-tooltip", z)
+  x.classList.add("local_tooltip");
+  local_backtip.appendChild(x);
+  local_backtip.style.display = "inline-block";
+}
+
 var fps = 0;
 var framearray = [];
 var apngarray = [];
@@ -1598,19 +1676,19 @@ var dim, orig_dim, new_dim, arri, seqFrameN, seqAPNG, img, dl, Module, name, dec
 window.onload = () => {
   document.body.innerHTML = `<div style="margin-bottom:12px;">
 <label class="next"><input id="viewer" type="file"></input>🦦 -(Echo file)</label>
-<div class="tooltip" style="display:inline-block;" data-tooltip='APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">🦦 -(Production advices)</div>
-<div class="tooltip" id="oload" style="display:none;" data-tooltip='Optimize frames with <a href="https://github.com/LI-NA/optipng.js/tree/master/demo/js" target="_blank">optipng.min.js</a>, save next to HTML then reload this page'>🦦 -(Optimize frames)</div>
-<div class="tooltip" id="lload" style="display:none;" data-tooltip='Read HEIC files with <a href="https://github.com/alexcorvi/heic2any/raw/master/src" target="_blank">libheif.js</a>, save next to HTML then reload this page'>🦦 -(HEICide)</div>
+<div class="backtip" style="display:inline-block;" data-tooltip='APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">🦦 -(Production advices)</div>
+<div class="backtip" id="oload" style="display:none;" data-tooltip='Optimize frames with <a href="https://github.com/LI-NA/optipng.js/tree/master/demo/js" target="_blank">optipng.min.js</a>, save next to HTML then reload this page'>🦦 -(Optimize frames)</div>
+<div class="backtip" id="lload" style="display:none;" data-tooltip='Read HEIC files with <a href="https://github.com/alexcorvi/heic2any/raw/master/src" target="_blank">libheif.js</a>, save next to HTML then reload this page'>🦦 -(HEICide)</div>
 <button class="next" id="pload" style="display:none; margin:0px; padding:3px 11px 4px; line-height:1.1;" onclick="getogvplayer()">🦦 -(Launch WEBM player for iPad/iPhone)</button>
 </div>
-<div id="tooltip" style="position:absolute; margin-top:37px; white-space:initial; background-color:#2d0710; padding:2px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial;"></div>
+<div id="tooltip" class="tooltip"></div>
 </div>
 
 
 
 <div>
-<div class="cell" style="position:relative;">
-<div class="tooltip" style="top:-8px; position:relative; display:table;">🦦 -(Make)</div>
+<div class="backtip cell" style="position:relative;">
+<div class="backtip" style="top:-11px; display:table;">🦦 -(Make)</div>
 <label class="next"><input id="loadframes" type="file" multiple></input>Load Frames</label>
 <label class="next"><input id="moreframes" type="file" multiple></input>Load more</label>
 <button id="resave" class="next" style="display:none; position:absolute; right:10px; top:40px;">Resave</button>
@@ -1618,7 +1696,7 @@ window.onload = () => {
 <button id="removebg" class="reverse" style="display:none; position:absolute; right:10px; top:10px;">Remove background</button>
 <div></div>
 
-<div style="display:inline-block; width:340px; vertical-align: text-top;">
+<div style="display:inline-block; width:350px; vertical-align: text-top;">
 <div id="framelist" class="stdout" style="color:#fd6; display:inline-block;" contenteditable="plaintext-only" spellcheck=false></div>
 <div style="margin:6px 12px; float:right; width:300px;">Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.</div>
 </div>
@@ -1629,13 +1707,13 @@ window.onload = () => {
 
 
 
-<div class="cell">
-<div class="tooltip" style="top:-8px; position:relative; display:table;">🦦 -(Merge)</div>
+<div class="backtip cell">
+<div class="backtip" style="top:-11px; display:table;">🦦 -(Merge)</div>
 <label class="next"><input id="loadapng" type="file" multiple></input>Load APNG</label>
 <label class="next"><input id="moreapng" type="file" multiple></input>Load more</label>
 <div></div>
 
-<div style="display:inline-block; width:340px; vertical-align: text-top;">
+<div style="display:inline-block; width:350px; vertical-align: text-top;">
 <div id="apnglist" class="stdout" style="color:#fd6; display:inline-block;" contenteditable="plaintext-only" spellcheck=false></div>
 <div style="margin:6px 12px; float:right; width:300px;">Edit list to rearrange, repeat, or skip APNG series.</div>
 </div>
@@ -1651,8 +1729,9 @@ window.onload = () => {
   loaded();
   lazyload();
   //document.addEventListener("click", Expander);
+  if(sharp[1]){
+    newtip(filel[4] + " -(Uninitiated CSS)", `Download and extract "` + sharp[0] + `" (if that's spelled correctly) from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> directly next to HTML then reload this page`);
+  }
 }
-</script>
-<body class="exitmenu">1. Set up and run Schande.bat for its HTTP server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a><br>
-2. Take me to Schande.bat, then launch <a href="http://localhost:8886/APNG Maker.html">http://localhost:8886/APNG Maker.html</a></body>
-</html>
+</script></head><body class="exitmenu">1. Set up and run Schande.bat for its HTTP server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a><br>
+2. Take me to Schande.bat, then launch <a href="http://localhost:8886/APNG Maker.html">http://localhost:8886/APNG Maker.html</a></body></html>

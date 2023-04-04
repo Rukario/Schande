@@ -1306,7 +1306,10 @@ def getrule(rule):
         else:
             y = [[int(x[0])]*2]
         y = y*int(sr[1].split("%")[0])
-        time_at = int(sr[1].split(" ", 1)[-1].replace(":", ""))
+        if len(src := sr[1].split(" ", 1)) == 2: 
+            time_at = int(src[1].replace(":", ""))
+        else:
+            time_at = 0
         if time_at in navigator["timeout"]:
             navigator["timeout"][time_at] += y
         else:

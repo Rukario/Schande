@@ -485,9 +485,9 @@ def new_rules():
 
 - - - - Spoofer - - - -
 Mozilla/5.0 for http
-4-8 seconds rarity 75%
-# 12-24 seconds rarity 23%
-# 64-128 seconds rarity 2%
+4-8 seconds rarity 75% 00:00
+# 12-24 seconds rarity 23% 00:00
+# 64-128 seconds rarity 2% 00:00
 """
 
 
@@ -5625,7 +5625,7 @@ def keylistener():
             if navigator["timeout"]:
                 echo(f"""COOLDOWN {"DISABLED" if Keypress[20] else "ENABLED"}""", 1, 2)
             else:
-                echo(f"""Timer not enabled, please add "#-# seconds rarity 100%" in {rulefile}, add another timer to manipulate rarity.""", 1, 2)
+                echo(f"""Timer not enabled, please add "#-# seconds rarity 100% 00:00" in {rulefile}, add another timer to manipulate rarity.""", 1, 2)
             pressed("T", False if Keypress[20] else True)
         elif el == 21:
             unrecognized("U")

@@ -13,6 +13,7 @@ a:visited{color:#efdfa8;}
 img {vertical-align:top;}
 h3 {margin:4px;}
 .colorset{color:#bfddc6; cursor:pointer;}
+.colorsel{opacity:75%}
 .blink{animation: bl 1000ms steps(1, end) infinite;}
 @keyframes bl{0%{opacity:75%;} 50%{opacity:100%;}}
 .cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:52px; cursor:pointer; -webkit-user-select:none; line-height:1.1;}
@@ -69,570 +70,34 @@ var cn = [
   "grape", "violet", "psychic", "lavender"
 ]
 
-var c = {
-  "Life":[["crimson", 0], ["red", 2], ["orchid", 0]],
-  "Healing":[["chestnut", 0], ["orange", 0], ["beeswax", 2]],
-  "Sunlight":[["gold", 3], ["gold", 0], ["tennis ball", 0]],
-  "Nature":[["forest", 0], ["green", 0], ["lime", 0]],
-  "Harmony":[["indigo", 0], ["azure", 0], ["blueberry", 2]],
-  "Spirit":[["grape", 0], ["violet", 0], ["magenta", 0]],
-  "Fat Tuesday":[["purple", 0], ["lime", 0], ["lemon", 0]],
-  "Raw Berry Cheesecake":[["cherry blossom", 0], ["rose", 3], ["grape", 0]],
-  "Mint Chocolate Chip Sandwich":[["chocolate", 0], ["arctic", 0], ["honey", 0]],
-  "Strawberry Frosted Squares":[["chocolate", 0], ["cherry blossom", 0], ["red", 0]],
-  "Strawberry Shortcake":[["cerise", 2], ["white", 0], ["gold", 2]],
-  "Champagne Cake":[["pink", 0], ["brass", 0], ["brass", 3]],
-  "Red Velvet Cake":[["crimson", 0], ["white", 0]],
-  "Cinnamon Roll":[["bronze", 0], ["gold", 2]],
-  "Carrot Cake":[["orange", 2], ["copper", 0], ["white", 0]],
-  "Neapolitan Ice Cream":[["pink", 0], ["chocolate", 0], ["cream", 0]],
-  "Pumpkin Pie":[["white", 0], ["honey", 0]],
-  "Unicorn Cake":[["arctic", 0], ["grape", 0], ["pink", 0]],
-  "Sweet Serenade":[["black", 0], ["cream", 0]],
-  "Lemon Blueberry Cake":[["cherry blossom", 0], ["lemon", 0], ["grape", 0]],
-  "Peanut Butter Chocolate Cheesecake":[["lemon", 0], ["peach", 0], ["copper", 0], ["black", 0]],
-  "Kiss from a Rose":[["orchid", 0], ["orchid", 3], ["cherry blossom", 0]],
-  "Make it Blue":[["red", 0], ["magenta", 0], ["cream", 0]],
-  "Prissy Pink":[["orchid", 3]],
-  "Cherry Tart":[["pink", 2], ["psychic", 0], ["red", 0]],
-  "Cherry Red":[["cerise", 0]],
-  "Cherry Cordial":[["anubis", 0], ["red", 0]],
-  "World Soul":[["sky blue", 2], ["lavender", 0], ["peach", 0]],
-  "Sherwood Fox":[["cherry blossom", 0], ["purple", 0], ["chestnut", 0]],
-  "Celestial Light":[["white", 0]],
-  "Brilliant White":[["white", 0]],
-  "Slasher Silver":[["glaucous", 0], ["rose", 0]],
-  "Fatality":[["honey", 0], ["coral", 2]],
-  "Meat":[["honey", 0], ["coral", 2]],
-  "Scandalous":[["cream", 0], ["maroon", 0], ["psychic", 0], ["lavender", 3]],
-  "Wicked":[["copper", 0], ["forest", 0], ["purple", 0]],
-  "Fearless Fate":[["red", 0], ["copper", 0], ["teal", 0]],
-  "Numbskull":[["xanadu", 0], ["smoke", 0], ["black", 0]],
-  "Beautiful Ghoul":[["psychic", 0], ["black", 0], ["lavender", 0]],
-  "The Count":[["glaucous", 0], ["crimson", 0], ["black", 0]],
-  "Fairy":[["orange", 0], ["cerise", 2]],
-  "Ghost":[["grape", 0], ["concrete", 3]],
-  "Psychic":[["grape", 0], ["sky blue", 2]],
-  "Ice":[["white", 0], ["sky blue", 3]],
-  "Malicious":[["orange", 0], ["crimson", 0], ["grape", 0]],
-  "Enchanted Apple":[["red", 0]],
-  "Season of the Witch":[["crimson", 2], ["chestnut", 0], ["orange", 0]],
-  "Sinister Pumpkin":[["copper", 0], ["machine", 0]],
-  "Octane":[["lime", 3], ["smoke", 0], ["black", 0]],
-  "Holly Wreath":[["red", 0], ["forest", 2], ["lime", 2], ["rose", 0]],
-  "Tinsel Tidings":[["white", 0], ["smoke", 2], ["purple", 0]],
-  "Tis' the Season":[["violet", 0], ["sky blue", 0], ["smoke", 3]],
-  "Krampus' Present":[["bronze", 0], ["fern", 2]],
-  "Burr":[["white", 0], ["blueberry", 0], ["blueberry", 3]],
-  "Season's Greetings":[["teal", 3], ["white", 0], ["red", 0]],
-  "Decked Halls":[["red", 0], ["xanadu", 2]],
-  "Winter Wonderland":[["white", 3], ["blueberry", 3]],
-  "Gingerbread Swirl":[["crimson", 0], ["pink", 0], ["pistachio", 0], ["beeswax", 2]],
-  "Ice Queen":[["white", 0], ["sky blue", 3], ["arctic", 0]],
-  "Mad Cat":[["purple", 0], ["psychic", 0], ["orchid", 0]],
-  "Four Leaf Rover":[["teal", 0], ["xanadu", 0], ["black", 0]],
-  "Running Serpent":[["black", 2], ["green", 2], ["arctic", 2]],
-  "Shamrock Shake":[["pistachio", 2]],
-  "Shenanigan Green":[["green", 2]],
-  "Clover Green":[["mist", 3]],
-  "Grass":[["teal", 3], ["green", 3]],
-  "Good Luck":[["gold", 2], ["green", 2]],
-  "Get Lucky":[["pistachio", 2], ["brass", 2]],
-  "All that Glitters":[["gold", 2]],
-  "Pot O' Gold":[["brass", 2]],
-  "Follow the Rainbow":[["cerise", 2], ["orange", 2], ["lemon", 2], ["lime", 2], ["blueberry", 2], ["psychic", 2], ["gold", 0]],
-  "Full Spectrum":[["cerise", 2], ["orange", 2], ["lemon", 2], ["lime", 2], ["blueberry", 2], ["psychic", 2]],
-  "Bifrost":[["red", 0], ["orange", 0], ["lemon", 0], ["forest", 0], ["blueberry", 0], ["violet", 0]],
-  "Rainbow Vanilla Yogurt Parfait":[["rose", 3], ["orange", 3], ["lemon", 3], ["lime", 3], ["blueberry", 3], ["white", 0]],
-  "Rainbow Strawberry Yogurt Parfait":[["rose", 3], ["orange", 3], ["lemon", 3], ["lime", 3], ["blueberry", 3], ["cherry blossom", 0]],
-  "Pride Parfait":[["???", 0]],
-  "Aurora":[["???", 0]],
-  "Belle of the Ball":[["gold", 0], ["gold", 3], ["lemon", 0], ["white", 0]],
-  "Bubbly Fox":[["lavender", 3], ["orchid", 2], ["beige", 2], ["purple", 2]],
-  "Green Fairy":[["arctic", 2], ["beige", 2], ["beige", 3], ["lime", 2]],
-  "Ocean Flower":[["azure", 2], ["chestnut", 0], ["cream", 0]],
-  "Fairest Princess":[["arctic", 2], ["cerise", 2], ["lemon", 2]],
-  "Carnival 2018":[["sky blue", 0], ["grape", 2], ["gold", 0]],
-  "Carnival 2019":[["machine", 0], ["maroon", 0], ["gold", 0]],
-  "Carnival 2020":[["sky blue", 0], ["psychic", 2], ["gold", 0], ["white", 0]],
-  "Mardi Gras 2018 / 2020":[["lime", 2], ["grape", 0], ["gold", 0]],
-  "Mardi Gras 2019":[["lime", 0], ["purple", 0], ["gold", 0], ["cream", 3]],
-  "Spring Fling":[["tennis ball", 0], ["robin egg", 0], ["purple", 3], ["blueberry", 3]],
-  "Majestic Sky":[["robin egg", 0], ["arctic", 2], ["gold", 0]],
-  "Joyous Celebration":[["cerise", 0], ["pink", 2], ["gold", 0]],
-  "Easter Marble":[["arctic", 0], ["mist", 0], ["pink", 0], ["pistachio", 0]],
-  "Pastel Bouquet":[["sky blue", 0], ["pink", 0], ["psychic", 0], ["beige", 0]],
-  "Buster":[["arctic", 0], ["sky blue", 0]],
-  "Bucky":[["xanadu", 0], ["robin egg", 0]],
-  "Bonnie":[["cherry blossom", 0], ["psychic", 0]],
-  "Babs":[["pink", 0], ["pink", 0]],
-  "Depth Charge":[["pistachio", 0], ["robin egg", 0]],
-  "Megalodon":[["azure", 0], ["black", 2], ["orange", 0]],
-  "Blitz Blue":[["sky blue", 3], ["white", 2], ["lemon", 2]],
-  "Amazon Princess":[["gold", 0], ["maroon", 0], ["indigo", 0]],
-  "Fastest Color Alive":[["red", 0], ["rose", 0]],
-  "Dark Crusader":[["concrete", 0], ["black", 0]],
-  "Hybrid":[["red", 0], ["smoke", 0]],
-  "Willpower":[["green", 0], ["black", 0]],
-  "Last Son":[["red", 0], ["blueberry", 0]],
-  "Deep Sea King":[["lemon", 0], ["teal", 0]],
-  "Deep Sea Prince":[["red", 0], ["white", 0]],
-  "Water":[["sky blue", 0], ["arctic", 2]],
-  "Water Hazard":[["arctic", 0], ["honey", 0], ["grape", 0]],
-  "The Places This Will Go":[["beige", 0], ["azure", 0], ["orchid", 0]],
-  "Heavy Hitter":[["bronze", 0], ["black", 2]],
-  "Cyber Green":[["black", 2], ["green", 0]],
-  "Argon Sunrise":[["orchid", 0], ["purple", 0]],
-  "Mercury Dusk":[["azure", 0], ["indigo", 0]],
-  "Firework":[["crimson", 0], ["white", 0], ["smoke", 0], ["sky blue", 0], ["indigo", 0], ["blueberry", 0], ["cerise", 0]],
-  "fistfest 2020":[["red", 0], ["gold", 0], ["black", 0]],
-  "Exxxotica Denver 2017":[["xanadu", 0]],
-  "Exxxotica Denver 2018":[["white", 0], ["smoke", 3], ["green", 2]],
-  "Siren Song":[["sky blue", 0], ["red", 0], ["violet", 0]],
-  "Drop the Beat":[["blueberry", 0], ["lime", 2], ["tennis ball", 0]],
-  "Telepath":[["psychic", 2], ["white", 0]],
-  "Revolution":[["azure", 0], ["white", 0]],
-  "Star-Force":[["smoke", 0], ["robin egg", 0], ["black", 0]],
-  "Infinity Star":[["black", 0], ["psychic", 2], ["sky blue", 2]],
-  "Super Nova":[["red", 0], ["violet", 0], ["black", 0]],
-  "Cosmic Nebula":[["robin egg", 0], ["violet", 0], ["black", 0]],
-  "Swirling Nebula":[["azure", 2], ["gold", 0], ["black", 0]],
-  "Solar Flare":[["azure", 2], ["red", 0], ["black", 0]],
-  "Redemption Purple":[["psychic", 0], ["concrete", 0]],
-  "Beast Breathing":[["machine", 0], ["pink", 0], ["cream", 0]],
-  "Fire Spin":[["azure", 0], ["sky blue", 0], ["orange", 0], ["gold", 0]],
-  "Vine Whip":[["teal", 0], ["lime", 3], ["arctic", 0], ["beeswax", 3]],
-  "Hydro Pump":[["chocolate", 2], ["beige", 0], ["azure", 0], ["azure", 3]],
-  "Jubilee":[["orchid", 0], ["lemon", 0], ["sky blue", 2]],
-  "Knotty":[["psychic", 0], ["purple", 2], ["lemon", 0]],
-  "Astral":[["lime", 0], ["blueberry", 0], ["purple", 0], ["bronze", 0]],
-  "Arabian Blue":[["sky blue", 0], ["gold", 0], ["white", 3]],
-  "Banshee":[["indigo", 0], ["blueberry", 3], ["sky blue", 0]],
-  "Kuga":[["indigo", 0], ["blueberry", 2], ["purple", 2]],
-  "Glavve":[["sky blue", 0], ["maroon", 0], ["indigo", 2]],
-  "Hunter's Moon":[["tennis ball", 3], ["sky blue", 3]],
-  "Furry Road":[["concrete", 2], ["chestnut", 0]],
-  "Kaiju Aftermath 2":[["forest", 0], ["robin egg", 2]],
-  "Summer Lovin":[["orange", 0], ["sky blue", 0], ["purple", 3]],
-  "Tyrannosaurus Sex":[["anubis", 0], ["crimson", 0], ["white", 2], ["cream", 2]],
-  "Stealthy Hacker":[["violet", 2], ["black", 0], ["robin egg", 0], ["magenta", 0]],
-  "The Jade Ox":[["red", 0], ["gold", 0], ["xanadu", 0]],
-  "Soaring Sai":[["rose", 3], ["cream", 0], ["anubis", 0]],
-  "Mad Titan":[["blueberry", 2], ["purple", 0], ["psychic", 0]],
-  "Adorable Demon":[["maroon", 2], ["pink", 0], ["black", 0]],
-  "Rage":[["cerise", 0], ["maroon", 0], ["grape", 2], ["black", 0], ["white", 0]],
-  "Legendary":[["lemon", 0], ["blueberry", 0]],
-  "Nightshade":[["violet", 0], ["smoke", 0], ["concrete", 0]],
-  "Toxin":[["grape", 0]],
-  "Vampire":[["anubis", 0]],
-  "Fool's Gold":[["olive", 0]],
-  "Grey Haze":[["concrete", 0]],
-  "Void Purple":[["lavender", 0]],
-  "Proper Yellow":[["beige", 0]],
-  "Coyote":[["brass", 0]],
-  "Wind":[["lime", 0]],
-  "Sky":[["arctic", 0]],
-  "Lime":[["lime", 0]],
-  "Eggplant":[["violet", 0]],
-  "Lavender":[["lavender", 0]],
-  "Duckie Yellow":[["lemon", 0]],
-  "Periwinkle":[["arctic", 0]],
-  "Apple":[["cerise", 0]],
-  "Black Gold":[["black", 0]],
-  "Galaxy Black":[["black", 0]],
-  "Platinum Ore":[["concrete", 0]],
-  "Ectoplasm":[["robin egg", 0]],
-  "Ultraviolet":[["lavender", 0]],
-  "Duka-Cola Quantum":[["sky blue", 0]],
-  "Starlight Glow":[["robin egg", 0]],
-  "Sky Spirit":[["glaucous", 0], ["psychic", 0]],
-  "Green Dancer":[["green", 0], ["lime", 0]],
-  "Blue Omen":[["grape", 0], ["blueberry", 0]],
-  "Frozen Fox":[["white", 0], ["azure", 0]],
-  "Split Red Stone":[["maroon", 0], ["black", 0]],
-  "Split Arctic Ice":[["sky blue", 0], ["indigo", 0]],
-  "Arctic Ice":[["sky blue", 0]],
-  "Proper Belle":[["beige", 0], ["peach", 0], ["fern", 0]],
-  "Angelic Mist":[["mist", 0], ["lavender", 0], ["xanadu", 0]],
-  "Prim Rose":[["pink", 0], ["lavender", 0], ["coral", 0]],
-  "Wicked Haze":[["concrete", 0], ["teal", 0], ["grape", 0]],
-  "Crimson Drake":[["cerise", 0], ["crimson", 0]],
-  "Pacific Hurricane":[["white", 3], ["gold", 0], ["cerise", 0]],
-  "Magic Butterfly":[["white", 3], ["magenta", 0], ["blueberry", 0]],
-  "Tropical Storm":[["white", 3], ["tennis ball", 0], ["forest", 0]],
-  "Vida":[["peach", 0]],
-  "Chi-Chi":[["honey", 0]],
-  "Noxeema":[["chocolate", 0]],
-  "Aquarius":[["teal", 0], ["blueberry", 0], ["honey", 0]],
-  "Pisces":[["grape", 0], ["tennis ball", 0], ["cherry blossom", 0]],
-  "Aries":[["red", 0], ["orange", 0], ["anubis", 2]],
-  "Taurus":[["chocolate", 0], ["orange", 0], ["cream", 2]],
-  "Gemini":[["azure", 0], ["forest", 0], ["gold", 0]],
-  "Cancer":[["cerise", 0], ["honey", 0], ["sky blue", 0]],
-  "Leo":[["lemon", 0], ["anubis", 0], ["red", 0]],
-  "Virgo":[["crimson", 0], ["lime", 0], ["sky blue", 0]],
-  "Libra":[["purple", 0], ["orchid", 0], ["green", 0]],
-  "Scorpio":[["black", 0], ["arctic", 0], ["chestnut", 0]],
-  "Sagittarius":[["white", 0], ["lemon", 0], ["blueberry", 0]],
-  "Capricorn":[["grape", 0], ["smoke", 0], ["orchid", 0]],
-  "Garnet":[["crimson", 0], ["maroon", 0], ["purple", 3]],
-  "Amethyst":[["lavender", 3], ["lavender", 0], ["psychic", 0]],
-  "Aquamarine":[["sky blue", 0]],
-  "Diamond":[["white", 2]],
-  "Emerald":[["teal", 2], ["forest", 0]],
-  "Alexandrite":[["mist", 2], ["orchid", 2], ["sky blue", 2]],
-  "Ruby":[["crimson", 0], ["maroon", 0]],
-  "Peridot":[["xanadu", 2], ["xanadu", 3], ["pistachio", 0]],
-  "Sapphire":[["indigo", 2], ["blueberry", 0], ["blueberry", 3]],
-  "Opal":[["lavender", 2], ["glaucous", 2], ["xanadu", 2], ["beige", 2]],
-  "Pink Topaz":[["white", 2], ["orchid", 2], ["lavender", 2]],
-  "Turquoise":[["walnut", 0], ["sky blue", 0], ["glaucous", 0]],
-  "Bubble Gum":[["pink", 0]],
-  "Crimson":[["crimson", 0]],
-  "Merlot":[["crimson", 0]],
-  "Tangerine":[["chestnut", 0]],
-  "Sunset":[["gold", 0]],
-  "Peach":[["peach", 0]],
-  "Bone":[["cream", 0]],
-  "Butterfly":[["beige", 0]],
-  "Forest":[["mold", 0]],
-  "Aspen":[["azure", 0]],
-  "Robin Egg":[["robin egg", 0]],
-  "Lyre":[["mist", 0]],
-  "Dashing":[["arctic", 0]],
-  "Indigo":[["indigo", 0]],
-  "Cherry Blossom":[["cherry blossom", 0]],
-  "Royal Purple":[["grape", 0]],
-  "Plum":[["grape", 0]],
-  "Sangria":[["rose", 0]],
-  "Sandstone":[["cream", 0]],
-  "Chocolate":[["chocolate", 0]],
-  "Dark Chocolate":[["anubis", 0]],
-  "Ash":[["smoke", 0]],
-  "Onyx":[["black", 0]],
-  "Cosmic Black":[["black", 0]],
-  "Black Opal":[["olive", 0], ["forest", 0], ["machine", 0], ["anubis", 0]],
-  "Giger Black":[["forest", 0]],
-  "Galaxy Black":[["black", 0]],
-  "Black Gold":[["black", 0]],
-  "Halloween Black":[["machine", 0]],
-  "Black & White Cookie":[["black", 0], ["white", 0]],
-  "Black Clover":[["mold", 0], ["forest", 0]],
-  "Black Cherry":[["anubis", 0], ["purple", 0], ["maroon", 0]],
-  "Black Nebula":[["black", 0], ["glaucous", 2], ["cherry blossom", 2]],
-  "Everlasting Night":[["grape", 0], ["blueberry", 0]],
-  "Night Sky":[["machine", 0]],
-  "Midnight Aquatic":[["blueberry", 0], ["indigo", 0]],
-  "Midnight Forest":[["teal", 0], ["forest", 0]],
-  "Midnight":[["indigo", 0]],
-  "Nightfall":[["cherry blossom", 0]],
-  "1st Kind":[["cream", 0], ["glaucous", 0]],
-  "2nd Kind":[["orange", 0], ["copper", 0]],
-  "3rd Kind":[["glaucous", 0], ["lavender", 0]],
-  "4th Kind":[["robin egg", 0], ["mist", 0]],
-  "5th Kind":[["green", 0], ["xanadu", 0]],
-  "6th Kind":[["red", 0], ["rose", 0]],
-  "BD Gold":[["gold", 0]],
-  "BD Silver":[["smoke", 0]],
-  "BD Bronze":[["bronze", 0]],
-  "BD Metallic Magenta":[["orchid", 0]],
-  "BD Metallic Red":[["red", 0]],
-  "BD Metallic Purple":[["violet", 0]],
-  "BD Metallic Blue":[["blueberry", 0]],
-  "BD Metallic Green":[["teal", 0]],
-  "BD Metallic Cyan":[["robin egg", 0]],
-  "BD Metallic Yellow":[["lemon", 0]],
-  "BD Pink":[["coral", 0]],
-  "BD Red":[["cerise", 0]],
-  "BD Orange":[["orange", 0]],
-  "BD Yellow":[["lemon", 0]],
-  "BD Green":[["green", 0]],
-  "BD Cyan":[["sky blue", 0]],
-  "BD Blue":[["blueberry", 0]],
-  "BD Brown":[["chocolate", 0]],
-  "Neon Pink":[["orchid", 0]],
-  "Neon Red":[["cerise", 0]],
-  "Neon Orange":[["orange", 0]],
-  "Neon Yellow":[["tennis ball", 0]],
-  "Neon Green":[["lime", 0]],
-  "Neon Blue":[["blueberry", 0]],
-  "Neon Purple":[["purple", 0]],
-  "Neon Magenta":[["orchid", 0]],
-  "Concrete":[["concrete", 0]],
-  "Con ExxxoticCity":[["lavender", 0], ["orchid", 0], ["black", 0]],
-  "Con Hardcore Hybrid":[["robin egg", 0], ["orchid", 0]],
-  "Con Road Runner":[["grape", 0], ["brass", 2]],
-  "Con Dancing Drake":[["black", 0], ["grape", 0]],
-  "Con Windy City Skyline":[["arctic", 0], ["arctic", 3], ["lime", 2]],
-  "Con Windy City Sunrise":[["orchid", 0], ["lemon", 0], ["gold", 0]],
-  "Con Shoreline Surprise":[["rose", 0], ["indigo", 0], ["sky blue", 0]],
-  "Con Sour Patch BLFC 2021":[["xanadu", 0], ["sky blue", 0], ["orchid", 0]],
-  "Con Sweet Peach BLFC 2021":[["orange", 0], ["psychic", 0], ["orchid", 0]],
-  "Con Matsuri Red":[["red", 0], ["orange", 0], ["white", 2]],
-  "Con Matsuri Green":[["lime", 0], ["violet", 0], ["forest", 3]],
-  "Con Matsuri Blue":[["grape", 0], ["blueberry", 2], ["white", 0]],
-  "Con Trash Bandit":[["azure", 0], ["cream", 2]],
-  "Con Pastel Vulpine":[["pink", 0], ["orchid", 3], ["glaucous", 3], ["arctic", 0]],
-  "Con Canine Party":[["arctic", 0], ["sky blue", 3], ["purple", 0]],
-  "Con Feline Fine":[["orchid", 2], ["lemon", 0], ["beige", 0], ["lavender", 0]],
-  "Con Coyote Canyon":[["brass", 0], ["bronze", 0], ["chestnut", 0], ["grape", 0]],
-  "Con Laces Out":[["gold", 0], ["lime", 0], ["sky blue", 0]],
-  "Spooky Seconds":[["white", 3], ["arctic", 3]],
-  "Apollo's Signature":[["white", 0], ["azure", 2], ["mold", 0]],
-  "Austin's Signature":[["white", 0], ["sky blue", 0], ["blueberry", 2]],
-  "Axel's Signature":[["White", 0], ["sky blye", 0], ["machine", 0]],
-  "Baron's Signature":[["cream", 0], ["honey", 0], ["coral", 0]],
-  "Bishop's Signature":[["robin egg", 0], ["blueberry", 0], ["black", 0]],
-  "Blaze's Signature":[["sky blue", 0], ["indigo", 0], ["machine", 0]],
-  "Bruce's Signature":[["White", 0], ["azure", 2], ["azure", 0]],
-  "Bruiser's Signature":[["sky blue", 0], ["blueberry", 0], ["forest", 0]],
-  "Chance's Signature":[["chestnut", 0], ["crimson", 0], ["black", 0]],
-  "Clayton's Signature":[["gold", 0], ["red", 0], ["black", 0]],
-  "Cole's Signature":[["black", 0], ["walnut", 0], ["sky blue", 0]],
-  "Crackers' Signature":[["rose", 0], ["purple", 0], ["indigo", 0], ["crimson", 0]],
-  "Crash's Signature":[["tennis ball", 0], ["lime", 0], ["sky blue", 0], ["black", 0]],
-  "Cuttlefish Signature":[["lemon", 0], ["lime", 0], ["orchid", 3], ["lavender", 0]],
-  "David's Signature":[["white", 0], ["black", 0]],
-  "Delmar's Signature":[["magenta", 0], ["orchid", 0], ["brass", 0]],
-  "Demogorgon's Signature":[["copper", 0], ["forest", 0]],
-  "Demon Dick's Signature":[["red", 0], ["crimson", 0]],
-  "Dexter's Signature":[["red", 0], ["orange", 0], ["gold", 0]],
-  "Diego's Signature":[["blueberry", 0], ["indigo", 0], ["white", 0]],
-  "Echo's Horn Signature":[["white", 0], ["indigo", 0]],
-  "Echo's Signature":[["white", 0], ["sky blue", 3], ["smoke", 3]],
-  "Egg Plug Signature":[["sky blue", 0], ["gold", 0]],
-  "Elden's Signature":[["???", 0]],
-  "Elliot's Signature":[["???", 0]],
-  "Fenrir's Signature":[["lemon", 0], ["olive", 0]],
-  "Flint's Signature":[["mist", 0], ["copper", 0]],
-  "Glyph's Signature":[["gold", 0], ["copper", 0], ["bronze", 0]],
-  "Gunner's Signature":[["white", 0], ["azure", 0]],
-  "Habu's Signature":[["robin egg", 0], ["black", 0], ["smoke", 0]],
-  "Haiku's Signature":[["azure", 0], ["grape", 0]],
-  "Hanns' Signature":[["white", 0], ["pink", 0], ["forest", 0]],
-  "Helius's Signature":[["azure", 0], ["machine", 0], ["blueberry", 0], ["concrete", 0]],
-  "Hunter's Signature":[["crimson", 0], ["red", 0]],
-  "Ika's Signature":[["azure", 0], ["blueberry", 0]],
-  "John Signature":[["white", 0], ["smoke", 0], ["mold", 0]],
-  "Kage's Signature":[["blueberry", 0], ["grape", 0]],
-  "Kelvin's Signature":[["cherry blossom", 0], ["blueberry", 0], ["violet", 0]],
-  "Kippy's Signature":[["red", 0], ["indigo", 0]],
-  "Kona's Signature":[["orchid", 0], ["azure", 0]],
-  "Ky'el's Signature":[["white", 0], ["lavender", 0], ["beige", 0], ["violet", 0], ["black", 0]],
-  "Lenneth's Signature":[["blueberry", 2], ["black", 0], ["white", 2]],
-  "Luka's Signature":[["sky blue", 3], ["white", 2], ["lemon", 2]],
-  "Marcel's Signature":[["azure", 0], ["machine", 0]],
-  "Meng's Signature":[["pistachio", 0], ["azure", 0]],
-  "Moko's Signature":[["???", 0]],
-  "Mystic's Signature":[["cherry blossom", 2], ["lavender", 2], ["azure", 2], ["green", 2], ["white", 0], ["white", 3]],
-  "Nocturne's Signature":[["white", 0], ["grape", 0]],
-  "Nova's Signature":[["crimson", 0], ["black", 0]],
-  "Nox's Signature":[["magenta", 0], ["violet", 0], ["grape", 0]],
-  "Orochi's Signature":[["copper", 0], ["bronze", 0]],
-  "Pearce's Signature":[["forest", 0], ["fern", 0], ["beige", 0]],
-  "Pretzal's Signature":[["azure", 0], ["teal", 0]],
-  "Razor's Signature":[["crimson", 0], ["red", 0]],
-  "Rex's Signature":[["red", 0], ["magenta", 0], ["black", 0]],
-  "Ridley's Signature":[["forest", 0], ["grape", 0], ["maroon", 0], ["black", 0]],
-  "Roland's Signature":[["beige", 2], ["lime", 2], ["black", 0], ["machine", 0]],
-  "Scorn's Signature":[["blueberry", 0], ["violet", 0], ["sky blue", 0]],
-  "Seraphina's Signature":[["white", 0], ["brass", 3], ["sky blue", 2], ["psychic", 2]],
-  "Sleipnir's Signature":[["blueberry", 0], ["machine", 0], ["black", 0]],
-  "Snep's Signature":[["lavender", 0], ["black", 0]],
-  "Spitfire's Signature":[["cerise", 0], ["maroon", 0], ["black", 0]],
-  "Spritz's Signature":[["xanadu", 0], ["teal", 0], ["robin egg", 0]],
-  "Stan's Signature":[["anubis", 0], ["maroon", 0]],
-  "Stubb's Signature":[["???", 0]],
-  "Sveinn's Signature":[["coral", 2], ["walnut", 0]],
-  "Tako's Signature":[["lime", 0], ["psychic", 0]],
-  "Tempestt's Signature":[["robin egg", 0], ["lavender", 0], ["magenta", 0], ["black", 0]],
-  "Terra's Signature":[["blueberry", 0], ["purple", 0], ["maroon", 0], ["black", 0]],
-  "Trent's Signature":[["walnut", 0], ["black", 0]],
-  "Tucker's Signature":[["pink", 0], ["red", 0], ["black", 0]],
-  "Tyson's Signature":[["black", 0], ["chocolate", 0]],
-  "Vasu's Signature":[["???", 0]],
-  "Vector's Signature":[["robin egg", 0], ["blueberry", 0], ["grape", 0], ["machine", 0]],
-  "Vergil's Signature":[["crimson", 0], ["lime", 0], ["beige", 2]],
-  "Votan's Signature":[["blueberry", 0], ["grape", 0]],
-  "Winston's Tail Signature":[["teal", 0], ["white", 0], ["lavender", 0]],
-  "Winston's Tongue's Signature":[["azure", 0], ["violet", 0], ["indigo", 0]],
-  "Xar's Signature":[["tennis ball", 3], ["sky blue", 3], ["white", 3]],
-  "Xerxes' Signature":[["crimson", 0], ["walnut", 0]],
-  "Zaratan's Signature":[["smoke", 0], ["black", 0]],
-  "Bumble Hooves' Signature":[["white", 0], ["grape", 0], ["gold", 0]],
-  "Duke's Butt Signature":[["crimson", 0], ["black", 0], ["white", 0]],
-  "Duke's Muzzle Signature":[["crimson", 0], ["black", 0], ["white", 0]],
-  "Duke's Signature":[["crimson", 0], ["black", 0], ["white", 0]],
-  "Sugar Star's Signature":[["white", 0], ["grape", 0], ["gold", 0]],
-  "Alice's Signature":[["red", 0], ["grape", 0]],
-  "Anje's Signature":[["red", 0], ["orange", 0], ["gold", 0]],
-  "David's Muzzle Signature":[["white", 2], ["indigo", 2]],
-  "Emelie's Signature":[["cerise", 0], ["sky blue", 0]],
-  "Gala's Signature":[["azure", 0], ["lime", 0]],
-  "Hazel's Signature":[["black", 2], ["cream", 0]],
-  "Janine's Muzzle Signature":[["orchid", 0], ["grape", 0], ["lavender", 3]],
-  "Janine's Signature":[["orchid", 0], ["grape", 0], ["lavender", 3]],
-  "JT's Signature":[["azure", 0], ["orange", 0]],
-  "Ledo's Signature":[["black", 0], ["white", 0], ["lime", 2]],
-  "Leilani's Signature":[["azure", 2], ["smoke", 2]],
-  "Lily's Signature":[["forest", 0], ["anubis", 0]],
-  "Mary's Signature":[["white", 0], ["black", 0]],
-  "Monet's Signature":[["tennis ball", 0], ["azure", 0], ["grape", 0]],
-  "Natascha's Signature":[["azure", 0], ["black", 0]],
-  "Nix's Signature":[["machine", 0], ["concrete", 0], ["black", 0]],
-  "Perry's Signature":[["arctic", 0], ["mold", 0]],
-  "Rowan's Signature":[["white", 0], ["anubis", 0]],
-  "Twitch's Signature":[["blueberry", 0], ["lime", 2]],
-  "Sahleen's Signature":[["orchid", 0], ["lavender", 0], ["black", 0], ["cream", 2]],
-  "Snowball's Signature":[["black", 0], ["gold", 0]],
-  "Sofia's Signature":[["white", 2], ["sky blue", 0]],
-  "Zoie's Signature":[["white", 0], ["grape", 3], ["beige", 0]],
-  "Chance Sheath's Signature":[["lavender", 0]],
-  "Crackers' Sheath Signature":[["mold", 0]],
-  "David's Sheath Signature":[["maroon", 0]],
-  "Flint's Sheath Signature":[["xanadu", 0]],
-  "Ika's Sheath Signature":[["azure", 0]],
-  "Magnus' Sheath Signature":[["cerise", 0]],
-  "Apollo's Natural":[["lavender", 0], ["beeswax", 0]],
-  "Austin's Natural":[["cerise", 0], ["cream", 0], ["copper", 3]],
-  "Axel's Natural":[["gold", 0], ["red", 0]],
-  "Baron's Natural":[["crimson", 0], ["red", 0]],
-  "Bishop's Natural":[["white", 0], ["smoke", 0], ["orange", 2]],
-  "Blaze's Natural":[["honey", 0], ["orange", 0]],
-  "Bruce's Natural":[["arctic", 0], ["black", 0]],
-  "Bruiser's Natural":[["rose", 0], ["violet", 0]],
-  "Chance's Natural":[["black", 0], ["coral", 0]],
-  "Clayton's Natural":[["red", 0], ["chocolate", 0]],
-  "Cole's Natural":[["crimson", 0], ["white", 0], ["black", 0]],
-  "Crackers' Natural":[["gold", 0], ["cream", 0]],
-  "Crash's Natural":[["psychic", 0], ["black", 0]],
-  "Cuttlefish Natural":[["black", 0], ["red", 0]],
-  "David's Natural":[["maroon", 0], ["black", 0]],
-  "Delmar's Natural":[["orchid", 2], ["azure", 0], ["concrete", 0]],
-  "Demogorgon's Natural":[["crimson", 0], ["red", 0]],
-  "Demon Dick's Natural":[["crimson", 0], ["red", 0], ["cerise", 0]],
-  "Dexter's Natural":[["azure", 0], ["lime", 0]],
-  "Diego's Natural":[["crimson", 0], ["white", 0], ["concrete", 0]],
-  "Echo's Natural":[["cerise", 0], ["white", 0]],
-  "Echo's Horn Natural":[["beige", 0], ["chocolate", 0]],
-  "Egg Plug Signature":[["gold", 0], ["grape", 0]],
-  "Elden's Natural":[["orchid", 0], ["cerise", 0]],
-  "Elliot's Natural":[["cherry blossom", 0], ["glaucous", 0]],
-  "Fenrir's Natural":[["chestnut", 0]],
-  "Flint's Natural":[["bronze", 0], ["mold", 0]],
-  "Glyph's Natural":[["red", 0], ["maroon", 0], ["purple", 0], ["black", 0]],
-  "Gunner's natural":[["psychic", 0], ["black", 0]],
-  "Habu's Natural":[["beige", 0], ["chestnut", 2], ["smoke", 0]],
-  "Haiku's Natural":[["white", 0], ["mist", 0], ["cherry blossom", 0]],
-  "Hanns' Natural":[["teal", 0], ["copper", 0]],
-  "Helius's Natural":[["coral", 0], ["indigo", 0], ["forest", 0]],
-  "Hunter's Natural":[["chocolate", 0], ["gold", 0]],
-  "Ika's Natural":[["azure", 0], ["honey", 0]],
-  "John Natural":[["honey", 0], ["forest", 0], ["anubis", 0]],
-  "Kage's Natural":[["xanadu", 0]],
-  "Kelvin's Natural":[["smoke", 0], ["robin egg", 0]],
-  "Kippy's Natural":[["gold", 0]],
-  "Kona's Natural":[["coral", 0], ["smoke", 0]],
-  "Ky'el's Natural":[["orchid", 0], ["cerise", 0], ["brass", 0], ["anubis", 0]],
-  "Lenneth's Natural":[["coral", 0], ["lavender", 0], ["arctic", 0]],
-  "Luka's Natural":[["psychic", 0], ["beeswax", 0]],
-  "Marcel's Natural":[["azure", 0], ["orchid", 0], ["cherry blossom", 0]],
-  "Meng's Natural":[["red", 0], ["crimson", 0]],
-  "Moko's Natural":[["???", 0]],
-  "Mystic's Natural":[["beige", 0], ["cherry blossom", 0], ["lavender", 3], ["white", 3]],
-  "Nocturne's Natural":[["chocolate", 0], ["chestnut", 0]],
-  "Nova's Natural":[["coral", 0], ["smoke", 0], ["black", 0]],
-  "Nox's Natural":[["magenta", 0], ["grape", 0]],
-  "Orochi's Natural":[["gold", 0], ["beige", 0]],
-  "Pearce's Natural":[["chocolate", 0]],
-  "Pretzal's Natural":[["gold", 0], ["green", 0]],
-  "Razor's Natural":[["red", 0], ["black", 0], ["chocolate", 0]],
-  "Rex's Natural":[["red", 0]],
-  "Ridley's Natural":[["black", 0]],
-  "Rolands Natural":[["pink", 0], ["psychic", 0], ["chestnut", 0], ["white", 3]],
-  "Scorn's Natural":[["red", 0], ["bronze", 0]],
-  "Seraphina's Natural":[["orchid", 2], ["white", 0]],
-  "Sleipnir's Natural":[["arctic", 0], ["black", 0]],
-  "Snep's Natural":[["sky blue", 0], ["white", 0], ["black", 0]],
-  "Spitfire's Natural":[["gold", 0], ["violet", 0]],
-  "Spritz's Natural":[["orchid", 0], ["violet", 0], ["arctic", 0]],
-  "Stan's Natural":[["chestnut", 0], ["chocolate", 0]],
-  "Stubb's Natural":[["???", 0]],
-  "Sveinn's Natural":[["machine", 2], ["smoke", 3], ["anubis", 2]],
-  "Tako's Natural":[["grape", 0], ["pistachio", 0]],
-  "Terra's Natural":[["tennis ball", 0], ["arctic", 0], ["green", 0]],
-  "Trent's Natural":[["cerise", 0]],
-  "Tucker's Natural":[["chestnut", 0], ["crimson", 0]],
-  "Tempestt's Natural":[["honey", 0], ["copper", 0], ["chestnut", 0]],
-  "Tyson's Natural":[["orchid", 0], ["machine", 0]],
-  "Vasu's Natural":[["???", 0]],
-  "Vector's Natural":[["magenta", 0], ["azure", 2], ["white", 0]],
-  "Vergil's Natural":[["anubis", 0], ["pink", 0]],
-  "Votan's Natural":[["magenta", 0], ["violet", 3], ["grape", 0]],
-  "Winston's Tail Natural":[["black", 0], ["red", 0]],
-  "Winston's Tongue's Natural":[["cerise", 0], ["maroon", 0]],
-  "Xar's Natural":[["pink", 0], ["beeswax", 0]],
-  "Xerxes' Natural":[["arctic", 0]],
-  "Zaratan's Natural":[["rose", 0], ["forest", 0]],
-  "Bumble Hooves' Natural":[["cerise", 0]],
-  "Duke's Butt Natural":[["crimson", 0], ["black", 0]],
-  "Duke's Muzzle Natural":[["crimson", 0], ["black", 0]],
-  "Duke's Natural":[["crimson", 0], ["black", 0]],
-  "Sugar Star's Natural":[["mist", 0]],
-  "Alice's Natural":[["white", 0], ["smoke", 0]],
-  "Anje's Natural":[["forest", 0]],
-  "David's Muzzle Natural":[["machine", 0]],
-  "Emelie's Natural":[["pink", 0]],
-  "Gala's Natural":[["glaucous", 0], ["rose", 0]],
-  "Hazel's Natural":[["crimson", 0]],
-  "Janine's Muzzle Natural":[["arctic", 0], ["cherry blossom", 0]],
-  "Janine's Natural":[["arctic", 0], ["cherry blossom", 0]],
-  "JT's Natural":[["white", 0], ["arctic", 0]],
-  "Ledo's Natural":[["orange", 0], ["gold", 0], ["chestnut", 0]],
-  "Leilani's Natural":[["orchid", 0]],
-  "Lily's Natural":[["brass", 0]],
-  "Mary's Natural":[["chocolate", 0]],
-  "Monet's Natural":[["cerise", 0], ["orchid", 0], ["white", 0]],
-  "Natascha's Natural":[["coral", 0]],
-  "Nix's Natural":[["cherry blossom", 0], ["sky blue", 0]],
-  "Perry's Natural":[["xanadu", 3], ["black", 2]],
-  "Rowan's Natural":[["smoke", 0]],
-  "Twitch's Natural":[["orange", 0], ["gold", 0]],
-  "Sahleen's Natural":[["crimson", 2], ["gold", 2], ["concrete", 0]],
-  "Snowball's Natural":[["chestnut", 0]],
-  "Sofia's Natural":[["sky blue", 0]],
-  "Zoie's Natural":[["chestnut", 0], ["maroon", 0]],
-  "Chance Sheath's Natural":[["grape", 0]],
-  "Crackers' Sheath Natural":[["lime", 0]],
-  "David's Sheath Natural":[["machine", 0]],
-  "Flint's Sheath Natural":[["bronze", 0]],
-  "Ika's Sheath Natural":[["lime", 0]],
-  "Magnus' Sheath Natural":[["crimson", 0]]
-}
-
-var p = {};
-var xhr = new XMLHttpRequest();
-function loadcolors(){
-  var isTainted = true
+var colorsets = {};
+var pictures = {};
+function loadcolors(file){
+  var xhr = new XMLHttpRequest();
+  var isTainted = true;
   xhr.overrideMimeType("application/json");
-  xhr.open('GET', "pictures.json", true);
+  xhr.open('GET', file, true);
   xhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
   xhr.send();
   xhr.onreadystatechange = function() {
     if (xhr.readyState === 4) {
       if (xhr.status !== 404 && xhr.responseText) {
-        p = JSON.parse(xhr.responseText);
+        if(file == "colorsets.json"){
+          colorsets = JSON.parse(xhr.responseText);
+        } else {
+          pictures = JSON.parse(xhr.responseText);
+        }
       } else if (xhr.responseText){
         local_tooltip.style.display = "inline-block";
         local_tooltip.innerHTML = "⚠";
-        local_tooltip.setAttribute("data-tooltip", "pictures.json not found! (404 error)");
+        local_tooltip.setAttribute("data-tooltip", file + " not found! (404 error)");
       } else {
         local_tooltip.style.display = "inline-block";
         local_tooltip.innerHTML = "⚠";
-        local_tooltip.setAttribute("data-tooltip", "couldn't access pictures.json! (non-404 error)");
+        local_tooltip.setAttribute("data-tooltip", "couldn't access " + file + "! (non-404 error)");
       }
     }
-    isTainted = false
+    isTainted = false;
   }
 }
 
@@ -656,6 +121,29 @@ function lazyload(){
   });
 }
 
+function makedots(cs, pos){
+  var colortip = "";
+  while(pos < cs.length){
+    var r1 = cs[pos];
+    var r2 = cs[pos+1];
+    var tr = "";
+    if (r2 == 2){
+      tr = "jam-like "
+    } else if (r2 == 3){
+      tr = "translucent "
+    }
+    var bc = "rgba(0, 0, 0, 0.5)"
+    var bt = r2
+    if(r1 == "black"){
+      bc = "#556"
+      bt += 1
+    }
+    colortip += "<div style='display:inline-block; padding:0px 3px; cursor:pointer;' data-color='" + r1 + "' data-tooltip='" + tr + r1 + "'><div class='dot' style='pointer-events:none; height:" + (12-2*bt) + "px; width:" + (12-2*bt) + "px; border:" + bt + "px solid " + bc + "; background-color:" + fc[r1] + "';></div></div>";
+    pos += 2
+  }
+  return colortip + "<br>"
+}
+
 function galleryset2(){
   var buffer = ""
   for (var o=0; o<galleryset[1].length; o++){
@@ -667,39 +155,71 @@ function galleryset2(){
 }
 
 var galleryset = [[], []];
-function makegallery(n){
+function makegallery(colorset){
   if(!editor.innerHTML.startsWith("Connect to Bad Dragon")){
     echo("Replace this text field with 'Connect to Bad Dragon' and release me from liability.\nThis might strain Bad Dragon server/your computer and I'll not be held responsibility for that.\n")
     return;
   }
   more.style.display = "none";
   var buffer = ""
-  galleryset = [[], []];
-  savedlist = editor.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
-  for (var i=0; i<savedlist.length; i++){
-    galleryset[0].push(savedlist[i])
-  }
-  for (var i=0; i<p[n].length; i++){
-    if (i<12){
-      galleryset[0].push(p[n][i])
-    } else {
-      galleryset[1].push(p[n][i])
+
+  for(var i=0; i < pictures["rogue"].length; i++){
+    var featured = false;
+    var k = Object.keys(pictures["rogue"][i])[0]
+    var colortip = ""
+    for(var css=0; css<pictures["rogue"][i][k].length; css++){
+      var cs = pictures["rogue"][i][k][css]
+      if(cs[0].toLowerCase() == colorset){
+        featured = true;
+      }
+      colortip += "&gt; <span class='colorset'>" + cs[0] + "</span>";
+      colortip += makedots(cs, 1)
+    }
+    if(featured){
+      buffer += "<div class='frame'><a class='fileThumb' href='" + k + "'><img class='lazy' data-src='" + k + "'></a><div style='display:inline-block; vertical-align:top;'>" + colortip + "</div></div>"
     }
   }
+
+  galleryset = [[], []];
+  var bookmarks = editor.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
+  for (var i=0; i<bookmarks.length; i++){
+    galleryset[0].push(bookmarks[i])
+  }
+
+  for (var i=0; i<pictures[colorset].length; i++){
+    if (i<12){
+      galleryset[0].push(pictures[colorset][i])
+    } else {
+      galleryset[1].push(pictures[colorset][i])
+    }
+  }
+
   for (var o=0; o<galleryset[0].length; o++){
     buffer += "<div class='frame'><a class='fileThumb' href='" + galleryset[0][o] + "'><img class='lazy' data-src='" + galleryset[0][o] + "'></a></div>"
   }
+
   gallery.innerHTML = buffer;
+
+  var links = document.querySelectorAll(".colorset")
+  for(var i=0; i < links.length; i++){
+    if(links[i].innerHTML.toLowerCase() == colorset){
+      links[i].classList.add("colorsel");
+    } else {
+      links[i].classList.remove("colorsel");
+    }
+  }
+
   lazyload()
-  if (p[n].length>11){
-    more.innerHTML = "Load " + (p[n].length-12) + " more pictures";
+
+  if (pictures[colorset].length>11){
+    more.innerHTML = "Load " + (pictures[colorset].length-12) + " more pictures";
     more.style.display = "inline-block"; 
   }
 }
 
 function FFdown(e) {
-  if(colorset){
-    colorset.classList.remove("blink");
+  if(link){
+    link.classList.remove("blink");
     gallery_tooltip.style.display = "none";
   }
 
@@ -712,17 +232,19 @@ function FFdown(e) {
   } else if (e.target.getAttribute("id") == "odnary"){
     makegallery(odnary.getAttribute("data-colorset"));
   } else if (e.target.getAttribute("id") == "replace"){
-
     more.style.display = "none"; 
     var buffer = ""
+
     galleryset = [[], []];
-    savedlist = editor.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
-    for (var i=0; i<savedlist.length; i++){
-      galleryset[0].push(savedlist[i])
+    var bookmarks = editor.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
+    for (var i=0; i<bookmarks.length; i++){
+      galleryset[0].push(bookmarks[i])
     }
+
     for (var o=0; o<galleryset[0].length; o++){
       buffer += "<div class='frame'><a class='fileThumb' href='" + galleryset[0][o] + "'><img class='lazy' data-src='" + galleryset[0][o] + "'></a></div>"
     }
+
     gallery.innerHTML = buffer;
     lazyload()
   } else if (e.target.getAttribute("id") == "gallerysave"){
@@ -737,30 +259,30 @@ function FFdown(e) {
   } else if (e.target.getAttribute("id") == "more"){
     galleryset2();
   } else if (e.target.classList.contains("colorset")){
-    colorset = e.target;
-    colorset.classList.add("blink");
+    link = e.target;
+    link.classList.add("blink");
     odnary.style.display = "none";
     cs.style.display = "none";
     mas.style.display = "none";
     var dispray = false;
-    var t = colorset.innerHTML.toLowerCase()
-    if(Object.keys(p).includes(t)){
+    var t = link.innerHTML.toLowerCase()
+    if(Object.keys(pictures).includes(t)){
       odnary.style.display = "inline-block";
       odnary.setAttribute("data-colorset", t);
       dispray = true;
     }
-    if(Object.keys(p).includes("cs " + t)){
+    if(Object.keys(pictures).includes("cs " + t)){
       cs.style.display = "inline-block";
       cs.setAttribute("data-colorset", "cs " + t);
       dispray = true;
     }
-    if(Object.keys(p).includes(t + " mas")){
+    if(Object.keys(pictures).includes(t + " mas")){
       mas.style.display = "inline-block";
       mas.setAttribute("data-colorset", t + " mas");
       dispray = true;
     }
     if (dispray){
-      where = colorset.getBoundingClientRect();
+      where = link.getBoundingClientRect();
       gallery_tooltip.style.left = (window.scrollX + where.left -2) + "px";
       gallery_tooltip.style.top = (window.scrollY + where.top -28) + "px";
       gallery_tooltip.style.display = "inline-block";
@@ -779,7 +301,6 @@ function FFdown(e) {
         let listener = (z) => {
           if (-20 < (Y - z.pageY) && (Y - z.pageY) < 20 && (z.pageX - X) > 50){
             d.classList.remove("right");
-            savedlist.push(t.getAttribute("data-schande"))
             echo(t.getAttribute("data-schande"))
             t.removeEventListener('touchend', listener);
             t.removeAttribute("busy");
@@ -795,7 +316,6 @@ function FFdown(e) {
         });
       } else {
         let listener = () => {
-          savedlist.push(t.getAttribute("data-schande"))
           echo(t.getAttribute("data-schande"))
           t.removeEventListener("mouseup", listener);
           edit();
@@ -834,8 +354,13 @@ function FFdown(e) {
     }
   } else if (e.target.getAttribute("id") == "viewall"){
     colorlist.innerHTML = "<h3>Choose a color!</h3>";
-    newgallery = Object.keys(c)
-    listcolors()
+    colorsels = Object.keys(colorsets)
+    var colortip = ""
+    for (var css=0; css<colorsels.length; css++){
+      colortip += "&gt; <span class='colorset'>" + colorsels[css] + "</span>"
+      colortip += makedots(colorsets[colorsels[css]], 0)
+    }
+    colorlist.innerHTML += colortip
   } else if (e.target.hasAttribute("data-color")){
     if(isTouch && e.target.hasAttribute("data-tooltip")){
       return;
@@ -846,53 +371,35 @@ function FFdown(e) {
       return;
     }
     colorlist.innerHTML = "<h3>Color sets using " + t + "-like silicone</h3>";
-    newgallery = []
-    var keys = Object.keys(c);
+    colorsels = []
+    var keys = Object.keys(colorsets);
     for (var i=0; i<keys.length; i++){
-      var k = c[keys[i]]
+      var k = colorsets[keys[i]]
       var featured = false;
-      for (var o=0; o<k.length; o++){
-        if (k[o][0] == t){
+      var pos = 0
+      while (pos < k.length){
+        if (k[pos] == t){
           if (translucents.classList == "prev"){
-            if (k[o][1] > 1){
+            if (k[pos+1] > 1){
               featured = true;
             }
-          } else {          
+          } else {
             featured = true;
           }
         }
+        pos += 2
       }
       if (featured){
-        newgallery.push(keys[i])
+        colorsels.push(keys[i])
       }
     }
-    listcolors()
-  }
-}
-
-function listcolors(){
-  var buffer = "";
-  for (var i=0; i<newgallery.length; i++){
-    var k = c[newgallery[i]]
-    buffer += "> <span class='colorset'>" + newgallery[i] + "</span>"
-    for (var o=0; o<k.length; o++){
-      var tr = ""
-      if (k[o][1] == 2){
-        tr = "jam-like "
-      } else if (k[o][1] == 3){
-        tr = "translucent "
-      }
-      var bc = "rgba(0, 0, 0, 0.5)"
-      var bt = k[o][1]
-      if(k[o][0]=="black"){
-        bc = "#556"
-        bt += 1
-      }
-      buffer += "<div style='display:inline-block; padding:0px 3px; cursor:pointer;' data-color='" + k[o][0] + "' data-tooltip='" + tr + k[o][0] + "'><div class='dot' style='pointer-events:none; height:" + (12-2*bt) + "px; width:" + (12-2*bt) + "px; border:" + bt + "px solid " + bc + "; background-color:" + fc[k[o][0]] + "';></div></div>"
+    var colortip = ""
+    for (var css=0; css<colorsels.length; css++){
+      colortip += "&gt; <span class='colorset'>" + colorsels[css] + "</span>"
+      colortip += makedots(colorsets[colorsels[css]], 0)
     }
-    buffer += "\n"
+    colorlist.innerHTML += colortip
   }
-  colorlist.innerHTML += buffer
 }
 
 function plaintext(elem, e) {
@@ -994,10 +501,10 @@ var FFmove = function(e) {
   }
 }
 
-var colorset = false;
-var isTouch, gallerylist, newgallery;
-var savedlist = [];
+var link, isTouch, gallerylist, colorsels;
 window.onload = () => {
+  loadcolors("colorsets.json")
+  loadcolors("pictures.json")
   for(var i=0; i < cn.length; i++){
     if(cn[i] == null){
       colortable.innerHTML += "<div class='cell' data-color=''>&nbsp;</div>"
@@ -1018,7 +525,6 @@ window.onload = () => {
   }
 
   if('ontouchstart' in window){isTouch = true;};
-  loadcolors()
 
   var fileThumb;
   document.addEventListener("dragstart", function(e) {

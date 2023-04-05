@@ -123,9 +123,12 @@ function lazyload(){
 
 function makedots(cs, pos){
   var colortip = "";
+  var gradientbg = "";
+  var gradient = []
   while(pos < cs.length){
     var r1 = cs[pos];
     var r2 = cs[pos+1];
+    var r3 = cs[pos+2];
     var tr = "";
     if (r2 == 2){
       tr = "jam-like "
@@ -138,10 +141,24 @@ function makedots(cs, pos){
       bc = "#556"
       bt += 1
     }
-    colortip += "<div style='display:inline-block; padding:0px 3px; cursor:pointer;' data-color='" + r1 + "' data-tooltip='" + tr + r1 + "'><div class='dot' style='pointer-events:none; height:" + (12-2*bt) + "px; width:" + (12-2*bt) + "px; border:" + bt + "px solid " + bc + "; background-color:" + fc[r1] + "';></div></div>";
-    pos += 2
+    if (r3 == 1){
+      gradient[gradient.length-1].push([fc[r1]])
+    } else {
+      gradient.push([[fc[r1], fc[r1]]])
+    }
+    colortip += "<div style='display:inline-block; padding:0px 3px; cursor:pointer;' data-color='" + r1 + "' data-tooltip='" + tr + r1 + "'><div class='dot' style='pointer-events:none; height:" + (12-2*bt) + "px; width:" + (12-2*bt) + "px; border:" + bt + "px solid " + bc + "; background: transparent;'></div></div>";
+    pos += 3
   }
-  return colortip + "<br>"
+  for(var i=0; i<gradient.length; i++){
+    var long = gradient[i].length*18-18
+    var fcc = "";
+    for(var o=0; o<gradient[i].length; o++){
+      fcc += ", " + gradient[i][o]
+    }
+    fcc += ", " + gradient[i][gradient[i].length-1]
+    gradientbg += "<div style='display:inline-block; padding:0px 3px;'><div class='dot' style='pointer-events:none; height: 12px; width:" + (12 + long) + "px; border: none; background: linear-gradient(to right" + fcc + ")';></div></div>";
+  }
+  return "<div style='display:inline-block;'><div style='position:absolute;'>" + colortip + "</div>" + gradientbg + "</div><br>"
 }
 
 function galleryset2(){
@@ -387,7 +404,7 @@ function FFdown(e) {
             featured = true;
           }
         }
-        pos += 2
+        pos += 3
       }
       if (featured){
         colorsels.push(keys[i])

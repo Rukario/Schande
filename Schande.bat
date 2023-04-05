@@ -57,7 +57,8 @@ error = [[]]*4
 echoname = [batchfile]
 newfilen = [0]
 Keypress_prompt = [False]
-Keypress_time = [time.time()]*2
+Keypress_time = [0, 0, 0]
+Fast_presser = 0.5
 Keypress = [False]*27
 task = {"httpserver":[], "transmission":False, "run":Queue(), "makedirs":set(), "nodirs":set()}
 retries = [0]
@@ -449,10 +450,10 @@ done""")
     if el < 0 or el > 100:
         whereami(f"Obscene return code {el}", kill=True)
     if double and keys[el-1].lower() in double.lower():
-        Keypress_time[1] = time.time()
-        if Keypress_time[1] > Keypress_time[0] + 0.5:
-            Keypress_time[0] = Keypress_time[1]
-            return -el
+        Keypress_time[0] = time.time()
+        if Keypress_time[0] > Keypress_time[1]:
+            el = -el
+        Keypress_time[1] = Keypress_time[0] + Fast_presser
     return el
 
 
@@ -1491,9 +1492,9 @@ if not cli["dismiss"]:
 ticking = [Event()]*2
 for t in ticking:
     t.set()
-def timer(e="", ind=True, listen=[0]):
-    if ticking[0].is_set():
-        ticking[0].clear()
+def timer(e="", listen=[], antalisten=[]):
+    if ticking[1].is_set():
+        ticking[1].clear()
         if not navigator["timeout"]:
             navigator["timeout"].update({0:[4, 8]})
             echo(f"""\n"#-# seconds rarity 100% 00:00" in {rulefile} to customize timer, add another timer to manipulate rarity/schedule.\n""", 1, 1)
@@ -1525,12 +1526,12 @@ def timer(e="", ind=True, listen=[0]):
         end = int(time.time()) + s
         endclock = (datetime.utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%H:%M')
         while True:
-            ticking[1].clear()
+            ticking[0].clear()
             now = int(time.time())
             s = end - now
             if s < 61:
                 echo(f"{e} {s} . . .")
-                ticking[1].wait(timeout=1)
+                ticking[0].wait(timeout=1)
             else:
                 h = int(s / 60 / 60)
                 h = f"{h} hour and " if h == 1 else f"{h} hours and " if h else ""
@@ -1538,7 +1539,7 @@ def timer(e="", ind=True, listen=[0]):
                 m = f"{m} minute" if m == 1 else f"{m} minutes"
                 sec = int(s % 60)
                 echo(f"{e} {h}{m} until {endclock}")
-                ticking[1].wait(timeout=sec)
+                ticking[0].wait(timeout=sec)
             if pgtime[0] < int(time.time()/5):
                 pgtime[0] = int(time.time()/5)
                 pg[0] = 0
@@ -1546,34 +1547,35 @@ def timer(e="", ind=True, listen=[0]):
             if Keypress[26]:
                 Keypress[26] = False
                 break
-            if now > end-2 or any(Keypress[n] for n in listen):
+            if now > end-2 or any(Keypress[n] for n in listen) or any(not Keypress[n] for n in antalisten):
                 break
-        ticking[0].set()
-    elif ind:
-        ticking[0].wait()
+        ticking[1].set()
+    else:
+        ticking[1].wait()
 
 
 
 Keypress_err = ["Some error happened. (R)etry un(P)ause (S)kip once (X)auto defuse antibot with (F)irefox: "]
 def retry(stderr):
-    # Warning: urllib has slight memory leak
+    # Developer note: urllib has slight memory leak
     Keypress[18] = False
     while True:
         if not Keypress_prompt[0]:
             Keypress_prompt[0] = True
             if stderr:
                 if Keypress[16]:
-                    e = f"{retries[0]} retries (P)ause (S)kip once"
+                    e = f"{retries[0]} retries (R)etry now (P)ause (S)kip once (X)auto"
                     if Keypress[20]:
-                        timer(f"{e}, reloading in", listen=[16])
+                        timer(f"{e} (T)imer off, reloading in", listen=[18, 19], antalisten=[16, 20, 24])
                     else:
-                        echo(e)
+                        echo(f"{e} (T)imer on")
                     Keypress[18] = True if Keypress[16] else False
                 if not Keypress[18]:
                     title(monitor())
-                    Keypress_err[0] = f"{stderr} (R)etry un(P)ause (S)kip once (X)auto defuse antibot with (F)irefox: "
-                    echo(Keypress_err[0], flush=True)
+                    Keypress_err[0] = f"{stderr} (R)etry un(P)ause (S)kip once (X)auto defuse antibot with (F)irefox"
                     while True:
+                        echo(Keypress_err[0])
+                        ticking[0].clear()
                         if Keypress[18] or Keypress[16]:
                             break
                         if Keypress[19]:
@@ -1583,14 +1585,15 @@ def retry(stderr):
                         if Keypress[6]:
                             Keypress[6] = False
                             return 2
-                        time.sleep(0.1)
+                        ticking[0].wait()
+                    ticking[0].set()
             else:
                 echo(f"{retries[0]} retries (S)kip one, wait it out, or press X to quit trying . . . ")
             time.sleep(0.1)
             retries[0] += 1
             title(monitor())
             Keypress_prompt[0] = False
-            return True
+            return 1
         elif Keypress[18]:
             time.sleep(0.1) # so I don't return too soon to turn off another Keypress[18] used to turn off Keypress_prompt.
             return True
@@ -5478,8 +5481,8 @@ def pressed(k, s=True):
     Keypress["?ABCDEFGHIJKLMNOPQRSTUVWXYZ".index(k)] = s
     if not busy[0]:
         ready_input()
-    if ticking[1]:
-        ticking[1].set()
+    if ticking[0]:
+        ticking[0].set()
 
 def has(i, x):
     if not x:
@@ -5554,7 +5557,7 @@ def keylistener():
             ready_input()
         elif el == 10:
             echo("", 1)
-            if demo[0] > Keypress_time[1] - 2:
+            if Keypress_time[0] < Keypress_time[2]:
                 echo(" HTTP SERVER: 10-second demo", 0, 1)
                 time.sleep(10)
                 stopserver()
@@ -5562,7 +5565,7 @@ def keylistener():
                 stopserver()
             else:
                 restartserver()
-                Keypress_time[0] = demo[0] = time.time() - 0.5
+            Keypress_time[2] = Keypress_time[0] + Fast_presser*4
             if not busy[0]:
                 ready_input()
         elif el == -10:

@@ -134,6 +134,10 @@ function makedots(cs, pos){
       bt += 1
     }
     if (r3 == 1){
+      if (creative.classList == "prev"){
+        pos += 3
+        continue;
+      }
       gradient[gradient.length-1].push([fc[r1]])
     } else {
       gradient.push([[fc[r1], fc[r1]]])

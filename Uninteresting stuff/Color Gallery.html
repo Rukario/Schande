@@ -246,6 +246,12 @@ function FFdown(e) {
     } else {
       translucents.classList = "next";
     }
+  } else if (e.target.getAttribute("id") == "creative"){
+    if (creative.classList == "next") {
+      creative.classList = "prev";
+    } else {
+      creative.classList = "next";
+    }
   } else if (e.target.getAttribute("id") == "odnary"){
     makegallery(odnary.getAttribute("data-colorset"));
   } else if (e.target.getAttribute("id") == "replace"){
@@ -402,6 +408,11 @@ function FFdown(e) {
             }
           } else {
             featured = true;
+          }
+          if (featured && creative.classList == "prev"){
+            if (k[pos+2] > 0){
+              featured = false;
+            }
           }
         }
         pos += 3
@@ -579,7 +590,7 @@ window.onload = () => {
 
 <div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div></div>
 
-<div class="next" id="translucents" data-tooltip="Fetch color sets using jam-like or translucent of selected color">Translucents</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><div class="dark local_tooltip" id="local_tooltip"></div>
+<div class="next" id="translucents" data-tooltip="Fetch color sets using jam-like or translucent of selected color">Translucents</div><div class="next" id="creative" data-tooltip="Exclude color sets of selected color not possible for custom<br>&gt; BD's seemily arbitrary &quot;technical limitations&quot; on fade toy's midway colors<br>&gt; BD's wearable color silicones &quot;exclusive&quot; to wereables">Creative mode</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><div class="dark local_tooltip" id="local_tooltip"></div>
 <div></div>
 
 <div style="display:inline-block; position:relative; vertical-align:top; display:flex;">

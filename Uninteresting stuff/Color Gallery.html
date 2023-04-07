@@ -16,7 +16,7 @@ h3 {margin:4px;}
 .colorsel{opacity:75%}
 .blink{animation: bl 1000ms steps(1, end) infinite;}
 @keyframes bl{0%{opacity:75%;} 50%{opacity:100%;}}
-.cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:52px; cursor:pointer; -webkit-user-select:none; line-height:1.1;}
+.cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:48px; cursor:pointer; -webkit-user-select:none; line-height:1.1;}
 .next {color:#6fe; background-color:#066;}
 .prev {color:#6fe; background-color:#399;}
 .next, .prev {font-family:sans-serif; font-size:90%; position:relative; display:inline-block; white-space:nowrap; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
@@ -41,16 +41,17 @@ h3 {margin:4px;}
 }
 </style>
 <script>
-var fc = {"black":"#000000", "machine":"#202229", "anubis":"#292220", "mold":"#222922", "concrete":"#666666", "smoke":"#999999", "cream":"#dcd6cc", "white":"#ffffff", "purple":"#992282", "magenta":"#ff33e2", "cherry blossom":"#ffc9e8", "maroon":"#820045", "rose":"#d60159", "orchid":"#ff6c9b", "crimson":"#7a0002", "red":"#d90003", "cerise":"#ff4648", "pink":"#ffc5c6", "chestnut":"#bd3f20", "coral":"#f17f6a", "walnut":"#9f400f", "copper":"#e86423", "peach":"#ffc397", "chocolate":"#61300b", "bronze":"#c26718", "orange":"#ff8a00", "honey":"#ffbe6a", "gold":"#ffc11d", "brass":"#ffd76b", "beeswax":"#c4af22", "lemon":"#ffe900", "beige":"#fff8a8", "olive":"#707916", "fern":"#b4cd20", "tennis ball":"#e5ff00", "pistachio":"#e5ff9f", "forest":"#234d00", "green":"#64c900", "lime":"#adff69", "xanadu":"#c2ffaf", "teal":"#009677", "robin egg":"#2deacf", "mist":"#a3ffe1", "azure":"#1898cf", "sky blue":"#5ed5ff", "arctic":"#caf6ff", "indigo":"#30228c", "blueberry":"#6666ff", "glaucous":"#aac6ff", "grape":"#4b0078", "violet":"#8904d1", "psychic":"#bb6eff", "lavender":"#e0caff"}
+var fc = {"black":"#000000", "machine":"#202229", "anubis":"#292220", "mold":"#222922", "concrete":"#666666", "smoke":"#999999", "cream":"#dcd6cc", "white":"#ffffff", "galaxy":"#111114", "wine":"#500040", "purple":"#992282", "magenta":"#ff33e2", "cherry blossom":"#ffc9e8", "maroon":"#820045", "rose":"#d60159", "orchid":"#ff6c9b", "garnet":"#770017", "cherry":"#d9002b", "cerise":"#ff464e", "rouge":"#ffb9c0", "crimson":"#771700", "red":"#c7291b", "scarlet":"#f35548", "chestnut":"#bd3f20", "coral":"#f1876a", "rosewood":"#9f400f", "copper":"#e86423", "peach":"#ffc397", "chocolate":"#61300b", "bronze":"#c26718", "orange":"#ff8a00", "honey":"#ffbe6a", "gold":"#ffc11d", "brass":"#ffd76b", "beeswax":"#c4af22", "lemon":"#ffe900", "beige":"#fff8a8", "olive":"#707916", "fern":"#b4cd20", "tennis ball":"#e5ff00", "pistachio":"#e5ff9f", "forest":"#234d00", "green":"#64c900", "lime":"#adff69", "xanadu":"#c2ffaf", "teal":"#009677", "robin egg":"#2deacf", "mist":"#a3ffe1", "azure":"#1898cf", "sky blue":"#5ed5ff", "arctic":"#caf6ff", "indigo":"#30228c", "blueberry":"#6666ff", "glaucous":"#aac6ff", "grape":"#4b0078", "violet":"#8904d1", "psychic":"#bb6eff", "lavender":"#e0caff"}
 
 var cn = [
   "black", "machine", "anubis", "mold",
   "concrete", "smoke", "cream", "white",
-  null, "purple", "magenta", "cherry blossom",
-  "maroon", "rose", "orchid", null,
-  "crimson", "red", "cerise", "pink",
+  "galaxy", "wine", "purple", "magenta",
+  "maroon", "rose", "orchid", "cherry blossom",
+  "garnet", "cherry", "cerise", "rouge",
+  "crimson", "red", "scarlet", null,
   null, "chestnut", "coral", null,
-  null, "walnut", "copper", "peach",
+  null, "rosewood", "copper", "peach",
   "chocolate", "bronze", "orange", "honey",
   null, null, "gold", "brass",
   null, "beeswax", "lemon", "beige",
@@ -129,7 +130,7 @@ function makedots(cs, pos){
     }
     var bc = "rgba(0, 0, 0, 0.5)"
     var bt = r2
-    if(r1 == "black"){
+    if(r1 == "black" || r1 == "galaxy"){
       bc = "#556"
       bt += 1
     }
@@ -586,7 +587,7 @@ window.onload = () => {
 
 <div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div></div>
 
-<div class="next" id="translucents" data-tooltip="Fetch color sets using jam-like or translucent of selected color">Translucents</div><div class="next" id="creative" data-tooltip="Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway colors<br>&gt; Silicones exclusive to wereables">Creative mode</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><div class="dark local_tooltip" id="local_tooltip"></div>
+<div class="next" id="translucents" data-tooltip="Fetch color sets using jam-like or translucent of selected color">Translucents</div><div class="next" id="creative" data-tooltip="Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights">Creative mode</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><div class="dark local_tooltip" id="local_tooltip"></div>
 <div></div>
 
 <div style="display:inline-block; position:relative; vertical-align:top; display:flex;">

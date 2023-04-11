@@ -1101,6 +1101,8 @@ def peanut(z, cw, a):
             z = [z[0] + ' > 0'] + conditions(z[1])
         else:
             z = [''] + conditions(z)
+        if z[0].startswith(" > 0"):
+            z[0] = "0" + z[0].split(" > 0", 1)[1]
         a = True
     return [z, cw, a]
 
@@ -2497,16 +2499,13 @@ def branch(d, z, r):
         pos += 1
         x = x.split(" >> ")
         if not x[0]:
-            if len(z[0]) >= 2:
-                if t == "list":
-                    for x in d:
-                        ds += branch(x, [z[0][pos:]] + z[1:], r)
-                elif t == "dict":
-                    for x in d.values():
-                        ds += branch(x, [z[0][pos:]] + z[1:], r)
-                return ds
-            else:
-                break
+            if t == "list":
+                for x in d:
+                    ds += branch(x, [z[0][pos:]] + z[1:], r)
+            elif t == "dict":
+                for x in d.values():
+                    ds += branch(x, [z[0][pos:]] + z[1:], r)
+            return ds
         elif t == "dict" and x[0] in d:
             d = d[x[0]]
             if len(x) == 2:

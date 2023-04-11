@@ -1489,21 +1489,20 @@ if not cli["dismiss"]:
 
 
 
-ticking = [Event()]*2
-for t in ticking:
-    t.set()
-def timer(e="", listen=[], antalisten=[]):
-    if ticking[1].is_set():
-        ticking[1].clear()
-        if not navigator["timeout"]:
-            navigator["timeout"].update({0:[4, 8]})
+ticking = [Event(), False]
+ticking[0].set()
+def timer(e="", listen=[], antalisten=[], clock=navigator["timeout"]):
+    if not ticking[1]:
+        ticking[1] = True
+        if not clock:
+            clock.update({0:[4, 8]})
             echo(f"""\n"#-# seconds rarity 100% 00:00" in {rulefile} to customize timer, add another timer to manipulate rarity/schedule.\n""", 1, 1)
 
         now = int((datetime.utcnow() + timedelta(hours=int(offset))).strftime('%H%M'))
         time_at = None
-        next_clock = None
+        next_clock = 0
         big_clock = 0
-        for key in navigator["timeout"].keys():
+        for key in clock.keys():
             if now <= key:
                 if next_clock >= key:
                     next_clock = key
@@ -1515,8 +1514,8 @@ def timer(e="", listen=[], antalisten=[]):
         if time_at == None:
             time_at = big_clock
 
-        randindex = int(len(navigator["timeout"][time_at])*random())
-        r = navigator["timeout"][time_at][randindex]
+        randindex = int(len(clock[time_at])*random())
+        r = clock[time_at][randindex]
         s = r[0]+int((r[1]-r[0]+1)*random())
         if next_clock:
             next_clock = int((datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y%m%d') + f'{next_clock:04}')
@@ -1549,9 +1548,10 @@ def timer(e="", listen=[], antalisten=[]):
                 break
             if now > end-2 or any(Keypress[n] for n in listen) or any(not Keypress[n] for n in antalisten):
                 break
-        ticking[1].set()
+        ticking[1] = False
     else:
-        ticking[1].wait()
+        while ticking[1]:
+            time.sleep(0.5)
 
 
 
@@ -2492,16 +2492,18 @@ def linear(d, z, r):
 def branch(d, z, r):
     ds = []
     t = type(d).__name__
-    for x in z[0][0].split(" > "):
+    pos = 0
+    for x in z[0]:
+        pos += 1
         x = x.split(" >> ")
         if not x[0]:
             if len(z[0]) >= 2:
                 if t == "list":
                     for x in d:
-                        ds += branch(x, [z[0][1:]] + z[1:], r)
+                        ds += branch(x, [z[0][pos:]] + z[1:], r)
                 elif t == "dict":
                     for x in d.values():
-                        ds += branch(x, [z[0][1:]] + z[1:], r)
+                        ds += branch(x, [z[0][pos:]] + z[1:], r)
                 return ds
             else:
                 break
@@ -2516,44 +2518,24 @@ def branch(d, z, r):
             t = type(d).__name__
         else:
             return ds
-    if len(z[0]) == 1:
+    else:
         if not t == "list" and not t == "dict":
             return ds
-        if z[0][0]:
-            dx = []
-            if t == "list":
-                for dc in d:
-                    if dt := linear(dc, z[1], r):
-                        if len(z) > 2:
-                            dx += [dt + b for b in branch(dc, [z[2].split(" > 0")] + z[3:], r)]
-                        else:
-                            dx += [dt]
-            elif t == "dict":
-                for x in d.values():
-                    if dt := linear(x, z[1], r):
-                        dx += [dt]
-            return dx
-        else:
-            if dt := linear(d, z[1], r):
-                if len(z) > 2:
-                    return [dt + b for b in branch(d, [z[2].split(" > 0")] + z[3:], r)]
-                else:
-                    return [dt]
-    else:
-        if t == "list":
-            for x in d:
-                ds += branch(x, [z[0][1:]] + z[1:], r)
-        elif t == "dict":
-            for x in d.values():
-                ds += branch(x, [z[0][1:]] + z[1:], r)
+        if dt := linear(d, z[1], r):
+            if len(z) > 2:
+                return [dt + b for b in branch(d, z[2:], r)]
+            else:
+                return [dt]
     return ds
 
 def tree(d, z, r=False):
     # tree(dictionary, [branching keys, [[linear keys, choose, conditions, customize with, stderr and kill, replace slashes], [linear keys, 0 accept any, 0 no conditions, 0 no customization, 0 continue without, 0 no slash replacement]]])
-    for x in z[1::2]:
-        if not x[0][0]:
-            print(f"{tcoloro} Last key > 0 is view only. You must establish a next key for use in picker rules.{tcolorx}")
-    z[0] = [x.split(" > ", 1)[1] if x.startswith(" > ") else x for x in z[0].split(" > 0")]
+    pos = 0
+    while pos < len(z):
+        z[pos] = ['' if x == "0" else x for x in z[pos].split(" > ")] if z[pos] else []
+        if not z[pos+1][0]:
+            echo(f"{tcoloro} Last key > 0 is view only. You must establish a next key for use in picker rules.{tcolorx}", 0, 1)
+        pos += 2
     return branch(d, z, r)
 
 
@@ -2709,6 +2691,7 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
         fp = []
         for x in meta:
             for y, cwf in x:
+                cwf = ast(f"{cwf[0]}*{cwf[1]}", f"{f_key}", htmlpart[f_key]["keywords"][0] if f_key in htmlpart and len(htmlpart[f_key]["keywords"]) > 0 else "0").rsplit("*", 1)
                 if len(ret := carrots([[file[2], ""]], y, cwf, False)) == 2 and ret[-2][1]:
                     fp += [ret[-2][1]]
                     break
@@ -2909,9 +2892,11 @@ def pick_in_page():
                     buffer = "As expected" if y[0]["alt"] and found else "Not any longer"
                 alert(page, buffer, pick["dismiss"])
             else:
-                more_pages += [[start, page, pagen]]
                 timer(f"{alerted[0]}, resuming unalerted pages in" if alerted[0] else "Not quite as expected! Reloading in", listen=[3, 19])
-        if any(pick[x] for x in ["folder", "pages", "html", "icon", "dict", "file", "file_after"]) and not data:
+                if not Keypress[19]:
+                    more_pages += [[start, page, pagen]]
+                    proceed = False
+        if proceed and any(pick[x] for x in ["folder", "pages", "html", "icon", "dict", "file", "file_after"]) and not data:
             data, part = get_data(threadn, page, url, pick)
             if not data:
                 proceed = False
@@ -3202,7 +3187,7 @@ def nextshelf(fromhtml):
                     keywords = htmlpart[k]["keywords"]
                     title = keywords[0] if keywords and keywords[0] else f"ꍯ Part {k} ꍯ"
                     timestamp = keywords[1] if len(keywords) > 1 and keywords[1] else "No timestamp"
-                    afterwords = ", ".join(kw for kw in keywords[2:]) if len(keywords) > 2 else "None"
+                    afterwords = ", ".join(f"{kw}" for kw in keywords[2:]) if len(keywords) > 2 else "None"
                     stdout += f"{tcolorx}{k} :: {tcolor}{tcolorb}{title} [{tcolor}{timestamp}{tcolorr} Keywords: {afterwords}{tcolorb}]\n"
                     for file in htmlpart[k]["files"]:
                         stdout += tcolorg + file["name"].rsplit("\\")[-1] + "\n"

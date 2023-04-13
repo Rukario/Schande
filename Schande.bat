@@ -50,13 +50,14 @@ notstray = ["mediocre.txt", "autosave.txt", "gallery.html", "keywords.json", "pa
 mute404 = ["favicon.ico", "apple-touch-icon-precomposed.png", "apple-touch-icon.png", "apple-touch-icon-152x152-precomposed.png", "apple-touch-icon-152x152.png", "apple-touch-icon-120x120-precomposed.png", "apple-touch-icon-120x120.png"]
 
 alerted = [False]
-busy = [False]
+busy = [False]*2
 dlslot = [8]
 echothreadn = []
 error = [[]]*4
 echoname = [batchfile]
 newfilen = [0]
 Keypress_prompt = [False]
+Keypress_buffer = [""]
 Keypress_time = [0, 0, 0]
 Fast_presser = 0.5
 Keypress = [False]*27
@@ -246,7 +247,7 @@ def help():
  |  > folder#, title#, name#, meta# to assemble assets together sequentially.
  |
  |  "...*..."         HTML-based picker.
- |  "... > ..."       API-based picker.
+ |  "... > ..."       API-based picker. "api > ..." to enforce.
  |  " > 0 > " (or asterisk) to iterate a list or dictionary values, " >> " to load dictionary from QS (Query String).
  |  "key Y << X"      X prefers master key Y.
  |
@@ -272,6 +273,7 @@ def help():
 
  + For difficult asterisks:
  |  "X # letters" (# or #-#) after any picker (before "customize with") so the match is expected to be that amount.
+ |  "X greater" after any picker (before "customize with") so the match is expected to be greater than asked number.
  |  "X ends/starts with X" after any picker (before "customize with"). "not" for opposition.
  + Use replace picker to discard what you don't need before complicating pickers with many asterisks or carets.
 
@@ -1056,72 +1058,88 @@ def saint(name=False, url=False, scheme=True):
 
 
 
-def met(p, n):
-    if n[0] and p.endswith(n[0]) or n[1] and not p.endswith(n[1]) or n[2] and p.startswith(n[2]) or n[3] and not p.startswith(n[3]) or n[4] and not n[4][0] <= len(p) <= n[4][1]:
+def met(p, m):
+    if not m:
+        return True
+    if m[0] and p.endswith(m[0]) or m[1] and not p.endswith(m[1]) or m[2] and p.startswith(m[2]) or m[3] and not p.startswith(m[3]) or m[4] and not m[4][0] <= len(p) <= m[4][1]:
         return
     return True
 
-def conditions(x):
-    n = [""]*5
-    if len(x := x.rsplit(" not ends with ", 1)) == 2:
-        n[0] = x[1]
-    x = x[0]
-    if len(x := x.rsplit(" ends with ", 1)) == 2:
-        n[1] = x[1]
-    x = x[0]
-    if len(x := x.rsplit(" not starts with ", 1)) == 2:
-        n[2] = x[1]
-    x = x[0]
-    if len(x := x.rsplit(" starts with ", 1)) == 2:
-        n[3] = x[1]
-    x = x[0]
-    if len(y := x.rsplit(" letters", 1)) == 2:
-        y = y[0].rsplit(" ", 1)
-        if len(z := y[1].split("-", 1)) == 2:
-            if z[0].isdigit() and z[1].isdigit():
-                n[4] = [int(z[0]), int(z[1])]
-                x = y[0]
-        else:
-            if z[0].isdigit():
-                n[4] = [int(z[0]), int(z[0])]
-                x = y[0]
-    return [x, n]
+def peanutshell(z="0", c=[], g=False, m=[], cw=[]):
+    return [[z, c, g, m, cw, "", ""]]
 
-def peanut(z, cw, a):
+def peanut(z, cw, f, a):
     if len(z := z.rsplit(" customize with ", 1)) == 2:
         cw = z[1].rsplit("*", 1)
         if not len(cw) == 2:
             cw += [""]
     z = z[0]
-    if " > " in z or a:
-        if z.startswith("0"):
-            z = " > 0" + z.split("0", 1)[1]
-        if " > 0" in z:
-            z = z.rsplit(" > 0", 1)
-            z = [z[0] + ' > 0'] + conditions(z[1])
+    c = []
+    if len(z := z.rsplit(" = ", 1)) == 2:
+        c = z[1].split(" > ")
+    z = z[0]
+    g = False
+    if len(z := z.rsplit(" greater", 1)) == 2:
+        g = z[1] if z[1] else True
+    z = z[0]
+    m = [""]*5
+    if len(z := z.rsplit(" not ends with ", 1)) == 2:
+        m[0] = z[1]
+    z = z[0]
+    if len(z := z.rsplit(" ends with ", 1)) == 2:
+        m[1] = z[1]
+    z = z[0]
+    if len(z := z.rsplit(" not starts with ", 1)) == 2:
+        m[2] = z[1]
+    z = z[0]
+    if len(z := z.rsplit(" starts with ", 1)) == 2:
+        m[3] = z[1]
+    z = z[0]
+    if len(y := z.rsplit(" letters", 1)) == 2:
+        y = y[0].rsplit(" ", 1)
+        if len(z := y[1].split("-", 1)) == 2:
+            if z[0].isdigit() and z[1].isdigit():
+                m[4] = [int(z[0]), int(z[1])]
+                z = y[0]
         else:
-            z = [''] + conditions(z)
+            if z[0].isdigit():
+                m[4] = [int(z[0]), int(z[0])]
+                z = y[0]
+    z = [[z, c, g, m, cw, [], " ꍯ " if f else ""]]
+    if " > " in z[0][0] or a:
+        if z[0][0].startswith("0"):
+            z[0][0] = " > 0" + z[0][0].split("0", 1)[1]
+        if " > 0" in z[0][0]:
+            x = z[0][0].rsplit(" > 0", 1)
+            z[0][0] = x[1]
+            z = [x[0] + ' > 0', z]
+        else:
+            z = ['', z]
         if z[0].startswith(" > 0"):
             z[0] = "0" + z[0].split(" > 0", 1)[1]
+        if z[1][0][0].startswith("api > "):
+            z[1][0][0] = z[1][0][0].split("api", 1)[1]
         a = True
-    return [z, cw, a]
+    else:
+        z = ['', z]
+    return [z, a]
 
-def at(s, r, cw=[], alt=0, key=False, name=False, meta=False):
+def at(s, r, cw=[], alt=0, key=False, name=False, folder=False, meta=False):
     n, r = r.split(" ", 1) if " " in r else [r, ""]
     n = int(n) if n else 0
     if key:
         if len(d := r.split(" << ", 1)) == 2:
-            r = [peanut(d[0], [], True)[0]] + peanut(d[1], [], False)
+            r = [peanut(d[0], [], False, True)[0]] + peanut(d[1], [], folder, False)
         else:
-            r = [[0, 0]] + peanut(r, [], False)
+            r = [[0, 0]] + peanut(r, [], False, False)
     else:
-        r = peanut(r, cw, False)
+        r = peanut(r, cw, folder, False)
     if not s:
         s += [[]]
     if n:
         s += [[] for _ in range(n-len(s)+1)]
     s[n] += [r] if s[n] else [{"alt":alt}, r]
-    if name and r[0] and not r[2]:
+    if name and r[0] and not r[1]:
         file_pos[0] = "file_after"
     if name or meta:
         if len(s) > site["seqN"]:
@@ -1141,7 +1159,7 @@ fdate = date.strftime('%Y') + "-" + date.strftime('%m') + "-XX"
 
 
 def new_picker():
-    return {"replace":[], "POST":[], "DELETE":[], "defuse":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "pattern":[[], [], False, False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "time":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "POST":[], "DELETE":[], "defuse":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "proceed":False, "pattern":[[], [], False, False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "time":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
 
 
 
@@ -1188,13 +1206,12 @@ def add_picker(s, rule):
         at(s["expect"], rule.split("unexpect", 1)[1])
     elif rule.startswith("dismiss"):
         s["dismiss"] = True
+    elif rule.startswith("proceed"):
+        s["proceed"] = True
     elif rule.startswith("message "):
         s["message"] += [rule.split("message ", 1)[1]]
     elif rule.startswith("choose "):
-        choose = rule.split("choose ", 1)[1].rsplit(" = ", 1)
-        choose[0] = peanut(choose[0], [], False)[0][1]
-        choose[1] = choose[1].split(" > ")
-        s["choose"] += [choose]
+        s["choose"] += [peanut(rule.split("choose ", 1)[1], [], False, False)[0]]
     elif rule.startswith("file "):
         at(s[file_pos[0]], rule.split("file", 1)[1], [], 1)
     elif rule.startswith("relfile "):
@@ -1491,8 +1508,9 @@ if not cli["dismiss"]:
 
 
 
-ticking = [Event(), False]
+ticking = [Event(), False, Event()]
 ticking[0].set()
+ticking[2].set()
 def timer(e="", listen=[], antalisten=[], clock=navigator["timeout"]):
     if not ticking[1]:
         ticking[1] = True
@@ -2345,7 +2363,7 @@ def driver(url):
 
 
 
-def carrot(array, z, cw, new, my_conditions, saint):
+def carrot(array, z, m, cw, saint, new):
     a = ""
     aa = ""
     p = ""
@@ -2355,7 +2373,7 @@ def carrot(array, z, cw, new, my_conditions, saint):
     carrot_saver = []
     if not "*" in z:
         if z in update_array[0]:
-            if met(update_array[0], my_conditions):
+            if met(update_array[0], m):
                 array[0] = ""
                 new += [["", cw[0] + cw[1] if cw else ""]]
         return
@@ -2371,7 +2389,7 @@ def carrot(array, z, cw, new, my_conditions, saint):
             z[0] = ""
             cc = True
         if len(z) == 2 and not z[0] and not z[1]:
-            if met(update_array[0], my_conditions):
+            if met(update_array[0], m):
                 array[0] = ""
                 new += [["", cw[0] + update_array[0] + cw[1] if cw else update_array[0]]]
             return
@@ -2382,7 +2400,7 @@ def carrot(array, z, cw, new, my_conditions, saint):
         elif not len(y := update_array[0].split(z[0], 1)) == 2:
             return
         if len(z) == 2 and not z[1]:
-            if met(y[1], my_conditions):
+            if met(y[1], m):
                 array[0] = ""
                 new += [[y[0], cw[0] + y[1] + cw[1] if cw else y[1]]]
             return
@@ -2414,7 +2432,7 @@ def carrot(array, z, cw, new, my_conditions, saint):
             p = y[0]
             if ac:
                 y[0] = ""
-            if not met(p, my_conditions):
+            if not met(p, m):
                 p = ""
                 update_array[0] = y[1]
                 a = aa + y[0] + z[0]
@@ -2430,13 +2448,12 @@ def carrot(array, z, cw, new, my_conditions, saint):
 
 
 
-def carrots(arrays, x, cw=[], any=True, saint=False):
+def carrots(arrays, z, cw=[], any=True):
     update_array = []
-    x, my_conditions = conditions(x)
     new = []
     for array in arrays:
         while True:
-            update_array = carrot(array, x, cw, new, my_conditions, saint)
+            update_array = carrot(array, z[1][0][0], z[1][0][3], cw if cw else z[1][0][4], z[1][0][6], new)
             if not update_array:
                 break
             array = update_array[1]
@@ -2448,12 +2465,12 @@ def carrots(arrays, x, cw=[], any=True, saint=False):
 
 
 
-def linear(d, z, r):
+def linear(d, z, v):
     dt = []
     for x in z:
         dc = d
         if not x[0]:
-            if r:
+            if v:
                 dt += [d]
             continue
         elif x[0] == "0" or isinstance(x[0], int):
@@ -2469,29 +2486,39 @@ def linear(d, z, r):
                     dc = json.loads(dc)
                     if dc and y[1] in dc:
                         dc = dc[y[1]]
-            elif x[4]:
-                kill(0, x[4])
+            elif x[5]:
+                kill(0, x[5])
             else:
                 return
         if not dc:
             return
         # dc = str(dc)
-        if x[5]:
-            dc = x[5].join(s.strip() for s in dc.replace("\\", "/").split("/"))
-        if x[1] and not any(c for c in x[1] if c == str(dc)) or x[2] and not met(dc, x[2]):
-            if x[4]:
-                kill(0, x[4])
+        if x[6]:
+            dc = x[6].join(s.strip() for s in dc.replace("\\", "/").split("/"))
+        if x[2] == True:
+            busy[1] = True
+            ticking[2].clear()
+            echo(f"Is {dc} greater than your expected number? Enter (N)umber", 0, 1)
+            Keypress_err[0] = f"{dc} > "
+            ticking[2].wait()
+            busy[1] = False
+            x[2] = Keypress_buffer[0]
+        if x[2] and isinstance(x[2], int) and x[2] > dc:
+            return
+        if x[1] and not any(c for c in x[1] if c == str(dc)) or x[3] and not met(dc, x[3]):
+            if x[5]:
+                kill(0, x[5])
             else:
                 return
-        if x[3]:
-            dt += [dc.join(x[3])]
+        if x[4]:
+            dt += [dc.join(x[4])]
         else:
             dt += [dc]
     return dt
 
 
 
-def branch(d, z, r):
+def branch(d, z, v):
     ds = []
     t = type(d).__name__
     pos = 0
@@ -2501,10 +2528,10 @@ def branch(d, z, r):
         if not x[0]:
             if t == "list":
                 for x in d:
-                    ds += branch(x, [z[0][pos:]] + z[1:], r)
+                    ds += branch(x, [z[0][pos:]] + z[1:], v)
             elif t == "dict":
                 for x in d.values():
-                    ds += branch(x, [z[0][pos:]] + z[1:], r)
+                    ds += branch(x, [z[0][pos:]] + z[1:], v)
             return ds
         elif t == "dict" and x[0] in d:
             d = d[x[0]]
@@ -2518,24 +2545,30 @@ def branch(d, z, r):
         else:
             return ds
     else:
-        if not t == "list" and not t == "dict":
+        if v and t in ["str", "int"]:
+            ds += [[f"{tcoloro}VIEWER: > 0 was used to access {tcolorz('ffffff')}{d}"]]
             return ds
-        if dt := linear(d, z[1], r):
+        elif not t in ["list", "dict"]:
+            return ds
+        elif dt := linear(d, z[1], v):
             if len(z) > 2:
-                return [dt + b for b in branch(d, z[2:], r)]
+                return [dt + b for b in branch(d, z[2:], v)]
             else:
                 return [dt]
     return ds
 
-def tree(d, z, r=False):
-    # tree(dictionary, [branching keys, [[linear keys, choose, conditions, customize with, stderr and kill, replace slashes], [linear keys, 0 accept any, 0 no conditions, 0 no customization, 0 continue without, 0 no slash replacement]]])
+def tree(d, z, v=False):
+    # tree(dictionary, [branching keys, [[linear keys, choose, conditions, customize with, stderr and kill, replace slashes], [linear keys, 0 accept any, 0 no conditions, 0 no customization, 0 continue without, 0 no slash replacement]]], return anything for viewsource)
     pos = 0
     while pos < len(z):
+        if isinstance(z[pos], list):
+            pos += 2
+            continue
         z[pos] = ['' if x == "0" else x for x in z[pos].split(" > ")] if z[pos] else []
-        if not z[pos+1][0]:
+        if not z[pos+1][0][0]:
             echo(f"{tcoloro} Last key > 0 is view only. You must establish a next key for use in picker rules.{tcolorx}", 0, 1)
         pos += 2
-    return branch(d, z, r)
+    return branch(d, z, v)
 
 
 
@@ -2569,7 +2602,8 @@ def carrot_files(html, htmlpart, key, pick, abs_page, folder, file_after=False):
             new_name = ""
             for x in pick["name"]:
                 new_name_err = True
-                for z, cw, a in x[1:]:
+                for z, a in x[1:]:
+                    cw = z[1][0][4]
                     if a:
                         continue
                     cw = ast(f"{cw[0]}*{cw[1]}", key, htmlpart[key]["keywords"][0] if key in htmlpart and len(htmlpart[key]["keywords"]) > 0 else "0").rsplit("*", 1)
@@ -2595,7 +2629,8 @@ def carrot_files(html, htmlpart, key, pick, abs_page, folder, file_after=False):
                     kill(0, "there's no name asset found in HTML for this file.")
             for x in pick["time"]:
                 new_time_err = True
-                for z, cw, a in x[1:]:
+                for z, a in x[1:]:
+                    cw = z[1][0][4]
                     if a:
                         continue
                     cw = ast(f"{cw[0]}*{cw[1]}", key, htmlpart[key]["keywords"][0] if key in htmlpart and len(htmlpart[key]["keywords"]) > 0 else "0").rsplit("*", 1)
@@ -2628,26 +2663,26 @@ def carrot_files(html, htmlpart, key, pick, abs_page, folder, file_after=False):
 
 
 
-def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
-    master_key = ["", [["0"]]]
+def tree_files(db, k, f, pick, htmlpart, folder, filelist, pos):
+    master_key = ["", peanutshell()]
     file = f[0]
-    if not k:
-        key = [["0"]]
-    else:
-        key = [[k[1][1], 0, 0, 0, 0, 0]]
+    if k:
+        key = k[1][1]
         if k[0][0]:
             if len(z := k[1][0].split(k[0][0] if k[0][0].startswith("0") else k[0][0] + " > 0", 1)) == 2:
                 file = z[1]
-                master_key = [k[0][0], [[k[0][1], 0, 0, 0, 0, 0]]]
+                master_key = [k[0][0], peanutshell(k[0][1])]
         elif k[0][1]:
-            master_key = ["", [[k[0][1], 0, 0, 0, 0, 0]]]
+            master_key = ["", peanutshell(k[0][1])]
+    else:
+        key = peanutshell()
 
 
 
     if pick["choose"]:
         choose = pick["choose"][pos-1]
     else:
-        choose = ["", []]
+        choose = [0, []]
     if pick["time"]:
         whereami()
     meta = []
@@ -2657,28 +2692,30 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
     for z in pick["name"]:
         if not z[0]["alt"]:
             meta += [[]]
-            for m, cwf, a in z[1:]:
+            for m, a in z[1:]:
+                cwf = m[1][0][4]
                 if off_branch_name:
                     cwf = ["".join(off_branch_name) + cwf[0], cwf[1]]
                 meta[-1] += [[m, cwf]]
             off_branch_name = []
             linear_name += [[1]]
             continue
-        z, cwf, a = z[pos]
+        z, a = z[pos]
+        cwf = z[1][0][4]
         if not z:
             continue
         if f[0] == z[0]:
             if off_branch_name:
                 cwf = [cwf[0] + "".join(off_branch_name), cwf[1]]
                 off_branch_name = []
-            linear_name += [[z[1], 0, 0, cwf, stderr, 0]]
+            linear_name += [z[1][0][:4] + [cwf, stderr, 0]]
         else:
-            x = tree(db, [z[0], [[z[1], 0, 0, cwf, stderr, 0]]])
+            x = tree(db, [z[0], [z[1][0][:4] + [cwf, stderr, 0]]])
             off_branch_name += [x[0][0]] if x else []
-    files = tree(db, master_key + [file, key + [[choose[0], choose[1], 0, 0, 0, 0], [f[1], 0, f[2], cw, 0, 0]] + linear_name])
+    files = tree(db, master_key + [file, key + choose[1] + f[1] + linear_name])
     if choose[1]:
         cf = []
-        for cc in choose[1]:
+        for cc in choose[1][0][1]:
             if [cx := x[:2] + x[3:] for x in files if str(x[2]) == cc]:
                 cf = cx
                 break
@@ -2708,7 +2745,7 @@ def tree_files(db, k, f, cw, pick, htmlpart, folder, filelist, pos):
 def pick_files(threadn, page, data, db, part, htmlpart, pick, pickf, folder, filelist, pos, file_after):
     for y in pickf:
         name_err = True
-        for z, cw, a in y[1:]:
+        for z, a in y[1:]:
             if pick["key"] and pick["key"][0]:
                 keys = pick["key"][0]
             else:
@@ -2720,17 +2757,17 @@ def pick_files(threadn, page, data, db, part, htmlpart, pick, pickf, folder, fil
                 for k in keys[1:]:
                     if k and not z[0] == k[1][0]:
                         continue
-                    tree_files(db, k, z, cw, pick, htmlpart, folder, filelist, pos)
+                    tree_files(db, k, z, pick, htmlpart, folder, filelist, pos)
             elif not db:
                 for p in part:
                     key = "0"
                     for k in keys[1:]:
                         if not k:
                             continue
-                        if len(d := carrots([p], k[1], [], False)) == 2:
+                        if len(d := carrots([p], k[1], any=False)) == 2:
                             key = d[0][1]
                             break
-                    html, name_err = carrot_files(carrots([p], z, cw, pick["files"]), htmlpart, key, pick, "" if y[0]["alt"] else page, folder, file_after)
+                    html, name_err = carrot_files(carrots([p], z, any=pick["files"]), htmlpart, key, pick, "" if y[0]["alt"] else page, folder, file_after)
                     for h in html:
                         if not h[1]:
                             continue
@@ -2744,7 +2781,7 @@ def pick_files(threadn, page, data, db, part, htmlpart, pick, pickf, folder, fil
 def rp(x, p):        
     for r in p:
         if "*" in r[0]:
-            x = "".join(y[0] + y[1] for y in carrots([[x, ""]], r[0], r[1].split("*", 1)))
+            x = "".join(y[0] + y[1] for y in carrots([[x, ""]], ["", peanutshell(r[0], cw=r[1].split("*", 1))]))
         else:
             x = x.replace(r[0], r[1])
     return x
@@ -2798,7 +2835,7 @@ def get_data(threadn, page, url, pick):
     if pick["part"]:
         part = []
         for z in pick["part"]:
-            part += [[x[1], ""] for x in carrots([[data, ""]], z)]
+            part += [[x[1], ""] for x in carrots([[data, ""]], ["", peanutshell(z)])]
     else:
         part = [[data, ""]]
     for p in part:
@@ -2823,7 +2860,7 @@ def pick_in_page():
                     redir = True
                     break
                 if "*" in y[1]:
-                    if len(c := carrots([[page, ""]], y[1], [], False)) == 2:
+                    if len(c := carrots([[page, ""]], y[1], any=False)) == 2:
                         page = y[0] + c[-2][1] + y[2]
                         redir = True
                 else:
@@ -2835,7 +2872,7 @@ def pick_in_page():
             url = page
             for y in x:
                 if "*" in y[1]:
-                    if len(c := carrots([[url, ""]], y[1], [], False)) == 2:
+                    if len(c := carrots([[url, ""]], ['', peanutshell(y[1])], any=False)) == 2:
                         url = y[0] + c[-2][1] + y[2]
                         redir = True
                 else:
@@ -2850,7 +2887,7 @@ def pick_in_page():
             found_all = []
             for y in pick["expect"]:
                 found = False
-                for z, cw, a in y[1:]:
+                for z, a in y[1:]:
                     if not z:
                         if not pick["ready"]:
                             echo(f""" {"into" if url else "Visiting"} {page}""", 0, 1)
@@ -2865,12 +2902,11 @@ def pick_in_page():
                             if not db:
                                 db = opendb(data)
                             pos += 1
-                            c = z[1].rsplit(" = ", 1)
-                            found = tree(db, [z[0], [[c[0], c[1].split(" > ") if len(c) == 2 else 0, 0, 0, 0, 0, 0]]])
+                            found = tree(db, z)
                             if y[0]["alt"] and found or not y[0]["alt"] and not found:
                                 break
                         else:
-                            found = True if [x[1] for x in carrots(part, z, [], False)][0] else False
+                            found = True if [x[1] for x in carrots(part, z, any=False)][0] else False
                             if y[0]["alt"] and found or not y[0]["alt"] and not found:
                                 break
                 if y[0]["alt"] and found or not y[0]["alt"] and not found:
@@ -2880,47 +2916,51 @@ def pick_in_page():
                     break
             if all(found_all):
                 proceed = True
-                if not pick["dismiss"]:
-                    if Browser:
-                        os.system(f"""start "" "{Browser}" "{page}" """)
-                    alerted_pages += [[start, page, pagen]]
-                    alerted[0] = f"(C)ontinue (S)kip {len(alerted_pages)} alerted pages"
-                if pick["message"] and len(pick["message"]) >= pos:
-                    buffer = pick["message"][pos-1]
-                else:
-                    buffer = "As expected" if y[0]["alt"] and found else "Not any longer"
-                alert(page, buffer, pick["dismiss"])
+                if not pick["proceed"]:
+                    if not pick["dismiss"]:
+                        if Browser:
+                            os.system(f"""start "" "{Browser}" "{page}" """)
+                        alerted_pages += [[start, page, pagen]]
+                        alerted[0] = f"(C)ontinue (S)kip {len(alerted_pages)} alerted pages"
+                    if pick["message"] and len(pick["message"]) >= pos:
+                        buffer = pick["message"][pos-1]
+                    else:
+                        buffer = "As expected" if y[0]["alt"] and found else "Not any longer"
+                    alert(page, buffer, pick["dismiss"])
             else:
-                timer(f"{alerted[0]}, resuming unalerted pages in" if alerted[0] else "Not quite as expected! Reloading in", listen=[3, 19])
-                if not Keypress[19]:
-                    more_pages += [[start, page, pagen]]
+                if pick["proceed"]:
                     proceed = False
+                else:
+                    timer(f"{alerted[0]}, resuming unalerted pages in" if alerted[0] else "Not quite as expected! Reloading in", listen=[3, 19])
+                    if not Keypress[19]:
+                        more_pages += [[start, page, pagen]]
+                        proceed = False
         if proceed and any(pick[x] for x in ["folder", "pages", "html", "icon", "dict", "file", "file_after"]) and not data:
             data, part = get_data(threadn, page, url, pick)
             if not data:
                 proceed = False
         if proceed and pick["dict"]:
             for y in pick["dict"]:
-                if len(c := carrots(part, y)) == 2:
+                if len(c := carrots(part, ['', peanutshell(y)])) == 2:
                     data = c[0][1]
         if proceed and not folder:
             if proceed and pick["folder"]:
                 for y in pick["folder"]:
                     name_err = True
-                    for z, cw, a in y[1:]:
+                    for z, a in y[1:]:
                         if a:
                             if not db:
                                 db = opendb(data)
-                            for d in tree(db, [z[0], [[z[1], 0, 0, 0, 0, " ꍯ "]]]):
+                            for d in tree(db, z):
                                 folder += d[0]
                                 name_err = False
                         elif y[0]["alt"]:
-                            if x := [x[1] for x in carrots([[data, ""]], z, cw, False, " ꍯ ") if x[1]]:
+                            if x := [x[1] for x in carrots([[data, ""]], z, any=False) if x[1]]:
                                 folder += x[0]
                                 name_err = False
                                 break
                         else:
-                            if len(x := carrots([[page, ""]], z, cw, False, " ꍯ ")) == 2:
+                            if len(x := carrots([[page, ""]], z, any=False)) == 2:
                                 folder += x[0][1]
                                 name_err = False
                                 break
@@ -2936,11 +2976,11 @@ def pick_in_page():
                 fromhtml["page"] = new_link(page, x, 0)
         if proceed and pick["pages"]:
             for y in pick["pages"]:
-                for z, cw, a in y[1:]:
+                for z, a in y[1:]:
                     if a:
                         if not db:
                             db = opendb(data)
-                        pages = tree(db, [z[0], [[z[1], 0, 0, cw, 0, 0]]])
+                        pages = tree(db, z)
                         if pages and not pages[0][0] == "None":
                             for p in pages:
                                 if not p[0] == page and not page + p[0] == page:
@@ -2949,7 +2989,7 @@ def pick_in_page():
                                     if pick["checkpoint"]:
                                         print(f"Checkpoint: {px}\n")
                     else:
-                        for p in [x[1] for x in carrots([[data, ""]], z, cw) if x[1]]:
+                        for p in [x[1] for x in carrots([[data, ""]], z) if x[1]]:
                             if not p == page and not page + p == page:
                                 px = p if y[0]["alt"] else page.rsplit("/", 1)[0] + "/" + p
                                 more_pages += [[start, px, pagen]]
@@ -2959,9 +2999,9 @@ def pick_in_page():
             for y in pick["paginate"]:
                 new = page
                 for z in y[1:]:
-                    l = carrots([[new, ""]], z[0][0])[0][1] if len(z[0]) > 1 else ""
+                    l = carrots([[new, ""]], ['', peanutshell(z[0][0])])[0][1] if len(z[0]) > 1 else ""
                     l_fix = z[1][0]
-                    x = carrots([[new, ""]], z[0][1 if len(z[0]) > 1 else 0])[0][1]
+                    x = carrots([[new, ""]], ['', peanutshell(z[0][1 if len(z[0]) > 1 else 0])])[0][1]
                     if (p := z[1][1]).isdigit() or p[1:].isdigit():
                         if not x.isdigit():
                             kill(f""" String captured: {x}
@@ -2970,7 +3010,7 @@ def pick_in_page():
 Paginate picker is broken, captured string must be digit for calculator +/- mode!""")
                         x = int(x) + int(p)
                     elif z[1][1]:
-                        p, _, a = peanut(z[1][1], [], False)
+                        p, a = peanut(z[1][1], [], False)
                         if a:
                             if not data:
                                 data, part = get_data(threadn, page, url, pick)
@@ -2978,9 +3018,9 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                                     break
                             if not db:
                                 db = opendb(data)
-                            x = tree(db, [p[0], [[p[1], 0, 0, 0, 0, 0]]])[-1][0]
+                            x = tree(db, p)[-1][0]
                     r_fix = z[1][2]
-                    r = carrots([[new, ""]], z[0][2])[0][1] if len(z[0]) == 3 else ""
+                    r = carrots([[new, ""]], ['', peanutshell(z[0][2])])[0][1] if len(z[0]) == 3 else ""
                     new = f"{l}{l_fix}{x}{r_fix}{r}"
                 more_pages += [[start, new, pagen]]
         if proceed and pick["html"]:
@@ -2992,27 +3032,27 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                 part_keys = [0, 0]
             pos = 0
             for y in pick["html"]:
-                for z, cw, a in y[1:]:
+                for z, a in y[1:]:
                     if a:
                         if not db:
                             db = opendb(data)
                         for p_k in part_keys[1:]:
-                            master_key = ["", [["0"]]]
+                            master_key = ["", peanutshell()]
                             z0 =  z[0]
                             if not p_k:
-                                key = [["0"]]
+                                key = peanutshell()
                             else:
                                 if z0 == p_k[1][0]:
-                                    key = [[p_k[1][1], 0, 0, 0, 0, 0]]
+                                    key = p_k[1][1]
                                 else:
                                     continue
                                 if p_k[0][0]:
                                     if len(x := p_k[1][0].split(p_k[0][0], 1)) == 2:
                                         z0 = x[1]
-                                        master_key = [p_k[0][0], [[p_k[0][1], 0, 0, 0, 0, 0]]]
+                                        master_key = [p_k[0][0], peanutshell(p_k[0][1])]
                                 elif p_k[0][1]:
-                                    master_key = ["", [[p_k[0][1], 0, 0, 0, 0, 0]]]
-                            for html in tree(db, master_key + [z0, key + [[z[1], 0, 0, cw, 0, 0]]]):
+                                    master_key = ["", peanutshell(p_k[0][1])]
+                            for html in tree(db, master_key + [z0, key + z[1]]):
                                 if pos == 1 or pos == 5:
                                     html[2] = html[2] + "\n"
                                 if pos > 3:
@@ -3024,10 +3064,10 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                         for p in part:
                             key = "0"
                             for p_k in part_keys[1:]:
-                                if len(d := carrots([[p[0], ""]], p_k[1], [], False)) == 2:
+                                if len(d := carrots([[p[0], ""]], p_k[1], any=False)) == 2:
                                     key = d[0][1]
                                     break
-                            c = carrots([[p[0], ""]], z, cw, False)
+                            c = carrots([[p[0], ""]], z, any=False)
                             k_html += [[key, [[rp(c[0][1], pick["replace"]), ""]]]]
                             new += [["".join(x[0] for x in c), ""]]
                         part = new
@@ -3038,29 +3078,29 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                 file_after = False
                 for x in [pick["file"], pick["file_after"]]:
                     for y in x:
-                        for z, cw, a in y[1:]:
+                        for z, a in y[1:]:
                             if a:
                                 continue
-                            html = carrot_files(carrots(html, z, cw, pick["files"]), htmlpart, k, pick, "" if y[0]["alt"] else page, folder, file_after)[0]
+                            html = carrot_files(carrots(html, z, any=pick["files"]), htmlpart, k, pick, "" if y[0]["alt"] else page, folder, file_after)[0]
                     file_after = True
                 htmlpart[k]["html"] += html
             keywords = {}
             pos = 0
             for y in pick["key"][1:]:
                 for z in y[1:]:
-                    z, cw, a = z[1:]
+                    z, a = z[1:]
                     if a:
                         if not db:
                             db = opendb(data)
                         for p_k in part_keys[1:]:
                             if not p_k:
-                                key = [["0", 0, 0, 0, 0, 0]]
+                                key = peanutshell()
                             else:
                                 if z[0] == p_k[1][0]:
-                                    key = [[p_k[1][1], 0, 0, 0, 0, 0]]
+                                    key = p_k[1][1]
                                 else:
                                     continue
-                            for d in tree(db, [z[0], [[z[1], 0, 0, 0, 0, 0]] + key]):
+                            for d in tree(db, [z[0], z[1] + key]):
                                 if not d[1] in keywords:
                                     keywords.update({d[1]: [""]})
                                 if pos == 0:
@@ -3073,16 +3113,16 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                         for p in part:
                             key = "0"
                             for p_k in part_keys[1:]:
-                                if len(d := carrots([[p[0], ""]], p_k[1], [], False)) == 2:
+                                if len(d := carrots([[p[0], ""]], p_k[1], any=False)) == 2:
                                     key = d[0][1]
                                     break
                             if not key in keywords:
                                 keywords.update({key: ["", ""]})
                             if pos < 2:
-                                if not keywords[key][pos] and len(x := carrots([p], z, cw, False)) == 2:
+                                if not keywords[key][pos] and len(x := carrots([p], z, any=False)) == 2:
                                     keywords[key][pos] = x[0][1]
                             else:
-                                for x in carrots([p], z, cw)[:-1]:
+                                for x in carrots([p], z)[:-1]:
                                     keywords[key] += [x[1]]
                 pos += 1
             for z in keywords.keys():
@@ -3093,11 +3133,11 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
             pos = 0
             for y in pick["icon"]:
                 if len(fromhtml["icons"]) < pos + 1:
-                    for z, _, a in y[1:]:
+                    for z, a in y[1:]:
                         if a:
                             if not db:
                                 db = opendb(data)
-                            url = tree(db, [z[0], [[z[1], 0, 0, 0, 0, 0]]])[0][0]
+                            url = tree(db, z)[0][0]
                             ext = ""
                             for x in imagefile:
                                 if x in url:
@@ -3106,7 +3146,7 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                             icon.update({"premade":False})
                             fromhtml["icons"] += [icon]
                         else:
-                            if len(c := carrots(part, z, [], False)) == 2:
+                            if len(c := carrots(part, z, any=False)) == 2:
                                 url = c[0][1]
                                 ext = ""
                                 for x in imagefile:
@@ -4529,7 +4569,7 @@ def tohtml(subdir, htmlname, part, pattern):
         builder += ["""<div class="cell">"""] if part[key]["visible"] else ["""<div class="cell" style="display:none;">"""]
         if len(keywords) > 1:
             timestamp = keywords[1] if keywords[1] else "No timestamp"
-            afterkeys = ", ".join(x for x in keywords[2:] if x) if len(keywords) > 2 else "None"
+            afterkeys = ", ".join(f"{x}" for x in keywords[2:] if x) if len(keywords) > 2 else "None"
             builder += [f"""<div class="time" id="{key}" style="float:right;">Part {key} ꍯ {timestamp}\nKeywords: {afterkeys}</div>"""]
         builder += [title]
         if part[key]["files"]:
@@ -5015,8 +5055,9 @@ def syntax(html, api=False):
         return ''.join(html + [tcolorx])
     a = [[html,""]]
     for z in ["http://", "https://", "/"]:
-        a = carrots(a, f"'{z}*' not starts with >", ["'" + z, "'"])
-        a = carrots(a, f"\"{z}*\" not starts with >", ["\"" + z, "\""])
+        m = ['', '', '>', '', '', '']
+        a = carrots(a, ['', peanutshell(f"'{z}*'", m=m)], ["'" + z, "'"])
+        a = carrots(a, ['', peanutshell(f"\"{z}*\"", m=m)], ["\"" + z, "\""])
     z = []
     for x in a:
         y = tcolor
@@ -5032,9 +5073,9 @@ def syntax(html, api=False):
 
 
 savepage = [{}]
-def view_in_page(data, z, cw, a):
+def view_in_page(data, z, a):
     if a:
-        if x := tree(data, [z[0], [[z[1], 0, 0, cw, 0, 0]]], True):
+        if x := tree(data, z, True):
             for y in x:
                 echo(syntax(str(y[0]), True), 0, 1)
                 savepage[0]["part"] += [y[0]]
@@ -5042,7 +5083,7 @@ def view_in_page(data, z, cw, a):
             echo(f"{tcoloro}Last few keys doesn't exist, try again.{tcolorx}", 0, 2)
     else:
         if len(z.split("*")) > 1:
-            if len(c := carrots([[data, ""]], z, cw)) > 1:
+            if len(c := carrots([[data, ""]], z)) > 1:
                 for x in c:
                     echo(x[1], 0, 1)
                     savepage[0]["part"] += [x[1]]
@@ -5050,6 +5091,7 @@ def view_in_page(data, z, cw, a):
                 echo(f"{tcolorr}Pattern doesn't exist, try again.{tcolorx}", 0, 2)
         else:
             echo(f"{tcolorr}Cannot find in page with no asterisk.{tcolorx}", 0, 2)
+
 def source_view():
     while True:
         i = input("Enter URL to view source, append URL with key > s > to read it as dictionary, enter nothing to exit: ").rstrip()
@@ -5065,10 +5107,10 @@ def source_view():
                 data = savepage[0][page]
             if not data.isdigit():
                 if key:
-                    z, cw, a = peanut(key, [], False)
+                    z, a = peanut(key, [], False, False)
                     if a:
                         data = opendb(data)
-                    view_in_page(data, z, cw, a)
+                    view_in_page(data, z, a)
                 else:
                     data = ''.join([s.strip() if s.strip() else "" for s in data.splitlines()])
                     echo(syntax(data), 0, 2)
@@ -5079,11 +5121,11 @@ def source_view():
             echo("", 1)
             break
         else:
-            z, cw, a = peanut(i, [], False)
+            z, a = peanut(i, [], False, False)
             part = savepage[0]["part"]
             savepage[0]["part"] = []
             for data in part:
-                view_in_page(data, z, cw, a)
+                view_in_page(data, z, a)
 
 
 
@@ -5538,7 +5580,6 @@ def keylistener():
             else:
                 echo("", 1)
                 echo("", 1)
-            ready_input()
         elif el == 10:
             echo("", 1)
             if Keypress_time[0] < Keypress_time[2]:
@@ -5613,7 +5654,12 @@ def keylistener():
             echo("", 1)
             ready_input()
         elif el == 14:
-            unrecognized("N")
+            if busy[1]:
+                echo("", 1)
+                Keypress_buffer[0] = input(Keypress_err[0])
+                ticking[2].set()
+            else:
+                unrecognized("N")
         elif el == 15:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)

@@ -371,7 +371,7 @@ reload
 !lilcockatrice
 !chico
 expect api > total greater
-pages https://bad-dragon.com/api/inventory-toys?price[min]=0&price[max]=300&sort[field]=price&sort[direction]=asc&page=2&limit=60
+pages https://bad-dragon.com/api/inventory-toys?price[min]=0&price[max]=300&sort[field]=price&sort[direction]=asc&page=1&limit=60
 ready
 
 https://bad-dragon.com/shop/inventory
@@ -384,13 +384,6 @@ url medium with 2
 url large with 8
 url extralarge with 3
 url 2xlarge with 287
-reload
-!sheath
-!lilfusion
-!lilseadragon
-!lilcockatrice
-!chico
-paginate *^page= ^page=*^& with page=(-1)&limit=60
 ready
 
 https://bad-dragon.com/api/inventory-toys

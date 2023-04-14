@@ -43,6 +43,8 @@ __cf_bm ... for .patreon.com
 
 
 - - - - Sorter - - - -
+Bad Dragon\Bad Dragon *date\* for https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/
+Bad Dragon\Bad Dragon *date\* for https://s3-us-west-2.amazonaws.com/bad-dragon-production/uploads/
 Reddit\* for https://v.redd.it/
 Fanbox\* for https://api.fanbox.cc
 Fanbox\* for https://downloads.fanbox.cc
@@ -360,3 +362,63 @@ files posts > 0 > file > url
 name posts > 0 > id
 meta1 ^/*
 paginate *^page= * &* with page=(1)&
+
+https://bad-dragon.com/api/inventory-toys/total?price[min]=0&price[max]=300&
+reload
+!sheath
+!lilfusion
+!lilseadragon
+!lilcockatrice
+!chico
+expect api > total greater
+pages https://bad-dragon.com/api/inventory-toys?price[min]=0&price[max]=300&sort[field]=price&sort[direction]=asc&page=2&limit=60
+ready
+
+https://bad-dragon.com/shop/inventory
+urlfix &type[]=ready_made with 
+url &skus* with https://bad-dragon.com/api/inventory-toys?price[min]=0&price[max]=300&sort[field]=price&skus*&&sort[direction]=asc&page=1&limit=60
+url onesize with 6
+url mini with 10
+url small with 1
+url medium with 2
+url large with 8
+url extralarge with 3
+url 2xlarge with 287
+reload
+!sheath
+!lilfusion
+!lilseadragon
+!lilcockatrice
+!chico
+paginate *^page= ^page=*^& with page=(-1)&limit=60
+ready
+
+https://bad-dragon.com/api/inventory-toys
+reload
+!sheath
+!lilfusion
+!lilseadragon
+!lilcockatrice
+!chico
+expect toys > 0 > sku
+proceed
+key toys > 0 > id
+key toys > 0 > id << toys > 0 > images > 0 > inventoryToyId
+key1 toys > 0 > sku
+key2 toys > 0 > created
+key3 toys > 0 > size 1 letters starts with 6 customize with onesize (*)
+key3 toys > 0 > size 2 letters starts with 10 customize with mini (*)
+key3 toys > 0 > size 1 letters starts with 1 customize with small (*)
+key3 toys > 0 > size 1 letters starts with 2 customize with medium (*)
+key3 toys > 0 > size 1 letters starts with 8 customize with large (*)
+key3 toys > 0 > size 1 letters starts with 3 customize with extralarge (*)
+key3 toys > 0 > size 3 letters starts with 287 customize with 2xlarge (*)
+key3 toys > 0 > firmness customize with firmness *
+key3 toys > 0 > price customize with $*
+key3 toys > 0 > is_flop starts with True customize with Flopped *
+html toys > 0 > color_display customize with - * -
+html toys > 0 > colorTheme > name customize with - * 
+html toys > 0 > colorTheme > id customize with (*) -
+files toys > 0 > images > 0 > imageUrlFull
+meta ^/* customize with *title - *
+paginate *^page= ^page=*^& with page=(1)&limit=60

@@ -1061,6 +1061,7 @@ def saint(name=False, url=False, scheme=True):
 def met(p, m):
     if not m:
         return True
+    p = f"{p}"
     if m[0] and p.endswith(m[0]) or m[1] and not p.endswith(m[1]) or m[2] and p.startswith(m[2]) or m[3] and not p.startswith(m[3]) or m[4] and not m[4][0] <= len(p) <= m[4][1]:
         return
     return True
@@ -2503,7 +2504,7 @@ def linear(d, z, v):
             ticking[2].wait()
             busy[1] = False
             x[2] = Keypress_buffer[0]
-        if x[2] and isinstance(x[2], int) and x[2] > dc:
+        if x[2] and not isinstance(x[2], int) and x[2] > dc:
             return
         if x[1] and not any(c for c in x[1] if c == str(dc)) or x[3] and not met(dc, x[3]):
             if x[5]:
@@ -2511,7 +2512,7 @@ def linear(d, z, v):
             else:
                 return
         if x[4]:
-            dt += [dc.join(x[4])]
+            dt += [f"{x[4][0]}{dc}{x[4][1]}"]
         else:
             dt += [dc]
     return dt
@@ -2989,6 +2990,12 @@ def pick_in_page():
                                     if pick["checkpoint"]:
                                         print(f"Checkpoint: {px}\n")
                     else:
+                        if not "*" in (p:= z[1][0][0]):
+                            if not p == page and not page + p == page:
+                                px = p if y[0]["alt"] else page.rsplit("/", 1)[0] + "/" + p
+                                more_pages += [[start, px, pagen]]
+                                if pick["checkpoint"]:
+                                    print(f"Checkpoint: {px}\n")
                         for p in [x[1] for x in carrots([[data, ""]], z) if x[1]]:
                             if not p == page and not page + p == page:
                                 px = p if y[0]["alt"] else page.rsplit("/", 1)[0] + "/" + p

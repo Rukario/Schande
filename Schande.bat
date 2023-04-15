@@ -1160,7 +1160,7 @@ fdate = date.strftime('%Y') + "-" + date.strftime('%m') + "-XX"
 
 
 def new_picker():
-    return {"replace":[], "POST":[], "DELETE":[], "defuse":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "proceed":False, "pattern":[[], [], False, False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "time":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {"replace":[], "POST":[], "DELETE":[], "defuse":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "break":False, "pattern":[[], [], False, False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "time":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
 
 
 
@@ -1207,8 +1207,8 @@ def add_picker(s, rule):
         at(s["expect"], rule.split("unexpect", 1)[1])
     elif rule.startswith("dismiss"):
         s["dismiss"] = True
-    elif rule.startswith("proceed"):
-        s["proceed"] = True
+    elif rule.startswith("break"):
+        s["break"] = True
     elif rule.startswith("message "):
         s["message"] += [rule.split("message ", 1)[1]]
     elif rule.startswith("choose "):
@@ -2099,7 +2099,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
                     p = json.loads(f.read())
             else:
                 p = {}
-            if (part := frompart(f"{subdir}{thumbnail_dir}partition.json", p, htmlpart, pattern)):
+            if (part := updatepart(f"{subdir}{thumbnail_dir}partition.json", p, htmlpart, filelist, pattern)):
                 new_relics = {}
                 for key in part.keys():
                     part[key].update({"visible": False if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern) else True})
@@ -2196,7 +2196,7 @@ URL={page["link"]}""")
         if fromhtml["premade"]:
             overwrite(f"{dir}{thumbnail_dir}gallery.html", fromhtml["premade"])
         else:
-            if (part := frompart(f"{dir}{thumbnail_dir}partition.json", htmldirs[dir], htmlpart, pattern)) or sorter["verifyondisk"]:
+            if (part := updatepart(f"{dir}{thumbnail_dir}partition.json", htmldirs[dir], htmlpart, filelist, pattern)) or sorter["verifyondisk"]:
                 new_relics = {}
                 for key in part.keys():
                     part[key].update({"visible": False if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern) else True})
@@ -2861,7 +2861,7 @@ def pick_in_page():
                     redir = True
                     break
                 if "*" in y[1]:
-                    if len(c := carrots([[page, ""]], y[1], any=False)) == 2:
+                    if len(c := carrots([[page, ""]], ['', peanutshell(y[1])], any=False)) == 2:
                         page = y[0] + c[-2][1] + y[2]
                         redir = True
                 else:
@@ -2916,8 +2916,10 @@ def pick_in_page():
                     found_all += [False]
                     break
             if all(found_all):
-                proceed = True
-                if not pick["proceed"]:
+                if pick["break"]:
+                    proceed = False
+                else:
+                    proceed = True
                     if not pick["dismiss"]:
                         if Browser:
                             os.system(f"""start "" "{Browser}" "{page}" """)
@@ -2929,8 +2931,8 @@ def pick_in_page():
                         buffer = "As expected" if y[0]["alt"] and found else "Not any longer"
                     alert(page, buffer, pick["dismiss"])
             else:
-                if pick["proceed"]:
-                    proceed = False
+                if pick["break"]:
+                    proceed = True
                 else:
                     timer(f"{alerted[0]}, resuming unalerted pages in" if alerted[0] else "Not quite as expected! Reloading in", listen=[3, 19])
                     if not Keypress[19]:
@@ -4429,9 +4431,11 @@ def hyperlink(html):
 
 
 
-def frompart(partfile, relics, htmlpart, pattern):
+def updatepart(partfile, relics, htmlpart, filelist, pattern):
     if "0" in htmlpart and not htmlpart["0"]["html"] and not htmlpart["0"]["files"]:
         del htmlpart["0"]
+
+    
 
     new_relics = htmlpart.copy()
     part_is = False
@@ -4451,13 +4455,26 @@ def frompart(partfile, relics, htmlpart, pattern):
             for stray_key in stray_keys:
                 if not key == stray_key:
                     part.update({stray_key:relics[stray_key]})
+                    for file in relics[stray_key]["files"]:
+                        filelist += [[0, file, 0, stray_key]]
                 else:
                     break
             if not relics[key]["html"] == new_relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
+                stray_files = relics[key]["files"]
+                stray_files += relics[key]["stray_files"] if "stray_files" in relics[key] else []
+                for file in stray_files:
+                    if not "stray_files" in new_relics[key]:
+                        new_relics[key].update({"stray_files": [file]})
+                    else:
+                        new_relics[key]["stray_files"] = [file]
                 part.update({key:new_relics[key]})
                 part_is = "updated"
             else:
                 part.update({key:relics[key]})
+        for stray_key in stray_keys:
+            part.update({stray_key:relics[stray_key]})
+            for file in relics[stray_key]["files"]:
+                filelist += [[0, file, 0, stray_key]]
     if part_is:
         with open(partfile, 'w') as f:
             f.write(json.dumps(part))
@@ -4497,7 +4514,6 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
     for file in next(os.walk(subdir))[2]:
         if not file.endswith(tuple(notstray)) and not file.startswith("icon"):
             files += [file]
-    stray_files = sorted(set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
 
     if sorter["verifyondisk"]:
         if not "geistauge" in task:
@@ -4511,17 +4527,12 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
         task["geistauge"].join()
         echo(" GEISTAUGE: 100%", 0, 1)
 
+    stray_files = sorted(set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
     for file in stray_files:
-        key = file.split(".", 1)[0]
-        if not key in part.keys():
-            if not "0" in part.keys():
-                part.update(new_p("0"))
-                part["0"].update({"visible": True})
-            key = "0"
-        if "stray_files" in part[key]:
-            part[key]["stray_files"] += [file]
+        if "stray_files" in part["0"]:
+            part["0"]["stray_files"] += [file]
         else:
-            part[key]["stray_files"] = [file]
+            part["0"]["stray_files"] = [file]
 
     tohtml(subdir, htmlname, part, pattern)
 

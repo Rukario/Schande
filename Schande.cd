@@ -364,13 +364,13 @@ meta1 ^/*
 paginate *^page= * &* with page=(1)&
 
 https://bad-dragon.com/api/inventory-toys/total?price[min]=0&price[max]=300&
-reload
 !sheath
 !lilfusion
 !lilseadragon
 !lilcockatrice
 !chico
 expect api > total greater
+dismiss
 pages https://bad-dragon.com/api/inventory-toys?price[min]=0&price[max]=300&sort[field]=price&sort[direction]=asc&page=1&limit=60
 ready
 
@@ -384,17 +384,17 @@ url medium with 2
 url large with 8
 url extralarge with 3
 url 2xlarge with 287
+expect toys > 0 > sku
 ready
 
 https://bad-dragon.com/api/inventory-toys
-reload
 !sheath
 !lilfusion
 !lilseadragon
 !lilcockatrice
 !chico
-expect toys > 0 > sku
-proceed
+unexpect toys > 0 > sku
+break
 key toys > 0 > id
 key toys > 0 > id << toys > 0 > images > 0 > inventoryToyId
 key1 toys > 0 > sku

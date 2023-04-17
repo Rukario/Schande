@@ -134,7 +134,7 @@ function makedots(cs, pos){
       bc = "#556"
       bt += 1
     }
-    if (r3 == 1){
+    if (r3 == 2){
       if (creative.classList == "prev"){
         pos += 3
         continue;
@@ -271,7 +271,8 @@ function FFdown(e) {
     let expires = new Date(Date.now() + 365 * 864e5).toUTCString()
     document.cookie = "gallerysave=" + encodeURIComponent(editor.innerHTML) + "; expires=" + expires + "; path=/; SameSite=Strict;";
     //no expiry would allow the cookie to be automatically deleted upon browser exit.
-    gallerysave.classList="prev"
+    gallerysave.classList = "prev"
+    gallerysave.innerHTML = "Save completed"
   } else if (e.target.getAttribute("id") == "cs"){
     makegallery(cs.getAttribute("data-colorset"));
   } else if (e.target.getAttribute("id") == "mas"){
@@ -372,6 +373,35 @@ function FFdown(e) {
         t.addEventListener("mouseup", listener);
       }
     }
+  } else if (e.target.getAttribute("id") == "exotic"){
+    colorlist.innerHTML = "<h3>Choose a color!</h3>";
+    colorsels = []
+    var keys = Object.keys(colorsets)
+    for (var i=0; i<keys.length; i++){
+      var k = colorsets[keys[i]]
+      var featured = false;
+      if(9 < k.length){
+       featured = true;
+      } else {
+        var pos = 0
+        while (pos < k.length){
+          if (k[pos+2] > 1){
+            featured = true;
+            break
+          }
+          pos += 3
+        }
+      }
+      if (featured){
+        colorsels.push(keys[i])
+      }
+    }
+    var colortip = ""
+    for (var css=0; css<colorsels.length; css++){
+      colortip += "&gt; <span class='colorset'>" + colorsels[css] + "</span>"
+      colortip += makedots(colorsets[colorsels[css]], 0)
+    }
+    colorlist.innerHTML += colortip
   } else if (e.target.getAttribute("id") == "viewall"){
     colorlist.innerHTML = "<h3>Choose a color!</h3>";
     colorsels = Object.keys(colorsets)
@@ -489,7 +519,7 @@ var FFover = function(e) {
     var d = document.createElement("div");
     d.innerHTML = "<div class='schande save'>Save</div><div class='schande' style='left:48px;'>Schande!</div>";
     a.appendChild(d);
-    let listener = function(z) {
+    listener = (z) => {
       z.target.style.opacity = 1
       if (z.target.classList.contains("schande")) {
         z.target.setAttribute("data-schande", t.getAttribute("data-src"))
@@ -591,7 +621,7 @@ window.onload = () => {
 
 <div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div></div>
 
-<div class="next" id="translucents" data-tooltip="Fetch color sets using jam-like or translucent of selected color">Translucents</div><div class="next" id="creative" data-tooltip="Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights">Creative mode</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><div class="dark local_tooltip" id="local_tooltip"></div>
+<div class="next" id="translucents" data-tooltip="Fetch color sets using jam-like or translucent of selected color">Translucents</div><div class="next" id="creative" data-tooltip="Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway and bottom colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights">Creative mode</div><div class="next" id="exotic" style="cursor:pointer;" data-tooltip="View all color sets using fades and/or 4+ color marbles i.e. can't be altered">Exotic</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><div class="dark local_tooltip" id="local_tooltip"></div>
 <div></div>
 
 <div style="display:inline-block; position:relative; vertical-align:top; display:flex;">

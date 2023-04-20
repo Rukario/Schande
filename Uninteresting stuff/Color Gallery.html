@@ -41,7 +41,7 @@ h3 {margin:4px;}
 }
 </style>
 <script>
-var fc = {"black":"#000000", "machine":"#202229", "anubis":"#292220", "mold":"#222922", "concrete":"#666666", "smoke":"#999999", "cream":"#dcd6cc", "white":"#ffffff", "galaxy":"#111114", "wine":"#500040", "purple":"#992282", "magenta":"#ff33e2", "cherry blossom":"#ffc9e8", "maroon":"#820045", "rose":"#d60159", "orchid":"#ff6c9b", "garnet":"#770017", "cherry":"#d9002b", "cerise":"#ff464e", "rouge":"#ffb9c0", "crimson":"#771700", "red":"#c7291b", "scarlet":"#f35548", "magic":"#eff6ff", "chestnut":"#bd3f20", "coral":"#f1876a", "rosewood":"#9f400f", "copper":"#e86423", "peach":"#ffc397", "chocolate":"#61300b", "bronze":"#c26718", "orange":"#ff8a00", "honey":"#ffbe6a", "gold":"#ffc11d", "brass":"#ffd76b", "beeswax":"#c4af22", "lemon":"#ffe900", "beige":"#fff8a8", "olive":"#707916", "fern":"#b4cd20", "tennis ball":"#e5ff00", "pistachio":"#e5ff9f", "forest":"#234d00", "green":"#64c900", "lime":"#adff69", "xanadu":"#c2ffaf", "teal":"#009677", "robin egg":"#2deacf", "mist":"#a3ffe1", "azure":"#1898cf", "sky blue":"#5ed5ff", "arctic":"#caf6ff", "indigo":"#30228c", "blueberry":"#6666ff", "glaucous":"#aac6ff", "grape":"#4b0078", "violet":"#8904d1", "psychic":"#bb6eff", "lavender":"#e0caff"}
+var fc = {"black":"#000000", "machine":"#202229", "anubis":"#292220", "mold":"#222922", "concrete":"#666666", "smoke":"#999999", "cream":"#dcd6cc", "white":"#ffffff", "galaxy":"#111114", "wine":"#500040", "purple":"#992282", "magenta":"#ff33e2", "cherry blossom":"#ffc9e8", "maroon":"#820045", "rose":"#d60159", "orchid":"#ff6c9b", "garnet":"#770017", "cherry":"#d9002b", "cerise":"#ff464e", "rouge":"#ffb9c0", "crimson":"#771700", "red":"#c7291b", "scarlet":"#f35548", "magic":"#eff6ff", "chestnut":"#bd3f20", "coral":"#f1876a", "jovial":"#f7c3b3", "rosewood":"#9f400f", "copper":"#e86423", "peach":"#ffc397", "chocolate":"#61300b", "bronze":"#c26718", "orange":"#ff8a00", "honey":"#ffbe6a", "gold":"#ffc11d", "brass":"#ffd76b", "beeswax":"#c4af22", "lemon":"#ffe900", "beige":"#fff8a8", "olive":"#707916", "fern":"#b4cd20", "tennis ball":"#e5ff00", "pistachio":"#e5ff9f", "forest":"#234d00", "green":"#64c900", "lime":"#adff69", "xanadu":"#c2ffaf", "teal":"#009677", "robin egg":"#2deacf", "mist":"#a3ffe1", "azure":"#1898cf", "sky blue":"#5ed5ff", "arctic":"#caf6ff", "indigo":"#30228c", "blueberry":"#6666ff", "glaucous":"#aac6ff", "grape":"#4b0078", "violet":"#8904d1", "psychic":"#bb6eff", "lavender":"#e0caff"}
 
 var cn = [
   "black", "machine", "anubis", "mold",
@@ -50,7 +50,7 @@ var cn = [
   "maroon", "rose", "orchid", "cherry blossom",
   "garnet", "cherry", "cerise", "rouge",
   "crimson", "red", "scarlet", null,
-  null, "chestnut", "coral", null,
+  null, "chestnut", "coral", "jovial",
   null, "rosewood", "copper", "peach",
   "chocolate", "bronze", "orange", "honey",
   null, null, "gold", "brass",
@@ -177,7 +177,7 @@ function makegallery(colorset){
   more.style.display = "none";
   var buffer = ""
 
-  var bookmarks = editor.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
+  var bookmarks = editor.innerHTML.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
   for (var i=0; i<bookmarks.length; i++){
     buffer += "<div class='frame'><a class='fileThumb' href='" + bookmarks[i] + "'><img class='lazy' data-src='" + bookmarks[i] + "'></a></div>"
   }
@@ -256,7 +256,7 @@ function FFdown(e) {
     var buffer = ""
 
     galleryset = [[], []];
-    var bookmarks = editor.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
+    var bookmarks = editor.innerHTML.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
     for (var i=0; i<bookmarks.length; i++){
       galleryset[0].push(bookmarks[i])
     }
@@ -269,7 +269,8 @@ function FFdown(e) {
     lazyload()
   } else if (e.target.getAttribute("id") == "gallerysave"){
     let expires = new Date(Date.now() + 365 * 864e5).toUTCString()
-    document.cookie = "gallerysave=" + encodeURIComponent(editor.innerHTML) + "; expires=" + expires + "; path=/; SameSite=Strict;";
+    var h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/")
+    document.cookie = "gallerysave=" + encodeURIComponent(h) + "; expires=" + expires + "; path=/; SameSite=Strict;";
     //no expiry would allow the cookie to be automatically deleted upon browser exit.
     gallerysave.classList = "prev"
     gallerysave.innerHTML = "Save completed"
@@ -478,7 +479,8 @@ function echo(B, b) {
 }
 
 function edit(){
-  n = 4085 - encodeURIComponent(editor.innerHTML).length;
+  var h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/")
+  n = 4085 - encodeURIComponent(h).length;
   gallerysave.innerHTML = "Save (" + n + " chars left)"
   if (0 > n){
     gallerysave.classList = "prev";
@@ -530,7 +532,7 @@ var FFover = function(e) {
     listener = (z) => {
       z.target.style.opacity = 1
       if (z.target.classList.contains("schande")) {
-        z.target.setAttribute("data-schande", t.getAttribute("data-src"))
+        z.target.setAttribute("data-schande", t.getAttribute("data-src").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/"))
       }
       z.target.removeEventListener("mouseover", listener);
       let left = () => {
@@ -605,7 +607,8 @@ window.onload = () => {
   editor.addEventListener("drop", function(e) {
     if(fileThumb){
       e.preventDefault();
-      echo(fileThumb.childNodes[0].getAttribute("src"))
+      echo(fileThumb.childNodes[0].getAttribute("src").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/"));
+      edit();
       fileThumb = null;
     }
   }, false);

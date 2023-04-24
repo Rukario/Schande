@@ -2490,6 +2490,13 @@ def linear(d, z, v):
             elif x[5]:
                 kill(0, x[5])
             else:
+                if v and dc and isinstance(dc, str):
+                    try:
+                        dj = json.loads(dc)
+                        if y[0] in dj:
+                            echo(f"{tcoloro} > {y[0]}{tcolorx} appears to be the first dict-in-dict key, please use {tcoloro} >> {y[0]}{tcolorx} instead.", 0, 1)
+                    except:
+                        pass
                 return
         if not dc:
             return
@@ -2566,8 +2573,6 @@ def tree(d, z, v=False):
             pos += 2
             continue
         z[pos] = ['' if x == "0" else x for x in z[pos].split(" > ")] if z[pos] else []
-        if not z[pos+1][0][0]:
-            echo(f"{tcoloro} Last key > 0 is view only. You must establish a next key for use in picker rules.{tcolorx}", 0, 1)
         pos += 2
     return branch(d, z, v)
 
@@ -4304,8 +4309,10 @@ function hideParts(tagName, className, filterNode) {
   }
 }
 
+var busytyping;
 function hidePattern(){
-  if (ignore.length == 1 || search.length == 1 || searchb.length == 1 || ignoreb.length == 1) return;
+  if (ignore.value.length == 1 || search.value.length == 1 || searchb.value.length == 1 || ignoreb.value.length == 1) return;
+  clearTimeout(busytyping);
 
   var ignored = ignore.value.toLowerCase().split(" ");
   var searched = search.value.toLowerCase().split(" ");
@@ -4334,7 +4341,7 @@ function hidePattern(){
     }
   }
 
-  hideParts('h2', 'postMessage', filterNode);
+  busytyping = setTimeout(function(){hideParts('h2', 'postMessage', filterNode)}, 250);
 }
 
 var isTouch, keywords, stdout;
@@ -4435,8 +4442,6 @@ def updatepart(partfile, relics, htmlpart, filelist, pattern):
     if "0" in htmlpart and not htmlpart["0"]["html"] and not htmlpart["0"]["files"]:
         del htmlpart["0"]
 
-    
-
     new_relics = htmlpart.copy()
     part_is = False
     if not os.path.exists(partfile):
@@ -4467,6 +4472,10 @@ def updatepart(partfile, relics, htmlpart, filelist, pattern):
                         new_relics[key].update({"stray_files": [file]})
                     else:
                         new_relics[key]["stray_files"] = [file]
+                # if not relics[key]["html"] == new_relics[key]["html"]:
+                #     stray_links = []
+                #     for z in ["href=\"*\"", "href='*'", "http*"]:
+                #         stray_links += carrots(relics[key]["html"], ["", peanutshell(z)])
                 part.update({key:new_relics[key]})
                 part_is = "updated"
             else:
@@ -4995,7 +5004,7 @@ def finish_sort():
     mover = {}
     for file in next(os.walk(batchname + "/"))[2]:
         for hash in sorter["md5"]:
-            if len(c := carrots([[file,""]], hash, [], False)) == 2 and not c[0][0] and not c[-1][0]:
+            if len(c := carrots([[file,""]], ['', peanutshell(hash)], any=False)) == 2 and not c[0][0] and not c[-1][0]:
                 ondisk = batchname + "/" + file
                 with open(ondisk, 'rb') as f:
                     s = f.read()
@@ -5095,20 +5104,22 @@ def view_in_page(data, z, a):
     if a:
         if x := tree(data, z, True):
             for y in x:
-                echo(syntax(str(y[0]), True), 0, 1)
+                echo(syntax(f"{y[0]}", True), 0, 1)
                 savepage[0]["part"] += [y[0]]
+            if not z[1][0][0]:
+                echo(f"{tcoloro} Last key > 0 is view only. You must establish a next key for use in picker rules.{tcolorx}", 0, 1)
         else:
-            echo(f"{tcoloro}Last few keys doesn't exist, try again.{tcolorx}", 0, 2)
+            echo(f"{tcoloro}Last few keys doesn't exist, try again.{tcolorx}", 0, 1)
     else:
-        if len(z.split("*")) > 1:
+        if len(z[1][0][0].split("*")) > 1:
             if len(c := carrots([[data, ""]], z)) > 1:
-                for x in c:
-                    echo(x[1], 0, 1)
+                for x in c[:-1]:
+                    echo(f"{tcolorz('ffffff')}{x[1]}{tcolorx}" if x[1] else f"{tcoloro}zero-width{tcolorx}", 0, 1)
                     savepage[0]["part"] += [x[1]]
             else:
-                echo(f"{tcolorr}Pattern doesn't exist, try again.{tcolorx}", 0, 2)
+                echo(f"{tcoloro}No match found in page, try again.{tcolorx}", 0, 1)
         else:
-            echo(f"{tcolorr}Cannot find in page with no asterisk.{tcolorx}", 0, 2)
+            echo(f"Please use asterisk {tcoloro}*{tcolorx} or right arrow key {tcoloro} > {tcolorx} (single-key use {tcoloro}api > ...{tcolorx}) to start finding in page.", 0, 1)
 
 def source_view():
     while True:

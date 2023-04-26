@@ -6,7 +6,8 @@
 <title>New Text.txt</title>
 <head><style>
 html,body {caret-color:#ff8228; font-family:courier; font-size:14px; white-space:pre-wrap; margin:0; padding:0;}
-[contenteditable]:focus {outline: none;}
+[contenteditable]:focus {outline:none;}
+#calc:focus {outline:none;}
 .editor {padding:12px; padding-top:52px; min-width:calc(100% - 24px); min-height:81vh; line-height:1.1;}
 a {color:#ff9449;}
 a:visited {color:#ffc66d;}
@@ -16,10 +17,14 @@ a:visited {color:#ffc66d;}
 input[type="text"] {padding:3px 11px; width:86px;} /*Firefox: padding:3px 11px 4px;*/
 input[type="file"] {display: none;}
 input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0;}
-.next {color:#6fe; background-color:#066;}
 ::placeholder {color:#3cb;}
-.prev {color:#6fe; background-color:#399;}
-.next, .prev {white-space:nowrap; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
+.previous, .reverse, .inverse, .next, .tangerine{white-space:nowrap; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
+.next{color:#6fe; background-color:#066;}
+.previous{color:#6fe; background-color:#399;}
+.reverse{background-color:#428; color:#d9f; border:1px solid #214;}
+.inverse{background-color:#d9f; color:#428; border:1px solid #214;}
+.tangerine{background-color:#c60; color:#fc3; border:1px solid #842;}
+.tangerine{user-select:all;}
 .picker {font-family:arial; font-size:11px; padding:4px 11px 3px; position:relative;} /*Firefox: font-size:12px; padding:5px 11px 4px;*/
 .aczo {font-family:courier; font-size:12px; border:none; border-top:1px solid #033; border-bottom:1px solid #033; margin:-4px 2px; bottom:4px; padding:8px 5px 9px; text-align:center; width:34px; display:inline-block;
   clip-path: polygon(
@@ -198,13 +203,15 @@ document.addEventListener("click", FFdown);
 
 var link = false;
 var cur = 0;
-function pos() {
+function FFup() {
   let sel = editor.ownerDocument.defaultView.getSelection();
   if(link){
     link.classList.remove("blink");
     cursor_tooltip.style.display = "none";
   }
   link = sel.anchorNode.parentNode;
+  let pos = sel.getRangeAt(0);
+  let ans = false;
   if(link.classList.contains("hyperlink")){
     link.classList.add("blink");
     where = link.getBoundingClientRect();
@@ -212,11 +219,21 @@ function pos() {
     cursor_tooltip.style.top = (window.scrollY + where.top + (where.top < 60?30:-30)) + "px";
     cursor_tooltip.innerHTML = "<a href='" + link.innerHTML + "' target='_blank' class='next' style='text-decoration:none; font-size:12px; font-family:sans-serif;'>Open</a>";
     cursor_tooltip.style.display = "inline-block";
+  } else if (sel.toString().length < 256){
+    try {
+      ans = new Function('return ' + sel.toString().replace(/(\r|\n)/g, ""))().toFixed(10)*1;
+    } catch {}
   }
-  sel = sel.getRangeAt(0)
-  let preCaretRange = sel.cloneRange();
+  let preCaretRange = pos.cloneRange();
+  if(ans){
+    where = preCaretRange.getBoundingClientRect()
+    cursor_tooltip.style.left = (window.scrollX + where.left) + "px";
+    cursor_tooltip.style.top = (window.scrollY + where.top + (where.top < 60?30:-30)) + "px";
+    cursor_tooltip.innerHTML = "<span class='tangerine'>" + ans + "</span>";
+    cursor_tooltip.style.display = "inline-block";
+  };
   preCaretRange.selectNodeContents(editor);
-  preCaretRange.setEnd(sel.endContainer, sel.endOffset);
+  preCaretRange.setEnd(pos.endContainer, pos.endOffset);
   cur = preCaretRange.toString().length;
   calc.placeholder = "Ln:" + editor.textContent.substr(0, cur).split("\n").length + " Pos:" + cur;
 }
@@ -401,8 +418,8 @@ function render(){
   let e = document.getElementById("editable").textContent;
   let a = document.getElementById("saver");
   var t = document.title.replace(" *", "");
-  var d = {"stderr1":false, "stderr2":false, "ask":a.classList.contains("prev"), "dir":"", "name":t, "body":""}
-  if (w.classList.contains("prev")){
+  var d = {"stderr1":false, "stderr2":false, "ask":a.classList.contains("previous"), "dir":"", "name":t, "body":""}
+  if (w.classList.contains("previous")){
     d["stderr1"] = "Cannot save while File 2 is active!";
     d["stderr2"] = "Please switch to File 1 before saving.";
   } else {
@@ -425,25 +442,25 @@ function render(){
 }
 
 function locatoon(e, a){
-  if (e.classList.contains("prev")){
-    e.classList.remove("prev");
+  if (e.classList.contains("previous")){
+    e.classList.remove("previous");
     e.innerHTML = e.getAttribute("data-html-original");
   } else {
-    e.classList.add("prev");
+    e.classList.add("previous");
     e.setAttribute("data-html-original", e.innerHTML);
     e.innerHTML = a;
   }
 }
 
 function relbar(e, a) {
-  if(e.classList.contains("prev")){
-    e.classList.remove("prev");
+  if(e.classList.contains("previous")){
+    e.classList.remove("previous");
     e.innerHTML = e.getAttribute("data-html-original");
     drag.style.top = "0px"
     window.onscroll = () => {};
     window.onresize = () => {};
   } else {
-    e.classList.add("prev");
+    e.classList.add("previous");
     e.setAttribute("data-html-original", e.innerHTML);
     e.innerHTML = a;
     position();
@@ -454,13 +471,13 @@ function relbar(e, a) {
 
 function diff(){
   let e = document.getElementById("pickerdiff")
-  if (e.classList.contains("prev")){
-    e.classList.remove("prev");
+  if (e.classList.contains("previous")){
+    e.classList.remove("previous");
     e.innerHTML = filel[2];
     editdiff.style.display = "none";
     editor.style.display = "inline-block";
   } else {
-    e.classList.add("prev");
+    e.classList.add("previous");
     e.innerHTML = filel[3];
     let d = editdiff.textContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").split("\n");
     let di = editor.textContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").split("\n");
@@ -535,7 +552,7 @@ function newtip(y, z){
 
 function toolbar(d){
   document.body.className = "exitmenu hljs";
-  document.body.innerHTML = `<div class="cursor_tooltip" id="cursor_tooltip"></div><div id="drag" style="margin:0px 12px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><div id="dimm" style="display:none;"><button class="prev" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
+  document.body.innerHTML = `<div class="cursor_tooltip" id="cursor_tooltip"></div><div id="drag" style="margin:0px 12px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><div id="dimm" style="display:none;"><button class="previous" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
     <option value="0">Remove...</option>
     <option value="1">Remove all duplicate lines</option>
     <option value="2">Remove all new lines</option>
@@ -560,10 +577,9 @@ function toolbar(d){
     tooltip.innerHTML = "The clipboard is updated with page source, paste to view!";
     editor.addEventListener("click", left);
   }
-  editor.addEventListener("mouseup", pos);
+  editor.addEventListener("mouseup", FFup);
   editdiff = document.getElementById("editable2");
   editor.setAttribute("oninput", "edit();");
-  editor.setAttribute("onselect", "selected();");
   if(!editor.isContentEditable){
     if(!d){
       tooltip.style.display = "inline-block";

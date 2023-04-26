@@ -245,7 +245,7 @@ function FFup() {
     cursor_tooltip.style.display = "none";
   }
   let preCaretRange = pos.cloneRange();
-  if(ans){
+  if(ans !== false){
     where = preCaretRange.getBoundingClientRect()
     cursor_tooltip.style.left = (window.scrollX + where.left) + "px";
     cursor_tooltip.style.top = (window.scrollY + where.top + 36) + "px";

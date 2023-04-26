@@ -203,6 +203,8 @@ document.addEventListener("click", FFdown);
 
 var link = false;
 var cur = 0;
+var downmove = false;
+var busymoving, busypicker, busytyping;
 function FFup() {
   let sel = editor.ownerDocument.defaultView.getSelection();
   if(link){
@@ -578,6 +580,14 @@ function toolbar(d){
     editor.addEventListener("click", left);
   }
   editor.addEventListener("mouseup", FFup);
+  editor.onmousedown = () => {downmove = true};
+  editor.onmouseup = () => {downmove = false};
+  editor.onmousemove = () => {
+    if (downmove == true){
+      clearTimeout(busymoving)
+      busymoving = setTimeout(FFup, 100)
+    }
+  };
   editdiff = document.getElementById("editable2");
   editor.setAttribute("oninput", "edit();");
   if(!editor.isContentEditable){
@@ -606,14 +616,14 @@ function toolbar(d){
     s.innerHTML = getfontcolor(["00", "00", "00"], "000000")
     document.getElementsByTagName("head")[0].appendChild(s)
   });
-  var timeoutID;
+  var busypicker;
   colorpicker.addEventListener('change', (event) => {
-    clearTimeout(timeoutID);
+    clearTimeout(busypicker);
     var s = document.createElement("style");
     calc.placeholder = event.target.value;
     var a = document.createElement("a");
     a.href = event.target.value;
-    timeoutID = setTimeout(() => {a.click()}, 3000)
+    busypicker = setTimeout(() => {a.click()}, 3000)
     var v = event.target.value.replace(/#/, "")
     s.innerHTML = getfontcolor(v.match(/.{1,2}/g), v)
     document.getElementsByTagName("head")[0].appendChild(s)

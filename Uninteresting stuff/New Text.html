@@ -24,7 +24,6 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 .reverse{background-color:#428; color:#d9f; border:1px solid #214;}
 .inverse{background-color:#d9f; color:#428; border:1px solid #214;}
 .tangerine{background-color:#c60; color:#fc3; border:1px solid #842;}
-.tangerine{user-select:all;}
 .picker {font-family:arial; font-size:11px; padding:4px 11px 3px; position:relative;} /*Firefox: font-size:12px; padding:5px 11px 4px;*/
 .aczo {font-family:courier; font-size:12px; border:none; border-top:1px solid #033; border-bottom:1px solid #033; margin:-4px 2px; bottom:4px; padding:8px 5px 9px; text-align:center; width:34px; display:inline-block;
   clip-path: polygon(
@@ -39,7 +38,7 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 }
 .aczo28 {bottom:5px; padding:10px 7px 11px; width:44px;}
 .bloom {border-radius: 12px; padding:0 12px; margin:0 -12px; background-color:#ffffff; box-shadow: 0 0 60px 30px rgba(255, 255, 255, 0.6), 0 0 100px 60px rgba(255, 0, 255, 0.4), 0 0 400px 200px rgba(255, 255, 255, 0.2);}
-.cursor_tooltip{z-index:2; position:absolute; left:0px; top:0px; right:initial; display:none;}
+.cursor_tooltip{z-index:2; position:absolute; left:0px; top:0px; right:initial; display:none; transition: left .5s linear; pointer-events:none;}
 .backtip {display:none; position:relative; line-height:1.1; font-size:11px;}
 .backtip::before {content:''; position:absolute; left:0; top:0; z-index:1; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none;}
 .local_tooltip {z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
@@ -205,14 +204,17 @@ var link = false;
 var cur = 0;
 var downmove = false;
 var busymoving, busypicker, busytyping;
+var updatesel = false;
+var updatelen = 0;
 function FFup() {
   let sel = editor.ownerDocument.defaultView.getSelection();
-  if(link){
+  let len = sel.toString().length;
+  let pos = sel.getRangeAt(0);
+  if(link && link.classList.contains("hyperlink")){
     link.classList.remove("blink");
     cursor_tooltip.style.display = "none";
   }
   link = sel.anchorNode.parentNode;
-  let pos = sel.getRangeAt(0);
   let ans = false;
   if(link.classList.contains("hyperlink")){
     link.classList.add("blink");
@@ -221,17 +223,33 @@ function FFup() {
     cursor_tooltip.style.top = (window.scrollY + where.top + (where.top < 60?30:-30)) + "px";
     cursor_tooltip.innerHTML = "<a href='" + link.innerHTML + "' target='_blank' class='next' style='text-decoration:none; font-size:12px; font-family:sans-serif;'>Open</a>";
     cursor_tooltip.style.display = "inline-block";
-  } else if (sel.toString().length < 256){
+  } else if (len > 0 && len < 256){
+    if (!updatesel){
+      updatesel = window.setInterval(function () {
+        let sel = editor.ownerDocument.defaultView.getSelection();
+        let len = sel.toString().length;
+        if (len !== updatelen){
+          updatelen = len;
+          FFup()
+        }
+      }, 500);
+    }
     try {
       ans = new Function('return ' + sel.toString().replace(/(\r|\n)/g, ""))().toFixed(10)*1;
-    } catch {}
+    } catch {
+      cursor_tooltip.style.display = "none"
+    }
+  } else {
+    window.clearInterval(updatesel);
+    updatesel = false;
+    cursor_tooltip.style.display = "none";
   }
   let preCaretRange = pos.cloneRange();
   if(ans){
     where = preCaretRange.getBoundingClientRect()
     cursor_tooltip.style.left = (window.scrollX + where.left) + "px";
-    cursor_tooltip.style.top = (window.scrollY + where.top + (where.top < 60?30:-30)) + "px";
-    cursor_tooltip.innerHTML = "<span class='tangerine'>" + ans + "</span>";
+    cursor_tooltip.style.top = (window.scrollY + where.top + 36) + "px";
+    cursor_tooltip.innerHTML = "<span class='tangerine' style='font-size:14px;'>" + ans + "</span>";
     cursor_tooltip.style.display = "inline-block";
   };
   preCaretRange.selectNodeContents(editor);
@@ -583,7 +601,7 @@ function toolbar(d){
   editor.onmousedown = () => {downmove = true};
   editor.onmouseup = () => {downmove = false};
   editor.onmousemove = () => {
-    if (downmove == true){
+    if(downmove == true){
       clearTimeout(busymoving)
       busymoving = setTimeout(FFup, 100)
     }

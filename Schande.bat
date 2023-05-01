@@ -4481,9 +4481,10 @@ def updatepart(partfile, relics, htmlpart, filelist, pattern):
             else:
                 part.update({key:relics[key]})
         for stray_key in stray_keys:
-            part.update({stray_key:relics[stray_key]})
-            for file in relics[stray_key]["files"]:
-                filelist += [[0, file, 0, stray_key]]
+            if not stray_key in part:
+                part.update({stray_key:relics[stray_key]})
+                for file in relics[stray_key]["files"]:
+                    filelist += [[0, file, 0, stray_key]]
     if part_is:
         with open(partfile, 'w') as f:
             f.write(json.dumps(part))
@@ -4538,7 +4539,10 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
 
     stray_files = sorted(set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
     for file in stray_files:
-        if "stray_files" in part["0"]:
+        if not "0" in part:
+            part.update(new_p("0"))
+            part["0"].update({"visible": True, "stray_files": [file]})
+        elif "stray_files" in part["0"]:
             part["0"]["stray_files"] += [file]
         else:
             part["0"]["stray_files"] = [file]
@@ -5385,6 +5389,10 @@ def torrent_get(fp=""):
         if not os.path.exists("/usr/bin/transmission-daemon") or not os.path.exists("/usr/bin/transmission-remote"):
             os.system("apk add transmission-daemon")
             os.system("apk add transmission-cli")
+            # os.system("apk del transmission-daemon")
+            # os.system("apk del transmission-cli")
+            # os.system("apk add transmission-daemon --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community")
+            # os.system("apk add transmission-cli --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community")
         daemon = "transmission-daemon"
         remote = "transmission-remote"
         if not task["httpserver"]:

@@ -1,29 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8">
 <meta name="format-detection" content="telephone=no">
+<meta name="viewport" content="user-scalable=0">
 <title>Color Gallery</title>
 <style>
-html,body{caret-color:#fbf; background-color:#10100c; color:#088; font-family:courier; font-size:14px; -webkit-user-select:none;}
+html,body {caret-color:#ffbbff; font-family:courier; font-size:14px; -webkit-user-select:none;}
 ::selection {background:rgba(255, 192, 255, 0.25);}
-[contenteditable]:focus {outline: none;}
-a{color:#cb7; text-decoration:none;}
-a:visited{color:#efdfa8;}
+[contenteditable]:focus, input:focus {outline:none;}
+.editor {padding:8px 12px; min-width:596px; min-height:12px; line-height:1.1; white-space:pre-wrap;}
+a {color:#ccbb77;}
+a:visited {color:#efdfa8;}
 img {vertical-align:top;}
 h3 {margin:4px;}
 .colorset{color:#bfddc6; cursor:pointer;}
 .colorsel{opacity:75%}
+.hyperlink{color:#bfddc6; text-decoration:underline;}
 .blink{animation: bl 1000ms steps(1, end) infinite;}
 @keyframes bl{0%{opacity:75%;} 50%{opacity:100%;}}
-.cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:48px; cursor:pointer; -webkit-user-select:none; line-height:1.1;}
+input[type="text"] {padding:3px 11px; width:86px;} /*Firefox: padding:3px 11px 4px;*/
+input[type="file"] {display: none;}
+input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0;}
+::placeholder {color:#3cb;}
+
+.cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:48px; cursor:pointer; line-height:1.1;}
+.previous, .reverse, .inverse, .next, .tangerine {white-space:nowrap; font-family:sans-serif; font-size:90%; position:relative; display:inline-block; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
 .next {color:#6fe; background-color:#066;}
-.prev {color:#6fe; background-color:#399;}
-.next, .prev {font-family:sans-serif; font-size:90%; position:relative; display:inline-block; white-space:nowrap; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
-.dark{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
+.previous {color:#6fe; background-color:#399;}
+.reverse {background-color:#428; color:#d9f; border:1px solid #214;}
+.inverse {background-color:#d9f; color:#428; border:1px solid #214;}
+.tangerine {background-color:#c60; color:#fc3; border:1px solid #842;}
+
+.dark {background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
 .close_button {position:absolute; top:15px; right:15px; cursor:pointer;}
-.cursor_tooltip {padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:1; left:0px; top:0px; right:initial; pointer-events:none;}
-.frame{display:inline-block; vertical-align:top; position:relative;}
+.cursor_tooltip {padding:0px 8px; font-family:sans-serif; font-size:90%; position:absolute; z-index:2; left:0px; top:0px; right:initial; display:none; pointer-events:none;}
+.frame {display:inline-block; vertical-align:top; position:relative;}
 .dot {height:10px; width:10px; background-color:#333; border-radius:6px; display:inline-block;}
 .stdout {white-space:pre-wrap; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
 .schande{opacity:0.5; position:absolute; top:158px; text-align:center; line-height:34px; height:34px; cursor:pointer; min-width:40px; border:2px solid transparent; background-clip: padding-box; box-shadow:inset 0 0 0 2px #c44; padding:2px; background-color:#602; color:#f45;}
@@ -39,6 +51,8 @@ h3 {margin:4px;}
     transform:rotate(360deg);
   }
 }
+.menu {background-color:#110c13; color:#9b859d;}
+.exitmenu {background-color:#10100c; color:#088;}
 </style>
 <script>
 var fc = {"black":"#000000", "machine":"#202229", "anubis":"#292220", "mold":"#222922", "concrete":"#666666", "smoke":"#999999", "cream":"#dcd6cc", "white":"#ffffff", "galaxy":"#111114", "wine":"#500040", "purple":"#992282", "magenta":"#ff33e2", "cherry blossom":"#ffc9e8", "maroon":"#820045", "rose":"#d60159", "orchid":"#ff6c9b", "garnet":"#770017", "cherry":"#d9002b", "cerise":"#ff464e", "rouge":"#ffb9c0", "crimson":"#771700", "red":"#c7291b", "scarlet":"#f35548", "magic":"#eff6ff", "chestnut":"#bd3f20", "coral":"#f1876a", "jovial":"#f7c3b3", "rosewood":"#9f400f", "copper":"#e86423", "peach":"#ffc397", "chocolate":"#61300b", "bronze":"#c26718", "orange":"#ff8a00", "honey":"#ffbe6a", "gold":"#ffc11d", "brass":"#ffd76b", "beeswax":"#c4af22", "lemon":"#ffe900", "beige":"#fff8a8", "olive":"#707916", "fern":"#b4cd20", "tennis ball":"#e5ff00", "pistachio":"#e5ff9f", "forest":"#234d00", "green":"#64c900", "lime":"#adff69", "xanadu":"#c2ffaf", "teal":"#009677", "robin egg":"#2deacf", "mist":"#a3ffe1", "azure":"#1898cf", "sky blue":"#5ed5ff", "arctic":"#caf6ff", "indigo":"#30228c", "blueberry":"#6666ff", "glaucous":"#aac6ff", "grape":"#4b0078", "violet":"#8904d1", "psychic":"#bb6eff", "lavender":"#e0caff"}
@@ -122,20 +136,30 @@ function makedots(cs, pos){
     var r1 = cs[pos];
     var r2 = cs[pos+1];
     var r3 = cs[pos+2];
+    var bc = "rgba(0, 0, 0, 0.5)";
+    var bt = r2;
     var tr = "";
-    if (r2 == 2){
+    var st = "";
+    if (r2%4 == 2){
       tr = "jam-like "
-    } else if (r2 == 3){
+    } else if (r2%4 == 3){
       tr = "translucent "
     }
-    var bc = "rgba(0, 0, 0, 0.5)"
-    var bt = r2
+    if (r2 > 7){
+      tr += "metallic "
+      st = "✨";
+      bt -= 8
+    } else if (r2 > 3){
+      tr += "pearlescent "
+      st = "💫";
+      bt -= 4
+    }
     if(r1 == "black" || r1 == "galaxy"){
       bc = "#556"
       bt += 1
     }
     if (r3 == 2){
-      if (creative.classList == "prev"){
+      if (creative.classList == "previous"){
         pos += 3
         continue;
       }
@@ -143,7 +167,7 @@ function makedots(cs, pos){
     } else {
       gradient.push([[fc[r1], fc[r1]]])
     }
-    colortip += "<div style='display:inline-block; padding:0px 3px; cursor:pointer;' data-color='" + r1 + "' data-tooltip='" + tr + r1 + "'><div class='dot' style='pointer-events:none; height:" + (12-2*bt) + "px; width:" + (12-2*bt) + "px; border:" + bt + "px solid " + bc + "; background: transparent;'></div></div>";
+    colortip += "<div style='display:inline-block; padding:0px 3px; cursor:pointer;' data-color='" + r1 + "' data-tooltip='" + tr + r1 + "'><div class='dot' style='pointer-events:none; height:" + (12-2*bt) + "px; width:" + (12-2*bt) + "px; border:" + bt + "px solid " + bc + "; background: transparent; color:rgba(255, 255, 255, 0.5); font-size:15px; filter: grayscale(100%);'>" + st + "</div></div>";
     pos += 3
   }
   for(var i=0; i<gradient.length; i++){
@@ -239,13 +263,13 @@ function FFdown(e) {
 
   if (e.target.getAttribute("id") == "translucents"){
     if (translucents.classList == "next") {
-      translucents.classList = "prev";
+      translucents.classList = "previous";
     } else {
       translucents.classList = "next";
     }
   } else if (e.target.getAttribute("id") == "creative"){
     if (creative.classList == "next") {
-      creative.classList = "prev";
+      creative.classList = "previous";
     } else {
       creative.classList = "next";
     }
@@ -272,7 +296,7 @@ function FFdown(e) {
     var h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/")
     document.cookie = "gallerysave=" + encodeURIComponent(h) + "; expires=" + expires + "; path=/; SameSite=Strict;";
     //no expiry would allow the cookie to be automatically deleted upon browser exit.
-    gallerysave.classList = "prev"
+    gallerysave.classList = "previous"
     gallerysave.innerHTML = "Save completed"
   } else if (e.target.getAttribute("id") == "cs"){
     makegallery(cs.getAttribute("data-colorset"));
@@ -438,14 +462,14 @@ function FFdown(e) {
       var pos = 0
       while (pos < k.length){
         if (k[pos] == t){
-          if (translucents.classList == "prev"){
+          if (translucents.classList == "previous"){
             if (k[pos+1] > 1){
               featured = true;
             }
           } else {
             featured = true;
           }
-          if (featured && creative.classList == "prev"){
+          if (featured && creative.classList == "previous"){
             if (k[pos+2] > 0){
               featured = false;
             }
@@ -466,10 +490,68 @@ function FFdown(e) {
   }
 }
 
+var link = false;
+var cur = 0;
+var downmove = false;
+var busymoving, busypicker, busytyping;
+var updatesel = false;
+var updatelen = 0;
+function FFup() {
+  let sel = editor.ownerDocument.defaultView.getSelection();
+  let len = sel.toString().length;
+  let pos = sel.getRangeAt(0);
+  if(link && link.classList.contains("hyperlink")){
+    link.classList.remove("blink");
+    cursor_tooltip.style.display = "none";
+  }
+  link = sel.anchorNode.parentNode;
+  let ans = false;
+  if(link.classList.contains("hyperlink")){
+    link.classList.add("blink");
+    where = link.getBoundingClientRect();
+    cursor_tooltip.style.left = (window.scrollX + where.left + 6) + "px";
+    cursor_tooltip.style.top = (window.scrollY + where.top + (where.top < 60?30:-30)) + "px";
+    cursor_tooltip.innerHTML = "<a href='" + link.innerHTML + "' target='_blank' class='next' style='text-decoration:none; font-size:12px; font-family:sans-serif;'>Open</a>";
+    cursor_tooltip.style.display = "inline-block";
+  } else if (len > 0 && len < 256){
+    if (!updatesel){
+      updatesel = window.setInterval(function () {
+        let sel = editor.ownerDocument.defaultView.getSelection();
+        let len = sel.toString().length;
+        if (len !== updatelen){
+          updatelen = len;
+          FFup()
+        }
+      }, 500);
+    }
+    try {
+      ans = new Function('return ' + sel.toString().replace(/(\r|\n)/g, ""))().toFixed(10)*1;
+    } catch {
+      cursor_tooltip.style.display = "none"
+    }
+  } else {
+    window.clearInterval(updatesel);
+    updatesel = false;
+    cursor_tooltip.style.display = "none";
+  }
+  let preCaretRange = pos.cloneRange();
+  if(ans !== false){
+    where = preCaretRange.getBoundingClientRect()
+    cursor_tooltip.style.left = (window.scrollX + where.left) + "px";
+    cursor_tooltip.style.top = (window.scrollY + where.top + 36) + "px";
+    cursor_tooltip.innerHTML = "<span class='tangerine' style='font-size:14px;'>" + ans + "</span>";
+    cursor_tooltip.style.display = "inline-block";
+  };
+  preCaretRange.selectNodeContents(editor);
+  preCaretRange.setEnd(pos.endContainer, pos.endOffset);
+  cur = preCaretRange.toString().length;
+  calc.placeholder = "Ln:" + editor.textContent.substr(0, cur).split("\n").length + " Pos:" + cur;
+}
+
 function plaintext(elem, e) {
   e.preventDefault();
-  var text = e.clipboardData.getData('text/plain');
-  window.document.execCommand('insertText', false, text);
+  var text = e.clipboardData.getData('text/plain').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  document.execCommand('insertHTML', false, text);
 }
 
 function echo(B, b) {
@@ -483,7 +565,7 @@ function edit(){
   n = 4085 - encodeURIComponent(h).length;
   gallerysave.innerHTML = "Save (" + n + " chars left)"
   if (0 > n){
-    gallerysave.classList = "prev";
+    gallerysave.classList = "previous";
   } else {
     gallerysave.classList = "next";
   }
@@ -570,6 +652,26 @@ var link, isTouch, gallerylist, colorsels;
 var rainbow = [];
 var rainbowfade = false;
 window.onload = () => {
+  document.body.innerHTML = `<div class="cursor_tooltip" id="cursor_tooltip" style="transition: left .5s linear;"></div>
+<div class="dark close_button cursor_tooltip" id="tooltip"></div>
+
+<div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div></div>
+
+<div class="next" id="translucents" data-tooltip="Fetch color sets using jam-like or translucent of selected color">Translucents</div><div class="next" id="creative" data-tooltip="Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway and bottom colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights">Creative mode</div><div class="next" id="exotic" style="cursor:pointer;" data-tooltip="View all color sets using fades and/or 4+ color marbles i.e. can't be altered">Exotic sets</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><div style="display:inline-block;" id="pukefest"></div><button class="dark" id="fadeends" style="display:none;" onclick="rainbowfade=false;fadeends.style.display='none'" data-tooltip="Fade ends">ꍯ</button><div class="dark local_tooltip" id="local_tooltip"></div>
+<div></div>
+
+<div style="display:inline-block; position:relative; vertical-align:top; display:flex;">
+<div id="colortable" style="vertical-align:top; display:inline-block; position:relative; color:#000; min-width:316px; max-width:316px;"></div>
+<div id="colorlist" style="display:inline-block; vertical-align:top; white-space:pre;"></div>
+<div style="vertical-align:top;">
+
+<div class="stdout" id="stdout" style="padding:0;"><div style="padding:4px 4px 0px 4px;">🦦 -(Bookmarked pictures) <div class="next" id="replace" style="cursor:pointer;">Replace gallery</div><div class="previous" id="gallerysave" style="cursor:pointer;" data-tooltip="Save text field as cookie for next page visit">Save</div><input id="calc" class="next" style="width:100px;" type="text" placeholder="Calculator"></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false><br></div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
+<div></div>
+<div id="gallery" style="display:inline-block;"></div>
+<div></div>
+<div class="next" id="more" style="display:none; border:16px solid transparent; border-bottom:64px solid transparent; background-clip: padding-box;"></div>
+</div>
+</div>`
   loadcolors("colorsets.json")
   loadcolors("pictures.json")
   for(var i=0; i < cn.length; i++){
@@ -589,10 +691,23 @@ window.onload = () => {
   document.addEventListener("mouseover", FFover);
   //document.addEventListener("touchstart", FFdown);
   document.addEventListener("mousedown", FFdown);
-
+  editor = document.getElementById("editable");
+  editdiff = document.getElementById("editable2");
+  editor.addEventListener("mouseup", FFup);
+  editor.onmousedown = () => {downmove = true};
+  editor.onmouseup = () => {downmove = false};
+  editor.onmousemove = () => {
+    if(downmove == true){
+      clearTimeout(busymoving)
+      busymoving = setTimeout(FFup, 100)
+    }
+  };
+  editor.setAttribute("oninput", "edit()");
   if(!editor.isContentEditable){
     editor.setAttribute("onpaste", "plaintext(this, event)");
     editor.setAttribute("contenteditable", "true");
+    editdiff.setAttribute("onpaste", "plaintext(this, event)");
+    editdiff.setAttribute("contenteditable", "true");
   }
 
   if('ontouchstart' in window){isTouch = true;};
@@ -625,28 +740,37 @@ window.onload = () => {
       editor.innerHTML = decodeURIComponent(c.substring("gallerysave=".length, c.length));
     }
   }
-  editor.setAttribute("oninput", "edit()")
+  calc.addEventListener("keyup", function(e) {
+    let c = calc.value;
+    if (!c){
+      calc.style.backgroundColor = "#066"
+    } else if (e.keyCode === 13) {
+      try {
+        calc.value = new Function('return ' + c)().toFixed(10)*1;
+      } catch {
+        if(c.startsWith("u")){
+          calc.value = deuni("\\" + c)
+        }
+      }
+    } else {
+      try {
+        new Function('return ' + c)();
+        calc.style.backgroundColor = "#066";
+      } catch {
+        if(c.startsWith("u") && (!c.slice(1) || Number('0x'+c.slice(1)))){
+          if (c.length == 5){
+            calc.style.backgroundColor = "#066";
+          } else if (c.length > 5){
+            calc.style.backgroundColor = "#399";
+          } else if (c.length < 5){
+            calc.style.backgroundColor = "#033";
+          }
+        } else {
+          calc.style.backgroundColor = "#399";
+        }
+      }
+    }
+  });
 }
-</script>
-</head>
-<body>
-<div class="dark close_button cursor_tooltip" id="tooltip" style="padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:2; left:0px; top:0px; right:initial; pointer-events:none;"></div>
-
-<div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div></div>
-
-<div class="next" id="translucents" data-tooltip="Fetch color sets using jam-like or translucent of selected color">Translucents</div><div class="next" id="creative" data-tooltip="Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway and bottom colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights">Creative mode</div><div class="next" id="exotic" style="cursor:pointer;" data-tooltip="View all color sets using fades and/or 4+ color marbles i.e. can't be altered">Exotic</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><div style="display:inline-block;" id="pukefest"></div><button class="dark" id="fadeends" style="display:none;" onclick="rainbowfade=false;fadeends.style.display='none'" data-tooltip="Fade ends">ꍯ</button><div class="dark local_tooltip" id="local_tooltip"></div>
-<div></div>
-
-<div style="display:inline-block; position:relative; vertical-align:top; display:flex;">
-<div id="colortable" style="vertical-align:top; display:inline-block; position:relative; color:#000; min-width:316px; max-width:316px;"></div>
-<div id="colorlist" style="display:inline-block; vertical-align:top; white-space:pre;"></div>
-<div style="display:inline-block; vertical-align:top;">
-<div class="stdout" id="stdout" style="white-space:pre; padding:0;"><div style="padding:4px 4px 0px 4px;">🦦 -(Bookmarked pictures) <div class="next" id="replace" style="cursor:pointer;">Replace gallery</div><div class="prev" id="gallerysave" style="cursor:pointer;" data-tooltip="Save text field as cookie for next page visit">Save</div></div><div id="editor" style="padding:8px 12px; position:relative; display:inline-block; min-width:596px; min-height:12px; line-height:1.1; box-sizing: border-box;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
-<div></div>
-<div id="gallery" style="display:inline-block;"></div>
-<div></div>
-<div class="next" id="more" style="display:none; border:16px solid transparent; border-bottom:64px solid transparent; background-clip: padding-box;"></div>
-</div>
-</div>
-</body>
-</html>
+</script></head><body class="exitmenu">1. Set up and run Schande.bat for its HTTP server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a>
+2. Take me to Schande.bat, then launch <a href="http://127.0.0.1:8886/Color Gallery.html">http://127.0.0.1:8886/Color Gallery.html</a></body></html>

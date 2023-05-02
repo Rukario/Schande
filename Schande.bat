@@ -4465,13 +4465,10 @@ def updatepart(partfile, relics, htmlpart, filelist, pattern):
                 else:
                     break
             if not relics[key]["html"] == new_relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
-                stray_files = relics[key]["files"]
-                stray_files += relics[key]["stray_files"] if "stray_files" in relics[key] else []
-                for file in stray_files:
-                    if not "stray_files" in new_relics[key]:
-                        new_relics[key].update({"stray_files": [file]})
-                    else:
-                        new_relics[key]["stray_files"] = [file]
+                new_stray_files = list(set(relics[key]["files"]).difference(new_relics[key]["files"]))
+                new_stray_files += relics[key]["stray_files"] if "stray_files" in relics[key] else []
+                if new_stray_files:
+                    new_relics[key].update({"stray_files": new_stray_files})
                 # if not relics[key]["html"] == new_relics[key]["html"]:
                 #     stray_links = []
                 #     for z in ["href=\"*\"", "href='*'", "http*"]:
@@ -4537,19 +4534,17 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
         task["geistauge"].join()
         echo(" GEISTAUGE: 100%", 0, 1)
 
-    stray_files = sorted(set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
-    for file in stray_files:
+    unsorted_stray_files = sorted(set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
+    if unsorted_stray_files:
         if not "0" in part:
             part.update(new_p("0"))
-            part["0"].update({"visible": True, "stray_files": [file]})
-        elif "stray_files" in part["0"]:
-            part["0"]["stray_files"] += [file]
+            part["0"].update({"visible": True, "stray_files": unsorted_stray_files})
         else:
-            part["0"]["stray_files"] = [file]
+            part["0"].update({"stray_files": unsorted_stray_files})
 
     tohtml(subdir, htmlname, part, pattern)
 
-    for file in stray_files:
+    for file in unsorted_stray_files:
         if not file.endswith(tuple(notstray)) and isrej(file, pattern):
             ondisk = f"{subdir}{file}".replace("/", "\\")
             echo(f"Blacklisted file saved on disk: {ondisk}", 0, 1)

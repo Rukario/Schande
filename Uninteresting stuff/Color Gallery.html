@@ -640,7 +640,7 @@ var FFover = function(e) {
     listener = (z) => {
       z.target.style.opacity = 1
       if (z.target.classList.contains("schande")) {
-        z.target.setAttribute("data-schande", t.getAttribute("data-src").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/"))
+        z.target.setAttribute("data-schande", (t.getAttribute("data-src")?t.getAttribute("data-src"):t.getAttribute("src")).replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/"))
       }
       z.target.removeEventListener("mouseover", listener);
       let left = () => {

@@ -9,7 +9,7 @@
 html,body {caret-color:#ffbbff; font-family:courier; font-size:14px; -webkit-user-select:none;}
 ::selection {background:rgba(255, 192, 255, 0.25);}
 [contenteditable]:focus, input:focus {outline:none;}
-.editor {padding:8px 12px; min-width:596px; min-height:12px; line-height:1.1; white-space:pre-wrap;}
+.editor {padding:8px 12px; min-width:606px; min-height:12px; line-height:1.1; white-space:pre-wrap;}
 a {color:#ccbb77;}
 a:visited {color:#efdfa8;}
 img {vertical-align:top;}
@@ -280,7 +280,8 @@ function FFdown(e) {
     var buffer = ""
 
     galleryset = [[], []];
-    var bookmarks = editor.innerHTML.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
+    var lines = editor.innerHTML.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n");
+    var bookmarks = lines.filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
     for (var i=0; i<bookmarks.length; i++){
       galleryset[0].push(bookmarks[i])
     }
@@ -288,9 +289,34 @@ function FFdown(e) {
     for (var o=0; o<galleryset[0].length; o++){
       buffer += "<div class='frame'><a class='fileThumb' href='" + galleryset[0][o] + "'><img class='lazy' data-src='" + galleryset[0][o] + "'></a></div>"
     }
-
+    rainbow = []
+    for (var i=0;i<lines.length;i++){
+      if (lines[i] in colorsets){
+        let cs = colorsets[lines[i]]
+        rainbowfade = false;
+        for(var o=0;o<cs.length;o+=3){
+          rainbow.push(cs[o], 0, rainbowfade?2:0)
+          rainbowfade = true;
+          if(rainbow.length>40*3){
+            rainbow = rainbow.slice(3);
+            rainbow[2] = 0;
+          }
+        }
+        rainbowfade = false;
+      } else if (lines[i] in fc){
+        rainbow.push(lines[i], 0, rainbowfade?2:0)
+        rainbowfade = true;
+        if(rainbow.length>40*3){
+          rainbow = rainbow.slice(3);
+          rainbow[2] = 0;
+        }
+      } else {
+        rainbowfade = false;
+      }
+    }
+    pukefest.innerHTML = makedots(rainbow, 0)
     gallery.innerHTML = buffer;
-    lazyload()
+    lazyload();
   } else if (e.target.getAttribute("id") == "gallerysave"){
     let expires = new Date(Date.now() + 365 * 864e5).toUTCString()
     var h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/")
@@ -448,7 +474,7 @@ function FFdown(e) {
     rainbow.push(t, 0, rainbowfade?2:0)
     fadeends.style.display = "initial"
     rainbowfade = true;
-    if(rainbow.length>90){
+    if(rainbow.length>40*3){
       rainbow = rainbow.slice(3);
       rainbow[2] = 0;
     }

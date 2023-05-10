@@ -93,9 +93,8 @@ if sys.platform == "darwin":
     tcolorx = ansi_color()
 else:
     tcolorx = ansi_color("005A80", "6")
+    # tcolorx = ansi_color("2A211C", "BDAE9D")
     os.system("")
-if sys.platform == "linux":
-    dlslot[0] = 1
 title(batchfile)
 
 

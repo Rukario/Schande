@@ -175,7 +175,7 @@ function getfontcolor(c){
 }
 var sharp = [false, false];
 if(window.location.href.includes("#")){
-  sharp[0] = "#" + window.location.href.split('#')[1]
+  sharp[0] = window.location.href.split('#')[1]
 }
 if (sharp[0]){
   if(sharp[0].endsWith(".css")){
@@ -188,7 +188,7 @@ if (sharp[0]){
     }
   } else {
     var s = document.createElement("style")
-    s.innerHTML = getfontcolor(sharp[0]);
+    s.innerHTML = getfontcolor("#" + sharp[0]);
     document.getElementsByTagName("head")[0].appendChild(s)
   }
 } else {

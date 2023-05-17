@@ -25,12 +25,13 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 ::placeholder {color:#3cb;}
 
 .cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:48px; cursor:pointer; line-height:1.1;}
-.previous, .reverse, .inverse, .next, .tangerine {white-space:nowrap; font-family:sans-serif; font-size:90%; position:relative; display:inline-block; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
+.previous, .reverse, .inverse, .next, .tangerine, .brown {white-space:nowrap; font-family:sans-serif; font-size:90%; position:relative; display:inline-block; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
 .next {color:#6fe; background-color:#066;}
 .previous {color:#6fe; background-color:#399;}
 .reverse {background-color:#428; color:#d9f; border:1px solid #214;}
 .inverse {background-color:#d9f; color:#428; border:1px solid #214;}
 .tangerine {background-color:#c60; color:#fc3; border:1px solid #842;}
+.brown {background-color:#620; color:#620; border:1px solid #842;}
 
 .dark {background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
 .close_button {position:absolute; top:15px; right:15px; cursor:pointer;}
@@ -159,7 +160,7 @@ function makedots(cs, pos){
       bt += 1
     }
     if (r3 == 2){
-      if (creative.classList == "previous"){
+      if (creative && creative.classList == "previous"){
         pos += 3
         continue;
       }
@@ -179,7 +180,7 @@ function makedots(cs, pos){
     fcc += ", " + gradient[i][gradient[i].length-1]
     gradientbg += "<div style='display:inline-block; padding:0px 3px;'><div class='dot' style='pointer-events:none; height: 12px; width:" + (12 + long) + "px; border: none; background: linear-gradient(to right" + fcc + ")';></div></div>";
   }
-  return "<div style='display:inline-block;'><div style='position:absolute;'>" + colortip + "</div>" + gradientbg + "</div><br>"
+  return "<div style='display:inline-block;'><div style='position:absolute;'>" + colortip + "</div>" + gradientbg + "</div>"
 }
 
 function galleryset2(){
@@ -216,7 +217,7 @@ function makegallery(colorset){
         featured = true;
       }
       colortip += "&gt; <span class='colorset'>" + cs[0] + "</span>";
-      colortip += makedots(cs, 1)
+      colortip += makedots(cs, 1) + "<br>"
     }
     if(featured){
       buffer += "<div class='frame'><a class='fileThumb' href='" + k + "'><img class='lazy' data-src='" + k + "'></a><div style='display:inline-block; vertical-align:top;'>" + colortip + "</div></div>"
@@ -297,7 +298,7 @@ function FFdown(e) {
         for(var o=0;o<cs.length;o+=3){
           rainbow.push(cs[o], 0, rainbowfade?2:0)
           rainbowfade = true;
-          if(rainbow.length>40*3){
+          if(rainbow.length>80*3){
             rainbow = rainbow.slice(3);
             rainbow[2] = 0;
           }
@@ -306,7 +307,7 @@ function FFdown(e) {
       } else if (lines[i] in fc){
         rainbow.push(lines[i], 0, rainbowfade?2:0)
         rainbowfade = true;
-        if(rainbow.length>40*3){
+        if(rainbow.length>80*3){
           rainbow = rainbow.slice(3);
           rainbow[2] = 0;
         }
@@ -314,7 +315,7 @@ function FFdown(e) {
         rainbowfade = false;
       }
     }
-    pukefest.innerHTML = makedots(rainbow, 0)
+    pukefest.innerHTML = makedots(rainbow, 0) + "<br>"
     gallery.innerHTML = buffer;
     lazyload();
   } else if (e.target.getAttribute("id") == "gallerysave"){
@@ -450,7 +451,7 @@ function FFdown(e) {
     var colortip = ""
     for (var css=0; css<colorsels.length; css++){
       colortip += "&gt; <span class='colorset'>" + colorsels[css] + "</span>"
-      colortip += makedots(colorsets[colorsels[css]], 0)
+      colortip += makedots(colorsets[colorsels[css]], 0) + "<br>"
     }
     colorlist.innerHTML += colortip
   } else if (e.target.getAttribute("id") == "viewall"){
@@ -459,7 +460,7 @@ function FFdown(e) {
     var colortip = ""
     for (var css=0; css<colorsels.length; css++){
       colortip += "&gt; <span class='colorset'>" + colorsels[css] + "</span>"
-      colortip += makedots(colorsets[colorsels[css]], 0)
+      colortip += makedots(colorsets[colorsels[css]], 0) + "<br>"
     }
     colorlist.innerHTML += colortip
   } else if (e.target.hasAttribute("data-color")){
@@ -474,11 +475,11 @@ function FFdown(e) {
     rainbow.push(t, 0, rainbowfade?2:0)
     fadeends.style.display = "initial"
     rainbowfade = true;
-    if(rainbow.length>40*3){
+    if(rainbow.length>80*3){
       rainbow = rainbow.slice(3);
       rainbow[2] = 0;
     }
-    pukefest.innerHTML = makedots(rainbow, 0)
+    pukefest.innerHTML = makedots(rainbow, 0) + "<br>"
     colorlist.innerHTML = "<h3>Color sets using " + t + "-like silicone</h3>";
     colorsels = []
     var keys = Object.keys(colorsets);
@@ -510,7 +511,7 @@ function FFdown(e) {
     var colortip = ""
     for (var css=0; css<colorsels.length; css++){
       colortip += "&gt; <span class='colorset'>" + colorsels[css] + "</span>"
-      colortip += makedots(colorsets[colorsels[css]], 0)
+      colortip += makedots(colorsets[colorsels[css]], 0) + "<br>"
     }
     colorlist.innerHTML += colortip
   }
@@ -669,21 +670,30 @@ var FFmove = function(e) {
     tooltip.style.top = (e.pageY + 10) + "px";
     tooltip.style.display = "inline-block";
     tooltip.innerHTML = t.getAttribute("data-tooltip");
+    if (t.classList == "tangerine"){
+      let left = () => {
+        t.classList = "tangerine"
+      }
+      t.classList = "brown"
+      t.addEventListener("mouseleave", left)
+    }
   } else {
     tooltip.style.display = "none";
   }
 }
 
-var link, isTouch, gallerylist, colorsels;
+var link, isTouch, gallerylist, colorsels, creative;
 var rainbow = [];
 var rainbowfade = false;
+var fadesample = makedots(["sky blue", 0, 0, "copper", 0, 2, "chestnut", 0, 2], 0);
+var dotsample = 'sky blue (' + makedots(["sky blue", 0, 0], 0) + ') copper (' + makedots(["copper", 0, 0], 0) + ') then chestnut (' + makedots(["chestnut", 0, 0], 0) + ')';
 window.onload = () => {
   document.body.innerHTML = `<div class="cursor_tooltip" id="cursor_tooltip" style="transition: left .5s linear;"></div>
 <div class="dark close_button cursor_tooltip" id="tooltip"></div>
 
 <div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div></div>
 
-<div class="next" id="translucents" data-tooltip="Fetch color sets using jam-like or translucent of selected color">Translucents</div><div class="next" id="creative" data-tooltip="Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway and bottom colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights">Creative mode</div><div class="next" id="exotic" style="cursor:pointer;" data-tooltip="View all color sets using fades or 4+ color marbles i.e. can't be altered">Exotic sets</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><div style="display:inline-block;" id="pukefest"></div><button class="dark" id="fadeends" style="display:none;" onclick="rainbowfade=false;fadeends.style.display='none'" data-tooltip="Fade ends">ꍯ</button><div class="dark local_tooltip" id="local_tooltip"></div>
+<div class="next" id="translucents" data-tooltip="Fetch color sets using jam-like or translucent of selected color">Translucents</div><div class="next" id="creative" data-tooltip="Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway and bottom colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights">Creative mode</div><div class="next" id="exotic" style="cursor:pointer;" data-tooltip="View all color sets using fades or 4+ color marbles i.e. can't be altered">Exotic sets</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><span class="tangerine" style="padding:4px;" data-tooltip="• Choose several colors e.g. ${dotsample} for ${fadesample} fade bar to appear, as way to test as well as to anticipate for blend/smear issue.<br>• Write color name or color set name in text field of bookmarked pictures to manipulate fade bar.<br>&nbsp; ◦ <div class='next'>Replace gallery</div> to replace fade bar with written color names.<br>&nbsp; ◦ <div class='next'>Save</div> to save fade bar for next page visit.<br>&nbsp; ◦ Fade ends on non-color line.<br><br>Be mindful of translucent silicones<br>• Translucent silicones may overpower to each other especially darkened and/or pigmented ones if not become dull or muddled.<br>• Use fade bar for blend test of translucent silicones, they become pronounced of that.<br>• Solid silicones can create contours on translucent silicones or 3D depth behind translucent silicones.<br>Open <div class='next'>Gallery</div> for color set named <span class='colorset'>Arctic Ice</span>${makedots(['sky blue', 3, 0], 0)} from sky blue (${makedots(['sky blue', 0, 0], 0)}) color group for photo example of translucent silicone.">:?:</span><div style="display:inline-block;" id="pukefest"></div><button class="dark" id="fadeends" style="display:none;" onclick="rainbowfade=false;fadeends.style.display='none'" data-tooltip="Fade ends">ꍯ</button><div class="dark local_tooltip" id="local_tooltip"></div>
 <div></div>
 
 <div style="display:inline-block; position:relative; vertical-align:top; display:flex;">
@@ -717,6 +727,7 @@ window.onload = () => {
   document.addEventListener("mouseover", FFover);
   //document.addEventListener("touchstart", FFdown);
   document.addEventListener("mousedown", FFdown);
+  creative = document.getElementById("creative");
   editor = document.getElementById("editable");
   editdiff = document.getElementById("editable2");
   editor.addEventListener("mouseup", FFup);

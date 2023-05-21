@@ -115,6 +115,7 @@ function lazyload(){
       if (e.isIntersecting) {
         var t = e.target;
         t.src = t.dataset.src;
+        t.style.width = "initial";
         imageObserver.unobserve(t);
       }
     });
@@ -123,8 +124,8 @@ function lazyload(){
   var lazyloadImages = document.querySelectorAll(".lazy");
   lazyloadImages.forEach(function(e) {
     e.classList.remove("lazy");
-    e.style.height = "200px"
-    e.style.minWidth = "300px"
+    e.style.height = "200px";
+    e.style.width = "300px";
     imageObserver.observe(e);
   });
 }
@@ -298,7 +299,7 @@ function FFdown(e) {
         for(var o=0;o<cs.length;o+=3){
           rainbow.push(cs[o], 0, rainbowfade?2:0)
           rainbowfade = true;
-          if(rainbow.length>80*3){
+          if(rainbow.length>102*3){
             rainbow = rainbow.slice(3);
             rainbow[2] = 0;
           }
@@ -307,7 +308,7 @@ function FFdown(e) {
       } else if (lines[i] in fc){
         rainbow.push(lines[i], 0, rainbowfade?2:0)
         rainbowfade = true;
-        if(rainbow.length>80*3){
+        if(rainbow.length>102*3){
           rainbow = rainbow.slice(3);
           rainbow[2] = 0;
         }
@@ -475,7 +476,7 @@ function FFdown(e) {
     rainbow.push(t, 0, rainbowfade?2:0)
     fadeends.style.display = "initial"
     rainbowfade = true;
-    if(rainbow.length>80*3){
+    if(rainbow.length>102*3){
       rainbow = rainbow.slice(3);
       rainbow[2] = 0;
     }

@@ -125,7 +125,7 @@ function lazyload(){
   lazyloadImages.forEach(function(e) {
     e.classList.remove("lazy");
     e.style.height = "200px";
-    e.style.width = "300px";
+    e.style.minWidth = "300px";
     imageObserver.observe(e);
   });
 }

@@ -109,13 +109,20 @@ function loadcolors(file){
   }
 }
 
+var realwidth = function(t){
+  if(!t.naturalWidth) {
+    return setTimeout(realwidth, 10, t);
+  }
+  t.style.width = "initial";
+}
+
 function lazyload(){
   var imageObserver = new IntersectionObserver(function(entries, observer) {
     entries.forEach(function(e) {
       if (e.isIntersecting) {
         var t = e.target;
         t.src = t.dataset.src;
-        t.style.width = "initial";
+        setTimeout(realwidth, 10, t);
         imageObserver.unobserve(t);
       }
     });
@@ -125,7 +132,7 @@ function lazyload(){
   lazyloadImages.forEach(function(e) {
     e.classList.remove("lazy");
     e.style.height = "200px";
-    e.style.minWidth = "300px";
+    e.style.width = "300px";
     imageObserver.observe(e);
   });
 }

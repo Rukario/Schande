@@ -2502,7 +2502,7 @@ def linear(d, z, v):
         # dc = str(dc)
         if x[6]:
             dc = x[6].join(s.strip() for s in dc.replace("\\", "/").split("/"))
-        if x[2] == True:
+        if x[2] == True or x[2] and Keypress_buffer[0]:
             busy[1] = True
             ticking[2].clear()
             echo(f"Is {dc} greater than your expected number? Enter (N)umber", 0, 1)
@@ -2510,6 +2510,7 @@ def linear(d, z, v):
             ticking[2].wait()
             busy[1] = False
             x[2] = Keypress_buffer[0]
+            Keypress_buffer[0] = ""
         if x[2] and not isinstance(x[2], int) and x[2] > dc:
             return
         if x[1] and not any(c for c in x[1] if c == str(dc)) or x[3] and not met(dc, x[3]):
@@ -5690,7 +5691,11 @@ def keylistener():
                 Keypress_buffer[0] = input(Keypress_err[0])
                 ticking[2].set()
             else:
-                unrecognized("N")
+                echo("", 1)
+                echo("Number cleared", 0, 1)
+                Keypress_buffer[0] = True
+            if not busy[0]:
+                ready_input()
         elif el == 15:
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -5806,7 +5811,7 @@ while True:
 ::install package: %pip% install name_of_the_missing_package
 
 :loaded
-set color=0e && set stopcolor=05
+set color=0e && set stopcolor=06
 color %color%
 set batchfile=%~0
 if %cd:~-1%==\ (set batchdir=%cd%) else (set batchdir=%cd%\)

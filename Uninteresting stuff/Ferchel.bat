@@ -1,29 +1,28 @@
 @echo off && goto loaded
 
 import os, sys, time, hashlib, shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 from threading import Thread
 from urllib import parse
 
-
-
-# Local variables
-if len(sys.argv) > 3:
-    filelist = list(filter(None, sys.argv[1].split("//")))
-    pythondir = sys.argv[2].replace("\\\\", "\\") # unused
-    batchdir = sys.argv[3].replace("\\\\", "\\") # grabs "start in" argument
-else:
-    filelist = []
-    pythondir = ""
-    batchdir = os.path.dirname(os.path.realpath(__file__))
-batchdirx = batchdir.replace("\\", "\\\\") + "\\\\"
 batchfile = os.path.basename(__file__)
 batchname = os.path.splitext(batchfile)[0]
+batchdir = os.path.dirname(os.path.realpath(__file__))
+filelist = []
+pythondir = ""
+
+if len(sys.argv) > 3:
+    filelist = list(filter(None, sys.argv[1].split("//")))
+    pythondir = sys.argv[2].replace("\\\\", "\\").replace("\\", "/")
+    batchdir = sys.argv[3].replace("\\\\", "\\").replace("\\", "/") # grabs "start in" argument
+if "/" in batchdir and not batchdir.endswith("/"):
+    batchdir += "/"
 os.chdir(batchdir)
 
 editor = "C:\\Program Files Two\\Notepad++\\notepad++.exe"
 overrall = [False]
 textfile = ['.txt', '.bat', '.reg', '.html', '.cd', '.plist']
+Keypress = [False]*27
 
 
 
@@ -44,7 +43,6 @@ tcolorg = "\033[40;92m"
 tcolorb = "\033[40;38;2;59;120;255m"
 tcoloro = "\033[40;38;2;255;144;48m"
 title(batchfile)
-sys.stdout.write("Non-ANSI-compliant Command Prompt/Terminal (expect lot of visual glitches): Upgrade to Windows 10 if you're on Windows.")
 sys.stdout.write(tcolorx + cls)
 
 
@@ -88,11 +86,11 @@ def echo(threadn, b=0, f=0, clamp='', friction=False):
 
 
 
-def choice(keys="", bg=False):
+def choice(keys="", bg=False, persist=False):
     if sys.platform == "win32":
         if bg: os.system(f"""color {"%stopcolor%" if bg == True else bg}""")
         if keys: el = os.system(f"choice /c:{keys} /n")
-        if bg: os.system("color %color%")
+        if bg and not persist: os.system("color %color%")
         echo(tcolorx)
     else:
         if keys: el = os.system("""while true; do
@@ -101,10 +99,12 @@ case $el in
 """ + "\n".join([f"{k} ) exit {e+1};;" for e, k in enumerate(keys)]) + """
 esac
 done""")
-    if not keys: return
+        echo(tcolorx, 0, 1)
+    if not keys:
+        return
     if el >= 256:
         el /= 256
-    return el
+    return int(el)
 
 
 
@@ -119,15 +119,15 @@ def input(i="Your Input: ", choices=False):
             el = choice(keys)
             if (c := choices[el-1])[1:]:
                 echo("", 1, 0)
-                edit = input("Type and enter to confirm, else to return: " + c + f"\033[{len(c)-1}D")
+                nter = input("Type and enter to confirm, else to return: " + c + f"\033[{len(c)-1}D")
                 echo("", 1, 0)
                 sys.stdout.write(str(i))
                 sys.stdout.flush()
-                if edit.lower() == choices[el-1][1:].lower():
+                if nter.lower() == choices[el-1][1:].lower():
                     echo(c, 0, 0)
                     return el
             else:
-                echo(str(i) + choices[el-1], 1, 1)
+                echo(f"{str(i)}{choices[el-1].upper()}", 0, 2)
                 return el
     else:
         return sys.stdin.readline().replace("\n", "")
@@ -137,6 +137,7 @@ def input(i="Your Input: ", choices=False):
 argslist = ['expensive', 'expensivebg', 'loaded', 'loadedbg']
 regfile = batchname + ".reg"
 if not filelist or not filelist[-1] in tuple(argslist):
+    batchdirx = batchdir.replace("/", "\\\\") + "\\\\"
     print(f"""
  + You must launch me from context menu. I can create regfile to add new items in context menu.
  + And when launching from context menu, it'll expect this batch file to be in same name and place.
@@ -185,15 +186,22 @@ else:
 
 
 
-def createdate(datefile):
+def createdate(datefile, lastdate):
+    if lastdate:
+        new_datefile = datetime.strptime(lastdate, "%Y-%m-%d %H:%M:%S") + timedelta(minutes=1)
+        new_datefile = datetime.strftime(new_datefile, "%m-%d-%Y %H.%M.00")
     print("""
 ================================================================================
-                             Update datefile now?
-""")
-    os.system("pause")
-    new_datefile = str(datetime.now().replace(microsecond=0))
-    new_datefile = datetime.strptime(new_datefile, "%Y-%m-%d %H:%M:%S")
-    new_datefile = datetime.strftime(new_datefile, "%m-%d-%Y %H.%M.00")
+                    (P)roceed to update datefile now""")
+    if lastdate:
+        print(f"               Or dir's (L)atest date: {new_datefile}" )
+    el = choice("pl" if lastdate else "p")
+    if not el in [1, 2]:
+        sys.exit()
+    if el == 1:
+        new_datefile = str(datetime.now().replace(microsecond=0))
+        new_datefile = datetime.strptime(new_datefile, "%Y-%m-%d %H:%M:%S")
+        new_datefile = datetime.strftime(new_datefile, "%m-%d-%Y %H.%M.00")
     buf = ""
     print("Now working in top directory . . .")
     for file in next(os.walk('.'))[2]:
@@ -204,7 +212,6 @@ def createdate(datefile):
         size = ' '.join(f'{size:012}'[i:i+3] for i in range(0, 12, 3))
         buf += f"{size}    {file}\n"
     for folder in next(os.walk('.'))[1]:
-        size = 0
         if folder.endswith(" Trash"):
             continue
         print(f"""Now working in subdirectory \\{folder}\\ . . .""")
@@ -242,10 +249,9 @@ def createdate(datefile):
 
 
 
-def ferchel():
+def get_datefile():
     # Looking for 01-01-2000 through 12-31-2060 with .00 as extension, pick last item, hopefully a datefile.
     datefile = ""
-    difference = ""
     for file in next(os.walk('.'))[2]:
         if not file[0:10].replace('-', '').isnumeric():
             continue
@@ -256,37 +262,72 @@ def ferchel():
         if not file.endswith(".00"):
             continue
         datefile = file
+    return datefile
+
+
+
+def ferchel():
+    datefile = get_datefile()
+    difference = ""
     if not datefile:
         print("No old date!")
-        createdate(datefile)
+        createdate(datefile, "")
     else:
+        folders = []
+        newmaster = []
+        oldmaster = []
+        scanned = []
+        unscanned = []
+        exempted = []
+        lastdate = ""
+
+        with open(datefile, 'r', encoding='utf-8') as f:
+            masterread = f.read().splitlines()
+        for line in masterread:
+            if "\\" in line:
+                oldmaster += [line[18:]]
+            else:
+                oldmaster += [line[19:]]
+
+        for folder in next(os.walk('.'))[1]:
+            if folder.endswith(" Trash"):
+                exempted += [folder]
+            else:
+                folders += [folder]
+                newmaster += ["\\" + folder + "\\"]
+        newfolder = set(newmaster).difference(oldmaster)
+
+        for file in next(os.walk('.'))[2]:
+            if file == datefile:
+                continue
+            newmaster += [file]
+        deleted = set(oldmaster).difference(newmaster)
+
         print(f"Loading old date successfully: {datefile}\n")
         date = datetime.strptime(datefile, "%m-%d-%Y %H.%M.%S")
         date = datetime.strftime(date, "%Y-%m-%d %H:%M:00")
         print("===================================Updates======================================")
         print(" - - Folders - -")
-        scanned = []
-        unscanned = []
-        exempted = []
         if expensive == "expensivebg":
-            for folder in next(os.walk('.'))[1]:
-                if folder.endswith(" Trash"):
-                    exempted += [folder]
-                else:
-                    New = 0
-                    for root, subfolder, files in os.walk(folder):
-                        for file in files:
-                            if str(datetime.fromtimestamp(os.path.getmtime(root + "/" + file)).replace(microsecond=0)) > date:
-                                New += 1
-                    if New:
-                        print(f"+ \\{folder}\\ ({New} new files)")
-                    elif str(datetime.fromtimestamp(os.path.getmtime(folder)).replace(microsecond=0)) > date:
-                        scanned += [folder]
+            for folder in folders:
+                New = 0
+                for root, subfolder, files in os.walk(folder):
+                    for file in files:
+                        if (ld := str(datetime.fromtimestamp(os.path.getmtime(root + "/" + file)).replace(microsecond=0))) > date:
+                            if ld > lastdate:
+                                lastdate = ld
+                            New += 1
+                if New:
+                    print(f"+ \\{folder}\\ ({New} new files)")
+                elif (ld := str(datetime.fromtimestamp(os.path.getmtime(folder)).replace(microsecond=0))) > date:
+                    if ld > lastdate:
+                        lastdate = ld
+                    scanned += [folder]
         else:
-            for folder in next(os.walk('.'))[1]:
-                if folder.endswith(" Trash"):
-                    exempted += [folder]
-                elif str(datetime.fromtimestamp(os.path.getmtime(folder)).replace(microsecond=0)) > date:
+            for folder in folders:
+                if (ld := str(datetime.fromtimestamp(os.path.getmtime(folder)).replace(microsecond=0))) > date:
+                    if ld > lastdate:
+                        lastdate = ld
                     scanned += [folder]
                 else:
                     unscanned += [folder]
@@ -305,42 +346,22 @@ def ferchel():
 
         print("\n - - Files - -")
         for file in next(os.walk('.'))[2]:
-            if not file == datefile and str(datetime.fromtimestamp(os.path.getmtime(file)).replace(microsecond=0)) > date:
+            if not file == datefile and (ld := str(datetime.fromtimestamp(os.path.getmtime(file)).replace(microsecond=0))) > date:
+                if ld > lastdate:
+                    lastdate = ld
                 print(file)
 
 
 
-        # current vs last directory state
-        with open(datefile, 'r', encoding='utf-8') as f:
-            masterread = f.read().splitlines()
+        print("\n - - Deleted/renamed - -")
+        if deleted:
+            print('\n'.join(deleted))
 
-        # last state...
-        oldmaster = []
-        for line in masterread:
-            if "\\" in line:
-                oldmaster += [line[18:]]
-            else:
-                oldmaster += [line[19:]]
+        print("\n - - New/renamed - -")
+        if newfolder:
+            print('\n'.join(newfolder))
 
-        # current state...
-        newmaster = []
-        for folder in next(os.walk('.'))[1]:
-            if folder.endswith(" Trash"):
-                continue
-            newmaster += ["\\" + folder + "\\"]
-        for file in next(os.walk('.'))[2]:
-            if file == datefile:
-                continue
-            newmaster += [file]
-
-        # load differences by eliminating non-unique lines
-        difference = set(oldmaster).difference(newmaster)
-
-        print("\n - - Deleted - -")
-        if difference:
-            print('\n'.join(difference))
-
-        createdate(datefile)
+        createdate(datefile, lastdate)
     sys.exit()
 
 
@@ -416,28 +437,31 @@ reference: {line2}"""
 
 
 
-edit = [False]
+edit = [False, False]
 def compute(masterfile, slavefile):
     while True:
-        if not expensive == "expensive" and os.path.getmtime(masterfile) == os.path.getmtime(slavefile):
+        timestamp = [os.path.getmtime(masterfile), os.path.getmtime(slavefile)]
+        if not expensive == "expensive" and timestamp[0] == timestamp[1]:
             edit[0] = False
             return
 
         with open(masterfile, 'rb') as f:
             m = f.read()
-        md5hash = hashlib.md5(m).hexdigest()
-
         with open(slavefile, 'rb') as f:
             s = f.read()
-        md5hash2 = hashlib.md5(s).hexdigest()
+        md5hash = [hashlib.md5(m).hexdigest(), hashlib.md5(s).hexdigest()]
 
-        if md5hash == md5hash2:
-            title(masterfile.replace("/", "\\"))
-            os.system("cls")
-            echo(f"{tcolorx}{cls}md5: {md5hash}\nmd5: {md5hash2}", 0, 2)
-            if input("(U)pdate newer identical file with oldest date or (S)kip: ", ["u", "s"]) == 1:
-                old = [masterfile, slavefile] if os.path.getmtime(masterfile) < os.path.getmtime(slavefile) else [slavefile, masterfile]
-                os.utime(old[1], (os.path.getatime(old[0]), os.path.getmtime(old[0])))
+        if md5hash[0] == md5hash[1]:
+            if not timestamp[0] == timestamp[1]:
+                if not Keypress[1] and not Keypress[14]:
+                    title(masterfile.replace("/", "\\"))
+                    os.system("cls")
+                    echo(f"{tcolorx}{cls}md5: {md5hash[0]} last modification: {timestamp[0]}\nmd5: {md5hash[1]} last modification: {timestamp[1]}", 0, 2)
+                    Keypress[input("(U)pdate newer identical file with oldest date, (A)lways (N)one (S)kip: ", "abcdefghijklmnopqrstuvwxyz0123456789")] = True
+                if not Keypress[14]:
+                    if Keypress[1] or Keypress[21]:
+                        old = [masterfile, slavefile] if timestamp[0] < timestamp[1] else [slavefile, masterfile]
+                        os.utime(old[1], (os.path.getatime(old[0]), os.path.getmtime(old[0])))
             edit[0] = False
             return
         elif overrall[0]:
@@ -452,7 +476,7 @@ def compute(masterfile, slavefile):
         else:
             title(masterfile.replace("/", "\\"))
             os.system("cls")
-            echo(f"{tcolorx}{cls}md5: {md5hash}\nmd5: {md5hash2}", 0, 2)
+            echo(f"{tcolorx}{cls}md5: {md5hash[0]}\nmd5: {md5hash[1]}", 0, 2)
             if os.path.basename(masterfile) == os.path.basename(slave):
                 el = input("""Files of same name have different MD5. Type "over" (reverse: "revo") or "all" to overwrite/all, re(L)oad: """, ["Over", "Revo", "All", "L"])
             else:
@@ -520,32 +544,53 @@ else:
 
 
     # Top directory and instant operation
+    datefile_ts = 0
+    timestamp = 0
     while True:
         os.system("cls")
         echo(f"{tcolorx}{cls}Now working in top directory . . .")
         diff_del, diff_add = getdiff(master, slave)
-        buffer = f"\n\nI'll take these files to {master} Trash\: "
+        buffer = f"\n\nI'll take these files to {master} Trash\\: "
         if diff_del:
             for x in diff_del:
                 buffer += f"\n{master}\\{x}"
         else:
             buffer += f"\nNothing! {master} Trash\ will not be created at this time."
-        buffer += f"\n\nI'll copy these new files to {master}:"
+        buffer += f"\n\nI'll copy these new files to {master}\\:"
         if diff_add:
             for x in diff_add:
                 buffer += f"\n{slave}\\{x}"
+            if not datefile_ts:
+                timestamp = os.path.getmtime(master)
+                if date := get_datefile():
+                    datefile_ts = datetime.strptime(date, "%m-%d-%Y %H.%M.%S").timestamp()
+                if datefile_ts:
+                    if timestamp > datefile_ts:
+                        buffer += f"""
+
+Folder's last modification is {tcoloro}newer{tcolorx} than datefile: these new files may be {tcoloro}deleted previously{tcolorx} by this folder.
+Delete from another folder to proceed with remaining new files, to recover and whatnot."""
+                    else:
+                        buffer += f"""
+
+Folder's last modification is {tcolorg}older{tcolorx} than datefile: these new files are {tcolorg}new{tcolorx} to this folder."""
+                else:
+                    buffer += f"""
+
+No old date! Datefile is used as "fuse" toward new files, as way to autoconfirm of new files for this folder,
+whether should another folder have those deleted too already or not."""
         else:
             buffer += "\nNothing!"
         if diff_del or diff_add:
             echo(buffer, 0, 2)
-            el = input(f"""Type "del" to delete instead (no \\.. Trash\\ creation), re(F)resh, (C)ontinue: """, ["Del", "F", "C"])
+            el = input(f"""Type "del" to delete instead (no \\.. Trash\\ creation), re(F)resh, (P)roceed: """, ["Del", "F", "P"])
             if not el:
                 kill(0)
             elif el == 2:
                 continue
             diff_del, diff_add = getdiff(master, slave)
             print("\n Working . . .")
-            if diff_del and el == 1 and not os.path.exists(trashdir):
+            if diff_del and el == 3 and not os.path.exists(trashdir):
                 os.makedirs(trashdir)
             for file in diff_del:
                 masterfile = f"{master}/{file}"
@@ -635,7 +680,7 @@ title(batchfile)
 
 """
 :loaded
-set color=0e && set stopcolor=05
+set color=0e && set stopcolor=06
 color %color%
 set batchfile=%~0
 if %cd:~-1%==\ (set batchdir=%cd%) else (set batchdir=%cd%\)

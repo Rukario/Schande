@@ -136,7 +136,7 @@ def input(i="Your Input: ", choices=False):
 
 argslist = ['expensive', 'expensivebg', 'loaded', 'loadedbg']
 regfile = batchname + ".reg"
-if not filelist or not filelist[-1] in tuple(argslist):
+if not filelist:
     batchdirx = batchdir.replace("/", "\\\\") + "\\\\"
     print(f"""
  + You must launch me from context menu. I can create regfile to add new items in context menu.
@@ -180,9 +180,11 @@ if not filelist or not filelist[-1] in tuple(argslist):
 @="{batchdirx}{batchfile} \\"%1\\" \\"expensive\\""
 """, 'utf-8'))
     sys.exit()
-else:
+elif filelist[-1] in tuple(argslist):
     expensive = filelist[-1]
     filelist.remove(filelist[-1])
+else:
+    expensive = "loaded"
 
 
 
@@ -679,29 +681,24 @@ title(batchfile)
 
 
 """
+::MacOS:           open /Applications/Python\ 3.10/Install\ Certificates.command
+::Linux/MacOS:     python3 -x /drag/n/drop/the/batchfile
+
+::if MacOS (pip=sudo python3 -m pip) else if Linux (pip=pip3)
+::update pip:      %pip% install --upgrade pip
+::install package: %pip% install name_of_the_missing_package
+
 :loaded
 set color=0e && set stopcolor=06
 color %color%
 set batchfile=%~0
 if %cd:~-1%==\ (set batchdir=%cd%) else (set batchdir=%cd%\)
-set txtfile=%~n0.txt
-set txtfilex=%~dpn0.txt
+set pythondir=%userprofile%\AppData\Local\Programs\Python\
+if exist "%~n0.cd" (set tcd=%~n0.cd&&set TXT=%~dpn0.cd) else if exist "%~n0.txt" (set tcd=%~n0.txt&&set TXT=%~dpn0.txt)
 
 setlocal enabledelayedexpansion
-set batchdir=!batchdir:\=\\!
-set filelist=
-if [%1]==[] goto skip
-:loop
-set file=%1
-set file=!file:"=!
-set filelist=!filelist!//!file!
-shift
-if not [%1]==[] goto loop
-:skip
-
-set pythondir=%userprofile%\AppData\Local\Programs\Python\
 chcp 65001>nul
-if exist "!txtfilex!" for /f "delims=" %%i in ('findstr /b /i "Python = " "!txtfilex!"') do set string=%%i&& set string=!string:~9!&&goto check
+if not "!TXT!"=="" for /f "delims=" %%i in ('findstr /b /i "Python = " "!TXT!"') do set string=%%i&& set string=!string:~9!&& goto check
 :check
 chcp 437>nul
 if not "!string!"=="" (set pythondir=!string!)
@@ -711,12 +708,25 @@ set cute=!cute: =!
 set pythondirx=!pythondir!!cute!
 if exist "!pythondirx!\python.exe" (cd /d "!pythondirx!" && color %color%) else (color %stopcolor%
 echo.
-if "!string!"=="" (echo  I can't seem to find \!cute!\python.exe^^! Install !x! in default location please, or edit this batch file.&&echo.&&echo  Download the latest !x!.x from https://www.python.org/downloads/) else (echo  Please fix path to \!cute!\python.exe in "Python =" setting in !txtfile!)
+if "!string!"=="" (echo  I can't seem to find \!cute!\python.exe^^! Install !x! in default location please, or edit this batch file.&&echo.&&echo  Download the latest !x!.x from https://www.python.org/downloads/) else (echo  Please fix path to \!cute!\python.exe in "Python =" setting in !tcd!)
 echo.
 echo  I must exit^^!
 pause%>nul
 exit)
 set pythondir=!pythondir:\=\\!
+
+set batchdir=!batchdir:\=\\!
+set filelist=
+if [%1]==[] goto skip
+set n=!cmdcmdline:*%~f0=!
+if ["!n:~2,8!"]==["magnet:?"] set filelist=!n:~2,-1!&&goto skip
+:loop
+set file=%1
+set file=!file:"=!
+set filelist=!filelist!//!file!
+shift
+if not [%1]==[] goto loop
+:skip
 
 if exist Lib\site-packages\ (echo.) else (goto install)
 if exist Lib\site-packages\ (goto start) else (echo.)

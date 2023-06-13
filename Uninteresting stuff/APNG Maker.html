@@ -1553,6 +1553,7 @@ document.fullscreenElement?document.exitFullscreen():OgvCtrl.ogv.parentNode.requ
 
 var currentvideo = null;
 function getogvplayer(){
+  stdout.insertAdjacentHTML("beforeend", "<br>");
   pload.style.display = "none";
   OgvCtrl.init()
   let t = document.createElement("script");
@@ -1566,8 +1567,11 @@ function getogvplayer(){
 }
 
 function webmplayer(){
-  stdout.insertAdjacentHTML("beforeend", "<br>");
-  var s = document.createElement("div");
+  let v = stdout.getElementsByClassName("ogv-current");
+  while(v.length>0){
+    v[0].outerHTML = "Finished/interrupted WEBM playback";
+  }
+  let s = document.createElement("div");
   s.className = "ogv-current"
   t = new OGVPlayer({wasm:!0,threading:!1,simd:!1})
   s.appendChild(t)
@@ -1610,11 +1614,14 @@ function loaded(){
           window.OGVPlayer = false;
         }
       }
-      if (window.OGVPlayer){
+      if (isVideo(get_ext(f)) == "webm" && window.OGVPlayer){
         currentvideo = window.URL.createObjectURL(f);
         webmplayer();
       } else {
         var v = document.createElement("video");
+        if(isVideo(get_ext(f)) == "webm"){
+          v.classList = "ogv-current";
+        }
         v.style = "max-height:400px;"
         v.setAttribute("controls", "");
         v.setAttribute("playsinline", "");

@@ -27,18 +27,18 @@ input[type="file"] {display:none;}
 );
 }
 .aczo28 {bottom:5px; padding:10px 7px 11px; width:44px;}
-.tooltip {display:none; position:absolute; margin-top:37px; white-space:initial; background-color:#2d0710; padding:2px 8px; font-family:sans-serif; font-size:90%; max-width:calc(100% - 36px); line-height:1.1; z-index:9999999; left:0px; top:0px; right:initial;}
+.tooltip {display:none; position:absolute; margin-top:37px; white-space:initial; background-color:inherit; padding:2px 8px; font-family:sans-serif; font-size:90%; max-width:calc(100% - 36px); line-height:1.1; z-index:9999999; left:0px; top:0px; right:initial;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 .cursor_tooltip{position:absolute; left:0px; top:0px; right:initial; display:none;}
 .backtip {cursor:default; position:relative; display:inline-block; line-height:1.1; font-size:12px; padding:5px 12px;}
 .backtip::before {content:''; position:absolute; left:0; top:0; z-index:1; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none;}
-.backtip {background:#2d0710; z-index:1;}
+.backtip {background:inherit; z-index:1;}
 .local_tooltip {z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
 .previous, .reverse, .inverse, .next {border-radius:0px; cursor:pointer; font-size:12px; padding:4px 11px; font-family:Arial; margin:6px 0px;}
 .cell {width:352px; vertical-align:text-top; font-size:14px;}
 .cell::before {border:2px solid rgba(255, 255, 255, 0.75); width:calc(100% - 4px); height:calc(100% - 4px);}
-.stdout {white-space:pre; line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px; min-height:0px;}
+.stdout {white-space:pre; line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px;}
 
 input[type="range"] {
   position:relative;
@@ -165,14 +165,13 @@ function quicklook(e) {
     s.src = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0].getAttribute("href");
 
     c = document.createElement("canvas");
-    get_dim(m);
-    new_dim = [...dim];
+    get_dim(m, 3);
     context = c.getContext("2d");
-    c.width = dim[2];
-    c.height = dim[3];
+    c.width = dim[3][2];
+    c.height = dim[3][3];
 
     if(s.src == m.src) {
-      context.fillRect(...dim);
+      context.fillRect(...dim[3]);
     } else {
       m.onload = function () {
         fps = 2
@@ -392,7 +391,7 @@ function echoPalette(h=8, s=1){
   palette = [];
 }
 
-function canvasToAB(c, ext="png") {
+function canvasToAB(c, ext="png", callback=false){
   return function(resolve) {
     c.toBlob((blob0) => {
       var fr = new FileReader();
@@ -405,8 +404,12 @@ function canvasToAB(c, ext="png") {
         ti[1] = performance.now()
         if(ext == "png" && optimize){
           //https://manpages.debian.org/stretch/optipng/optipng.1.en.html
-          //Ideal settings for apng production
-          arri = optipng(arri, ['-force', '-zw', '32k', '-f', '0', '-zs', '0', '-zm', '8', '-zc', '9', '-nx', '-strip', 'all']).data;
+          if(callback){
+            //Ideal settings for apng production
+            arri = optipng(arri, ['-force', '-zw', '32k', '-f', '0', '-zs', '0', '-zm', '8', '-zc', '9', '-nx', '-strip', 'all']).data;
+          } else {
+            arri = optipng(arri, ['-force', '-zw', '32k', '-f', '0', '-zs', '0', '-zm', '8', '-zc', '9', '-strip', 'all']).data;
+          }
         }
         ti[2] = performance.now()
         //echo((ti[2] - ti[1])/1000 + "s OptiPNG")
@@ -416,26 +419,25 @@ function canvasToAB(c, ext="png") {
   }
 }
 
-function fullres() {
-  dim = [...orig_dim];
-  dimension.innerHTML = dim[2] + " &times; " + dim[3];
+function fullres(i) {
+  dim[1] = [...dim[i]];
+  dimension.innerHTML = dim[1][2] + " &times; " + dim[1][3];
 }
 
-function get_dim(image, enablescaling) {
-  orig_dim = [0, 0, image.width, image.height];
-  if (enablescaling) {
-    //sets max dimension, divide by 2 when exceeded, increment division times when 2 isn't enough
-    var len = Math.ceil(image.width / 4000)
-    var leny = Math.ceil(image.height / 4000)
-    if (leny > len) len = leny;
-    dim = [0, 0, Math.floor(orig_dim[2] / len), Math.floor(orig_dim[3] / len)]
-    dimension.innerHTML = dim[2] + " &times; " + dim[3];
-    if (len > 1){
-      dimension.innerHTML += " <button class='backtip' onclick='fullres()'>use original</button>"
-    }
-  } else {
-    dim = [...orig_dim];
+function bigres(i) {
+  //sets max dimension, divide by 2 when exceeded, increment division times when 2 isn't enough
+  var len = Math.ceil(dim[i][2] / 4000)
+  var leny = Math.ceil(dim[i][3] / 4000)
+  if (leny > len) len = leny;
+  dim[1] = [0, 0, Math.floor(dim[i][2] / len), Math.floor(dim[i][3] / len)]
+  dimension.innerHTML = dim[1][2] + " &times; " + dim[1][3];
+  if (len > 1){
+    dimension.innerHTML += " <div class='backtip' onclick='fullres(" + i + ")'>use original</div>"
   }
+}
+
+function get_dim(image, i) {
+  dim[i] = [0, 0, image.width, image.height];
 }
 
 function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=false){
@@ -444,7 +446,17 @@ function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=
   newframe.arri = arri;
   ti[2] = performance.now()
   //echo((ti[2] - ti[1])/1000 + "s ArrayBuffer")
-  if(interFrameN == undefined){
+  if(callback == undefined){
+    ti[3] = performance.now()
+    echo("Frame " + (interFrameN+1) + " in " + (ti[3] - ti[0])/1000 + "s")
+    document.title = "Frame " + (interFrameN+1);
+    echoIMG(ABtoIMG(ABtoAB(arri)), name)
+    if (callback2){
+      callback2(interFrameN + nextFrame)
+    } else {
+      document.title = "Make APNG";
+    }
+  } else if(interFrameN == undefined){
     document.title = "Make APNG";
     //echoIMG(ABtoIMG(ABtoAB(arri)), "Resave as" + ".png");
     toFrame([1000, 1000]);
@@ -464,7 +476,7 @@ function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=
 
 function canvasToFrame(callback, interFrameN, fpsm=1, callback2=false, filler=false){
   ti[1] = performance.now()
-  let promise = new Promise(canvasToAB(c))
+  let promise = new Promise(canvasToAB(c, 'png', callback))
   promise.then(function(arri){
     ABtoFrame(arri, callback, interFrameN, fpsm, callback2, filler)
   })
@@ -512,10 +524,13 @@ function Convolute(pixels, weights) {
 }
 
 function edge(m) {
-  ti[0] = performance.now()
-  ti[1] = performance.now()
-  context.drawImage(m, ...dim);
-  context.putImageData(Convolute(context.getImageData(...dim), [-1, -1, -1, -1,  8, -1, -1, -1, -1]), 0, 0);
+  ti[0] = performance.now();
+  ti[1] = performance.now();
+  if(bg){
+    context.drawImage(bg, ...dim[1]);
+  }
+  context.drawImage(m, ...dim[1]);
+  context.putImageData(Convolute(context.getImageData(...dim[1]), [-1, -1, -1, -1,  8, -1, -1, -1, -1]), 0, 0);
   canvasToFrame(staticAPNG, -2, 1)
 }
 
@@ -571,12 +586,9 @@ function ghost(a) {
 
 function detect() {
   seqFrameN = framelist.innerHTML.split("\n").filter(function(el) { return el; })
-  if(!bg){
-    get_dim(framearray[seqFrameN[0]-1][0]);
-  }
-  c.width = dim[2];
-  c.height = dim[3];
-  new_dim = [...dim]
+  c.width = dim[1][2];
+  c.height = dim[1][3];
+  dim[3] = [...dim[1]]
   if(seqFrameN.length > 1) {
     if(fps == 0){
       echo("Bad FPS")
@@ -589,15 +601,15 @@ function detect() {
 }
 
 var palette = [];
-function frame_diff(a, b) {
+function frame_diff(a, b, i) {
   var d = {x:[], y:[]};
-  for(var y=0;y<dim[3];y++){
-    var o = (y+1)*dim[2]
-    for(var x=(o-dim[2])*4;x<o*4;x+=4){
+  for(var y=0;y<dim[i][3];y++){
+    var o = (y+1)*dim[i][2]
+    for(var x=(o-dim[i][2])*4;x<o*4;x+=4){
       if(b[x+3] !== 0 && a[x+3] == 255 && a[x] == b[x] && a[x+1] == b[x+1] && a[x+2] == b[x+2]){
         b[x+3] = 0;
       } else {
-        d.x.push((x/4)+dim[2]-o);
+        d.x.push((x/4)+dim[i][2]-o);
         d.y.push(y);
         //var rgba = (00 + b[x].toString(16)).slice(-2) + (00 + b[x+1].toString(16)).slice(-2) + (00 + b[x+2].toString(16)).slice(-2);
         //if(palette.indexOf(rgba)<0){palette.push(rgba);}
@@ -608,20 +620,19 @@ function frame_diff(a, b) {
   }
   d.x.sort((a,b) => a-b);
   d.y.sort((a,b) => a-b);
-  new_dim = [d.x[0], d.y[0], d.x[d.x.length-1]-d.x[0]+1, d.y[d.y.length-1]-d.y[0]+1];
+  dim[3] = [d.x[0], d.y[0], d.x[d.x.length-1]-d.x[0]+1, d.y[d.y.length-1]-d.y[0]+1];
 }
 
 function draw(x, i) {
   ti[0] = performance.now()
   ti[1] = performance.now()
+  c.width = dim[1][2];
+  c.height = dim[1][3];
   if(bg){
-    context.drawImage(bg, ...dim);
-  } else {
-    c.width = dim[2];
-    c.height = dim[3];
+    context.drawImage(bg, ...dim[1]);
   }
-  context.drawImage(x, ...dim);
-  frameBuffer[i] = context.getImageData(...dim);
+  context.drawImage(x, ...dim[1]);
+  frameBuffer[i] = context.getImageData(...dim[1]);
 }
 
 function difference(a, b) {
@@ -648,10 +659,10 @@ function subtract(a, b) {
   context.putImageData(frameBuffer[b], 0, 0);
 }
 
-function cropdiff(a, b, c=true){
-  frame_diff(frameBuffer[a].data, frameBuffer[b].data)
-  if(c){
-    frameBuffer[0] = context.getImageData(...dim);
+function cropdiff(a, b, end){
+  frame_diff(frameBuffer[a].data, frameBuffer[b].data, 1)
+  if(!end){
+    frameBuffer[0] = context.getImageData(...dim[1]);
   }
   context.putImageData(frameBuffer[b], 0, 0);
   crop()
@@ -665,13 +676,13 @@ function apngdiff(m, s, s2=false) {
   function f1(){
     if(s2){
       reuse[1] = newframe.arri
-      reuse[3] = new_dim
+      reuse[3] = dim[3]
     } else {
       reuse[0] = newframe.arri
-      reuse[2] = new_dim
+      reuse[2] = dim[3]
     }
     draw(m, 2);
-    cropdiff(0, 2, false);
+    cropdiff(0, 2, true);
     canvasToFrame(r2, 0);
   }
 
@@ -683,7 +694,7 @@ function apngdiff(m, s, s2=false) {
 
   function f3(){
     reuse[0] = newframe.arri
-    reuse[2] = new_dim
+    reuse[2] = dim[3]
     draw(s2, 2);
     cropdiff(0, 2);
     canvasToFrame(f1, 2);
@@ -692,14 +703,14 @@ function apngdiff(m, s, s2=false) {
   function r2(){
     ti[0] = performance.now()
     ti[1] = performance.now()
-    new_dim = reuse[2]
+    dim[3] = reuse[2]
     ABtoFrame(reuse[0], (s2?r3:d1), 1)
   }
 
   function r3(){
     ti[0] = performance.now()
     ti[1] = performance.now()
-    new_dim = reuse[3]
+    dim[3] = reuse[3]
     ABtoFrame(reuse[1], d1, 2)
   }
 
@@ -747,28 +758,28 @@ function apngdiff(m, s, s2=false) {
       draw(s, 2);
       subtract(2, 1);
     }
-    cropdiff(0, 1, false)
+    cropdiff(0, 1, true)
     canvasToFrame(makeAPNG, (s2?-4.5:-3));
   }
 }
 
 function canvasdiff(m, s) {
-  context.drawImage(m, ...dim)
-  frameBuffer[0] = context.getImageData(...dim);
+  context.drawImage(m, ...dim[1])
+  frameBuffer[0] = context.getImageData(...dim[1]);
   setTimeout(function() {
-    context.drawImage(s, ...dim)
-    frameBuffer[1] = context.getImageData(...dim);
+    context.drawImage(s, ...dim[1])
+    frameBuffer[1] = context.getImageData(...dim[1]);
     subtract(frameBuffer[0].data, frameBuffer[1]);
     setTimeout(function() {
       context.putImageData(frameBuffer[1], 0, 0);
       setTimeout(function() {
-        context.drawImage(s, ...dim);
-        frameBuffer[1] = context.getImageData(...dim);
+        context.drawImage(s, ...dim[1]);
+        frameBuffer[1] = context.getImageData(...dim[1]);
         difference(frameBuffer[0].data, frameBuffer[1]);
         context.putImageData(frameBuffer[1], 0, 0);
         setTimeout(function() {
-          context.drawImage(s, ...dim);
-          frameBuffer[1] = context.getImageData(...dim);
+          context.drawImage(s, ...dim[1]);
+          frameBuffer[1] = context.getImageData(...dim[1]);
           subtract(frameBuffer[1].data, frameBuffer[0]);
           context.putImageData(frameBuffer[0], 0, 0);
           setTimeout(function() {
@@ -855,6 +866,12 @@ function fromAPNG(arri){
         apng.playTime += frame.delay;
         frame.disposeOp = dv.getUint8(offset + 8 + 24);
         frame.blendOp = dv.getUint8(offset + 8 + 25);
+        if (frame.width > maxres[2]){
+          maxres[2] = frame.width;
+        }
+        if (frame.height > maxres[3]){
+          maxres[3] = frame.height;
+        }
         if (frameNumber === 0 && frame.disposeOp === 2) {
           frame.disposeOp = 1;
         }
@@ -986,10 +1003,10 @@ function toFrame(fps, bp=[0, 1]){
       fcTL = fcTL.concat( int32ToAB(26) );
       fcTL = fcTL.concat([0x66, 0x63, 0x54, 0x4C]);
       fcTL = fcTL.concat( int32ToAB(sequence_number) );
-      fcTL = fcTL.concat( int32ToAB(new_dim[2]) );
-      fcTL = fcTL.concat( int32ToAB(new_dim[3]) );
-      fcTL = fcTL.concat( int32ToAB(new_dim[0]) );
-      fcTL = fcTL.concat( int32ToAB(new_dim[1]) );
+      fcTL = fcTL.concat( int32ToAB(dim[3][2]) );
+      fcTL = fcTL.concat( int32ToAB(dim[3][3]) );
+      fcTL = fcTL.concat( int32ToAB(dim[3][0]) );
+      fcTL = fcTL.concat( int32ToAB(dim[3][1]) );
       fcTL = fcTL.concat( int32ToAB(fps[0]).slice(-2) );
       fcTL = fcTL.concat( int32ToAB(fps[1]).slice(-2) );
       fcTL = fcTL.concat( bp ); //disposeOp and blendOp
@@ -1069,27 +1086,27 @@ function crc32(ab, start=0, len=0) {
 }
 
 function crop(){
-  if(new_dim[0] == undefined){
-    new_dim = [0, 0, 1, 1]
+  if(dim[3][0] == undefined){
+    dim[3] = [0, 0, 1, 1];
     c.width = 1;
     c.height = 1;
-    context.clearRect(...new_dim);
+    context.clearRect(...dim[3]);
   } else {
-    let cropped = context.getImageData(...new_dim);
-    c.width = new_dim[2];
-    c.height = new_dim[3];
+    let cropped = context.getImageData(...dim[3]);
+    c.width = dim[3][2];
+    c.height = dim[3][3];
     context.putImageData(cropped, 0, 0);
   }
 }
 
-function frameSaver(interFrameN){
+function frameSaver(interFrameN, i){
   ti[1] = performance.now()
   if(interFrameN == 0){
-    frameBuffer[0] = context.getImageData(...dim);
+    frameBuffer[0] = context.getImageData(...dim[i]);
   } else {
-    frameBuffer[1] = context.getImageData(...dim);
-    frame_diff(frameBuffer[0].data, frameBuffer[1].data)
-    frameBuffer[0] = context.getImageData(...dim);
+    frameBuffer[1] = context.getImageData(...dim[i]);
+    frame_diff(frameBuffer[0].data, frameBuffer[1].data, i)
+    frameBuffer[0] = context.getImageData(...dim[i]);
     context.putImageData(frameBuffer[1], 0, 0);
     crop()
   }
@@ -1101,23 +1118,22 @@ function staticAPNG(interFrameN, callback=false){
   ti[0] = performance.now()
   ti[1] = performance.now()
 
-  new_dim = [0, 0, 1, 1]
+  dim[3] = [0, 0, 1, 1]
   c.width = 1;
   c.height = 1;
-  context.clearRect(...new_dim);
+  context.clearRect(...dim[3]);
   canvasToFrame(makeAPNG, interFrameN-1, fpsm, callback, true);
 }
 
 var nextFrame = 1;
-var start = [true, true];
+var firstFrame = true;
 var fpsm = 1;
-function compileframes(multi=true){
-  frameBuffer = [false, false, false, false]
+function compileframes(multi=true, dea=false){
   newAPNG = [];
   seqFrameN = framelist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return e;})
   var lastFrameN;
 
-  start = [true, true];
+  firstFrame = true;
   fpsm = 1;
   function updateFrame(interFrameN, fpsm){
     if(interFrameN+1 == seqFrameN.length){
@@ -1141,32 +1157,33 @@ function compileframes(multi=true){
   function readFrame(interFrameN, fpsm) {
     ti[0] = performance.now()
     ti[1] = performance.now()
-
+//
     if (!multi&&!bg){
-      get_dim(framearray[seqFrameN[interFrameN]-1][0])
+      get_dim(framearray[seqFrameN[interFrameN]-1][0], 1)
     }
-    c.width = dim[2];
-    c.height = dim[3];
+//
+    c.width = dim[1][2];
+    c.height = dim[1][3];
     if(bg){
-      context.drawImage(bg, ...dim);
+      context.drawImage(bg, ...dim[1]);
     }
-    context.drawImage(framearray[seqFrameN[interFrameN]-1][0], ...dim);
+    context.drawImage(framearray[seqFrameN[interFrameN]-1][0], ...dim[1]);
 
-    new_dim = [...dim]
+    dim[3] = [...dim[1]]
     if(multi && 1 < seqFrameN.length){
-      if (start[1]) {
-        frameSaver(0);
-        start[1] = false;
+      if (firstFrame) {
+        frameSaver(0, 1);
+        firstFrame = false;
       } else {
-        frameSaver(interFrameN);
+        frameSaver(interFrameN, 1);
       }
       updateFrame(interFrameN, fpsm)
     } else {
       name = framearray[seqFrameN[interFrameN]-1][1];
       if(interFrameN+1 == seqFrameN.length){
-        canvasToFrame(staticAPNG, interFrameN, fpsm)
+        canvasToFrame(dea?undefined:staticAPNG, interFrameN, fpsm)
       } else {
-        canvasToFrame(staticAPNG, interFrameN, fpsm, delayFrame)
+        canvasToFrame(dea?undefined:staticAPNG, interFrameN, fpsm, delayFrame)
       }
     }
   }
@@ -1175,10 +1192,9 @@ function compileframes(multi=true){
     if(interFrameN == seqFrameN.length){
       readFrame(interFrameN-1, fpsm);
     } else {
-      if (start[0]){
-        start[0] = false
-        if (multi&&!bg){
-          get_dim(framearray[seqFrameN[0]-1][0])
+      if (interFrameN == 0){
+        if (!bg){
+          get_dim(framearray[seqFrameN[interFrameN]-1][0], 1)
         }
         lastFrameN = seqFrameN[0]
         delayFrame(interFrameN+1)
@@ -1200,9 +1216,9 @@ function compileframes(multi=true){
 }
 
 function compileapngs(){
-  frameBuffer = [false, false, false, false]
   newAPNG = [];
   seqAPNG = apnglist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return e;})
+  let reuse = [false, false, false];//pos, dim, arri
   function readFile(interAPNG){
     ti[0] = performance.now()
     ti[1] = performance.now()
@@ -1212,18 +1228,21 @@ function compileapngs(){
     }
     let frames = apngarray[seqAPNG[interAPNG]-1].frames
     function readFrame(interFrameN){
-      if(interFrameN == frames.length) return;
+      if(interFrameN == frames.length){
+        return;
+      }
       let frame = frames[interFrameN];
+      let bp = [frame.disposeOp, frame.blendOp];
       //echo((frame.denominator/frame.numerator) + "fps")
-      new_dim = [frame.left, frame.top, frame.width, frame.height]
+      dim[3] = [frame.left, frame.top, frame.width, frame.height]
 
       function toAPNG(arri){
         newframe.arri = arri;
-        frameBuffer[1] = seqAPNG[interAPNG];
+        reuse[0] = seqAPNG[interAPNG];
         document.title = next;
-        echo(next)
-        //echoIMG(img, next + ".png")
-        toFrame([frame.numerator, frame.denominator], [frame.disposeOp, frame.blendOp]);
+        echo(next);
+        //echoIMG(img, next + ".png");
+        toFrame([frame.numerator, frame.denominator], bp);
         if(interFrameN+1 == frames.length){
           readFile(interAPNG+1);
         } else {
@@ -1239,39 +1258,45 @@ function compileapngs(){
         ti[1] = performance.now()
         if(interFrameN == 0){
           if(interAPNG == 0){
-            get_dim(img)
-            c.width = dim[2];
-            c.height = dim[3];
-            context.drawImage(img, ...dim);
-            frameSaver(0);
+            get_dim(img, 4);
+            if(dim[4][2] < maxres[2] || dim[4][3] < maxres[3]){
+              echo("APNG " + seqAPNG[interAPNG] + " did not accommodate max dimension.<br>First APNG must have the highest dimension.");
+              return
+            }
+            c.width = dim[4][2];
+            c.height = dim[4][3];
+            context.drawImage(img, ...dim[4]);
+            frameSaver(0, 4);
             toAPNG(arri);
           } else {
-            if(frameBuffer[1] == seqAPNG[interAPNG] && frameBuffer[2]){
-              new_dim = frameBuffer[2]
-              toAPNG(frameBuffer[3])
+            if(reuse[0] == seqAPNG[interAPNG] && reuse[1]){
+              dim[3] = reuse[1];
+              toAPNG(reuse[2]);
             } else {
-              context.drawImage(img, ...new_dim);
-              frameSaver(1);
-              var promise = new Promise(canvasToAB(c))
+              // optimize frame 1 for joining
+              context.drawImage(img, ...dim[3]);
+              frameSaver(1, 4);
+              let promise = new Promise(canvasToAB(c))
               promise.then(function(arri){
                 arri = Array.from(arri);
-                if (frameBuffer[1] == seqAPNG[interAPNG]){
-                  frameBuffer[2] = new_dim
-                  frameBuffer[3] = arri
+                if (reuse[0] == seqAPNG[interAPNG]){
+                  reuse[1] = dim[3];
+                  reuse[2] = arri;
                 } else {
-                  frameBuffer[2] = false
+                  reuse[1] = false;
                 }
                 img = ABtoIMG(ABtoAB(arri))
-                c.width = dim[2];
-                c.height = dim[3];
+                c.width = dim[4][2];
+                c.height = dim[4][3];
                 context.putImageData(frameBuffer[0], 0, 0);
+                bp = [0, 1];
                 toAPNG(arri);
               });
             }
           }
         } else {
-          context.drawImage(img, ...new_dim);
-          frameSaver(0);
+          context.drawImage(img, ...dim[3]);
+          frameSaver(0, 4);
           toAPNG(arri);
         }
       }
@@ -1296,11 +1321,12 @@ function editframelist(){
   e.classList = "reverse";
 
   e = document.getElementById("resave")
-  if(framearray.length == 1){
-    e.style.display = "none"
-  } else {
-    e.style.display = "inline-block"
-  }
+  e.classList = "next";
+  e.setAttribute("onclick", "compileframes(false);")
+
+  e = document.getElementById("deapng")
+  e.classList = "next";
+  e.setAttribute("onclick", "compileframes(false, true);")
 }
 
 function editapnglist(){
@@ -1324,7 +1350,11 @@ function readframes(filelist){
       arri = new Uint8Array(fr.result);
       img = ABtoIMG([arri])
       img.onload = () => {
-        if (i == 0){
+        if (i == 0 && !framearray.length){
+          get_dim(img, 0);
+          if(!bg){
+            bigres(0);
+          }
           name = filelist[0].name;
         }
         framearray.push([img, filelist[i].name]);
@@ -1379,7 +1409,8 @@ function changebg(f){
   bg = new Image();
   bg.src = window.URL.createObjectURL(f);
   bg.onload = () => {
-    get_dim(bg);
+    get_dim(bg, 2);
+    bigres(2);
     echo("Success loading background")
     addbg.style.display = "none";
     removebg.style.display = "block";
@@ -1578,14 +1609,13 @@ function loaded(){
     readframes(e.target.files);
   });
 
-  document.getElementById("resave").setAttribute("onclick", "compileframes(false);")
-
   background.addEventListener('change', (e) => {
     changebg(e.target.files[0]);
   });
 
   removebg.addEventListener('click', () => {
     bg = false;
+    bigres(0);
     echo("Unloaded background")
     removebg.style.display = "none";
     addbg.style.display = "block";
@@ -1593,6 +1623,7 @@ function loaded(){
 
   loadapng.addEventListener('change', (e) => {
     apngarray = [];
+    maxres = [0, 0, 1, 1];
     readapng(e.target.files);
   });
 
@@ -1669,12 +1700,14 @@ var convert = false;
 var ti = [0, 0, 0, 0];
 var c = document.createElement("canvas");
 var context = c.getContext("2d");
-var frameBuffer = [false, false, false, false]
+var frameBuffer = [false, false, false, false];
+var dim = [false, false, false, false, false];//framearray[0]'s dim, main_dim, bg_dim, make_dim, compileapngs()
+var maxres = [0, 0, 1, 1];
 var bg = false;
-var dim, orig_dim, new_dim, arri, seqFrameN, seqAPNG, img, dl, Module, name, decoder;
+var arri, seqFrameN, seqAPNG, img, dl, Module, name, decoder;
 
 window.onload = () => {
-  document.body.innerHTML = `<div style="margin-bottom:12px;">
+  document.body.innerHTML = `<div style="margin-bottom:12px; background:inherit;">
 <label class="next"><input id="viewer" type="file"></input>🦦 -(Echo file)</label>
 <div class="backtip" style="display:inline-block;" data-tooltip='APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">🦦 -(Production advices)</div>
 <div class="backtip" id="oload" style="display:none;" data-tooltip='Optimize frames with <a href="https://github.com/LI-NA/optipng.js/tree/master/demo/js" target="_blank">optipng.min.js</a>, save next to HTML then reload this page'>🦦 -(Optimize frames)</div>
@@ -1690,18 +1723,18 @@ window.onload = () => {
 <div class="backtip" style="top:-11px; display:table;">🦦 -(Make)</div>
 <label class="next"><input id="loadframes" type="file" multiple></input>Load Frames</label>
 <label class="next"><input id="moreframes" type="file" multiple></input>Load more</label>
-<button id="resave" class="next" style="display:none; position:absolute; right:10px; top:40px;">Resave</button>
 <label id="addbg" class="next" style="position:absolute; right:10px; top:10px;"><input id="background" type="file"></input>Load background</label>
 <button id="removebg" class="reverse" style="display:none; position:absolute; right:10px; top:10px;">Remove background</button>
 <div></div>
 
-<div style="display:flex; width:350px; vertical-align:top;">
-<div id="framelist" class="stdout" style="color:#fd6;" contenteditable="plaintext-only" spellcheck=false><br></div>
+<div style="width:350px; vertical-align:top; display:flex;">
+<div><div id="framelist" class="stdout" style="color:#fd6;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
 <div style="margin:12px;">Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.</div>
 </div>
 <div></div>
 
-<button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">Make APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">emphasizing diffs</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 3px 11px; width:22px;" placeholder="Bad"> fps in dimension: <span id="dimension">-- &times; --</span>
+Make: <button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">emphasizing diffs</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 3px 11px; width:22px;" placeholder="Bad"> fps in dimension: <span id="dimension" style="background:inherit;">NaN &times; NaN</span><br>
+Resave: <button class="previous" onclick="echo('Filelist is empty!')" id="resave">Single-frame APNG</button> <button class="previous" onclick="echo('Filelist is empty!')" id="deapng">Non-APNG</button>
 </div>
 
 
@@ -1713,7 +1746,7 @@ window.onload = () => {
 <div></div>
 
 <div style="display:flex; width:350px; vertical-align:top;">
-<div id="apnglist" class="stdout" style="color:#fd6;" contenteditable="plaintext-only" spellcheck=false><br></div>
+<div><div id="apnglist" class="stdout" style="color:#fd6;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
 <div style="margin:12px;">Edit list to rearrange, repeat, or skip APNG series.</div>
 </div>
 <div></div>
@@ -1733,4 +1766,4 @@ window.onload = () => {
   }
 }
 </script></head><body class="exitmenu">1. Set up and run Schande.bat for its HTTP server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a><br>
-2. Take me to Schande.bat, then launch <a href="http://localhost:8886/APNG Maker.html">http://localhost:8886/APNG Maker.html</a></body></html>
+2. Take me to Schande.bat, then launch <a href="http://127.0.0.1:8886/APNG Maker.html">http://127.0.0.1:8886/APNG Maker.html</a></body></html>

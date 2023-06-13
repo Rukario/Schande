@@ -1423,7 +1423,14 @@ function changebg(f){
 
 
 
-var OgvCtrl = {ogv:null,current:null,ctrl:{},seeking:!1,visible:!1,tick:null,init:function(){
+var OgvCtrl = {
+  ogv:null,
+  current:null,
+  ctrl:{},
+  seeking:!1,
+  visible:!1,
+  tick:null,
+  init:function(){
 
 let e = document.createElement("div");
 e.className="ogv-ctrl";
@@ -1483,7 +1490,37 @@ e.appendChild(t)
 
 this.current = e
 
-},onPlayEnd:function(){OgvCtrl.ogv.seekable.length?OgvCtrl.ogv.currentTime=0:OgvCtrl.ogv.stop(),OgvCtrl.ogv.play()},toggleCtrl:function(){OgvCtrl.visible?OgvCtrl.hideCtrl():(OgvCtrl.current.style.display="flex",OgvCtrl.setTickTimeout(),OgvCtrl.updateTimes(),OgvCtrl.visible=!0)},hideCtrl:function(){OgvCtrl.current.style.display="none",OgvCtrl.clearTickTimeout(),OgvCtrl.visible=!1},toggleSeek:function(){OgvCtrl.seeking=!OgvCtrl.seeking},seekTick:function(){OgvCtrl.setTickTimeout(),OgvCtrl.updateTimes()},setTickTimeout:function(){OgvCtrl.tick=setTimeout(OgvCtrl.seekTick,500)},clearTickTimeout:function(){clearTimeout(OgvCtrl.tick),OgvCtrl.tick=null},updateTimes:function(){
+},
+  onPlayEnd:function(){
+OgvCtrl.ogv.seekable.length?OgvCtrl.ogv.currentTime=0:OgvCtrl.ogv.stop(),
+OgvCtrl.ogv.play()
+},
+  toggleCtrl:function(){
+OgvCtrl.visible?OgvCtrl.hideCtrl():(OgvCtrl.current.style.display="flex",
+OgvCtrl.setTickTimeout(),
+OgvCtrl.updateTimes(),
+OgvCtrl.visible=!0)
+},
+  hideCtrl:function(){
+OgvCtrl.current.style.display="none",
+OgvCtrl.clearTickTimeout(),
+OgvCtrl.visible=!1
+},
+  toggleSeek:function(){
+OgvCtrl.seeking=!OgvCtrl.seeking
+},
+  seekTick:function(){
+OgvCtrl.setTickTimeout(),
+OgvCtrl.updateTimes()
+},
+  setTickTimeout:function(){
+OgvCtrl.tick=setTimeout(OgvCtrl.seekTick,250)
+},
+  clearTickTimeout:function(){
+clearTimeout(OgvCtrl.tick),
+OgvCtrl.tick=null
+},
+  updateTimes:function(){
 if(!OgvCtrl.ogv.duration){
   return;
 }
@@ -1493,7 +1530,24 @@ t=Math.floor(OgvCtrl.ogv.duration-60*e)
 a=Math.floor(OgvCtrl.ogv.currentTime/60)
 i=Math.floor(OgvCtrl.ogv.currentTime-60*a);
 OgvCtrl.ctrl.ts.textContent=`${a}:${i.toString().padStart(2,"0")} / ${e}:${t.toString().padStart(2,"0")}`
-},togglePlay:function(){OgvCtrl.ogv.paused?OgvCtrl.ogv.play():OgvCtrl.ogv.pause(),OgvCtrl.ctrl.play.classList.toggle("ogv-toggled")},onSeek:function(){OgvCtrl.ogv.currentTime=this.value/100*OgvCtrl.ogv.duration},toggleMute:function(){OgvCtrl.ogv.muted=!OgvCtrl.ogv.muted,OgvCtrl.ctrl.mute.classList.toggle("ogv-toggled")},onVolInput:function(){OgvCtrl.ogv.volume=this.value/100},toggleFullscreen:function(){document.fullscreenElement?document.exitFullscreen():OgvCtrl.ogv.parentNode.requestFullscreen()}}
+},
+  togglePlay:function(){
+OgvCtrl.ogv.paused?OgvCtrl.ogv.play():OgvCtrl.ogv.pause(),
+OgvCtrl.ctrl.play.classList.toggle("ogv-toggled")
+},
+  onSeek:function(){
+OgvCtrl.ogv.currentTime=this.value/100*OgvCtrl.ogv.duration
+},
+  toggleMute:function(){
+OgvCtrl.ogv.muted=!OgvCtrl.ogv.muted,
+OgvCtrl.ctrl.mute.classList.toggle("ogv-toggled")
+},
+  onVolInput:function(){
+OgvCtrl.ogv.volume=this.value/100
+},
+  toggleFullscreen:function(){
+document.fullscreenElement?document.exitFullscreen():OgvCtrl.ogv.parentNode.requestFullscreen()
+}}
 
 
 
@@ -1517,15 +1571,20 @@ function webmplayer(){
   s.className = "ogv-current"
   t = new OGVPlayer({wasm:!0,threading:!1,simd:!1})
   s.appendChild(t)
-  t.onloadedmetadata= () => {
-    s.style.width = (400 / t.videoHeight * t.videoWidth) + "px";
-    s.style.height = "400px";
+  t.onloadedmetadata = () => {
+    let h = t.videoHeight;
+    let a = t.videoWidth/h;
+    if (h>400){
+      h = 400;
+    }
+    t.width = h*a + "px";
+    t.height = h + "px";
   }
   stdout.appendChild(s)
   t.src = currentvideo;
   t.parentNode.appendChild(OgvCtrl.current)
   t.addEventListener("mouseup", OgvCtrl.toggleCtrl)
-  OgvCtrl.ogv = t
+  OgvCtrl.ogv = t;
   OgvCtrl.togglePlay()
 }
 
@@ -1553,7 +1612,7 @@ function loaded(){
       }
       if (window.OGVPlayer){
         currentvideo = window.URL.createObjectURL(f);
-        webmplayer()
+        webmplayer();
       } else {
         var v = document.createElement("video");
         v.style = "max-height:400px;"

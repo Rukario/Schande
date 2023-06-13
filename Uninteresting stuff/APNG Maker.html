@@ -467,7 +467,9 @@ function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=
     } else {
       echo("Frame " + (interFrameN+1));
       document.title = "Frame " + (interFrameN+1);
-      //echoIMG(ABtoIMG(ABtoAB(arri)), "Frame " + (interFrameN+1) + ".png");
+      if(interecho){
+        echoIMG(ABtoIMG(ABtoAB(arri)), "Frame " + (interFrameN+1) + ".png");
+      }
     }
     toFrame([1000/(fps/fpsm), 1000]);
     callback(interFrameN + nextFrame, callback2);
@@ -1241,7 +1243,9 @@ function compileapngs(){
         reuse[0] = seqAPNG[interAPNG];
         document.title = next;
         echo(next);
-        //echoIMG(img, next + ".png");
+        if(interecho){
+          echoIMG(img, next + ".png");
+        }
         toFrame([frame.numerator, frame.denominator], bp);
         if(interFrameN+1 == frames.length){
           readFile(interAPNG+1);
@@ -1666,6 +1670,18 @@ function loaded(){
     }
   });
 
+  debug.addEventListener('click', (e) => {
+    if (debug.classList.contains("reverse")){
+      debug.classList = "inverse";
+      debug.innerHTML = "Debug";
+      interecho = true;
+    } else {
+      debug.classList = "reverse";
+      debug.innerHTML = "Production";
+      interecho = false;
+    }
+  });
+
   loadframes.addEventListener('change', (e) => {
     framearray = [];
     readframes(e.target.files);
@@ -1770,6 +1786,7 @@ var frameBuffer = [false, false, false, false];
 var dim = [false, false, false, false, false];//framearray[0]'s dim, main_dim, bg_dim, make_dim, compileapngs()
 var maxres = [0, 0, 1, 1];
 var bg = false;
+var interecho = false;
 var arri, seqFrameN, seqAPNG, img, dl, Module, name, decoder;
 
 window.onload = () => {
@@ -1823,7 +1840,7 @@ Resave: <button class="previous" onclick="echo('Filelist is empty!')" id="resave
 
 
 
-<div class="stdout" id="stdout" style="white-space:initial;">🦦 -(Output)</div>`
+<div class="stdout" id="stdout" style="white-space:initial;">🦦 -(Output) <button class="reverse" id="debug" style="margin:0px; padding:3px 11px 4px;">Production</button></div>`
   loaded();
   lazyload();
   //document.addEventListener("click", Expander);

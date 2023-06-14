@@ -6,6 +6,7 @@
 <head><style>
 html,body {caret-color:#ff8228; font-family:courier; font-size:14px; margin-bottom:-2px; padding-top:2px; padding:2px;}
 [contenteditable]:focus {outline: none;}
+#getfps:focus {outline:none;}
 a {color:#ff9449;}
 a:visited {color:#ffc66d;}
 .frame{display:inline-block; vertical-align:top; position:relative;}
@@ -174,7 +175,7 @@ function quicklook(e) {
       context.fillRect(...dim[3]);
     } else {
       m.onload = function () {
-        fps = 2
+        fps = 1
         //s.onload = apngdiff(m, s);
         s.onload = canvasdiff(m, s);
       }
@@ -286,21 +287,20 @@ function isVideo(ext) {
 }
 
 function setfps(text) {
-  let d = document.getElementById("fps");
   if(isNaN(text)){
-    d.style.backgroundColor = "#399"
+    getfps.style.backgroundColor = "#399"
     fps = 0;
   } else {
     if(0<text && text<=120){
-      d.style.backgroundColor = "#066"
+      getfps.style.backgroundColor = "#066"
       fps = Number(text);
     } else {
-      d.style.backgroundColor = "#399"
+      getfps.style.backgroundColor = "#399"
       fps = 0;
     }
   }
   if(!text){
-    d.style.backgroundColor = "#066"
+    getfps.style.backgroundColor = "#066"
     fps = 0;
   }
 }
@@ -455,6 +455,7 @@ function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=
       callback2(interFrameN + nextFrame)
     } else {
       document.title = "Make APNG";
+      setfps(getfps.value);
     }
   } else if(interFrameN == undefined){
     document.title = "Make APNG";
@@ -533,6 +534,7 @@ function edge(m) {
   }
   context.drawImage(m, ...dim[1]);
   context.putImageData(Convolute(context.getImageData(...dim[1]), [-1, -1, -1, -1,  8, -1, -1, -1, -1]), 0, 0);
+  fps = 1;
   canvasToFrame(staticAPNG, -2, 1)
 }
 
@@ -1058,6 +1060,7 @@ function makeAPNG(interFrameN, callback=false) {
   //echoPalette();
   echoIMG(ABtoIMG(newAPNG), name.split('.').slice(0, -1).join('.') + " (apng).png");
   document.title = "Make APNG";
+  setfps(getfps.value);
   newAPNG = [];
   if (callback){
     callback(interFrameN-1)
@@ -1141,6 +1144,7 @@ function compileframes(multi=true, dea=false){
     if(interFrameN+1 == seqFrameN.length){
       if(1 == seqFrameN.length){
         name = framearray[seqFrameN[interFrameN]-1][1];
+        fps = 1;
         canvasToFrame(staticAPNG, 0, 1);
       } else {
         canvasToFrame(makeAPNG, interFrameN, fpsm);
@@ -1182,6 +1186,7 @@ function compileframes(multi=true, dea=false){
       updateFrame(interFrameN, fpsm)
     } else {
       name = framearray[seqFrameN[interFrameN]-1][1];
+      fps = 1;
       if(interFrameN+1 == seqFrameN.length){
         canvasToFrame(dea?undefined:staticAPNG, interFrameN, fpsm)
       } else {
@@ -1703,6 +1708,10 @@ function loaded(){
     addbg.style.display = "block";
   });
 
+  getfps.addEventListener('keyup', () => {
+    setfps(getfps.value);
+  });
+
   loadapng.addEventListener('change', (e) => {
     apngarray = [];
     maxres = [0, 0, 1, 1];
@@ -1811,12 +1820,12 @@ window.onload = () => {
 <div></div>
 
 <div style="width:350px; vertical-align:top; display:flex;">
-<div><div id="framelist" class="stdout" style="color:#fd6;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
+<div><div id="framelist" class="stdout" style="color:#fd6; cursor:text;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
 <div style="margin:12px;">Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.</div>
 </div>
 <div></div>
 
-Make: <button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">emphasizing diffs</button> at <input id="fps" class="next" type="text" oninput="setfps(this.value);" style="padding: 3px 11px; width:22px;" placeholder="Bad"> fps in dimension: <span id="dimension" style="background:inherit;">NaN &times; NaN</span><br>
+Make: <button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">emphasizing diffs</button> at <input id="getfps" class="next" type="text" style="padding: 3px 11px; width:22px; cursor:text;" placeholder="Bad"> fps in dimension: <span id="dimension" style="background:inherit;">NaN &times; NaN</span><br>
 Resave: <button class="previous" onclick="echo('Filelist is empty!')" id="resave">Single-frame APNG</button> <button class="previous" onclick="echo('Filelist is empty!')" id="deapng">Non-APNG</button>
 </div>
 
@@ -1829,7 +1838,7 @@ Resave: <button class="previous" onclick="echo('Filelist is empty!')" id="resave
 <div></div>
 
 <div style="display:flex; width:350px; vertical-align:top;">
-<div><div id="apnglist" class="stdout" style="color:#fd6;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
+<div><div id="apnglist" class="stdout" style="color:#fd6; cursor:text;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
 <div style="margin:12px;">Edit list to rearrange, repeat, or skip APNG series.</div>
 </div>
 <div></div>

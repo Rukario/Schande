@@ -182,11 +182,13 @@ function makedots(cs, pos){
   for(var i=0; i<gradient.length; i++){
     var long = gradient[i].length*18-18
     var fcc = "";
-    for(var o=0; o<gradient[i].length; o++){
-      fcc += ", " + gradient[i][o]
+    fcc += ", " + gradient[i][0] + " 6px"
+    for(var o=1; o<gradient[i].length; o++){
+      fcc += ", " + gradient[i][o] + " " + (6+18*o) + "px"
     }
     fcc += ", " + gradient[i][gradient[i].length-1]
-    gradientbg += "<div style='display:inline-block; padding:0px 3px;'><div class='dot' style='pointer-events:none; height: 12px; width:" + (12 + long) + "px; border: none; background: linear-gradient(to right" + fcc + ")';></div></div>";
+
+    gradientbg += "<div style='display:inline-block; padding:0px 3px;'><div class='dot' style='pointer-events:none; height: 12px; width:" + (12 + long) + "px; border: none; background: linear-gradient(90deg" + fcc + ")';></div></div>";
   }
   return "<div style='display:inline-block;'><div style='position:absolute;'>" + colortip + "</div>" + gradientbg + "</div>"
 }
@@ -467,6 +469,10 @@ function FFdown(e) {
     colorsels = Object.keys(colorsets)
     var colortip = ""
     for (var css=0; css<colorsels.length; css++){
+      if(colorsets[colorsels[css]] == true){
+        colortip += colorsels[css] + "<br>"
+        continue
+      }
       colortip += "&gt; <span class='colorset'>" + colorsels[css] + "</span>"
       colortip += makedots(colorsets[colorsels[css]], 0) + "<br>"
     }

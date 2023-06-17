@@ -329,6 +329,9 @@ function FFdown(e) {
     gallery.innerHTML = buffer;
     lazyload();
   } else if (e.target.getAttribute("id") == "gallerysave"){
+    if (gallerysave.classList == "previous"){
+      return;
+    }
     let expires = new Date(Date.now() + 365 * 864e5).toUTCString()
     var h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/")
     document.cookie = "gallerysave=" + encodeURIComponent(h) + "; expires=" + expires + "; path=/; SameSite=Strict;";
@@ -602,10 +605,10 @@ function echo(B, b) {
 }
 
 function edit(){
-  var h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/")
-  n = 4085 - encodeURIComponent(h).length;
-  gallerysave.innerHTML = "Save (" + n + " chars left)"
-  if (0 > n){
+  let h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/")
+  let n = encodeURIComponent(h).length;
+  gallerysave.innerHTML = "Save " + n + "/4085"
+  if (4085 < n){
     gallerysave.classList = "previous";
   } else {
     gallerysave.classList = "next";

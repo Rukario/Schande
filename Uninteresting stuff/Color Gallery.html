@@ -303,7 +303,7 @@ function FFdown(e) {
     }
     rainbow = []
     for (var i=0;i<lines.length;i++){
-      if (lines[i] in colorsets){
+      if (lines[i] in colorsets && colorsets[lines[i]] != true){
         let cs = colorsets[lines[i]]
         rainbowfade = false;
         for(var o=0;o<cs.length;o+=3){

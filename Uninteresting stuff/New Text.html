@@ -5,15 +5,16 @@
 <meta name="viewport" content="user-scalable=0">
 <title>New Text.txt</title>
 <head><style>
-html,body {caret-color:#ff8228; font-family:courier; font-size:14px; white-space:pre-wrap; margin:0; padding:0;}
+html,body {font-family:courier; font-size:14px; margin:0; padding:0;}
 [contenteditable]:focus {outline:none;}
 #calc:focus {outline:none;}
-.editor {padding:12px; padding-top:52px; min-width:calc(100% - 24px); min-height:81vh; line-height:1.1;}
+.editor {padding:12px; padding-top:52px; min-width:calc(100% - 24px); min-height:81vh; line-height:1.1; white-space:pre-wrap;}
 a {color:#ff9449;}
 a:visited {color:#ffc66d;}
 img {vertical-align:top;}
 h1,h2,h3,h4,h5,h6{margin:4px;}
-.sel{opacity:75%}
+.colorset{color:#bfddc6; cursor:pointer;}
+.colorsel{opacity:75%}
 .hyperlink{color:#bfddc6; text-decoration:underline;}
 .blink{animation: bl 1000ms linear infinite;}
 @keyframes bl{50%{opacity:50%;}}
@@ -281,6 +282,22 @@ function plaintext(elem, e) {
 }
 
 function edit() {
+/* test scroll into view for undid texts
+  let sel = editor.ownerDocument.defaultView.getSelection();
+  let len = sel.toString().length;
+  let pos = sel.getRangeAt(0);
+  let preCaretRange = pos.cloneRange();
+  preCaretRange.selectNodeContents(editor);
+  preCaretRange.setEnd(pos.endContainer, pos.endOffset);
+  cur = preCaretRange.toString().length;
+
+  calc.value = cur;
+  editor.selectionStart = editor.selectionEnd = cur;
+  editor.scrollTop = cur;
+  editor.selectionStart = cur;
+  editor.selectionEnd = cur;
+*/
+
   if (!(document.title.includes(' *'))){
     document.title = document.title + ' *';
     local_backtip.style.display = "none";
@@ -768,6 +785,7 @@ window.onload = () => {
     render();
     return;
   } else {
+    document.body.style.caretColor = "#ff8228";
     document.body.setAttribute("data-launch", true);
   }
   var scale = "26px";

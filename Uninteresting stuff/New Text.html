@@ -7,7 +7,6 @@
 <head><style>
 html,body {caret-color:#ff8228; font-family:courier; font-size:14px; margin:0; padding:0; white-space:pre-wrap;}
 [contenteditable]:focus {outline:none;}
-#calc:focus {outline:none;}
 .editor {padding:12px; padding-top:52px; min-width:calc(100% - 24px); min-height:81vh; line-height:1.1;}
 a {color:#ff9449;}
 a:visited {color:#ffc66d;}
@@ -19,6 +18,7 @@ h1,h2,h3,h4,h5,h6{margin:4px;}
 .blink{animation: bl 1000ms linear infinite;}
 @keyframes bl{50%{opacity:50%;}}
 input[type="text"] {padding:3px 11px; width:86px;} /*Firefox: padding:3px 11px 4px;*/
+input[type="text"]:focus {outline:none;}
 input[type="file"] {display: none;}
 input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0;}
 ::placeholder {color:#3cb;}

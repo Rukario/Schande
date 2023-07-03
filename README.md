@@ -38,4 +38,16 @@ Here's some other uninteresting stuff
   - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/Ferchel.bat">Ferchel.bat</a> - Filelist snapshot and compare folders for a manual "incremental backup"/folder-merging-esque and file-merging-esque with helps of a certain text editor, to make copies round up between PC and iOS/iPadOS storage (through iTunes saving selected folders to a temporary space) a bit more manageable. The truth of my life on a 5GB iCloud storage plan.
   - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/APNG%20Maker.html">APNG Maker.html</a> - APNG production (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/APNG%20Maker.html">demo</a>)
   - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/Color%20Gallery.html">Color Gallery.html</a> - WIP BD color finder (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/Color%20Gallery.html">demo</a>)
-  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/New%20Text.html">New Text.html</a> - A good UTF-8 text editor for neglected OS but has good browser (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/New%20Text.html">demo</a>), collaborate with Shortcuts app for a proper experience, starting point here: http://redd.it/pfikka
+  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/New%20Text.html">New Text.html</a> - A good UTF-8 text editor for neglected OS but has good browser (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/New%20Text.html">demo</a> | <a href="https://rukario.github.io/Schande/Uninteresting%20stuff/New%20Text.html?🦦">easter egg</a>), collaborate with New Text and Save Text for iOS Shortcuts app
+
+New Text - https://www.icloud.com/shortcuts/4a4a4580207540e5a4865c4d7c9781ae
+
+- Open directly from Shortcuts screen for a prompt to save the demo HTML to Files app for offline use.
+
+- Create and edit text files as you would with a text editor! There are inline calculator and several text manipulation tools you should try. Bookmark the text editor UI to your Favorite screen for a faster access.
+
+- Choose New Text from share sheet on another page to view its source.
+
+Save Text - https://www.icloud.com/shortcuts/b7023779316f492facc3b594d7f665a4
+
+- Choose from share sheet on the text editor to save your precious document on iCloud/Ask where to save.

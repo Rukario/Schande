@@ -221,6 +221,9 @@
   "Tie Dye":["orchid", 0, 0, "lemon", 0, 0, "orange", 0, 0, "xanadu", 0, 0],
   "Terracotta":["bronze", 0, 0, "teal", 0, 0],
   "Psychedelic":["grape", 0, 0, "beige", 0, 0, "sky blue", 0, 0, "cherry", 0, 0],
+  "Jasmine Dragon":["robin egg", 0, 0, "maroon", 2, 0, "bronze", 0, 0, "teal", 3, 0, "robin egg", 3, 0],
+  "Iced Raspberry":["azure", 0, 0, "garnet", 2, 0, "beeswax", 2, 0, "cream", 0, 0],
+  "Iced Lemon":["orchid", 0, 0, "tennis ball", 2, 0, "sky blue", 0, 0, "white", 2, 0],
 
   "More colors":true,
   "Toxin":["grape", 0, 0],
@@ -419,6 +422,7 @@
   "Spooky Seconds":["magic", 3, 0, "arctic", 3, 0],
 
   "Signature":true,
+  "Abyss' Signature":["gold", 0, 0, "orange", 0, 2, "maroon", 0, 2, "galaxy", 0, 0],
   "Apollo's Signature":["white", 0, 0, "azure", 2, 0, "mold", 0, 0],
   "Austin's Signature":["white", 0, 0, "sky blue", 0, 2, "blueberry", 2, 0],
   "Axel's Signature":["white", 0, 0, "sky blue", 0, 2, "machine", 0, 2],
@@ -543,6 +547,7 @@
   "Magnus' Sheath Signature":["red", 0, 1],
 
   "Natural":true,
+  "Abyss' Natural":["sky blue", 2, 0, "machine", 2, 0],
   "Apollo's Natural":["lavender", 0, 0, "beeswax", 0, 0],
   "Audio Jack Natural":["smoke", 0, 0, "black", 0, 0],
   "Austin's Natural":["scarlet", 0, 0, "cream", 0, 0, "copper", 3, 0],

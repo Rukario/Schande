@@ -79,6 +79,17 @@ var cn = [
   "grape", "violet", "psychic", "lavender"
 ]
 
+var palette = [
+  ["concrete", "smoke", "cream", "white"],
+  ["black", "galaxy", "anubis", "mold", "machine"],
+  ["wine", "garnet", "crimson", "chocolate", "olive", "forest", "ink", "indigo", "grape"],
+  ["rosewood"],
+  ["purple", "rose", "cherry", "red", "chestnut", "bronze", "beeswax", "fern", "green", "teal", "azure", "blueberry", "electric indigo", "violet"],
+  ["cerise", "scarlet", "copper", "orange", "gold", "lemon", "tennis ball", "lime", "robin egg", "sky blue", "glaucous", "lavender indigo", "psychic"],
+  ["magenta", "orchid", "coral"],
+  ["cherry blossom", "rouge", "jovial", "peach", "honey", "brass", "beige", "pistachio", "xanadu", "mist", "arctic", "magic", "lavender"]
+]
+
 var colorsets = {};
 var pictures = {};
 function loadcolors(file){
@@ -313,6 +324,19 @@ function FFdown(e) {
           }
         }
         rainbowfade = false;
+      } else if (lines[i] == "palette"){
+        for (var p=0;p<palette.length;p++){
+          rainbowfade = false;
+          for(var o=0;o<palette[p].length;o++){
+            rainbow.push(palette[p][o], 0, rainbowfade?2:0)
+            rainbowfade = true;
+            if(rainbow.length>408*3){
+              rainbow = rainbow.slice(3);
+              rainbow[2] = 0;
+            }
+          }
+          rainbowfade = false;
+        }
       } else if (lines[i] in fc){
         rainbow.push(lines[i], 0, rainbowfade?2:0)
         rainbowfade = true;

@@ -46,6 +46,7 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 .aczo28 {bottom:5px; padding:10px 7px 11px; width:44px;}
 .bloom {border-radius: 12px; padding:0 12px; margin:0 -12px; background-color:#ffffff; box-shadow: 0 0 60px 30px rgba(255, 255, 255, 0.6), 0 0 100px 60px rgba(255, 0, 255, 0.4), 0 0 400px 200px rgba(255, 255, 255, 0.2);}
 #cursor_tooltip{z-index:2; position:absolute; left:0px; top:0px; right:initial; display:none; transition: left .5s linear;}
+#cursor_focus{position:absolute; left:0px; top:0px; right:initial; pointer-events:none;}
 .cursed{pointer-events:none;}
 .backtip {display:none; position:relative; line-height:1.1; font-size:11px;}
 .backtip::before {content:''; position:absolute; left:0; top:0; z-index:1; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none;}
@@ -54,6 +55,7 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 ::selection {background:rgba(255, 130, 40, 0.25);}
+.stdout {display:none; white-space:pre; line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; padding:6px; margin-top:12px;}
 
 /*
 My red modification of https://github.com/highlightjs/highlight.js/blob/main/src/styles/base16/railscasts.css
@@ -281,22 +283,24 @@ function plaintext(elem, e) {
   document.execCommand('insertHTML', false, text);
 }
 
+function echo(B, b) {
+  if (!b) B = "<br>" + B
+  if (b) B = " " + B
+  stdout.insertAdjacentHTML("beforeend", B);
+  stdout.style.display = "inline-block";
+}
+
 function edit() {
-/* test scroll into view for undid texts
   let sel = editor.ownerDocument.defaultView.getSelection();
   let len = sel.toString().length;
   let pos = sel.getRangeAt(0);
   let preCaretRange = pos.cloneRange();
-  preCaretRange.selectNodeContents(editor);
-  preCaretRange.setEnd(pos.endContainer, pos.endOffset);
-  cur = preCaretRange.toString().length;
-
-  calc.value = cur;
-  editor.selectionStart = editor.selectionEnd = cur;
-  editor.scrollTop = cur;
-  editor.selectionStart = cur;
-  editor.selectionEnd = cur;
-*/
+  where = preCaretRange.getBoundingClientRect()
+  cursor_focus.style.left = (window.scrollX + where.left - 100) + "px";
+  cursor_focus.style.top = (window.scrollY + where.top - 200) + "px";
+  if(cursor_focus.offsetTop+200 < window.pageYOffset || cursor_focus.offsetTop+200 > window.pageYOffset+window.innerHeight || cursor_focus.offsetLeft+200 < window.pageXOffset || cursor_focus.offsetLeft+200 > window.pageXOffset+window.innerWidth){
+    cursor_focus.scrollIntoView({top: 0, behavior: "smooth", inline:"start"})
+  }
 
   if (!(document.title.includes(' *'))){
     document.title = document.title + ' *';
@@ -607,7 +611,7 @@ function newtip(y, z){
 
 function toolbar(d){
   document.body.className = "exitmenu hljs";
-  document.body.innerHTML = `<div id="cursor_tooltip"></div><div id="drag" style="margin:0px 12px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><div id="dimm" style="display:none;"><button class="previous" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
+  document.body.innerHTML = `<div id="cursor_tooltip"></div><div id="cursor_focus"></div><div id="drag" style="margin:0px 12px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><div id="dimm" style="display:none;"><button class="previous" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
     <option value="0">Remove...</option>
     <option value="1">Remove all duplicate lines</option>
     <option value="2">Remove all new lines</option>
@@ -619,7 +623,7 @@ function toolbar(d){
     <option value="8">Wipe all after cursor</option>
     <option value="9">Links only</option>
     <option value="10">De-highlight (until empty text replacement)</option>
-</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none"><button class="next" onclick="fraktur()">where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗</button>) (can't be undone)</div><div id="dim" style="display:block;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); left:-16px;" onclick="relbar(this, '🫦')">👄</button><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calc" class="next" style="width:116px;" type="text" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[4]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"></div><div id="tooltip" class="tooltip"></div></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + (d?(!bigdoc&&canihljs?hljs.highlightAuto(d).value:d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")).replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| )/g, '<span class="hyperlink">$1</span>$2'):"<br>") + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false><br></div>`;
+</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none"><button class="next" onclick="fraktur()">where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗</button>) (can't be undone)</div><div id="dim" style="display:block;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); left:-16px;" onclick="relbar(this, '🫦')">👄</button><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calc" class="next" style="width:116px;" type="text" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[4]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"></div><div id="tooltip" class="tooltip"></div></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + (d?(!bigdoc&&canihljs?hljs.highlightAuto(d).value:d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")).replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| )/g, '<span class="hyperlink">$1</span>$2'):"<br>") + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false><br></div><div class="stdout" id="stdout"></div>`;
   editor = document.getElementById("editable");
   editdiff = document.getElementById("editable2");
   let left = () => {

@@ -298,7 +298,7 @@ function edit() {
   where = preCaretRange.getBoundingClientRect()
   cursor_focus.style.left = (window.scrollX + where.left - 100) + "px";
   cursor_focus.style.top = (window.scrollY + where.top - 200) + "px";
-  if(cursor_focus.offsetTop+200 < window.pageYOffset || cursor_focus.offsetTop+200 > window.pageYOffset+window.innerHeight || cursor_focus.offsetLeft+200 < window.pageXOffset || cursor_focus.offsetLeft+200 > window.pageXOffset+window.innerWidth){
+  if(cursor_focus.offsetTop+200 < window.pageYOffset || cursor_focus.offsetTop+200 > window.pageYOffset+window.innerHeight || cursor_focus.offsetLeft+100 < window.pageXOffset || cursor_focus.offsetLeft+100 > window.pageXOffset+window.innerWidth){
     cursor_focus.scrollIntoView({top: 0, behavior: "smooth", inline:"start"})
   }
 

@@ -469,10 +469,10 @@ function FFdown(e) {
     for (var i=0; i<keys.length; i++){
       var k = colorsets[keys[i]]
       var featured = false;
-      if(9 < k.length){
+      if(10 < k.length){
        featured = true;
       } else {
-        var pos = 0
+        var pos = 1
         while (pos < k.length){
           if (k[pos+2] > 1){
             featured = true;
@@ -487,8 +487,10 @@ function FFdown(e) {
     }
     var colortip = ""
     for (var css=0; css<colorsels.length; css++){
-      colortip += "&gt; <span class='colorset'>" + colorsels[css] + "</span>"
-      colortip += makedots(colorsets[colorsels[css]], 0) + "<br>"
+      let cs = colorsets[colorsels[css]]
+      let ct = cs[0]?" data-tooltip='" + (Array.isArray(cs[0])?cs[0].join(' ꍯ '):cs[0]) + "'":""
+      colortip += "&gt; <span class='colorset'" + ct + ">" + colorsels[css] + "</span>"
+      colortip += makedots(cs, 1) + "<br>"
     }
     colorlist.innerHTML += colortip
   } else if (e.target.getAttribute("id") == "viewall"){
@@ -496,12 +498,14 @@ function FFdown(e) {
     colorsels = Object.keys(colorsets)
     var colortip = ""
     for (var css=0; css<colorsels.length; css++){
-      if(colorsets[colorsels[css]] == true){
+      let cs = colorsets[colorsels[css]]
+      if(cs == true){
         colortip += colorsels[css] + "<br>"
         continue
       }
-      colortip += "&gt; <span class='colorset'>" + colorsels[css] + "</span>"
-      colortip += makedots(colorsets[colorsels[css]], 0) + "<br>"
+      let ct = cs[0]?" data-tooltip='" + (Array.isArray(cs[0])?cs[0].join(' ꍯ '):cs[0]) + "'":""
+      colortip += "&gt; <span class='colorset'" + ct + ">" + colorsels[css] + "</span>"
+      colortip += makedots(colorsets[colorsels[css]], 1) + "<br>"
     }
     colorlist.innerHTML += colortip
   } else if (e.target.hasAttribute("data-color")){
@@ -527,7 +531,7 @@ function FFdown(e) {
     for (var i=0; i<keys.length; i++){
       var k = colorsets[keys[i]]
       var featured = false;
-      var pos = 0
+      var pos = 1
       while (pos < k.length){
         if (k[pos] == t){
           if (translucents.classList == "previous"){
@@ -551,8 +555,10 @@ function FFdown(e) {
     }
     var colortip = ""
     for (var css=0; css<colorsels.length; css++){
-      colortip += "&gt; <span class='colorset'>" + colorsels[css] + "</span>"
-      colortip += makedots(colorsets[colorsels[css]], 0) + "<br>"
+      let cs = colorsets[colorsels[css]]
+      let ct = cs[0]?" data-tooltip='" + (Array.isArray(cs[0])?cs[0].join(' ꍯ '):cs[0]) + "'":""
+      colortip += "&gt; <span class='colorset'" + ct + ">" + colorsels[css] + "</span>"
+      colortip += makedots(colorsets[colorsels[css]], 1) + "<br>"
     }
     colorlist.innerHTML += colortip
   }

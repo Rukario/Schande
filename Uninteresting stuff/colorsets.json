@@ -228,6 +228,9 @@
   "Jasmine Dragon":[[1235, 1256], "robin egg", 0, 0, "maroon", 2, 0, "bronze", 0, 0, "teal", 3, 0, "robin egg", 3, 0],
   "Iced Raspberry":[[1233, 1255], "azure", 0, 0, "garnet", 2, 0, "beeswax", 2, 0, "cream", 0, 0],
   "Iced Lemon":[[1234, 1254], "orchid", 0, 0, "tennis ball", 2, 0, "sky blue", 0, 0, "white", 2, 0],
+  "Deep Freeze":[[null, 533], "???", 0, 0],
+  "Iceblight":[[null, 571], "???", 0, 0],
+  "Blizzard":[[null, 532], "???", 0, 0],
 
   "More colors":true,
   "Toxin":[1002, "grape", 0, 0],

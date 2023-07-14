@@ -36,6 +36,7 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 .dark {background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
 .close_button {position:absolute; top:15px; right:15px; cursor:pointer;}
 .cursor_tooltip {padding:0px 8px; font-family:sans-serif; font-size:90%; position:absolute; z-index:2; left:0px; top:0px; right:initial; display:none; pointer-events:none;}
+#cursor_focus{position:absolute; left:0px; top:0px; right:initial; pointer-events:none;}
 .frame {display:inline-block; vertical-align:top; position:relative;}
 .dot {height:10px; width:10px; background-color:#333; border-radius:6px; display:inline-block;}
 .stdout {white-space:pre-wrap; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
@@ -635,6 +636,17 @@ function echo(B, b) {
 }
 
 function edit(){
+  let sel = editor.ownerDocument.defaultView.getSelection();
+  let len = sel.toString().length;
+  let pos = sel.getRangeAt(0);
+  let preCaretRange = pos.cloneRange();
+  let where = preCaretRange.getBoundingClientRect()
+  cursor_focus.style.left = (window.scrollX + where.left - 100) + "px";
+  cursor_focus.style.top = (window.scrollY + where.top - 200) + "px";
+  if(cursor_focus.offsetTop+200 < window.pageYOffset || cursor_focus.offsetTop+200 > window.pageYOffset+window.innerHeight || cursor_focus.offsetLeft+100 < window.pageXOffset || cursor_focus.offsetLeft+100 > window.pageXOffset+window.innerWidth){
+    cursor_focus.scrollIntoView({top: 0, behavior: "smooth", inline:"start"})
+  }
+
   let h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/")
   let n = encodeURIComponent(h).length;
   gallerysave.innerHTML = "Save " + n + "/4085"
@@ -735,8 +747,7 @@ var rainbowfade = false;
 var fadesample = makedots(["sky blue", 0, 0, "copper", 0, 2, "chestnut", 0, 2], 0);
 var dotsample = 'sky blue (' + makedots(["sky blue", 0, 0], 0) + ') copper (' + makedots(["copper", 0, 0], 0) + ') then chestnut (' + makedots(["chestnut", 0, 0], 0) + ')';
 window.onload = () => {
-  document.body.innerHTML = `<div class="cursor_tooltip" id="cursor_tooltip" style="transition: left .5s linear;"></div>
-<div class="dark close_button cursor_tooltip" id="tooltip"></div>
+  document.body.innerHTML = `<div id="cursor_focus"></div><div class="cursor_tooltip" id="cursor_tooltip" style="transition: left .5s linear;"></div><div class="dark close_button cursor_tooltip" id="tooltip"></div>
 
 <div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div></div>
 

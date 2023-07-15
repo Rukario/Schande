@@ -1,7 +1,11 @@
 {
   "Aurora":[602, "???", 0, 0],
-
-
+  "Life Cascade":[1246, "???", 0, 0],
+  "Healing Cascade":[1247, "???", 0, 0],
+  "Sunlight Cascade":[1248, "???", 0, 0],
+  "Nature Cascade":[1249, "???", 0, 0],
+  "Harmony Cascade":[1250, "???", 0, 0],
+  "Spirit Cascade":[1251, "???", 0, 0],
 
   "Elements":true,
   "Life":[[887, 895], "garnet", 0, 0, "red", 2, 0, "cerise", 0, 0],
@@ -16,8 +20,6 @@
   "Pride Blue":[1244, "azure", 0, 0],
   "Spirit":[[892, 900], "wine", 0, 0, "violet", 0, 0, "magenta", 0, 0],
   "Pride Purple":[1245, "magenta", 0, 0],
-
-
 
   "Desserts":true,
   "Fat Tuesday":[[1070, 1071], "wine", 0, 0, "lime", 0, 0, "lemon", 0, 0],

@@ -404,7 +404,13 @@ function FFdown(e) {
       mas.style.display = "inline-block";
       mas.setAttribute("data-colorset", t + " mas");
     }
-    checkinv.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + link.getAttribute("data-colorTheme");
+    let ct = link.getAttribute("data-colorTheme")
+    if(ct && ct != "null"){
+      checkinv.style.display = "inline-block"
+      checkinv.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct;
+    } else {
+      checkinv.style.display = "none"
+    }
     let ct2 = link.getAttribute("data-colorTheme2");
     if(ct2){
       checkinv_mas.style.display = "inline-block"
@@ -765,7 +771,7 @@ var dotsample = 'sky blue (' + makedots(["sky blue", 0, 0], 0) + ') copper (' + 
 window.onload = () => {
   document.body.innerHTML = `<div id="cursor_focus"></div><div class="cursor_tooltip" id="cursor_tooltip" style="transition: left .5s linear;"></div><div class="dark close_button cursor_tooltip" id="tooltip"></div>
 
-<div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><a class="next" href="" target="_blank" id="checkinv">Check inventory</a><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div><a class="next" href="" target="_blank" id="checkinv_mas">Check inventory</a></div>
+<div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><a class="next" href="" target="_blank" id="checkinv">🧺</a><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div><a class="next" href="" target="_blank" id="checkinv_mas">ꍯ🧺</a></div>
 
 <div class="next" id="translucents" data-tooltip="Fetch color sets using jam-like or translucent of selected color">Translucents</div><div class="next" id="creative" data-tooltip="Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway and bottom colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights">Creative mode</div><div class="next" id="exotic" style="cursor:pointer;" data-tooltip="View all color sets using fades or 4+ color marbles i.e. can't be altered">Exotic sets</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><span class="tangerine" style="padding:4px;" data-tooltip="• Choose several colors e.g. ${dotsample} for ${fadesample} fade bar to appear, as way to test as well as to anticipate for blend/smear issue.<br>• Write color name or color set name in text field of bookmarked pictures to manipulate fade bar.<br>&nbsp; ◦ <div class='next'>Replace gallery</div> to replace fade bar with written color names.<br>&nbsp; ◦ <div class='next'>Save</div> to save fade bar for next page visit.<br>&nbsp; ◦ Fade ends on non-color line.<br><br>Be mindful of translucent silicones<br>• Translucent silicones may overpower to each other especially darkened and/or pigmented ones if not become dull or muddled.<br>• Use fade bar for blend test of translucent silicones, they become pronounced of that.<br>• Solid silicones can create contours on translucent silicones or 3D depth behind translucent silicones.<br>Open <div class='next'>Gallery</div> for color set named <span class='colorset'>Arctic Ice</span>${makedots(['sky blue', 3, 0], 0)} from sky blue (${makedots(['sky blue', 0, 0], 0)}) color group for photo example of translucent silicone.">:?:</span><div style="display:inline-block;" id="pukefest"></div><div class="dark local_tooltip" id="local_tooltip"></div>
 <div></div>

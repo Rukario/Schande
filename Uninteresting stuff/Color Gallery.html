@@ -391,22 +391,18 @@ function FFdown(e) {
     odnary.style.display = "none";
     cs.style.display = "none";
     mas.style.display = "none";
-    var dispray = false;
     var t = link.innerHTML.toLowerCase()
     if(Object.keys(pictures).includes(t)){
       odnary.style.display = "inline-block";
       odnary.setAttribute("data-colorset", t);
-      dispray = true;
     }
     if(Object.keys(pictures).includes("cs " + t)){
       cs.style.display = "inline-block";
       cs.setAttribute("data-colorset", "cs " + t);
-      dispray = true;
     }
     if(Object.keys(pictures).includes(t + " mas")){
       mas.style.display = "inline-block";
       mas.setAttribute("data-colorset", t + " mas");
-      dispray = true;
     }
     checkinv.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + link.getAttribute("data-colorTheme");
     let ct2 = link.getAttribute("data-colorTheme2");
@@ -416,12 +412,10 @@ function FFdown(e) {
     } else {
       checkinv_mas.style.display = "none"
     }
-    if (dispray){
-      where = link.getBoundingClientRect();
-      gallery_tooltip.style.left = (window.scrollX + where.left -2) + "px";
-      gallery_tooltip.style.top = (window.scrollY + where.top -28) + "px";
-      gallery_tooltip.style.display = "inline-block";
-    }
+    where = link.getBoundingClientRect();
+    gallery_tooltip.style.left = (window.scrollX + where.left -2) + "px";
+    gallery_tooltip.style.top = (window.scrollY + where.top -28) + "px";
+    gallery_tooltip.style.display = "inline-block";
   } else if (e.target.hasAttribute("data-schande")) {
     var t = e.target;
     var a = t.parentNode;

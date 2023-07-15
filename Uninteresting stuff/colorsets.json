@@ -107,6 +107,7 @@
   "Rainbow Strawberry Yogurt Parfait":[192, "rose", 3, 0, "orange", 3, 0, "lemon", 3, 0, "lime", 3, 0, "blueberry", 3, 0, "cherry blossom", 0, 0],
   "Rainbow Blueberry Yogurt Parfait":[1008, "???", 0, 0],
   "Pride Parfait":[1069, "cherry blossom", 0, 0, "cherry", 0, 0, "garnet", 0, 0, "chestnut", 0, 0, "orange", 0, 0, "beeswax", 0, 0, "gold", 0, 0, "brass", 0, 0, "tennis ball", 0, 0, "forest", 0, 0, "lime", 0, 0, "mist", 0, 0, "blueberry", 0, 0, "blueberry", 2, 0, "arctic", 0, 0, "violet", 0, 0, "purple", 0, 0, "lavender", 0, 0],
+  "Aurora":[602, "???", 0, 0],
 
   "Easter":true,
   "Carnival 2018":[424, "sky blue", 0, 0, "wine", 2, 0, "gold", 0, 0],

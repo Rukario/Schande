@@ -652,14 +652,15 @@ function echo(B, b) {
 
 function edit(){
   let sel = editor.ownerDocument.defaultView.getSelection();
-  let len = sel.toString().length;
-  let pos = sel.getRangeAt(0);
-  let preCaretRange = pos.cloneRange();
-  let where = preCaretRange.getBoundingClientRect()
-  cursor_focus.style.left = (window.scrollX + where.left - 100) + "px";
-  cursor_focus.style.top = (window.scrollY + where.top - 200) + "px";
-  if(cursor_focus.offsetTop+200 < window.pageYOffset || cursor_focus.offsetTop+200 > window.pageYOffset+window.innerHeight || cursor_focus.offsetLeft+100 < window.pageXOffset || cursor_focus.offsetLeft+100 > window.pageXOffset+window.innerWidth){
-    cursor_focus.scrollIntoView({top: 0, behavior: "smooth", inline:"start"})
+  if(sel.rangeCount){
+    let pos = sel.getRangeAt(0);
+    let preCaretRange = pos.cloneRange();
+    let where = preCaretRange.getBoundingClientRect()
+    cursor_focus.style.left = (window.scrollX + where.left - 100) + "px";
+    cursor_focus.style.top = (window.scrollY + where.top - 200) + "px";
+    if(cursor_focus.offsetTop+200 < window.pageYOffset || cursor_focus.offsetTop+200 > window.pageYOffset+window.innerHeight || cursor_focus.offsetLeft+100 < window.pageXOffset || cursor_focus.offsetLeft+100 > window.pageXOffset+window.innerWidth){
+      cursor_focus.scrollIntoView({top: 0, behavior: "smooth", inline:"start"})
+    }
   }
 
   let h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/")

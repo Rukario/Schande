@@ -93,6 +93,7 @@ var palette = [
 
 var colorsets = {};
 var pictures = {};
+var swatches = {};
 function loadcolors(file){
   var xhr = new XMLHttpRequest();
   var isTainted = true;
@@ -105,8 +106,10 @@ function loadcolors(file){
       if (xhr.status !== 404 && xhr.responseText) {
         if(file == "colorsets.json"){
           colorsets = JSON.parse(xhr.responseText);
-        } else {
+        } else if(file == "pictures.json"){
           pictures = JSON.parse(xhr.responseText);
+        } else {
+          swatches = JSON.parse(xhr.responseText);
         }
       } else if (xhr.responseText){
         local_tooltip.style.display = "inline-block";
@@ -280,6 +283,14 @@ function makegallery(colorset){
 function makelink(cs){
   let c = colorsets[cs]
   let tt = c[0]?(Array.isArray(c[0])?c[0].join(' ꍯ '):c[0]):""
+  let lowkey = cs.toLowerCase()
+  if(lowkey in swatches){
+    tt += "<br>" + swatches[lowkey]["description"]
+    tt += "<br><img style='vertical-align:middle;' src='" + swatches[lowkey]["swatchImage"] + "'>"
+    if(lowkey + " mas" in swatches){
+      tt += " ꍯ <img src='" + swatches[lowkey + " mas"]["swatchImage"] + "'>"
+    }
+  }
   let s = document.createElement("span");
   s.classList.add("colorset")
   if(Array.isArray(c[0])){
@@ -778,18 +789,19 @@ window.onload = () => {
 
 <div style="display:inline-block; position:relative; vertical-align:top; display:flex;">
 <div id="colortable" style="vertical-align:top; display:inline-block; position:relative; color:#000; min-width:316px; max-width:316px;"></div>
-<div id="colorlist" style="display:inline-block; vertical-align:top; white-space:pre;"></div>
+<div id="colorlist" style="display:inline-block; vertical-align:top; white-space:pre; margin-bottom:96px;"></div>
 <div style="vertical-align:top;">
 
 <div class="stdout" id="stdout" style="padding:0;"><div style="padding:4px 4px 0px 4px;">🦦 -(Bookmarked pictures) <div class="next" id="replace" style="cursor:pointer;">Replace gallery</div><div class="previous" id="gallerysave" style="cursor:pointer;" data-tooltip="Save text field as cookie for next page visit">Save</div><input id="calc" class="next" style="width:100px;" type="text" placeholder="Calculator"></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false><br></div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
 <div></div>
 <div id="gallery" style="display:inline-block;"></div>
 <div></div>
-<div class="next" id="more" style="display:none; border:16px solid transparent; border-bottom:64px solid transparent; background-clip: padding-box;"></div>
+<div class="next" id="more" style="display:none; border:16px solid transparent; border-bottom:96px solid transparent; background-clip: padding-box;"></div>
 </div>
 </div>`
   loadcolors("colorsets.json")
   loadcolors("pictures.json")
+  loadcolors("swatches.json")
   for(var i=0; i < cn.length; i++){
     if(cn[i] == null){
       colortable.innerHTML += "<div class='cell' data-color=''>&nbsp;</div>"

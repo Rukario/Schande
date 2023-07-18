@@ -1641,11 +1641,13 @@ def overwrite(ondisk, todisk):
 
 
 
-def fetch(url, stderr="", dl=0, threadn=0, data=None, method=None):
+def fetch(url, stderr="", dl=0, threadn=0, data=None, method=None, hydra=None):
     referer = x[0] if (x := [v for k, v in navigator["referers"].items() if url.startswith(k)]) else ""
     ua = x[0] if (x := [v for k, v in navigator["agent"].items() if url.startswith(k)]) else 'Mozilla/5.0'
     headers = {x[0][0]:x[0][1]} if (x := [v for k, v in navigator["headers"].items() if url.startswith(k)]) else {}
     headers.update({'User-Agent':ua, 'Referer':referer, 'Origin':referer})
+    if hydra:
+        headers.update(hydra)
     while True:
         # accept = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
         accept = "application/json"
@@ -2107,14 +2109,14 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         else:
             echo("Filelist is empty!", 0, 1)
         return
-    if len(filelist) == 1:
-        echothreadn.append(0)
-        task["download"].put((0, filelist[0][1], [filelist[0][0]], 0))
-        try:
-            task["download"].join()
-        except KeyboardInterrupt:
-            pass
-        return
+    # if len(filelist) == 1:
+    #     echothreadn.append(0)
+    #     task["download"].put((0, filelist[0][1], [filelist[0][0]], 0))
+    #     try:
+    #         task["download"].join()
+    #     except KeyboardInterrupt:
+    #         pass
+    #     return
 
 
 
@@ -4921,14 +4923,14 @@ def delmode():
 def delmode_old(m):
     print("\n This is my shortcut to delete the file alongside browser.\n Enter another file:/// local url then/or (V)iew/(R)emove/(D)elete/E(X)it\n Nothing is really deleted until you enter D twice.\n")
     while True:
-        file = parse.unquote(input("Add file to delete list: ").rstrip().replace("file:///", "").replace("http://localhost:8886/", batchdir))
+        file = parse.unquote(input("Add file to delete list: ").rstrip().replace("file:///", "").replace("http://127.0.0.1:8886/", batchdir))
         if file.lower() == "x":
             return
         if file.lower() == "v":
             for dfile in delfiles[0]:
                 print(dfile)
         elif file.lower() == "r":
-            file = parse.unquote(input("Remove file from delete list: ").rstrip().replace("file:///", "").replace("http://localhost:8886/", batchdir))
+            file = parse.unquote(input("Remove file from delete list: ").rstrip().replace("file:///", "").replace("http://127.0.0.1:8886/", batchdir))
             while True:
                 try:
                     delfiles[0].remove(file)
@@ -5419,7 +5421,7 @@ def torrent_get(fp=""):
 def read_input(fp):
     if any(word for word in navigator["pickers"].keys() if fp.startswith(word)):
         task["run"].put((0, fp))
-    elif fp.startswith("http") and not fp.startswith("http://localhost"):
+    elif fp.startswith("http") and not fp.startswith("http://127.0.0.1"):
         if fp.endswith("/"):
             choice(bg=True)
             echo(" I don't have a scraper for that!", 0, 2)
@@ -5568,7 +5570,7 @@ def keylistener():
                     choice(bg=True)
                     echo(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""", 0, 1)
                 elif HTTPserver:
-                    os.system(f"""start "" "{Browser}" "http://localhost:8886/" """)
+                    os.system(f"""start "" "{Browser}" "http://127.0.0.1:8886/" """)
                 else:
                     echo(" HTTP SERVER: Maybe not.", 0, 1)
             else:

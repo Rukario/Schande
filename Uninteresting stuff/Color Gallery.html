@@ -136,7 +136,7 @@ function lazyload(){
   var imageObserver = new IntersectionObserver(function(entries, observer) {
     entries.forEach(function(e) {
       if (e.isIntersecting) {
-        var t = e.target;
+        let t = e.target;
         t.src = t.dataset.src;
         setTimeout(realwidth, 10, t);
         imageObserver.unobserve(t);
@@ -212,7 +212,7 @@ function galleryset2(){
   for (var o=0; o<galleryset[1].length; o++){
     buffer += "<div class='frame'><a class='fileThumb' href='" + galleryset[1][o] + "'><img class='lazy' data-src='" + galleryset[1][o] + "'></a></div>"
   }
-  gallery.innerHTML += buffer;
+  gallery.insertAdjacentHTML("beforeend", buffer);
   lazyload()
   more.style.display = "none"; 
 }

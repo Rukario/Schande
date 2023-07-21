@@ -734,7 +734,7 @@
   "bay blue":[1263, "???", 0, 0],
   "bruce's light natural":[[null, 936], "???", 0, 0],
   "bruce's dark natural":[1262, "???", 0, 0],
-  "bruce's signature (retired)":[null, "???", 0, 0],
+  "bruce's signature (retired)":[363, "???", 0, 0],
   "emerald retired":[null, "???", 0, 0],
   "alexandrite retired":[null, "???", 0, 0],
   "garnet retired":[null, "???", 0, 0],
@@ -763,6 +763,8 @@
   "contagion":[460, "???", 0, 0],
 
   "Retired/Mislabelled swatches":true,
+  "bruce's old natural":[1261, "???", 0, 0],
+  "great white":[935, "???", 0, 0],
   "Aurora":[602, "???", 0, 0],
   "Life Cascade":[1246, "???", 0, 0],
   "Healing Cascade":[1247, "???", 0, 0],

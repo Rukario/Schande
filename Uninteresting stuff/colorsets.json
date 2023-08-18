@@ -242,6 +242,13 @@
   "Revenant Purple":[1287, "psychic", 0, 0, "purple", 0, 0, "galaxy", 0, 0],
   "Redemption Purple sheath":[1292, "purple", 0, 0],
   "Imperial White":[1289, "white", 0, 0, "smoke", 0, 0, "galaxy", 0, 0],
+  "Radical Rainbow":[1299, "???", 0, 0],
+  "Chill Pill":[1300, "???", 0, 0],
+  "Gnarly":[1301, "???", 0, 0],
+  "Constellation":[1298, "???", 0, 0],
+  "Gift Wrap":[1032, "???", 0, 0],
+  "Fiona's Signature":[[null, 1296], "???", 0, 0],
+  "Fiona's Natural":[[null, 1297], "???", 0, 0],
 
   "More colors":true,
   "Toxin":[1002, "grape", 0, 0],

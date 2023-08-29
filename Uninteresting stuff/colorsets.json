@@ -78,7 +78,7 @@
   "Tinsel Tidings":[1167, "white", 0, 0, "smoke", 2, 0, "purple", 0, 0],
   "Tis' the Season":[[1050, 1051], "violet", 0, 0, "sky blue", 0, 0, "smoke", 3, 0],
   "Krampus' Present":[220, "bronze", 0, 0, "fern", 2, 0],
-  "Tannenbaum":[218, "fern", 0, 0],
+  "Tannenbaum":[218, "fern", 2, 0],
   "Burr":[1168, "white", 0, 0, "blueberry", 0, 0, "blueberry", 3, 0],
   "Season's Greetings":[[372, 475], "teal", 3, 0, "white", 0, 0, "red", 0, 0],
   "Decked Halls":[213, "red", 0, 0, "xanadu", 2, 0],

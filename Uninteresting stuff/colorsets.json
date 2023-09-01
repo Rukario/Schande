@@ -75,7 +75,7 @@
 
   "Holiday":true,
   "Holly Wreath":[1166, "red", 0, 0, "forest", 2, 0, "lime", 2, 0, "rose", 0, 0],
-  "Tinsel Tidings":[1167, "white", 0, 0, "smoke", 2, 0, "purple", 0, 0],
+  "Tinsel Tidings":[1167, "white", 2, 0, "cherry blossom", 0, 0, "smoke", 2, 0, "purple", 0, 0],
   "Tis' the Season":[[1050, 1051], "violet", 0, 0, "sky blue", 0, 0, "smoke", 3, 0],
   "Krampus' Present":[220, "bronze", 0, 0, "fern", 2, 0],
   "Tannenbaum":[218, "fern", 2, 0],

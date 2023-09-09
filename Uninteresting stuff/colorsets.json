@@ -263,6 +263,7 @@
   "Duckie Yellow":[1092, "lemon", 0, 0],
   "Periwinkle":[616, "arctic", 0, 0],
   "Apple":[646, "scarlet", 0, 0],
+  "violet":[625, "???", 0, 0],
 
   "Default colors":true,
   "Platinum Ore":[328, "concrete", 0, 0],
@@ -457,6 +458,7 @@
   "Bishop's Signature":[[1016, 1014], "robin egg", 0, 0, "blueberry", 0, 2, "galaxy", 0, 0],
   "Blaze's Signature":[[8, 709], "sky blue", 0, 0, "ink", 0, 0, "machine", 0, 0],
   "Bruce's Signature":[[546, 990], "white", 0, 0, "azure", 2, 0, "azure", 0, 0],
+  "Bruce's Portside Signature":[547, "???", 0, 0],
   "Bruiser's Signature":[[91, 789], "sky blue", 0, 0, "blueberry", 0, 0, "forest", 0, 0],
   "Bumble Hooves' Signature":[[24, 727], "magic", 0, 0, "indigo", 0, 0, "gold", 0, 0],
   "Chance's Signature":[[817, 757], "chestnut", 0, 0, "crimson", 0, 2, "anubis", 0, 2, "black", 0, 0],
@@ -789,6 +791,7 @@
   "desi's dark natural":[558, "???", 0, 0],
   "moko's dark natural":[554, "???", 0, 0],
   "moko's light natural":[552, "???", 0, 0],
+  "water horse's light natural":[561, "???", 0, 0],
   "pride streak":[555, "???", 0, 0],
   "bruce's old natural":[1261, "???", 0, 0],
   "great white":[935, "???", 0, 0],

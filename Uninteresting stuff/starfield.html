@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html>
+<style>
+html, body {
+  background-color: #000;
+  margin: 0;
+  font-family: Helvetica,Arial,Sans-Serif;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
+canvas {
+  position: absolute;
+}
+
+#fgbg {
+  display: none;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  background-image: url("bg.png");
+  mix-blend-mode: multiply;
+  z-index: 2;
+  pointer-events: none;
+}
+
+#result {
+  display: none;
+  color: #fff;
+  font-family: courier;
+  font-size: 24px;
+  z-index: 1;
+  pointer-events: none;
+  position: absolute;
+}
+
+#poppy {
+  background: #c0c0c0;
+  position:absolute;
+  display:none;
+  z-index: 3;
+  padding: 0px 25px;
+  line-height:1.5;
+  box-shadow: inset -1px -1px #000, inset 1px 1px #c0c0c0, inset -2px -2px #848484, inset 2px 2px #fff;
+  cursor: default;
+}
+</style>
+<script>
+var fps = 120;
+var speed = 60;
+var throttlebyfps = false;
+var displayfps = false;
+var life = 1.5; // per second
+var pixel = 95;
+var density = 200;
+var frustum = 0.8 + 0.4;
+var colorful = 3;
+var glide = false;
+
+var vanish;
+var mousepos;
+var fpsInterval = 1000 / fps;
+var ti = Date.now();
+
+var isTouch = 'ontouchstart' in window ? true : false;
+var busyclick = false;
+
+var alpha = new Image();
+alpha.src = 'win95.png';
+
+var foliage = new Image();
+foliage.src = 'spruce.png';
+
+var useimg = true;
+var ismask = true;
+
+
+function ABtoURL(ab){
+  return URL.createObjectURL(new Blob(ab, {type: 'application/octet-stream'}));
+}
+
+function ABtoIMG(ab){
+  img = document.createElement("img")
+  img.src = ABtoURL(ab);
+  return img;
+}
+
+function ABtoAB(ab){
+  return [new Uint8Array(ab)]
+}
+
+function canvasToAB(c, ext="png"){
+  return function(resolve) {
+    c.toBlob((blob0) => {
+      var fr = new FileReader();
+      fr.readAsArrayBuffer(blob0);
+      fr.onload = () => {
+        arri = new Uint8Array(fr.result);
+        resolve(arri);
+      };
+    }, 'image/' + ext);
+  }
+}
+
+function canvasToFrame(stars, mask, callback, interFrameN){
+  let promise = new Promise(canvasToAB(mask, 'png'))
+  promise.then(function(arri){
+    stars.push([Math.random()*fps*life, (Math.random()-0.5)*c.width*frustum, (Math.random()-0.5)*c.height*frustum, ABtoIMG(ABtoAB(arri))]);
+    callback(interFrameN+1);
+  })
+}
+
+var c = document.createElement('canvas');
+c.width = document.documentElement.clientWidth;
+c.height = document.documentElement.clientHeight;
+
+var context = c.getContext('2d');
+context.imageSmoothingEnabled = false;
+var ccolor = '#000';
+
+var idlecursor = false;
+var restart = false;
+var stars = [];
+
+
+
+var frameCount = 0;
+var startTime;
+
+
+
+function start(resolve) {
+  const update = () => {
+    if (restart) {
+      return resolve(true);
+    }
+
+    requestAnimationFrame(update);
+
+    now = Date.now();
+    elapsed = now - ti;
+
+    if (!throttlebyfps || elapsed > fpsInterval) {
+      ti = now - (elapsed % fpsInterval);
+      context.fillStyle = ccolor; //'rgba(0, 0, 0, 0.1)';
+      context.fillRect(0, 0, c.width, c.height);
+
+      for (const star of stars) {
+        if (star[0] === 0) {
+          star[1] = (Math.random()-0.5)*c.width*frustum;
+          star[2] = (Math.random()-0.5)*c.height*frustum;
+          //star[1] = Math.floor(c.width/6) + Math.floor(Math.random()*c.width/1.5);
+          //star[2] = Math.floor(c.height/6) + Math.floor(Math.random()*c.height/1.5);
+          //star[3] = colorful ? `rgb(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)})` : '#fff';
+        }
+        const dot = Math.ceil(star[0]/(speed*life/pixel));
+        const sx = (star[1]+(glide?mousepos[0]:vanish[0])/vanish[0]*64)/(speed*life-star[0])*speed*life;
+        const sy = (star[2]+(glide?mousepos[1]:vanish[1])/vanish[1]*64)/(speed*life-star[0])*speed*life;
+
+        if ( sx < -vanish[0]-pixel/2 || sy < -vanish[1]-pixel/2 || sx > vanish[0]+pixel/2 || sy > vanish[1]+pixel/2 || star[0] > (speed*life)) {
+          star[0] = 0;
+        } else {
+          star[0] += speed / fps;
+        }
+
+        //if (star[1] < vanish[0]) {
+        //  star[1] -= ((vanish[0]/star[1])-1)*(1+star[0]/5);
+        //} else {
+        //  star[1] += ((vanish[0]/(c.width-star[1]))-1)*(1+star[0]/5);
+        //}
+        //
+        //if (star[2] < vanish[1]) {
+        //  star[2] -= ((vanish[1]/star[2])-1)*(1+star[0]/5);
+        //} else {
+        //  star[2] += ((vanish[1]/(c.height-star[2]))-1)*(1+star[0]/5);
+        //}
+        //
+        //context.fillRect(Math.ceil(star[1]), Math.ceil(star[2]), dot, dot);
+        //
+        //if ( star[1] < 0 || star[2] < 0 || star[1] > c.width || star[2] > c.height || star[0] > speed*life) {
+        //  star[0] = 0;
+        //} else {
+        //  star[0] += 1;
+        //}
+
+        if (useimg) {
+          //maskcontext.fillStyle = star[3];
+          //maskcontext.drawImage(alpha, 0, 0);
+          //maskcontext.globalCompositeOperation = "source-in";
+          //maskcontext.fillRect(0, 0, pixel, pixel);
+          //context.drawImage(mask, Math.ceil(sx + vanish[0] - dot/2), Math.ceil(sy + vanish[1] - dot/2), dot, dot);
+
+          //context.fillStyle = star[3];
+          //context.fillRect(Math.ceil(sx + vanish[0] - dot/2), Math.ceil(sy + vanish[1] - dot/2), dot, dot);
+          //context.drawImage(alpha, Math.ceil(sx + vanish[0] - dot/2), Math.ceil(sy + vanish[1] - dot/2), dot, dot);
+          context.drawImage(star[3], Math.ceil(sx + vanish[0] - dot/2), Math.ceil(sy + vanish[1] - dot/2), dot, dot);
+        } else {
+          context.fillStyle = star[3];
+          context.fillRect(Math.ceil(sx + vanish[0] - dot/2), Math.ceil(sy + vanish[1] - dot/2), dot, dot);
+        }
+      }
+      const sinceStart = now - startTime;
+      const toodiff = sinceStart / ++frameCount;
+      if (toodiff > (1000/fps) + 2) {
+        startTime = Date.now();
+        frameCount = 0;
+        fps = isFinite(fps) ? fps/1.1 : 120;
+      } else {
+        fps = Math.round(1000 / toodiff * 100) / 100;
+      }
+      result.innerHTML = `Uninterrupted for ${(Math.round(sinceStart / 1000 * 100) / 100).toFixed(2).padStart(3, '0')} seconds @ ${fps.toFixed(2).padStart(3, '0')} fps`;
+    }
+  };
+  startTime = Date.now();
+  frameCount = 0;
+  update();
+}
+
+function started() {
+  let promise = new Promise((resolve) => {
+    start(resolve);
+  });
+
+  Promise.all([promise]).then(() => {
+    restart = false;
+  });
+}
+
+const xlight = ['#f00', '#f90', '#390', '#06f', '#90c'];
+
+function colorcase(colorful) {
+  switch (colorful) {
+    case 3:
+      return `#${Math.floor(Math.random()*16).toString(16)}${Math.floor(Math.random()*16).toString(16)}${Math.floor(Math.random()*16).toString(16)}`;
+    case 2:
+      return `#${Math.floor(4 + Math.random()*12).toString(16)}${Math.floor(4 + Math.random()*12).toString(16)}${Math.floor(4 + Math.random()*12).toString(16)}`;
+    case 1:
+      return xlight[Math.floor(Math.random() * xlight.length)];
+    default:
+      return '#fff';
+  }
+}
+
+function restarted() {
+  stars = [];
+  function variant(i) {
+    if (i == density) {
+      started();
+      return;
+    }
+
+    if (ismask) {
+      let starcolor = colorcase(colorful);
+
+      let mask = document.createElement('canvas');
+      mask.width = 95;
+      mask.height = 95;
+
+      let maskcontext = mask.getContext('2d');
+      if (colorful == 1 && Math.floor(Math.random()*4)) {
+        maskcontext.drawImage(foliage, 0, 0);
+      } else {
+        maskcontext.fillStyle = starcolor;
+        maskcontext.drawImage(alpha, 0, 0);
+        maskcontext.globalCompositeOperation = "source-in";
+        maskcontext.fillRect(0, 0, 95, 95);
+      };
+      canvasToFrame(stars, mask, variant, i);
+    } else if (useimg) {
+      for (let n=0;n<density;n++) {
+        stars.push([Math.random()*speed*life, (Math.random()-0.5)*c.width*frustum, (Math.random()-0.5)*c.height*frustum, alpha]);
+      }
+      started();
+    } else {
+      for (let n=0;n<density;n++) {
+        let starcolor = colorcase(colorful);
+        stars.push([Math.random()*speed*life, (Math.random()-0.5)*c.width*frustum, (Math.random()-0.5)*c.height*frustum, starcolor]);
+      }
+      started();
+    }
+  }
+  variant(0);
+}
+
+window.onload = () => {
+  c.addEventListener('click', () => {
+    if (poppy.style.display !== 'none') {
+      poppy.style.display = 'none';
+      return;
+    }
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      document.body.requestFullscreen();
+    }
+    setTimeout(() => {
+      c.width = document.documentElement.clientWidth;
+      c.height = document.documentElement.clientHeight;
+      context.imageSmoothingEnabled = false;
+      vanish = [Math.floor(c.width/2), Math.floor(c.height/2)];
+    }, 500);
+  });
+
+  const rightc = (e_) => {
+    if (isTouch && e_.touches.length > 1) {
+      return;
+    }
+    poppy.style.display = 'block';
+    const x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft: e_.x;
+    const xx = Math.min(
+      x,
+      document.documentElement.clientWidth - poppy.clientWidth,
+    );
+    const y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop: e_.y;
+    const yy = Math.min(
+      y,
+      document.documentElement.clientHeight - poppy.clientHeight,
+    );
+    poppy.style.left = `${xx > 0 ? xx : 0}px`;
+    poppy.style.top = `${yy > 0 ? yy : 0}px`;
+
+    e_.preventDefault();
+  };
+
+  if (isTouch) {
+    document.body.addEventListener('touchstart', (e_) => {
+      if (busyclick) {
+        clearTimeout(busyclick);
+        busyclick = false;
+      } else {
+        busyclick = setTimeout(() => {rightc(e_)}, 500);
+      }
+    });
+    document.body.addEventListener('touchend', () => {
+      clearTimeout(busyclick);
+      busyclick = false;
+    });
+    document.body.addEventListener('touchmove', (e_) => {
+      clearTimeout(busyclick);
+      busyclick = false;
+      mousepos = [e_.touches[0].clientX, e_.touches[0].clientY];
+    });
+    document.body.addEventListener('contextmenu', (e_) => {
+      e_.preventDefault();
+    });
+  } else {
+    document.body.addEventListener('contextmenu', (e_) => {
+      rightc(e_);
+    });
+  }
+
+  //let e = document.createElement("DIV");
+  //e.innerHTML = '&times;';
+  //e.style.cursor = 'pointer';
+  //e.style.fontSize = '30px';
+  //e.addEventListener('click', () => {
+  //  poppy.style.display = 'none';
+  //});
+  //poppy.appendChild(e);
+
+  const restartwith = (o) => {
+    restart = o[1];
+    colorful = o[2];
+    useimg = o[3];
+    ismask = o[4];
+    alpha.src = o[5];
+    pixel = o[6];
+    life = o[7];
+    density = o[8];
+    if (o.length == 10) {
+      ccolor = o[9];
+    } else {
+      ccolor = '#000';
+    }
+    restarted();
+  }
+
+  const makemenu = (options) => {
+    e = document.createElement("DIV");
+    e.innerHTML = options[0];
+    if (options[1] === 1) {
+      e.addEventListener('click', () => {
+        displayfps = !displayfps;
+        result.style.display = displayfps ? 'block' : 'none';
+      });
+    } else if (options[1] === 2) {
+      e.addEventListener('click', () => {
+        glide = !glide;
+      });
+    } else if (options[1] === 3) {
+      e.addEventListener('click', () => {
+        if (options.length > 2) {
+          throttlebyfps = true;
+          fpsInterval = 1000 / options[2];
+        } else {
+          throttlebyfps = false;
+          fpsInterval = 1000 / 120;
+        }
+
+        startTime = Date.now();
+        frameCount = 0;
+      });
+    } else {
+      e.addEventListener('click', () => {
+        restartwith(options);
+      });
+    }
+    poppy.appendChild(e);
+  };
+
+  makemenu(['Flying Windows',      true, 3, true, true,       'win95.png', 95, 1.5, 200]);
+  makemenu(['Slow Windows',        true, 3, true, true,       'win95.png', 95, 10, 200]);
+  makemenu(['Big Windows',         true, 3, true, true,       'win95.png', 380, 1.5, 100]);
+  makemenu(['2000 flying Windows', true, 3, true, true,       'win95.png', 95, 1.5, 2000]);
+  makemenu(['2000 big Windows',    true, 3, true, true,       'win95.png', 380, 1.5, 2000]);
+  makemenu(['Starfield',           true, false, false, false, false,       5, 2, 200]);
+  makemenu(['8000 colorful stars', true, 3, false, false,  false,          5, 2, 8000]);
+  makemenu(['8000 slow colorful stars', true, 3, false, false,  false,     5, 40, 8000]);
+  makemenu(['Surreal Xmas memory', true, 1, true, true,       'light.png', 190, 1.5, 800, "#072700"]);
+  makemenu(['Nostalgia FPS 15',    3, 15]);
+  makemenu(['Nostalgia FPS 30',    3, 30]);
+  makemenu(['Unrestricted FPS',    3]);
+  makemenu(['Display FPS',         1]);
+  makemenu(['Glide',               2]);
+
+  document.body.addEventListener("mousemove", (e) => {
+    mousepos = [e.x, e.y]
+    if (idlecursor) {
+      clearTimeout(idlecursor);
+    }
+    idlecursor = setTimeout(() => {
+      c.style.cursor = "none";
+    }, 1500);
+    c.style.cursor = "pointer";
+  });
+  addEventListener("resize", () => {
+    c.width = document.documentElement.clientWidth;
+    c.height = document.documentElement.clientHeight;
+    context.imageSmoothingEnabled = false;
+    vanish = [Math.floor(c.width/2), Math.floor(c.height/2)];
+  });
+  addEventListener("visibilitychange", (event) => {
+    //startTime = Date.now();
+    //frameCount = 0;
+  });
+  c.style.cursor = 'pointer';
+  document.body.append(c);
+
+  vanish = [Math.floor(c.width/2), Math.floor(c.height/2)];
+  mousepos = [...vanish];
+
+  restarted();
+}
+</script>
+<body>
+<div id="fgbg"></div><div id="result"></div><div id="poppy"></div></body>
+</html>

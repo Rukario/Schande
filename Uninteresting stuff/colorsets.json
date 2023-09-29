@@ -252,6 +252,14 @@
   "Gift Wrap":[1032, "???", 0, 0],
   "Early Rise":[845, "???", 0, 0],
 
+  "con mango magic":[[1199, 1201], "???", 0, 0],
+  "con iris infusion":[[1200, 1202], "???", 0, 0],
+  "split con mango magic":[1219, "???", 0, 0],
+  "split con iris infusion":[1220, "???", 0, 0],
+  "you're a green one":[1305, "???", 0, 0],
+  "peppermint pole":[1317, "???", 0, 0],
+  "black xmas":[[null, 1318], "???", 0, 0],
+
   "More colors":true,
   "Toxin":[1002, "grape", 0, 0],
   "Vampire":[998, "anubis", 0, 0],

@@ -65,7 +65,6 @@ var isTouch = 'ontouchstart' in window ? true : false;
 var busyclick = false;
 
 var alpha = new Image();
-alpha.src = 'win95.png';
 
 var foliage = new Image();
 foliage.src = 'spruce.png';
@@ -363,7 +362,6 @@ window.onload = () => {
     colorful = o[2];
     useimg = o[3];
     ismask = o[4];
-    alpha.src = o[5];
     pixel = o[6];
     life = o[7];
     density = o[8];
@@ -372,7 +370,14 @@ window.onload = () => {
     } else {
       ccolor = '#000';
     }
-    restarted();
+    if (o[5]) {
+      alpha.src = o[5];
+      alpha.onload = () => {
+        restarted();
+      }
+    } else {
+      restarted();
+    }
   }
 
   const makemenu = (options) => {
@@ -454,7 +459,10 @@ window.onload = () => {
   vanish = [Math.floor(c.width/2), Math.floor(c.height/2)];
   mousepos = [...vanish];
 
-  restarted();
+  alpha.src = 'win95.png';
+  alpha.onload = () => {
+    restarted();
+  }
 }
 </script>
 <body>

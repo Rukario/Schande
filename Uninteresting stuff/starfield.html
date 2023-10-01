@@ -104,7 +104,7 @@ function canvasToAB(c, ext="png"){
 function canvasToFrame(stars, mask, callback, interFrameN){
   let promise = new Promise(canvasToAB(mask, 'png'))
   promise.then(function(arri){
-    stars.push([Math.random()*fps*life, (Math.random()-0.5)*c.width*frustum, (Math.random()-0.5)*c.height*frustum, ABtoIMG(ABtoAB(arri))]);
+    newstar(ABtoIMG(ABtoAB(arri)));
     callback(interFrameN+1);
   })
 }
@@ -120,13 +120,17 @@ var ccolor = '#000';
 var idlecursor = false;
 var restart = false;
 var stars = [];
-
-
-
 var frameCount = 0;
 var startTime;
 
 
+
+function newstar(star) {
+  const age = Math.random()*speed*life%(0.66*speed*life);
+  const x = ((Math.random()-0.5)*c.width*frustum/(speed*life))*(speed*life-age);
+  const y = ((Math.random()-0.5)*c.height*frustum/(speed*life))*(speed*life-age);
+  stars.push([age, x, y, star]);
+}
 
 function start(resolve) {
   const update = () => {
@@ -153,8 +157,8 @@ function start(resolve) {
           //star[3] = colorful ? `rgb(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)})` : '#fff';
         }
         const dot = Math.ceil(star[0]/(speed*life/pixel));
-        const sx = (star[1]+(glide?mousepos[0]:vanish[0])/vanish[0]*64)/(speed*life-star[0])*speed*life;
-        const sy = (star[2]+(glide?mousepos[1]:vanish[1])/vanish[1]*64)/(speed*life-star[0])*speed*life;
+        const sx = (star[1]+(glide?(mousepos[0]-vanish[0])/8:0))/(speed*life-star[0])*speed*life;
+        const sy = (star[2]+(glide?(mousepos[1]-vanish[1])/8:0))/(speed*life-star[0])*speed*life;
 
         if ( sx < -vanish[0]-pixel/2 || sy < -vanish[1]-pixel/2 || sx > vanish[0]+pixel/2 || sy > vanish[1]+pixel/2 || star[0] > (speed*life)) {
           star[0] = 0;
@@ -227,7 +231,7 @@ function started() {
 
 const xlight = ['#f00', '#f90', '#390', '#06f', '#90c'];
 
-function colorcase(colorful) {
+function starcolor(colorful) {
   switch (colorful) {
     case 3:
       return `#${Math.floor(Math.random()*16).toString(16)}${Math.floor(Math.random()*16).toString(16)}${Math.floor(Math.random()*16).toString(16)}`;
@@ -249,8 +253,6 @@ function restarted() {
     }
 
     if (ismask) {
-      let starcolor = colorcase(colorful);
-
       let mask = document.createElement('canvas');
       mask.width = 95;
       mask.height = 95;
@@ -259,7 +261,7 @@ function restarted() {
       if (colorful == 1 && Math.floor(Math.random()*4)) {
         maskcontext.drawImage(foliage, 0, 0);
       } else {
-        maskcontext.fillStyle = starcolor;
+        maskcontext.fillStyle = starcolor(colorful);
         maskcontext.drawImage(alpha, 0, 0);
         maskcontext.globalCompositeOperation = "source-in";
         maskcontext.fillRect(0, 0, 95, 95);
@@ -267,13 +269,12 @@ function restarted() {
       canvasToFrame(stars, mask, variant, i);
     } else if (useimg) {
       for (let n=0;n<density;n++) {
-        stars.push([Math.random()*speed*life, (Math.random()-0.5)*c.width*frustum, (Math.random()-0.5)*c.height*frustum, alpha]);
+        newstar(alpha);
       }
       started();
     } else {
       for (let n=0;n<density;n++) {
-        let starcolor = colorcase(colorful);
-        stars.push([Math.random()*speed*life, (Math.random()-0.5)*c.width*frustum, (Math.random()-0.5)*c.height*frustum, starcolor]);
+        newstar(starcolor(colorful));
       }
       started();
     }

@@ -160,8 +160,8 @@ function start(resolve) {
         const dotx = Math.ceil(star[0]/(speed*life/pixelx));
         const doty = Math.ceil(star[0]/(speed*life/pixely));
 
-        const sx = (star[1]+(fly?(mousepos[0]-vanish[0])/8:0))/(speed*life-star[0])*speed*life + (glide?star[0]*speed*life/8*(-(mousepos[0]-vanish[0])/vanish[0]):0);
-        const sy = (star[2]+(fly?(mousepos[1]-vanish[1])/8:0))/(speed*life-star[0])*speed*life + (glide?star[0]*speed*life/8*(-(mousepos[1]-vanish[1])/vanish[0]):0);
+        const sx = (star[1]+(fly?(mousepos[0]-vanish[0])/8:0))/(speed*life-star[0])*speed*life + (glide?star[0]*speed/(life/1.5)*(-(mousepos[0]-vanish[0])/vanish[0]):0);
+        const sy = (star[2]+(fly?(mousepos[1]-vanish[1])/8:0))/(speed*life-star[0])*speed*life + (glide?star[0]*speed/(life/1.5)*(-(mousepos[1]-vanish[1])/vanish[0]):0);
 
         if ( sx < -vanish[0]-pixelx/2 || sy < -vanish[1]-pixely/2 || sx > vanish[0]+pixelx/2 || sy > vanish[1]+pixely/2 || star[0] > (speed*life)) {
           star[0] = 0;

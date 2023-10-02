@@ -50,10 +50,12 @@ var speed = 60;
 var throttlebyfps = false;
 var displayfps = false;
 var life = 1.5; // per second
-var pixel = 95;
+var pixelx = 95;
+var pixely = 95;
 var density = 200;
 var frustum = 0.8 + 0.4;
 var colorful = 3;
+var fly = false;
 var glide = false;
 
 var vanish;
@@ -155,11 +157,13 @@ function start(resolve) {
           //star[2] = Math.floor(c.height/6) + Math.floor(Math.random()*c.height/1.5);
           //star[3] = colorful ? `rgb(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)})` : '#fff';
         }
-        const dot = Math.ceil(star[0]/(speed*life/pixel));
-        const sx = (star[1]+(glide?(mousepos[0]-vanish[0])/8:0))/(speed*life-star[0])*speed*life;
-        const sy = (star[2]+(glide?(mousepos[1]-vanish[1])/8:0))/(speed*life-star[0])*speed*life;
+        const dotx = Math.ceil(star[0]/(speed*life/pixelx));
+        const doty = Math.ceil(star[0]/(speed*life/pixely));
 
-        if ( sx < -vanish[0]-pixel/2 || sy < -vanish[1]-pixel/2 || sx > vanish[0]+pixel/2 || sy > vanish[1]+pixel/2 || star[0] > (speed*life)) {
+        const sx = (star[1]+(fly?(mousepos[0]-vanish[0])/8:0))/(speed*life-star[0])*speed*life + (glide?star[0]*speed*life/8*(-(mousepos[0]-vanish[0])/vanish[0]):0);
+        const sy = (star[2]+(fly?(mousepos[1]-vanish[1])/8:0))/(speed*life-star[0])*speed*life + (glide?star[0]*speed*life/8*(-(mousepos[1]-vanish[1])/vanish[0]):0);
+
+        if ( sx < -vanish[0]-pixelx/2 || sy < -vanish[1]-pixely/2 || sx > vanish[0]+pixelx/2 || sy > vanish[1]+pixely/2 || star[0] > (speed*life)) {
           star[0] = 0;
         } else {
           star[0] += speed / fps;
@@ -177,7 +181,7 @@ function start(resolve) {
         //  star[2] += ((vanish[1]/(c.height-star[2]))-1)*(1+star[0]/5);
         //}
         //
-        //context.fillRect(Math.ceil(star[1]), Math.ceil(star[2]), dot, dot);
+        //context.fillRect(Math.ceil(star[1]), Math.ceil(star[2]), dotx, doty);
         //
         //if ( star[1] < 0 || star[2] < 0 || star[1] > c.width || star[2] > c.height || star[0] > speed*life) {
         //  star[0] = 0;
@@ -189,16 +193,16 @@ function start(resolve) {
           //maskcontext.fillStyle = star[3];
           //maskcontext.drawImage(alpha, 0, 0);
           //maskcontext.globalCompositeOperation = "source-in";
-          //maskcontext.fillRect(0, 0, pixel, pixel);
-          //context.drawImage(mask, Math.ceil(sx + vanish[0] - dot/2), Math.ceil(sy + vanish[1] - dot/2), dot, dot);
+          //maskcontext.fillRect(0, 0, pixelx, pixelx);
+          //context.drawImage(mask, Math.ceil(sx + vanish[0] - dotx/2), Math.ceil(sy + vanish[1] - doty/2), dotx, doty);
 
           //context.fillStyle = star[3];
-          //context.fillRect(Math.ceil(sx + vanish[0] - dot/2), Math.ceil(sy + vanish[1] - dot/2), dot, dot);
-          //context.drawImage(alpha, Math.ceil(sx + vanish[0] - dot/2), Math.ceil(sy + vanish[1] - dot/2), dot, dot);
-          context.drawImage(star[3], Math.ceil(sx + vanish[0] - dot/2), Math.ceil(sy + vanish[1] - dot/2), dot, dot);
+          //context.fillRect(Math.ceil(sx + vanish[0] - dotx/2), Math.ceil(sy + vanish[1] - doty/2), dotx, doty);
+          //context.drawImage(alpha, Math.ceil(sx + vanish[0] - dotx/2), Math.ceil(sy + vanish[1] - doty/2), dotx, doty);
+          context.drawImage(star[3], Math.ceil(sx + vanish[0] - dotx/2), Math.ceil(sy + vanish[1] - doty/2), dotx, doty);
         } else {
           context.fillStyle = star[3];
-          context.fillRect(Math.ceil(sx + vanish[0] - dot/2), Math.ceil(sy + vanish[1] - dot/2), dot, dot);
+          context.fillRect(Math.ceil(sx + vanish[0] - dotx/2), Math.ceil(sy + vanish[1] - doty/2), dotx, doty);
         }
       }
       const sinceStart = now - startTime;
@@ -362,11 +366,12 @@ window.onload = () => {
     colorful = o[2];
     useimg = o[3];
     ismask = o[4];
-    pixel = o[6];
-    life = o[7];
-    density = o[8];
-    if (o.length == 10) {
-      ccolor = o[9];
+    pixelx = o[6];
+    pixely = o[7];
+    life = o[8];
+    density = o[9];
+    if (o.length == 11) {
+      ccolor = o[10];
     } else {
       ccolor = '#000';
     }
@@ -390,7 +395,11 @@ window.onload = () => {
       });
     } else if (options[1] === 2) {
       e.addEventListener('click', () => {
-        glide = !glide;
+        if (options[2]) {
+          fly = !fly;
+        } else {
+          glide = !glide;
+        }
       });
     } else if (options[1] === 4) {
       e.addEventListener('click', () => {
@@ -417,21 +426,22 @@ window.onload = () => {
     poppy.appendChild(e);
   };
 
-  makemenu(['Flying Windows',      true, 3, true, true,       'win95.png', 95, 1.5, 200]);
-  makemenu(['Slow Windows',        true, 3, true, true,       'win95.png', 95, 10, 200]);
-  makemenu(['Big Windows',         true, 3, true, true,       'win95.png', 380, 1.5, 100]);
-  makemenu(['2000 flying Windows', true, 3, true, true,       'win95.png', 95, 1.5, 2000]);
-  makemenu(['Starfield',           true, false, false, false, false,       5, 2, 200]);
-  makemenu(['8000 colorful stars', true, 3, false, false,  false,          5, 2, 8000]);
-  makemenu(['8000 slow colorful stars', true, 3, false, false,  false,     5, 40, 8000]);
-  makemenu(['Surreal Xmas memory', true, 1, true, true,       'light.png', 190, 1.5, 800, "#072700"]);
+  makemenu(['Flying Windows',      true, 3, true, true,       'win95.png', 95, 95, 1.5, 200]);
+  makemenu(['Slow Windows',        true, 3, true, true,       'win95.png', 95, 95, 10, 200]);
+  makemenu(['Big Windows',         true, 3, true, true,       'win95.png', 380, 380, 1.5, 100]);
+  makemenu(['2000 flying Windows', true, 3, true, true,       'win95.png', 95, 95, 1.5, 2000]);
+  makemenu(['Starfield',           true, false, false, false, false,       5, 5, 2, 200]);
+  makemenu(['8000 colorful stars', true, 3, false, false,  false,          5, 5, 2, 8000]);
+  makemenu(['8000 slow colorful stars', true, 3, false, false,  false,     5, 5, 40, 8000]);
+  makemenu(['Surreal Xmas memory', true, 1, true, true,       'light.png', 190, 190, 1.5, 800, "#072700"]);
   makemenu(['Nostalgia FPS 15',    3, 15]);
   makemenu(['Nostalgia FPS 30',    3, 30]);
   makemenu(['Unrestricted FPS',    3]);
   makemenu(['Display FPS',         1]);
   makemenu(['Ghost trail',         4, true]);
   makemenu(['Paint',               4, false]);
-  makemenu(['Glide',               2]);
+  makemenu(['Fly',                 2, true]);
+  makemenu(['Glide',               2, false]);
 
   document.body.addEventListener("mousemove", (e) => {
     mousepos = [e.x, e.y]

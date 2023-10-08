@@ -45,14 +45,14 @@ canvas {
 }
 </style>
 <script>
-var fps = 120;
+var fps = 20;
 var speed = 60;
-var throttlebyfps = false;
+var throttlebyfps = true;
 var displayfps = false;
-var life = 1.5; // per second
+var life = 1.25; // per second
 var pixelx = 95;
 var pixely = 95;
-var density = 200;
+var density = 75;
 var frustum = 0.8 + 0.4;
 var colorful = 3;
 var fly = false;
@@ -438,15 +438,16 @@ window.onload = () => {
     poppy.appendChild(e);
   };
 
-  makemenu(['Flying Windows',      true, 3, true, true,       'win95.png', 95, 95, 1.5, 200]);
-  makemenu(['Slow Windows',        true, 3, true, true,       'win95.png', 95, 95, 10, 200]);
-  makemenu(['Big Windows',         true, 3, true, true,       'win95.png', 380, 380, 1.5, 100]);
-  makemenu(['2000 flying Windows', true, 3, true, true,       'win95.png', 95, 95, 1.5, 2000]);
-  makemenu(['Starfield',           true, false, false, false, false,       5, 5, 2, 200]);
-  makemenu(['8000 colorful stars', true, 3, false, false,  false,          5, 5, 2, 8000]);
-  makemenu(['8000 slow colorful stars', true, 3, false, false,  false,     5, 5, 40, 8000]);
-  makemenu(['Surreal Xmas memory', true, 1, true, true,       'light.png', 190, 190, 1.5, 800, "#072700"]);
+  makemenu(['Flying Windows',      true, 3, true, true,       'win95.png', 95, 95, 1.25, 75]);
+  makemenu(['Slow Windows',        true, 3, true, true,       'win95.png', 95, 95, 10, 75]);
+  makemenu(['Big Windows',         true, 3, true, true,       'win95.png', 380, 380, 1.25, 75]);
+  makemenu(['2000 flying Windows', true, 3, true, true,       'win95.png', 95, 95, 1.25, 2000]);
+  makemenu(['Starfield',           true, false, false, false, false,       4, 4, 1.25, 200]);
+  makemenu(['8000 colorful stars', true, 3, false, false,  false,          4, 4, 1.25, 8000]);
+  makemenu(['8000 slow colorful stars', true, 3, false, false,  false,     4, 4, 10, 8000]);
+  makemenu(['Surreal Xmas memory', true, 1, true, true,       'light.png', 190, 190, 1.25, 800, "#072700"]);
   makemenu(['Nostalgia FPS 15',    3, 15]);
+  makemenu(['Nostalgia FPS 20 (accurate)', 3, 20]);
   makemenu(['Nostalgia FPS 30',    3, 30]);
   makemenu(['Unrestricted FPS',    3]);
   makemenu(['Display FPS',         1]);

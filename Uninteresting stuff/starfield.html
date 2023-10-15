@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html><head>
+<meta charset="UTF-8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="white">
 <title>Starfield</title>
@@ -29,6 +30,7 @@ canvas {
 }
 
 #result {
+  white-space: pre;
   display: none;
   color: #0f0;
   font-family: courier;
@@ -62,7 +64,7 @@ var colorful = 3;
 var fly = false;
 var glide = false;
 var solitaire = false;
-var scale = 1;
+var scale = 2;
 
 var dim = {'x':0, 'y': 0};
 var mousepos = {'x':0, 'y':0};
@@ -364,18 +366,30 @@ function sol(resolve) {
   context.drawImage(cards['slot'], 421*scale, gap.y, ...cardsize);
   context.drawImage(cards['slot'], 503*scale, gap.y, ...cardsize);
 
-  if (deck.length) {
-    if (dragcard && dragcard.slot[1][draw] === deck[deck.length-1] || returncard && returncard.slot[1][draw] === deck[deck.length-1]) {
-      if (deck.length-1) {
-        context.drawImage(cards[deck[deck.length-2]], gap.x + 82*scale, gap.y, ...cardsize);
-      }
-    } else if (!dragcard || dragcard.slot[1][draw] !== deck[deck.length-1]) {
-      context.drawImage(cards[deck[deck.length-1]], gap.x + 82*scale, gap.y, ...cardsize);
+  result.innerHTML = ' ←  →';
+  result.style.display = 'block';
+
+  if (draw < slots[0][1].length-1) {
+    const repeat = Math.ceil((slots[0][1].length - draw)/10);
+    for (const pos of [...Array(repeat).keys()]){
+      context.drawImage(cards['card1'], gap.x + pos*2*scale, gap.y + pos*scale, ...cardsize);
     }
   }
 
-  if (draw < slots[0][1].length-1) {
-    context.drawImage(cards['card1'], gap.x, gap.y, ...cardsize);
+  if (deck.length) {
+    let dep = 0;
+    const repeat = Math.ceil((deck.length)/10);
+    for (const pos of [...Array(repeat).keys()]){
+      dep = pos*scale;
+      context.drawImage(cards['01'], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);
+    }
+    if (dragcard && dragcard.slot[1][draw] === deck[deck.length-1] || returncard && returncard.slot[1][draw] === deck[deck.length-1]) {
+      if (deck.length-1) {
+        context.drawImage(cards[deck[deck.length-2]], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);
+      }
+    } else if (!dragcard || dragcard.slot[1][draw] !== deck[deck.length-1]) {
+      context.drawImage(cards[deck[deck.length-1]], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);
+    }
   }
 
   if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === 13})) {
@@ -397,11 +411,17 @@ function sol(resolve) {
   }
 
   for (const pos of [...Array(4).keys()]){
+    let dep = 0;
+    const repeat = Math.ceil((slots[pos+1][1].length)/4);
+    for (const de of [...Array(repeat).keys()]){
+      dep = de*scale;
+      context.drawImage(cards['01'], gap.x+dep*2 + 82*(pos+3)*scale, gap.y+dep, ...cardsize);
+    }
     for (const card of slots[pos+1][1]){
       if (dragcard && dragcard.slot[1][dragcard.draw] === card || returncard && returncard.slot[1][returncard.draw] === card) {
         break;
       }
-      context.drawImage(cards[card], gap.x + 82*(pos+3)*scale, gap.y, ...cardsize);
+      context.drawImage(cards[card], gap.x+dep*2 + 82*(pos+3)*scale, gap.y+dep, ...cardsize);
     }
   }
 

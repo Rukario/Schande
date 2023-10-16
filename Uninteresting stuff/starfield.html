@@ -307,7 +307,7 @@ function restarted() {
 
 var slots = [];
 var cheatslots = 8;
-var draw = 0;
+var draw = -1;
 var deck = [];
 var cards = {};
 var cardsize = [71*scale, 96*scale];
@@ -316,6 +316,8 @@ var gap = {'x':11*scale, 'y':5*scale};
 
 
 function new_deck() {
+  draw = -1;
+  deck = [];
   var factorysealed = [];
   for (const card of ['card1', 'card2', 'deck', 'slot']){
     cards[card] = new Image();
@@ -370,7 +372,7 @@ function sol(resolve) {
   result.style.display = 'block';
 
   if (draw < slots[0][1].length-1) {
-    const repeat = Math.ceil((slots[0][1].length - draw)/10);
+    const repeat = Math.ceil((slots[0][1].length-draw-1)/10);
     for (const pos of [...Array(repeat).keys()]){
       context.drawImage(cards['card1'], gap.x + pos*2*scale, gap.y + pos*scale, ...cardsize);
     }
@@ -378,7 +380,7 @@ function sol(resolve) {
 
   if (deck.length) {
     let dep = 0;
-    const repeat = Math.ceil((deck.length)/10);
+    const repeat = Math.ceil((deck.length-1)/10);
     for (const pos of [...Array(repeat).keys()]){
       dep = pos*scale;
       context.drawImage(cards['01'], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);

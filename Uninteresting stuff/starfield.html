@@ -354,6 +354,16 @@ function new_deck() {
   }
   slots[0][1] = deck.slice(0, 24);
   deck = [];
+
+  //insta win
+  //for (const pos of [...Array(4).keys()]){
+  //  for (const [n, cs] of [0, 'A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K'].entries()){
+  //    if (n) {
+  //      card = `${pos}${n.toString(16)}`;
+  //      slots[pos+1][1].push(card);
+  //    }
+  //  }
+  //}
 }
 
 
@@ -395,21 +405,49 @@ function sol(resolve) {
   }
 
   if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === 13})) {
-    let dev = {'x':0, 'y':0};
-    let flydir = Math.floor((Math.random()-0.5)*7)+1;
-    if (!flydir) flydir = +1;
-    dev.x = flydir;
-    console.log(flydir);
-    const update = () => {
-      requestAnimationFrame(update);
-      context.drawImage(cards[slots[1][1][0]], dev.x + 400, dev.y, ...cardsize);
-      dev.x += flydir;
-      dev.y += dev.y + cardsize[1] > c.height ? -4 : 2;
+    let del = 1000; 
+    for (const card of [...Array(13).keys()]){
+      for (const pos of [1, 0, 2, 3]){
+        const gravity = {'x':0, 'y':1};
+        const falldirx = Math.floor((Math.random()-0.5)*14)+1;
+        const falldiry = Math.ceil((Math.random()-1)*3)*6;
+        const dep = Math.ceil((12-card)/4);
+        let flycard = {'x':gap.x*4 + gap.x*pos + cardsize[0]*(pos+3) + dep*scale*2, 'y':gap.y + dep*scale, 'xvel':falldirx ? falldirx : -1, 'yvel':falldiry};
+
+        flycard.xdir = 1;
+        flycard.ydir = 1;
+        
+        const update = () => {
+          flycard.xvel += gravity.x;
+          flycard.yvel += gravity.y;
+
+          flycard.x += (flycard.xvel * flycard.xdir);
+          flycard.y += (flycard.yvel * flycard.ydir);
+
+          if (flycard.x >= -cardsize[0] && flycard.x <= c.width) {
+            requestAnimationFrame(update);
+          } else {
+            //flycard.xvel = -flycard.xvel;
+            //requestAnimationFrame(update);
+          }
+
+          if (flycard.y + cardsize[1] >= c.height) {
+              flycard.y = c.height - cardsize[1];
+              flycard.yvel = -flycard.yvel;
+          } else if (flycard.y <= 0) {
+              flycard.yvel = flycard.yvel;
+          }
+
+          context.drawImage(cards[slots[pos+1][1][12-card]], flycard.x, flycard.y, ...cardsize);
+        }
+
+        setTimeout(() => {update()}, del);
+        del += 1000;
+        //new_deck();
+        //sol();
+        //return;
+      }
     }
-    update();
-    //new_deck();
-    //sol();
-    //return;
   }
 
   for (const pos of [...Array(4).keys()]){
@@ -593,6 +631,27 @@ var FFup = (e_) => {
             sol();
             return;
           }
+        }
+      }
+
+      //might delete
+      if (slot) {
+        let stack = slot[1][[1].length-1];
+        let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw]];
+        if (!stack && parseInt(card[1], 16) === 1 || stack && dragcards.length === 1 && parseInt(card[0], 16) === parseInt(stack[0], 16) && parseInt(card[1], 16) === parseInt(stack[1], 16)+1){
+          if ('draw' in dragcard) {
+            slot[1].push(...dragcard.slot[1].slice(dragcard.draw));
+            dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
+          } else {
+            slot[1].push(dragcard.slot[1][draw]);
+            slots[0][1] = [...dragcard.slot[1].slice(0, draw), ...dragcard.slot[1].slice(draw+1)];
+            deck.pop();
+            draw -= 1;
+          }
+          dragcard = false;
+          returncard = false;
+          sol();
+          return;
         }
       }
 

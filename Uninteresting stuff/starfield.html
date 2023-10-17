@@ -639,10 +639,10 @@ var FFup = (e_) => {
         }
       }
 
-      //might delete
       if (slot) {
         let stack = slot[1][[1].length-1];
         let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw]];
+        let card = dragcards[dragcards.length-1];
         if (!stack && parseInt(card[1], 16) === 1 || stack && dragcards.length === 1 && parseInt(card[0], 16) === parseInt(stack[0], 16) && parseInt(card[1], 16) === parseInt(stack[1], 16)+1){
           if ('draw' in dragcard) {
             slot[1].push(...dragcard.slot[1].slice(dragcard.draw));
@@ -714,7 +714,6 @@ var FFup = (e_) => {
       }
     }
     dragcard = false;
-    returncard = false;
     sol();
     fastclick = Date.now();
     return;

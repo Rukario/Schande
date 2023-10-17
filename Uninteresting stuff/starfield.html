@@ -459,7 +459,9 @@ function sol(resolve) {
     const repeat = Math.ceil((slots[pos+1][1].length)/4);
     for (const de of [...Array(repeat).keys()]){
       dep = de*scale;
-      context.drawImage(cards['01'], gap.x+dep*2 + 82*(pos+3)*scale, gap.y+dep, ...cardsize);
+      if (slots[pos+1][1].length-1){
+        context.drawImage(cards['01'], gap.x+dep*2 + 82*(pos+3)*scale, gap.y+dep, ...cardsize);
+      }
     }
     for (const card of slots[pos+1][1]){
       if (dragcard && dragcard.slot[1][dragcard.draw] === card || returncard && returncard.slot[1][returncard.draw] === card) {
@@ -519,13 +521,15 @@ var FFdown = (e_) => {
     }
 
     if(mousepos.x > gap.x*2 + cardsize[0]*1 && mousepos.x < gap.x*2 + cardsize[0]*2 && mousepos.y > gap.y*1 + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1 && deck.length){
-      dragcard = {'x':mousepos.x, 'y':mousepos.y, 'w':gap.x*2 + cardsize[0]*1, 'h':gap.y*1 + cardsize[1]*0, 'slot':slots[0]};
+      const repeat = Math.ceil((deck.length)/10)-1;
+      dragcard = {'x':mousepos.x, 'y':mousepos.y, 'w':gap.x*2 + cardsize[0]*1 + repeat*scale*2, 'h':gap.y*1 + cardsize[1]*0 + repeat*scale, 'slot':slots[0]};
     }
 
     for (const pos of [...Array(4).keys()]){
       if(mousepos.x > gap.x*(pos+4) + cardsize[0]*(pos+3) && mousepos.x < gap.x*(pos+4) + cardsize[0]*(pos+4) && mousepos.y > gap.y*1 + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1) {
         if (slots[pos+1][1].length) {
-          dragcard = {'x':mousepos.x, 'y':mousepos.y, 'w':gap.x*(pos+4) + cardsize[0]*(pos+3), 'h':gap.y*1 + cardsize[1]*0, 'slot':slots[pos+1], 'draw':slots[pos+1][1].length-1};
+          const repeat = Math.ceil((slots[pos+1][1].length)/4)-1;
+          dragcard = {'x':mousepos.x, 'y':mousepos.y, 'w':gap.x*(pos+4) + cardsize[0]*(pos+3) + repeat*scale*2, 'h':gap.y*1 + cardsize[1]*0 + repeat*scale, 'slot':slots[pos+1], 'draw':slots[pos+1][1].length-1};
         }
         break;
       }
@@ -606,7 +610,7 @@ var FFup = (e_) => {
   e_.preventDefault();
   if (solitaire){
     if (dragcard){
-      let slot;
+      let slot = false;
       let cheat = false;
       if (mousepos.x > 11*2 + cardsize[0]*1 && mousepos.x < 11*2 + cardsize[0]*2 && mousepos.y > gap.y + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1 && draw){
         slot = slots[0];
@@ -640,7 +644,7 @@ var FFup = (e_) => {
       }
 
       if (slot) {
-        let stack = slot[1][[1].length-1];
+        let stack = slot[1][slot[1].length-1];
         let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw]];
         let card = dragcards[dragcards.length-1];
         if (!stack && parseInt(card[1], 16) === 1 || stack && dragcards.length === 1 && parseInt(card[0], 16) === parseInt(stack[0], 16) && parseInt(card[1], 16) === parseInt(stack[1], 16)+1){

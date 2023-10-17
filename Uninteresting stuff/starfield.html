@@ -306,6 +306,7 @@ function restarted() {
 
 
 var slots = [];
+var slothistory = [];
 var cheatslots = 8;
 var draw = -1;
 var deck = [];
@@ -354,6 +355,9 @@ function new_deck() {
   }
   slots[0][1] = deck.slice(0, 24);
   deck = [];
+  slothistory = [];
+  slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
+  //console.log(slothistory.length, slothistory[slothistory.length-1]);
 
   //insta win
   //for (const pos of [...Array(4).keys()]){
@@ -628,6 +632,7 @@ var FFup = (e_) => {
             }
             dragcard = false;
             returncard = false;
+            slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
             sol();
             return;
           }
@@ -650,6 +655,7 @@ var FFup = (e_) => {
           }
           dragcard = false;
           returncard = false;
+          slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
           sol();
           return;
         }
@@ -675,6 +681,12 @@ var FFup = (e_) => {
               deck.pop();
               draw -= 1;
             }
+            dragcard = false;
+            returncard = false;
+            slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
+            sol();
+            fastclick = Date.now();
+            return;
           } else {
             rubberband();
           };
@@ -688,14 +700,21 @@ var FFup = (e_) => {
             deck.pop();
             draw -= 1;
           }
+          dragcard = false;
+          returncard = false;
+          slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
+          sol();
+          fastclick = Date.now();
+          return;
         } else {
           rubberband();
         };
       } else {
         rubberband();
       }
-      dragcard = false;
     }
+    dragcard = false;
+    returncard = false;
     sol();
     fastclick = Date.now();
     return;
@@ -910,6 +929,16 @@ window.onload = () => {
         restart = true;
         readcard(screensaver, true);
       });
+    } else if (options[1] === 6) {
+      e.addEventListener('click', () => {
+        if (slothistory.length-1) {
+          [deck, draw, slots] = slothistory.pop();
+          sol();
+        } else {
+          [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[0]));
+          sol();
+        };
+      });
     } else {
       e.addEventListener('click', () => {
         restartwith(options);
@@ -933,6 +962,7 @@ window.onload = () => {
   makemenu(['Unrestricted FPS',    3]);
   makemenu(['Display FPS',         1]);
   makemenu(['Solitaire',           5]);
+  makemenu(['Undo',                6]);
   makemenu(['Clear',               4, 0]);
   makemenu(['Ghost',               4, 1]);
   makemenu(['Paint',               4, 2]);

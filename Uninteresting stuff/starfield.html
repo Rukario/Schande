@@ -313,6 +313,15 @@ var deck = [];
 var cards = {};
 var cardsize = [71*scale, 96*scale];
 var gap = {'x':11*scale, 'y':5*scale};
+var rev = 0;
+var snapshot = () => {
+  if (rev < slothistory.length-1){
+    slothistory = slothistory.slice(0, rev-1);
+    rev -= 1;
+  }
+  slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
+  rev += 1;
+}
 
 
 
@@ -320,7 +329,7 @@ function new_deck() {
   draw = -1;
   deck = [];
   var factorysealed = [];
-  for (const card of ['card1', 'card2', 'deck', 'slot']){
+  for (const card of ['card1', 'card2', 'deck', 'slot', 'undo']){
     cards[card] = new Image();
     cards[card].src = `SOL/${card}.png`;
   } 
@@ -356,8 +365,7 @@ function new_deck() {
   slots[0][1] = deck.slice(0, 24);
   deck = [];
   slothistory = [];
-  slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
-  //console.log(slothistory.length, slothistory[slothistory.length-1]);
+  snapshot();
 
   //insta win
   //for (const pos of [...Array(4).keys()]){
@@ -377,13 +385,12 @@ function sol(resolve) {
   context.fillRect(0, 0, c.width, c.height);
 
   context.drawImage(cards['deck'], gap.x, gap.y, ...cardsize);
+  context.drawImage(cards['undo'], gap.x*3 + cardsize[0]*2, gap.y, cardsize[0], cardsize[1]);
+  //context.drawImage(cards['card1'], gap.x*3 + cardsize[0]*2, gap.y, cardsize[0]/1.25, cardsize[1]/1.25);
   context.drawImage(cards['slot'], 257*scale, gap.y, ...cardsize);
   context.drawImage(cards['slot'], 339*scale, gap.y, ...cardsize);
   context.drawImage(cards['slot'], 421*scale, gap.y, ...cardsize);
   context.drawImage(cards['slot'], 503*scale, gap.y, ...cardsize);
-
-  result.innerHTML = ' ←  →';
-  result.style.display = 'block';
 
   if (draw < slots[0][1].length-1) {
     const repeat = Math.ceil((slots[0][1].length-draw-1)/10);
@@ -510,7 +517,9 @@ var FFdown = (e_) => {
 
   if (solitaire){
     returncard = false;
-    if(mousepos.x > gap.x*1 + cardsize[0]*0 && mousepos.x < gap.x*1 + cardsize[0]*1 && mousepos.y > gap.y + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1){
+    const sel = (x, y) => {return mousepos.x > gap.x*(x+1) + cardsize[0]*x && mousepos.x < gap.x*(x+1) + cardsize[0]*(x+1) && mousepos.y > gap.y*(y+1) + cardsize[1]*y && mousepos.y < gap.y*(y+1) + cardsize[1]*(y+1)};
+
+    if(sel(0, 0)){
       if (draw < slots[0][1].length-1) {
         draw += 1;
         deck.push(slots[0][1][draw]);
@@ -520,13 +529,48 @@ var FFdown = (e_) => {
       }
     }
 
-    if(mousepos.x > gap.x*2 + cardsize[0]*1 && mousepos.x < gap.x*2 + cardsize[0]*2 && mousepos.y > gap.y*1 + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1 && deck.length){
+    if(sel(1, 0) && deck.length){
       const repeat = Math.ceil((deck.length)/10)-1;
       dragcard = {'x':gap.x*2 + cardsize[0]*1 + repeat*scale*2, 'y':gap.y*1 + cardsize[1]*0 + repeat*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[0]};
     }
 
+    //undo draw
+    if(mousepos.x > gap.x*3 + cardsize[0]*2 && mousepos.x < gap.x*3 + cardsize[0]*3 && mousepos.y > gap.y + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1/2){
+      if (draw > -1) {
+        draw -= 1;
+        deck.pop();
+      } else {
+        draw = slots[0][1].length-1;
+        for (const d of [...Array(draw+1).keys()]) {
+          deck.push(slots[0][1][d]);
+        }
+      }
+    }
+
+    // UNdo card movement
+    if(mousepos.x > gap.x*3 + cardsize[0]*2 && mousepos.x < gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 && mousepos.y > gap.y + cardsize[1]*1/2 && mousepos.y < gap.y*1 + cardsize[1]*1){
+      if (rev) {
+        [deck, draw, slots] = slothistory[rev-1];
+        rev -=1;
+        sol();
+      };
+      sol();
+      return;
+    }
+
+    // REdo card movement
+    if(mousepos.x > gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 && mousepos.x < gap.x*3 + cardsize[0]*3 && mousepos.y > gap.y + cardsize[1]*1/2 && mousepos.y < gap.y*1 + cardsize[1]*1){
+      if (slothistory.length > rev) {
+        rev +=1;
+        [deck, draw, slots] = slothistory[rev-1];
+        sol();
+      }
+      sol();
+      return;
+    }
+
     for (const pos of [...Array(4).keys()]){
-      if(mousepos.x > gap.x*(pos+4) + cardsize[0]*(pos+3) && mousepos.x < gap.x*(pos+4) + cardsize[0]*(pos+4) && mousepos.y > gap.y*1 + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1) {
+      if(sel(pos+3, 0)) {
         if (slots[pos+1][1].length) {
           const repeat = Math.ceil((slots[pos+1][1].length)/4)-1;
           dragcard = {'x':gap.x*(pos+4) + cardsize[0]*(pos+3) + repeat*scale*2, 'y':gap.y*1 + cardsize[1]*0 + repeat*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[pos+1], 'draw':slots[pos+1][1].length-1};
@@ -544,12 +588,13 @@ var FFdown = (e_) => {
           let card = slots[pos+5][0][slots[pos+5][0].length-1]; 
           slots[pos+5][0] = slots[pos+5][0].slice(0, -1);
           slots[pos+5][1].push(card);
+          snapshot();
         }
         break;
       }
     }
 
-    //sol();
+    sol();
 
     if (dragcard) {
       let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw]];
@@ -612,12 +657,12 @@ var FFup = (e_) => {
     if (dragcard){
       let slot = [];
       let cheat = false;
-      if (mousepos.x > 11*2 + cardsize[0]*1 && mousepos.x < 11*2 + cardsize[0]*2 && mousepos.y > gap.y + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1 && draw){
+      if (mousepos.x > gap.x*2 + cardsize[0]*1 && mousepos.x < gap.x*2 + cardsize[0]*2 && mousepos.y > gap.y + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1 && draw){
         slot.push(slots[0]);
       }
 
       for (const pos of [...Array(4).keys()]) {
-        if(mousepos.x - dragcard.dx + dragcard.x + cardsize[0] > 11*(pos+4) + cardsize[0]*(pos+3) && mousepos.x - dragcard.dx + dragcard.x < 11*(pos+4) + cardsize[0]*(pos+4) && mousepos.y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*1 + cardsize[1]*0 && mousepos.y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1) {
+        if(mousepos.x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*(pos+4) + cardsize[0]*(pos+3) && mousepos.x - dragcard.dx + dragcard.x < gap.x*(pos+4) + cardsize[0]*(pos+4) && mousepos.y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*1 + cardsize[1]*0 && mousepos.y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1) {
           slot.push(slots[pos+1]);
         }
         if (fastclick + 200 > Date.now()) {
@@ -636,7 +681,7 @@ var FFup = (e_) => {
             }
             dragcard = false;
             returncard = false;
-            slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
+            snapshot();
             sol();
             return;
           }
@@ -660,7 +705,7 @@ var FFup = (e_) => {
             }
             dragcard = false;
             returncard = false;
-            slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
+            snapshot();
             sol();
             return;
           }
@@ -670,14 +715,16 @@ var FFup = (e_) => {
       for (const pos of [...Array(7+cheatslots).keys()]) {
         if (mousepos.x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*(pos+1) + cardsize[0]*(pos) && mousepos.x - dragcard.dx + dragcard.x < gap.x*(pos+1) + cardsize[0]*(pos+1) && mousepos.y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*2 + cardsize[1]*1 && mousepos.y - dragcard.dy + dragcard.y < gap.y*2 + cardsize[1]*2 + 3*scale*slots[pos+5][0].length + 15*scale*(slots[pos+5][1].length-1)) {
           slot.push(slots[pos+5]);
-          cheat = pos > 6 || 'draw' in dragcard && slots[pos+5][0].length === 0 && dragcard.slot[0].length === 0 ? true : false;
+          if (!cheat){
+            cheat = pos > 6 || 'draw' in dragcard && slots[pos+5][0].length === 0 && dragcard.slot[0].length === 0 ? 2 : 1;
+          }
         }
       }
 
       if (slot.length) {
         for (const s of slot){
           if (!s[1].length) {
-            if ((parseInt(dragcard.slot[1]['draw' in dragcard ? dragcard.draw : draw][1], 16) === 13 || cheat) && !(dragcard.draw)) {
+            if ((parseInt(dragcard.slot[1]['draw' in dragcard ? dragcard.draw : draw][1], 16) === 13 || cheat === 2) && !(dragcard.draw)) {
               if ('draw' in dragcard) {
                 s[1].push(...dragcard.slot[1].slice(dragcard.draw));
                 dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
@@ -689,7 +736,7 @@ var FFup = (e_) => {
               }
               dragcard = false;
               returncard = false;
-              slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
+              snapshot();
               sol();
               fastclick = Date.now();
               return;
@@ -708,7 +755,7 @@ var FFup = (e_) => {
             }
             dragcard = false;
             returncard = false;
-            slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
+            snapshot();
             sol();
             fastclick = Date.now();
             return;
@@ -935,16 +982,6 @@ window.onload = () => {
         restart = true;
         readcard(screensaver, true);
       });
-    } else if (options[1] === 6) {
-      e.addEventListener('click', () => {
-        if (slothistory.length-1) {
-          [deck, draw, slots] = slothistory.pop();
-          sol();
-        } else {
-          [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[0]));
-          sol();
-        };
-      });
     } else {
       e.addEventListener('click', () => {
         restartwith(options);
@@ -967,7 +1004,6 @@ window.onload = () => {
   makemenu(['Unrestricted FPS',    3]);
   makemenu(['Display FPS',         1]);
   makemenu(['Solitaire',           5]);
-  makemenu(['Undo',                6]);
   makemenu(['Clear',               4, 0]);
   makemenu(['Ghost',               4, 1]);
   makemenu(['Paint',               4, 2]);

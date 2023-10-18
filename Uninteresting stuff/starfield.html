@@ -318,8 +318,10 @@ var snapshot = () => {
   if (rev < slothistory.length-1){
     slothistory = slothistory.slice(0, rev-1);
     rev -= 1;
+    console.log(slothistory.length, 'wiped future redos', rev);
   }
   slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
+  console.log(slothistory.length, 'new snapshot', rev);
   rev += 1;
 }
 
@@ -365,6 +367,7 @@ function new_deck() {
   slots[0][1] = deck.slice(0, 24);
   deck = [];
   slothistory = [];
+  rev = 0;
   snapshot();
 
   //insta win
@@ -386,7 +389,6 @@ function sol(resolve) {
 
   context.drawImage(cards['deck'], gap.x, gap.y, ...cardsize);
   context.drawImage(cards['undo'], gap.x*3 + cardsize[0]*2, gap.y, cardsize[0], cardsize[1]);
-  //context.drawImage(cards['card1'], gap.x*3 + cardsize[0]*2, gap.y, cardsize[0]/1.25, cardsize[1]/1.25);
   context.drawImage(cards['slot'], 257*scale, gap.y, ...cardsize);
   context.drawImage(cards['slot'], 339*scale, gap.y, ...cardsize);
   context.drawImage(cards['slot'], 421*scale, gap.y, ...cardsize);
@@ -550,9 +552,12 @@ var FFdown = (e_) => {
     // UNdo card movement
     if(mousepos.x > gap.x*3 + cardsize[0]*2 && mousepos.x < gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 && mousepos.y > gap.y + cardsize[1]*1/2 && mousepos.y < gap.y*1 + cardsize[1]*1){
       if (rev) {
+        console.log(slothistory.length, "undone", rev);
         [deck, draw, slots] = slothistory[rev-1];
         rev -=1;
-        sol();
+      } else {
+        console.log(slothistory.length, "nothing to undo", rev);
+        //[deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[0]));
       };
       sol();
       return;
@@ -561,10 +566,13 @@ var FFdown = (e_) => {
     // REdo card movement
     if(mousepos.x > gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 && mousepos.x < gap.x*3 + cardsize[0]*3 && mousepos.y > gap.y + cardsize[1]*1/2 && mousepos.y < gap.y*1 + cardsize[1]*1){
       if (slothistory.length > rev) {
+        console.log(slothistory.length, "redo", rev);
         rev +=1;
         [deck, draw, slots] = slothistory[rev-1];
-        sol();
-      }
+      } else {
+        console.log(slothistory.length, "nothing to redo", rev);
+        //[deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[0]));
+      };
       sol();
       return;
     }

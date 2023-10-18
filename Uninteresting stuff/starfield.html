@@ -309,19 +309,17 @@ var slots = [];
 var slothistory = [];
 var cheatslots = 8;
 var draw = -1;
+var rev = -1;
+var drawn = 1;
 var deck = [];
 var cards = {};
 var cardsize = [71*scale, 96*scale];
 var gap = {'x':11*scale, 'y':5*scale};
-var rev = 0;
 var snapshot = () => {
   if (rev < slothistory.length-1){
-    slothistory = slothistory.slice(0, rev-1);
-    rev -= 1;
-    console.log(slothistory.length, 'wiped future redos', rev);
+    slothistory = slothistory.slice(0, rev);
   }
   slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
-  console.log(slothistory.length, 'new snapshot', rev);
   rev += 1;
 }
 
@@ -329,6 +327,7 @@ var snapshot = () => {
 
 function new_deck() {
   draw = -1;
+  rev = -1;
   deck = [];
   var factorysealed = [];
   for (const card of ['card1', 'card2', 'deck', 'slot', 'undo']){
@@ -367,7 +366,6 @@ function new_deck() {
   slots[0][1] = deck.slice(0, 24);
   deck = [];
   slothistory = [];
-  rev = 0;
   snapshot();
 
   //insta win
@@ -552,27 +550,19 @@ var FFdown = (e_) => {
     // UNdo card movement
     if(mousepos.x > gap.x*3 + cardsize[0]*2 && mousepos.x < gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 && mousepos.y > gap.y + cardsize[1]*1/2 && mousepos.y < gap.y*1 + cardsize[1]*1){
       if (rev) {
-        console.log(slothistory.length, "undone", rev);
-        [deck, draw, slots] = slothistory[rev-1];
         rev -=1;
-      } else {
-        console.log(slothistory.length, "nothing to undo", rev);
-        //[deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[0]));
-      };
+        [deck, draw, slots] = slothistory[rev];
+      }
       sol();
       return;
     }
 
     // REdo card movement
     if(mousepos.x > gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 && mousepos.x < gap.x*3 + cardsize[0]*3 && mousepos.y > gap.y + cardsize[1]*1/2 && mousepos.y < gap.y*1 + cardsize[1]*1){
-      if (slothistory.length > rev) {
-        console.log(slothistory.length, "redo", rev);
+      if (slothistory.length > rev+1) {
         rev +=1;
-        [deck, draw, slots] = slothistory[rev-1];
-      } else {
-        console.log(slothistory.length, "nothing to redo", rev);
-        //[deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[0]));
-      };
+        [deck, draw, slots] = slothistory[rev];
+      }
       sol();
       return;
     }
@@ -988,6 +978,7 @@ window.onload = () => {
       e.addEventListener('click', () => {
         new_deck();
         restart = true;
+        drawn = options[2];
         readcard(screensaver, true);
       });
     } else {
@@ -1011,7 +1002,7 @@ window.onload = () => {
   makemenu(['Nostalgia FPS 30',    3, 30]);
   makemenu(['Unrestricted FPS',    3]);
   makemenu(['Display FPS',         1]);
-  makemenu(['Solitaire',           5]);
+  makemenu(['Solitaire',           5, 1]);
   makemenu(['Clear',               4, 0]);
   makemenu(['Ghost',               4, 1]);
   makemenu(['Paint',               4, 2]);

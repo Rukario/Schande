@@ -533,7 +533,8 @@ var FFdown = (e_) => {
 
     if(sel(0, 0, 0)){
       if (draw < slots[0][1].length-1) {
-        draw += slots[0][1].length-1 < draw+drawn ? slots[0][1].length % drawn : drawn;
+        const drawable = slots[0][1].length % drawn;
+        draw += slots[0][1].length-1 < draw+drawn ? (drawable ? drawable : 1) : drawn;
         for (const i of [...Array(drawn).keys()]) {
           deck.push(slots[0][1][draw-drawn+1+i]);
         }

@@ -636,8 +636,23 @@ function newtip(y, z){
   local_backtip.style.display = "inline-block";
 }
 
+function hyperlink(d) {
+  return d.replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| |$)/g, '<span class="hyperlink">$1</span>$2');
+}
+
 function toolbar(d){
   document.body.className = "exitmenu hljs";
+  var dbody;
+  if (d) {
+    if (!bigdoc && canihljs) {
+      dbody = hyperlink(hljs.highlightAuto(d).value);
+    } else {
+      dbody = hyperlink(d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+    }
+  } else {
+    dbody = "<br>";
+  }
+
   document.body.innerHTML = `<div id="cursor_tooltip"></div><div id="cursor_focus"></div><div id="drag" style="margin:0px 12px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><div id="dimm" style="display:none;"><button class="previous" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
     <option value="0">Remove...</option>
     <option value="1">Remove all duplicate lines</option>
@@ -650,7 +665,7 @@ function toolbar(d){
     <option value="8">Wipe all after cursor</option>
     <option value="9">Links only</option>
     <option value="10">De-highlight (until empty text replacement)</option>
-</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none"><button class="next" onclick="fraktur()">where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗</button>) (can't be undone)</div><div id="dim" style="display:block;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); left:-16px;" onclick="relbar(this, '🫦')">👄</button><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calc" class="next" style="width:116px;" type="text" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[4]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"></div><div id="tooltip" class="tooltip"></div></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + (d?(!bigdoc&&canihljs?hljs.highlightAuto(d).value:d.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")).replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| )/g, '<span class="hyperlink">$1</span>$2'):"<br>") + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false><br></div><div class="stdout" id="stdout"></div>`;
+</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none"><button class="next" onclick="fraktur()">where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗</button>) (can't be undone)</div><div id="dim" style="display:block;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); left:-16px;" onclick="relbar(this, '🫦')">👄</button><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calc" class="next" style="width:116px;" type="text" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[4]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"></div><div id="tooltip" class="tooltip"></div></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + dbody + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false><br></div><div class="stdout" id="stdout"></div>`;
   editor = document.getElementById("editable");
   editdiff = document.getElementById("editable2");
   let left = () => {

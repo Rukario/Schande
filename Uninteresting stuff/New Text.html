@@ -253,7 +253,6 @@ var updatelen = 0;
 function FFup() {
   let sel = editor.ownerDocument.defaultView.getSelection();
   let len = sel.toString().length;
-  let pos = sel.getRangeAt(0);
   if(link && link.classList.contains("hyperlink")){
     link.classList.remove("blink");
     cursor_tooltip.style.display = "none";
@@ -275,7 +274,7 @@ function FFup() {
         let len = sel.toString().length;
         if (len !== updatelen){
           updatelen = len;
-          FFup()
+          FFup();
         }
       }, 500);
     }
@@ -289,19 +288,22 @@ function FFup() {
     updatesel = false;
     cursor_tooltip.style.display = "none";
   }
-  let preCaretRange = pos.cloneRange();
-  if(ans !== false){
-    where = preCaretRange.getBoundingClientRect()
-    cursor_tooltip.style.left = (window.scrollX + where.left) + "px";
-    cursor_tooltip.style.top = (window.scrollY + where.top + 36) + "px";
-    cursor_tooltip.classList = "tangerine cursed";
-    cursor_tooltip.innerHTML = "<span style='font-size:14px;'>" + ans + "</span>";
-    cursor_tooltip.style.display = "inline-block";
-  };
-  preCaretRange.selectNodeContents(editor);
-  preCaretRange.setEnd(pos.endContainer, pos.endOffset);
-  cur = preCaretRange.toString().length;
-  calc.placeholder = "Ln:" + editor.textContent.substr(0, cur).split("\n").length + " Pos:" + cur;
+  if (sel.rangeCount) {
+    let pos = sel.getRangeAt(0);
+    let preCaretRange = pos.cloneRange();
+    if(ans !== false){
+      where = preCaretRange.getBoundingClientRect()
+      cursor_tooltip.style.left = (window.scrollX + where.left) + "px";
+      cursor_tooltip.style.top = (window.scrollY + where.top + 36) + "px";
+      cursor_tooltip.classList = "tangerine cursed";
+      cursor_tooltip.innerHTML = "<span style='font-size:14px;'>" + ans + "</span>";
+      cursor_tooltip.style.display = "inline-block";
+    };
+    preCaretRange.selectNodeContents(editor);
+    preCaretRange.setEnd(pos.endContainer, pos.endOffset);
+    cur = preCaretRange.toString().length;
+    calc.placeholder = "Ln:" + editor.textContent.substr(0, cur).split("\n").length + " Pos:" + cur;
+  }
 }
 
 function plaintext(elem, e) {
@@ -360,12 +362,12 @@ function rename(){
 
 function linksonly(){
   canihljs = false;
-  toolbar(editor.textContent.replace(/[\s\S]*?((https:\/\/.*?)(\"|\'|\n|<|\)| )|($))/g, '$2\n'));
+  new_editor(editor.textContent.replace(/[\s\S]*?((https:\/\/.*?)(\"|\'|\n|<|\)| )|($))/g, '$2\n'));
 }
 
 function dehljs(){
   canihljs = false;
-  toolbar(editor.textContent);
+  new_editor(editor.textContent);
 }
 
 function dedup(){
@@ -378,7 +380,7 @@ function dedup(){
       clean.push("");
     }
   }
-  toolbar(clean.join("\n"));
+  new_editor(clean.join("\n"));
 };
 
 function denew(){
@@ -389,29 +391,29 @@ function denew(){
       clean.push(dirty[i]);
     }
   }
-  toolbar(clean.join("\n"));
+  new_editor(clean.join("\n"));
 }
 
 function detab(){
-  toolbar(editor.textContent.replace(/	/g, "    "));
+  new_editor(editor.textContent.replace(/	/g, "    "));
 }
 
 function decode(){
   try {
-    toolbar(decodeURIComponent(editor.textContent));
+    new_editor(decodeURIComponent(editor.textContent));
   } catch {
     alert("The percent sign in this document appears malformed and has killed decoder!");
   }
 }
 
 function del(c){
-  toolbar(editor.textContent.slice(...c));
+  new_editor(editor.textContent.slice(...c));
 }
 
 function deamp() {
   let t = document.createElement("textarea");
   t.innerHTML = editor.textContent;
-  toolbar(t.value)
+  new_editor(t.value);
 }
 
 function deuni(e) {
@@ -456,11 +458,11 @@ function replace(){
   let x = document.getElementById("replace");
   if(!x.value){
     canihljs = true;
-    toolbar(editor.textContent);
+    new_editor(editor.textContent);
   } else {
     let y = document.getElementById("with");
     let r = new RegExp(x.value, 'g');
-    toolbar(editor.textContent.replace(r, unraw(y.value)));
+    new_editor(editor.textContent.replace(r, unraw(y.value)));
   }
 }
 
@@ -486,7 +488,7 @@ function fraktur(){
     }
     str += String.fromCodePoint(c);
   }
-  toolbar(str);
+  new_editor(str);
 }
 
 function save(){
@@ -583,7 +585,7 @@ function open(file) {
   fr.onload = () => {
     d = fr.result;
     bigdoc = (d.length > 300000);
-    toolbar(d);
+    new_editor(d);
   }
 }
 
@@ -640,9 +642,10 @@ function hyperlink(d) {
   return d.replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| |$)/g, '<span class="hyperlink">$1</span>$2');
 }
 
-function toolbar(d){
+function new_editor(d) {
   document.body.className = "exitmenu hljs";
-  var dbody;
+
+  var dbody, busypicker, filepicker, rep;
   if (d) {
     if (!bigdoc && canihljs) {
       dbody = hyperlink(hljs.highlightAuto(d).value);
@@ -653,19 +656,27 @@ function toolbar(d){
     dbody = "<br>";
   }
 
-  document.body.innerHTML = `<div id="cursor_tooltip"></div><div id="cursor_focus"></div><div id="drag" style="margin:0px 12px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><div id="dimm" style="display:none;"><button class="previous" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;">
-    <option value="0">Remove...</option>
-    <option value="1">Remove all duplicate lines</option>
-    <option value="2">Remove all new lines</option>
-    <option value="3">Replace all tabs with 4 spaces each</option>
-    <option value="4">Decode all ampersand signs</option>
-    <option value="5">Decode all percent signs</option>
-    <option value="6">Decode all unicode escapes</option>
-    <option value="7">Wipe all before cursor</option>
-    <option value="8">Wipe all after cursor</option>
-    <option value="9">Links only</option>
-    <option value="10">De-highlight (until empty text replacement)</option>
-</select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none"><button class="next" onclick="fraktur()">where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗</button>) (can't be undone)</div><div id="dim" style="display:block;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); left:-16px;" onclick="relbar(this, '🫦')">👄</button><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calc" class="next" style="width:116px;" type="text" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[4]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, 'Text: Ask')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"></div><div id="tooltip" class="tooltip"></div></div></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>` + dbody + `</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false><br></div><div class="stdout" id="stdout"></div>`;
+  document.body.innerHTML = '<div id="cursor_tooltip"></div><div id="cursor_focus"></div>' + toolbar() + '<div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>' + dbody + '</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false><br></div><div class="stdout" id="stdout"></div>';
+
+  for (const [n, o] of [
+    "Remove...",
+    "Remove all duplicate lines",
+    "Remove all new lines",
+    "Replace all tabs with 4 spaces each",
+    "Decode all ampersand signs",
+    "Decode all percent signs",
+    "Decode all unicode escapes",
+    "Wipe all before cursor",
+    "Wipe all after cursor",
+    "Links only",
+    "De-highlight (until empty text replacement)"
+  ].entries()) {
+    const option = document.createElement("option");
+    option.value = n;
+    option.innerHTML = o;
+    destructive.appendChild(option);
+  };
+
   editor = document.getElementById("editable");
   editdiff = document.getElementById("editable2");
   let left = () => {
@@ -674,23 +685,28 @@ function toolbar(d){
     }, 40)
     editor.removeEventListener("click", left);
   }
-  if (!d && ut){
+  if (!d && ut) {
     tooltip.style.display = "inline-block";
     tooltip.innerHTML = "The clipboard is updated with page source, paste to view!";
     editor.addEventListener("click", left);
   }
   editor.addEventListener("mouseup", FFup);
-  editor.onmousedown = () => {downmove = true};
-  editor.onmouseup = () => {downmove = false};
+  editor.addEventListener("touchend", FFup);
+  editor.onmousedown = () => {
+    downmove = true;
+  };
+  editor.onmouseup = () => {
+    downmove = false;
+  };
   editor.onmousemove = () => {
-    if(downmove == true){
-      clearTimeout(busymoving)
-      busymoving = setTimeout(FFup, 100)
+    if (downmove == true) {
+      clearTimeout(busymoving);
+      busymoving = setTimeout(FFup, 100);
     }
   };
   editor.setAttribute("oninput", "edit()");
-  if(!editor.isContentEditable){
-    if(!d){
+  if (!editor.isContentEditable) {
+    if (!d) {
       tooltip.style.display = "inline-block";
       tooltip.innerHTML = "Performance reduced: The JavaScript version is now used for compatibility of some features on this browser.";
       editor.addEventListener("click", left);
@@ -700,12 +716,13 @@ function toolbar(d){
     editdiff.setAttribute("onpaste", "plaintext(this, event)");
     editdiff.setAttribute("contenteditable", "true");
   }
-  if (canihljs&&bigdoc){
+  if (canihljs && bigdoc) {
     tooltip.style.display = "inline-block";
     tooltip.innerHTML = "The document is more than 300 KB, prompting for not highlighting for performance.";
     editor.addEventListener("click", left);
   }
   bigdoc = false;
+
   colorpicker.addEventListener('click', () => {
     var s = document.createElement("style");
     calc.placeholder = "#000000";
@@ -715,7 +732,7 @@ function toolbar(d){
     s.innerHTML = getfontcolor("#000000")
     document.getElementsByTagName("head")[0].appendChild(s)
   });
-  var busypicker;
+
   colorpicker.addEventListener('change', (event) => {
     clearTimeout(busypicker);
     var s = document.createElement("style");
@@ -726,32 +743,39 @@ function toolbar(d){
     s.innerHTML = getfontcolor(event.target.value)
     document.getElementsByTagName("head")[0].appendChild(s)
   });
-  var x = document.createElement("input");
-  x.type = "file"
-  x.addEventListener('change', (event) => {
+
+  filepicker = document.createElement("input");
+  filepicker.type = "file"
+  filepicker.addEventListener('change', (event) => {
     file = event.target.files[0];
     document.title = file.name;
-    if(hljs){canihljs = true;}
+    if (hljs) {
+      canihljs = true;
+    }
     open(file);
   });
+
   picker.innerHTML = filel[0];
-  picker.appendChild(x);
-  var x = document.createElement("input");
-  x.type = "file"
-  x.addEventListener('change', (event) => {
+  picker.appendChild(filepicker);
+
+  filepicker = document.createElement("input");
+  filepicker.type = "file"
+  filepicker.addEventListener('change', (event) => {
     opendiff(event.target.files[0]);
   });
+
   pickerdiff.innerHTML = filel[1];
-  pickerdiff.appendChild(x);
+  pickerdiff.appendChild(filepicker);
+
   calc.addEventListener("keyup", function(e) {
     let c = calc.value;
-    if (!c){
+    if (!c) {
       calc.style.backgroundColor = "#066"
     } else if (e.keyCode === 13) {
       try {
         calc.value = new Function('return ' + c)().toFixed(10)*1;
       } catch {
-        if(c.startsWith("u")){
+        if (c.startsWith("u")) {
           calc.value = deuni("\\" + c)
         }
       }
@@ -760,12 +784,12 @@ function toolbar(d){
         new Function('return ' + c)();
         calc.style.backgroundColor = "#066";
       } catch {
-        if(c.startsWith("u") && (!c.slice(1) || Number('0x'+c.slice(1)))){
-          if (c.length == 5){
+        if (c.startsWith("u") && (!c.slice(1) || Number('0x'+c.slice(1)))) {
+          if (c.length == 5) {
             calc.style.backgroundColor = "#066";
-          } else if (c.length > 5){
+          } else if (c.length > 5) {
             calc.style.backgroundColor = "#399";
-          } else if (c.length < 5){
+          } else if (c.length < 5) {
             calc.style.backgroundColor = "#033";
           }
         } else {
@@ -774,42 +798,56 @@ function toolbar(d){
       }
     }
   });
+
   destructive.addEventListener('change', (e) => {
-    var x = e.target.selectedIndex;
-    if (x == 1){
-      dedup();
-    } else if (x == 2){
-      denew();
-    } else if (x == 3){
-      detab();
-    } else if (x == 4){
-      deamp();
-    } else if (x == 5){
-      decode();
-    } else if (x == 6){
-      toolbar(deuni(editor.textContent));
-    } else if (x == 7){
-      del([cur]);
-    } else if (x == 8){
-      del([0, cur]);
-    } else if (x == 9){
-      linksonly();
-    } else if (x == 10){
-      dehljs();
+    switch (e.target.selectedIndex) {
+      case 1:
+        dedup();
+        break;
+      case 2:
+        denew();
+        break;
+      case 3:
+        detab();
+        break;
+      case 4:
+        deamp();
+        break;
+      case 5:
+        decode();
+        break;
+      case 6:
+        new_editor(deuni(editor.textContent));
+        break;
+      case 7:
+        del([cur]);
+        break;
+      case 8:
+        del([0, cur]);
+        break;
+      case 9:
+        linksonly();
+        break;
+      case 10:
+        dehljs();
+        break;
     }
   });
-  var rep = document.getElementById("replace");
+
+  rep = document.getElementById("replace");
   rep.addEventListener("keyup", function(e) {
     if (e.keyCode === 13) {
       replace();
     }
   });
+
   rep = document.getElementById("with");
   rep.addEventListener("keyup", function(e) {
     if (e.keyCode === 13) {
       replace();
     }
   });
+
   if(easter){
     picker.classList.add("aczo");
     pickerdiff.classList.add("aczo");
@@ -833,29 +871,36 @@ window.onload = () => {
   } else {
     document.body.setAttribute("data-launch", true);
   }
-  var scale = "26px";
-  var adju = "128%";
+
+  let scale = "26px";
+  let adju = "128%";
   if (window.screen.width > 800){
     scale = "14px";
-    adju = "none"
-    aczo28 = false
+    adju = "none";
+    aczo28 = false;
   }
   document.body.style.fontSize = scale;
   document.body.style.lineHeight = scale;
   document.body.style.webkitTextSizeAdjust = adju;
-  var s = document.createElement("script");
+  new_editor("");
+
+  const s = document.createElement("script");
   s.src = "highlight.min.js"/* + Date.now()*/;
   document.body.appendChild(s);
-  toolbar("");
   s.onload = () => {
     canihljs = true;
   }
   s.onerror = () => {
     newtip(filel[4] + " -(Highlight)", `Download and extract highlight.min.js from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> directly next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.`);
   }
+
   if(sharp[1]){
     newtip(filel[4] + " -(Uninitiated CSS)", `Download and extract "` + sharp[0] + `" (if that's spelled correctly) from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> directly next to HTML then reload this page`);
   }
+}
+
+function toolbar() {
+  return `<div id="drag" style="margin:0px 12px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><div id="dimm" style="display:none;"><button class="previous" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;"></select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none"><button class="next" onclick="fraktur()">where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗</button>) (can't be undone)</div><div id="dim" style="display:block;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); left:-16px;" onclick="relbar(this, '🫦')">👄</button><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calc" class="next" style="width:116px;" type="text" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[4]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, \'Text: Ask\')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"></div><div id="tooltip" class="tooltip"></div></div></div>`;
 }
 </script></head><body class="exitmenu">1. Set up and run Schande.bat for its HTTP server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a>
 2. Take me to Schande.bat, then launch <a href="http://127.0.0.1:8886/New Text.html">http://127.0.0.1:8886/New Text.html</a></body></html>

@@ -94,7 +94,6 @@ Railscasts-like style (c) Visoft, Inc. (Damien White)
   color: #da4939;
 }
 
-
 .hljs-symbol,
 .hljs-bullet,
 .hljs-built_in,
@@ -156,7 +155,7 @@ Railscasts-like style (c) Visoft, Inc. (Damien White)
 }
 </style>
 <script>
-var black = "#000"
+var black = "#000";
 var bg = [
   "#fff", "#45f", "#aaf", "#aaf",
   "#5f4", "#fff", "#aaf", "#aaf",
@@ -198,6 +197,7 @@ var bg = [
   black,  black,  black,  black,
   black,  black,  black,  "#586e75"
 ]
+
 function getfontcolor(c){
   let [r, g, b] = [parseInt(c.substring(1, 3), 16), parseInt(c.substring(3, 5), 16), parseInt(c.substring(5, 7), 16)];
   return ".exitmenu{background-color:" + c + "; color:" + bg[Math.floor(r/32)*4*4 + Math.floor(g/64)*4 + Math.floor(b/64)] + ";}"
@@ -226,16 +226,24 @@ if (sharp[0]){
   a.href = "#2d0710";
   a.click()
 }
-var FFdown = function(e) {
+
+var link = false;
+var cur = 0;
+var downmove = false;
+var busymoving, busypicker, busytyping;
+var updatesel = false;
+var updatelen = 0;
+
+var FFdown = (e) => {
   var t = e.target;
   var a = t.parentNode;
   if (t.hasAttribute("data-tooltip")) {
     tooltip.style.display = "inline-block";
     tooltip.innerHTML = t.getAttribute("data-tooltip");
     let left = () => {
-      setTimeout(function(){
+      setTimeout(() => {
         tooltip.style.display = "none";
-      }, 1250)
+      }, 1250);
       a.removeEventListener("mouseleave", left);
     }
     a.addEventListener("mouseleave", left);
@@ -244,13 +252,7 @@ var FFdown = function(e) {
 
 document.addEventListener("click", FFdown);
 
-var link = false;
-var cur = 0;
-var downmove = false;
-var busymoving, busypicker, busytyping;
-var updatesel = false;
-var updatelen = 0;
-function FFup() {
+var FFup = () => {
   let sel = editor.ownerDocument.defaultView.getSelection();
   let len = sel.toString().length;
   if(link && link.classList.contains("hyperlink")){
@@ -269,7 +271,7 @@ function FFup() {
     cursor_tooltip.style.display = "inline-block";
   } else if (len > 0 && len < 256){
     if (!updatesel){
-      updatesel = window.setInterval(function () {
+      updatesel = window.setInterval(() => {
         let sel = editor.ownerDocument.defaultView.getSelection();
         let len = sel.toString().length;
         if (len !== updatelen){
@@ -680,7 +682,7 @@ function new_editor(d) {
   editor = document.getElementById("editable");
   editdiff = document.getElementById("editable2");
   let left = () => {
-    setTimeout(function(){
+    setTimeout(() => {
       tooltip.style.display = "none";
     }, 40)
     editor.removeEventListener("click", left);
@@ -767,7 +769,7 @@ function new_editor(d) {
   pickerdiff.innerHTML = filel[1];
   pickerdiff.appendChild(filepicker);
 
-  calc.addEventListener("keyup", function(e) {
+  calc.addEventListener("keyup", (e) => {
     let c = calc.value;
     if (!c) {
       calc.style.backgroundColor = "#066"
@@ -835,14 +837,14 @@ function new_editor(d) {
   });
 
   rep = document.getElementById("replace");
-  rep.addEventListener("keyup", function(e) {
+  rep.addEventListener("keyup", (e) => {
     if (e.keyCode === 13) {
       replace();
     }
   });
 
   rep = document.getElementById("with");
-  rep.addEventListener("keyup", function(e) {
+  rep.addEventListener("keyup", (e) => {
     if (e.keyCode === 13) {
       replace();
     }
@@ -899,7 +901,7 @@ window.onload = () => {
   }
 }
 
-function toolbar() {
+var toolbar = () => {
   return `<div id="drag" style="margin:0px 12px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><div id="dimm" style="display:none;"><button class="previous" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;"></select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none"><button class="next" onclick="fraktur()">where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗</button>) (can't be undone)</div><div id="dim" style="display:block;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); left:-16px;" onclick="relbar(this, '🫦')">👄</button><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calc" class="next" style="width:116px;" type="text" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[4]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, \'Text: Ask\')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"></div><div id="tooltip" class="tooltip"></div></div></div>`;
 }
 </script></head><body class="exitmenu">1. Set up and run Schande.bat for its HTTP server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a>

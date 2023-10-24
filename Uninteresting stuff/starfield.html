@@ -307,16 +307,14 @@ function restarted() {
 
 var deck = [];
 var cards = {};
-
 var slots = [];
 var cheatslots = 8;
 var ncard = 52;
-
 var drawn = 1;
 var draw = [-1, -1];
-
 var rev = -1;
 var slothistory = [];
+var readycomputer = false;
 
 
 var snapshot = () => {
@@ -388,8 +386,6 @@ function new_deck() {
   //  }
   //}
 }
-
-
 
 function sol(resolve) {
   context.fillStyle = "#007D00";
@@ -527,8 +523,54 @@ function sol(resolve) {
       des += 15;
     }
   }
-
   //return resolve(true);
+
+  if (readycomputer) {
+    clearTimeout(readycomputer);
+    readycomputer = 0;
+  }
+  if (readycomputer === 0) {
+    readycomputer = setTimeout(computerplaysol, 60);
+  }
+}
+
+function computerplaysol() {
+  let stack = [];
+  for (const pos of [...Array(4).keys()]) {
+    if (slots[pos+1][1].length) {
+      stack.push(slots[pos+1][1][slots[pos+1][1].length-1]);
+    }
+  }
+
+  if (deck.length) {
+    const card = deck[deck.length-1];
+    if(parseInt(card[1], 16) === 1 || stack.some((slot) => {return parseInt(card[0], 16) === parseInt(slot[0], 16) && parseInt(card[1], 16) === parseInt(slot[1], 16)+1})) {
+      const ded = Math.min(drawn, deck.length)-1;
+      const repeat = (Math.ceil((deck.length)/10)-1)*scale;
+      dragcard = {'x':gap.x*2 + cardsize[0]*1 + repeat*2 + ded*scale*14, 'y':gap.y*1 + cardsize[1]*0 + repeat + ded*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[0]};
+      setTimeout(FFup, 60);
+      return;
+    }
+  }
+
+  for (const pos of [...Array(7+cheatslots).keys()]){
+    if (slots[pos+5][1].length) {
+      const card = slots[pos+5][1][slots[pos+5][1].length-1];
+      if (parseInt(card[1], 16) === 1 || stack.some((slot) => {return parseInt(card[0], 16) === parseInt(slot[0], 16) && parseInt(card[1], 16) === parseInt(slot[1], 16)+1})) {
+        let depth = slots[pos+5][1].length-1;
+        dragcard = {'x':gap.x*(pos+1) + cardsize[0]*pos, 'y':gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length + depth*15*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[pos+5], 'draw':depth};
+        setTimeout(FFup, 60);
+        return;
+      }
+    } else if (slots[pos+5][0].length) {
+      const card = slots[pos+5][0][slots[pos+5][0].length-1]; 
+      slots[pos+5][0] = slots[pos+5][0].slice(0, -1);
+      slots[pos+5][1].push(card);
+      snapshot();
+      sol();
+      return;
+    }
+  };
 }
 
 
@@ -537,16 +579,16 @@ var fastclick = Date.now();
 var dragcard = false;
 var returncard = false;
 
-var FFdown = (e) => {
+var FFdown = (e_) => {
   if (poppy.style.display !== 'none') {
     poppy.style.display = 'none';
     return;
   }
 
-  if (e) {
-    if (!isTouch || e.touches.length === 1) {
-      mousepos.x = isTouch ? e.touches[0].clientX + window.visualViewport.offsetLeft: e.x;
-      mousepos.y = isTouch ? e.touches[0].clientY + window.visualViewport.offsetTop: e.y;
+  if (e_) {
+    if (!isTouch || e_.touches.length === 1) {
+      mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft: e_.x;
+      mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop: e_.y;
     }
   }
 
@@ -692,7 +734,9 @@ function rubberband(){
 
 
 var FFup = (e_) => {
-  e_.preventDefault();
+  if (e_) {
+    e_.preventDefault();
+  }
   if (solitaire){
     if (dragcard){
       let slot = [];
@@ -1020,6 +1064,10 @@ window.onload = () => {
         drawn = options[2];
         readcard(screensaverorsol, true);
       });
+    } else if (options[1] === 6) {
+      e.addEventListener('click', () => {
+        readycomputer = readycomputer === 0 ? false : 0;
+      });
     } else {
       e.addEventListener('click', () => {
         restartwith(options);
@@ -1043,6 +1091,7 @@ window.onload = () => {
   makemenu(['Display FPS',         1]);
   makemenu(['Solitaire (draw 1)',  5, 1]);
   makemenu(['Solitaire (draw 3)',  5, 3]);
+  makemenu(['Solitaire with computer', 6]);
   makemenu(['Clear',               4, 0]);
   makemenu(['Ghost',               4, 1]);
   makemenu(['Paint',               4, 2]);

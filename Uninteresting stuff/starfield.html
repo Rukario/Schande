@@ -462,7 +462,7 @@ function sol(resolve) {
     }
   }
 
-  if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === ncard/4})) {
+  if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === ncard/4}) && !winanim) {
     let del = 1000;
     winanim = true;
     for (const card of [...Array(13).keys()]){
@@ -493,8 +493,8 @@ function sol(resolve) {
             //requestAnimationFrame(update);
           }
 
-          if (flycard.y + cardsize[1] >= c.height) {
-              flycard.y = c.height - cardsize[1];
+          if (flycard.y + cardsize[1] >= c.height || isTouch && flycard.y + cardsize[1] >= window.visualViewport.height) {
+              flycard.y = (isTouch ? window.visualViewport.height : c.height) - cardsize[1];
               flycard.yvel = -flycard.yvel;
           } else if (flycard.y <= 0) {
               flycard.yvel = flycard.yvel;

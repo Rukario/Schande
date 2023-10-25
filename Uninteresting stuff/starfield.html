@@ -315,7 +315,8 @@ var draw = [-1, -1];
 var rev = -1;
 var slothistory = [];
 var readycomputer = false;
-
+var winanim = false;
+var winid = [];
 
 var snapshot = () => {
   rev ++;
@@ -325,15 +326,30 @@ var snapshot = () => {
   slothistory.push(JSON.parse(JSON.stringify([deck, draw, slots])));
 }
 
+var drawx = () => {
+  if (draw[0] < slots[0][1].length-1) {
+    const dd = Math.min(drawn, slots[0][1].length-deck.length);
+    draw[0] += dd;
+    for (const i of [...Array(dd).keys()]) {
+      deck.push(slots[0][1][draw[0]-dd+1+i]);
+    }
+  } else {
+    draw[0] = -1;
+    deck = [];
+  }
+}
+
 var cardsize = [71*scale, 96*scale];
 var gap = {'x':11*scale, 'y':5*scale};
-
 
 
 function new_deck() {
   draw = [-1, -1];
   rev = -1;
   deck = [];
+  winanim = false;
+  winid.map((w) => {clearTimeout(w)});
+  winid = [];
   var factorysealed = [];
   for (const card of ['card1', 'card2', 'deck', 'slot', 'undo', 'undo3']){
     cards[card] = new Image();
@@ -447,7 +463,8 @@ function sol(resolve) {
   }
 
   if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === ncard/4})) {
-    let del = 1000; 
+    let del = 1000;
+    winanim = true;
     for (const card of [...Array(13).keys()]){
       for (const pos of [...Array(4).keys()]){
         const gravity = {'x':0, 'y':1};
@@ -466,6 +483,9 @@ function sol(resolve) {
           flycard.x += (flycard.xvel * flycard.xdir);
           flycard.y += (flycard.yvel * flycard.ydir);
 
+          if (!winanim) {
+            return;
+          }
           if (flycard.x >= -cardsize[0] && flycard.x <= c.width) {
             requestAnimationFrame(update);
           } else {
@@ -483,7 +503,7 @@ function sol(resolve) {
           context.drawImage(cards[slots[pos+1][1][12-card]], flycard.x, flycard.y, ...cardsize);
         }
 
-        setTimeout(() => {update()}, del);
+        winid.push(setTimeout(update, del));
         del += 1000;
         //new_deck();
         //sol();
@@ -530,12 +550,14 @@ function sol(resolve) {
     readycomputer = 0;
   }
   if (readycomputer === 0) {
-    readycomputer = setTimeout(computerplaysol, 60);
+    readycomputer = setTimeout(computerplaysol, 30);
   }
 }
 
 function computerplaysol() {
-  let stack = [];
+  const stack = [];
+  const stackx = [];
+
   for (const pos of [...Array(4).keys()]) {
     if (slots[pos+1][1].length) {
       stack.push(slots[pos+1][1][slots[pos+1][1].length-1]);
@@ -544,22 +566,26 @@ function computerplaysol() {
 
   if (deck.length) {
     const card = deck[deck.length-1];
+    stackx.push([deck[deck.length-1], slots[0], false]);
     if(parseInt(card[1], 16) === 1 || stack.some((slot) => {return parseInt(card[0], 16) === parseInt(slot[0], 16) && parseInt(card[1], 16) === parseInt(slot[1], 16)+1})) {
       const ded = Math.min(drawn, deck.length)-1;
       const repeat = (Math.ceil((deck.length)/10)-1)*scale;
       dragcard = {'x':gap.x*2 + cardsize[0]*1 + repeat*2 + ded*scale*14, 'y':gap.y*1 + cardsize[1]*0 + repeat + ded*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[0]};
-      setTimeout(FFup, 60);
+      setTimeout(FFup, 30);
       return;
     }
   }
 
   for (const pos of [...Array(7+cheatslots).keys()]){
     if (slots[pos+5][1].length) {
-      const card = slots[pos+5][1][slots[pos+5][1].length-1];
+      const depth = slots[pos+5][1].length-1;
+      const card = slots[pos+5][1][depth];
+      if (!(parseInt(slots[pos+5][1][0][1], 16) === 13 && !slots[pos+5][0].length)) {
+        stackx.push([slots[pos+5][1][0], slots[pos+5], 0]);
+      }
       if (parseInt(card[1], 16) === 1 || stack.some((slot) => {return parseInt(card[0], 16) === parseInt(slot[0], 16) && parseInt(card[1], 16) === parseInt(slot[1], 16)+1})) {
-        let depth = slots[pos+5][1].length-1;
         dragcard = {'x':gap.x*(pos+1) + cardsize[0]*pos, 'y':gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length + depth*15*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[pos+5], 'draw':depth};
-        setTimeout(FFup, 60);
+        setTimeout(FFup, 90);
         return;
       }
     } else if (slots[pos+5][0].length) {
@@ -571,6 +597,43 @@ function computerplaysol() {
       return;
     }
   };
+
+  for (const pos of [...Array(7+cheatslots).keys()]){
+    if (slots[pos+5][1].length) {
+      const card = slots[pos+5][1][slots[pos+5][1].length-1];
+      const depth = slots[pos+5][1].length-1;
+      for (const [car, slo, dep] of stackx) {
+        if (car[0]%2 !== card[0]%2 && parseInt(car[1], 16) === parseInt(card[1], 16)-1) {
+          dragcard = {'x':gap.x*(pos+1) + cardsize[0]*pos, 'y':gap.y*2 + cardsize[1]*1 + 3*scale*slo[0].length + dep*15*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slo};
+          if(dep !== false) {
+            dragcard['draw'] = dep;
+          }
+          setTimeout(FFup, 90);
+          return;
+        }
+      }
+    } else if (!slots[pos+5][0].length && pos < 7) {
+      for (const [car, slo, dep] of stackx) {
+        if (parseInt(car[1], 16) === 13) {
+          dragcard = {'x':gap.x*(pos+1) + cardsize[0]*pos, 'y':gap.y*2 + cardsize[1]*1 + 3*scale*slo[0].length + dep*15*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slo};
+          if(dep !== false) {
+            dragcard['draw'] = dep;
+          }
+          setTimeout(FFup, 90);
+          return;
+        }
+      }
+    }
+  }
+
+  if (slots[0][1].length) {
+    setTimeout(()=> {
+      drawx();
+      sol();
+    }, 30)
+  } else {
+    console.log("Help me? I'm stuck");
+  }
 }
 
 
@@ -597,16 +660,7 @@ var FFdown = (e_) => {
     const sel = (x, y, e) => {return mousepos.x > gap.x*(x+1) + cardsize[0]*x && mousepos.x < gap.x*(x+1) + cardsize[0]*(x+1)+e && mousepos.y > gap.y*(y+1) + cardsize[1]*y && mousepos.y < gap.y*(y+1) + cardsize[1]*(y+1)};
 
     if(sel(0, 0, 0)){
-      if (draw[0] < slots[0][1].length-1) {
-        const dd = Math.min(drawn, slots[0][1].length-deck.length);
-        draw[0] += dd;
-        for (const i of [...Array(dd).keys()]) {
-          deck.push(slots[0][1][draw[0]-dd+1+i]);
-        }
-      } else {
-        draw[0] = -1;
-        deck = [];
-      }
+      drawx();
     }
 
     const ded = Math.min(drawn, deck.length)-1;

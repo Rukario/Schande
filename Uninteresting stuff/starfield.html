@@ -571,7 +571,7 @@ function computerplaysol() {
       const ded = Math.min(drawn, deck.length)-1;
       const repeat = (Math.ceil((deck.length)/10)-1)*scale;
       dragcard = {'x':gap.x*2 + cardsize[0]*1 + repeat*2 + ded*scale*14, 'y':gap.y*1 + cardsize[1]*0 + repeat + ded*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[0]};
-      setTimeout(FFup, 30);
+      setTimeout(FFup, 90);
       return;
     }
   }

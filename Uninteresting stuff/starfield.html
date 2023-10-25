@@ -129,7 +129,8 @@ context.imageSmoothingEnabled = false;
 
 var idlecursor = false;
 var idlescreensaver = false;
-var restart = false;
+var busyscreensaver = false;
+var stopscreensaver = false;
 var stars = [];
 var frameCount = 0;
 var startTime;
@@ -145,7 +146,7 @@ function newstar(star) {
 
 function screensaver(resolve) {
   const update = () => {
-    if (restart) {
+    if (stopscreensaver) {
       return resolve(true);
     }
 
@@ -235,18 +236,15 @@ function screensaver(resolve) {
   update();
 }
 
-function screensaverorsol(s) {
+function new_screensaver() {
   let promise = new Promise((resolve) => {
-    if (s){
-      solitaire = true;
-      sol(resolve);
-    } else {
-      screensaver(resolve);
-    }
+    busyscreensaver = true;
+    screensaver(resolve);
   });
 
   Promise.all([promise]).then(() => {
-    restart = false;
+    busyscreensaver = false;
+    stopscreensaver = false;
   });
 }
 
@@ -265,11 +263,11 @@ function starcolor(colorful) {
   }
 }
 
-function restarted() {
+function new_stars() {
   stars = [];
   function variant(i) {
     if (i == density) {
-      screensaverorsol();
+      new_screensaver();
       return;
     }
 
@@ -291,13 +289,13 @@ function restarted() {
     } else if (useimg) {
       for (let n=0;n<density;n++) {
         new_deck();
-        readcard(screensaverorsol);
+        readcard(new_screensaver, true);
       }
     } else {
       for (let n=0;n<density;n++) {
         newstar(starcolor(colorful));
       }
-      screensaverorsol();
+      new_screensaver();
     }
   }
   variant(0);
@@ -316,7 +314,10 @@ var rev = -1;
 var slothistory = [];
 var readycomputer = false;
 var winanim = false;
-var winid = [];
+var winid = false;
+var cardsize = [71*scale, 96*scale];
+var gap = {'x':11*scale, 'y':5*scale};
+var solsize = [((gap.x+1)*scale+cardsize[0])*(7+cheatslots), 400*scale];
 
 var snapshot = () => {
   rev ++;
@@ -339,8 +340,6 @@ var drawx = () => {
   }
 }
 
-var cardsize = [71*scale, 96*scale];
-var gap = {'x':11*scale, 'y':5*scale};
 
 
 function new_deck() {
@@ -348,8 +347,8 @@ function new_deck() {
   rev = -1;
   deck = [];
   winanim = false;
-  winid.map((w) => {clearTimeout(w)});
-  winid = [];
+  clearTimeout(winid);
+  winid = false;
   var factorysealed = [];
   for (const card of ['card1', 'card2', 'deck', 'slot', 'undo', 'undo3']){
     cards[card] = new Image();
@@ -403,9 +402,58 @@ function new_deck() {
   //}
 }
 
-function sol(resolve) {
-  context.fillStyle = "#007D00";
+function winsol() {
+  winanim = true;
+  const flycards = [];
+  const gravity = {'x':0, 'y':1};
+  let i = 0;
+
+  for (const card of [...Array(ncard/4).keys()]){
+    for (const pos of [...Array(4).keys()]){
+      const falldir = Math.floor((Math.random()-0.5)*14)+1;
+      const dep = Math.ceil((12-card)/4)*scale;
+      flycards.push({'card':slots[pos+1][1][12-card], 'x':gap.x*4 + gap.x*pos + cardsize[0]*(pos+3) + dep*2, 'y':gap.y + dep, 'xdir':1, 'ydir':1, 'xvel':falldir ? falldir : -1, 'yvel':Math.ceil((Math.random()-1)*3)*6});
+    }
+  }
+
+  const update = () => {
+    flycards[i].xvel += gravity.x;
+    flycards[i].yvel += gravity.y;
+    flycards[i].x += (flycards[i].xvel * flycards[i].xdir);
+    flycards[i].y += (flycards[i].yvel * flycards[i].ydir);
+    if (flycards[i].x < -cardsize[0] || flycards[i].x > c.width) {
+      clearTimeout(idlescreensaver);
+      i++;
+      //flycards[i].xvel = -flycards[i].xvel;
+    }
+    if (!winanim || i === ncard) {
+      idlescreensaver = setTimeout(() => {
+        if (stopscreensaver) {
+          stopscreensaver = false;
+          new_screensaver();
+        }
+      }, 1000);
+      return;
+    }
+    requestAnimationFrame(update);
+    if (flycards[i].y + cardsize[1] >= solsize[1] || isTouch && flycards[i].y + cardsize[1] >= window.visualViewport.height) {
+        flycards[i].y = (isTouch ? window.visualViewport.height : solsize[1]) - cardsize[1];
+        flycards[i].yvel = -flycards[i].yvel;
+    } else if (flycards[i].y <= 0) {
+        flycards[i].yvel = flycards[i].yvel;
+    }
+    context.drawImage(cards[flycards[i]["card"]], flycards[i].x, flycards[i].y, ...cardsize);
+  }
+
+  winid = setTimeout(update, 1000);
+}
+
+function sol() {
+  context.fillStyle = "#003D00";
   context.fillRect(0, 0, c.width, c.height);
+
+  context.fillStyle = "#007D00";
+  context.fillRect(0, 0, ...solsize);
 
   context.drawImage(cards['deck'], gap.x, gap.y, ...cardsize);
   context.drawImage(cards[drawn === 3 ? 'undo3' : 'undo'], gap.x*3 + cardsize[0]*2, gap.y, cardsize[0], cardsize[1]);
@@ -429,6 +477,10 @@ function sol(resolve) {
   context.drawImage(cards['slot'], 339*scale, gap.y, ...cardsize);
   context.drawImage(cards['slot'], 421*scale, gap.y, ...cardsize);
   context.drawImage(cards['slot'], 503*scale, gap.y, ...cardsize);
+
+  //for (const pos of [...Array(cheatslots).keys()]) {
+  //  context.drawImage(cards['busy'], 585*scale + 82*scale*pos, gap.y*2 + cardsize[1], ...cardsize);
+  //}
 
   if (draw[0] < slots[0][1].length-1) {
     const repeat = Math.ceil((slots[0][1].length-draw[0]-1)/10);
@@ -463,53 +515,7 @@ function sol(resolve) {
   }
 
   if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === ncard/4}) && !winanim) {
-    let del = 1000;
-    winanim = true;
-    for (const card of [...Array(13).keys()]){
-      for (const pos of [...Array(4).keys()]){
-        const gravity = {'x':0, 'y':1};
-        const falldirx = Math.floor((Math.random()-0.5)*14)+1;
-        const falldiry = Math.ceil((Math.random()-1)*3)*6;
-        const dep = Math.ceil((12-card)/4);
-        let flycard = {'x':gap.x*4 + gap.x*pos + cardsize[0]*(pos+3) + dep*scale*2, 'y':gap.y + dep*scale, 'xvel':falldirx ? falldirx : -1, 'yvel':falldiry};
-
-        flycard.xdir = 1;
-        flycard.ydir = 1;
-        
-        const update = () => {
-          flycard.xvel += gravity.x;
-          flycard.yvel += gravity.y;
-
-          flycard.x += (flycard.xvel * flycard.xdir);
-          flycard.y += (flycard.yvel * flycard.ydir);
-
-          if (!winanim) {
-            return;
-          }
-          if (flycard.x >= -cardsize[0] && flycard.x <= c.width) {
-            requestAnimationFrame(update);
-          } else {
-            //flycard.xvel = -flycard.xvel;
-            //requestAnimationFrame(update);
-          }
-
-          if (flycard.y + cardsize[1] >= c.height || isTouch && flycard.y + cardsize[1] >= window.visualViewport.height) {
-              flycard.y = (isTouch ? window.visualViewport.height : c.height) - cardsize[1];
-              flycard.yvel = -flycard.yvel;
-          } else if (flycard.y <= 0) {
-              flycard.yvel = flycard.yvel;
-          }
-
-          context.drawImage(cards[slots[pos+1][1][12-card]], flycard.x, flycard.y, ...cardsize);
-        }
-
-        winid.push(setTimeout(update, del));
-        del += 1000;
-        //new_deck();
-        //sol();
-        //return;
-      }
-    }
+    winsol();
   }
 
   for (const pos of [...Array(4).keys()]){
@@ -543,7 +549,6 @@ function sol(resolve) {
       des += 15;
     }
   }
-  //return resolve(true);
 
   if (readycomputer) {
     clearTimeout(readycomputer);
@@ -916,19 +921,22 @@ var FFup = (e_) => {
 
 
 var FFmove = (e_) => {
-  if (idlecursor) {
-    clearTimeout(idlecursor);
-  }
+  clearTimeout(idlecursor);
   idlecursor = setTimeout(() => {
     c.style.cursor = "none";
   }, 1500);
   c.style.cursor = "default";
 
-  if (idlescreensaver) {
-    clearTimeout(idlescreensaver);
+  if (solitaire && !stopscreensaver) {
+    stopscreensaver = true;
+    sol();
   }
+  clearTimeout(idlescreensaver);
   idlescreensaver = setTimeout(() => {
-    screensaverorsol();
+    if (stopscreensaver) {
+      stopscreensaver = false;
+      new_screensaver();
+    }
   }, 60000);
   c.style.cursor = "default";
 
@@ -982,11 +990,11 @@ function typeOf(obj) {
   return type.toLowerCase();
 }
 
-function readcard(callback, s) {
-  let promiseArray = [];
+function readcard(callback, is_star) {
+  let promiseCards = [];
   for (const card of Object.keys(cards)) {
-    promiseArray.push(new Promise((resolve, reject) => {
-      if (!s && card.length === 2) {
+    promiseCards.push(new Promise((resolve, reject) => {
+      if (is_star && card.length === 2) {
         newstar(cards[card]);
       }
       setTimeout(() => {
@@ -997,8 +1005,8 @@ function readcard(callback, s) {
       };
     }))
   }
-  Promise.all(promiseArray).then(() => {
-    callback(s);
+  Promise.all(promiseCards).then(() => {
+    callback();
   }).catch((reason) => {
     console.log(reason);
   })
@@ -1048,8 +1056,7 @@ window.onload = () => {
   //});
   //poppy.appendChild(e);
 
-  const restartwith = (o) => {
-    restart = true;
+  const change_screensaver = (o) => {
     colorful = o[2];
     useimg = o[3];
     ismask = o[4];
@@ -1065,10 +1072,10 @@ window.onload = () => {
     if (o[5]) {
       alpha.src = o[5];
       alpha.onload = () => {
-        restarted();
+        new_stars();
       }
     } else {
-      restarted();
+      new_stars();
     }
   }
 
@@ -1114,9 +1121,10 @@ window.onload = () => {
     } else if (options[1] === 5) {
       e.addEventListener('click', () => {
         new_deck();
-        restart = true;
+        solitaire = true;
+        stopscreensaver = true;
         drawn = options[2];
-        readcard(screensaverorsol, true);
+        readcard(sol);
       });
     } else if (options[1] === 6) {
       e.addEventListener('click', () => {
@@ -1124,7 +1132,12 @@ window.onload = () => {
       });
     } else {
       e.addEventListener('click', () => {
-        restartwith(options);
+        stopscreensaver = true;
+        if (solitaire) {
+          solitaire = false;
+          new_screensaver();
+        }
+        change_screensaver(options);
       });
     }
     poppy.appendChild(e);
@@ -1138,9 +1151,8 @@ window.onload = () => {
   makemenu(['8000 colorful stars', 0, 3,      false, false, false,       4, 4, 1.25, 8000]);
   makemenu(['8000 slow colorful stars', 0, 3, false, false, false,       4, 4, 10, 8000]);
   makemenu(['Surreal Xmas memory', 0, 1,      true,  true,  'light.png', 190, 190, 1.25, 800, "#072700"]);
-  makemenu(['Flying solitaire',    0, false,  true,  false, false,       71*3, 96*3, 1.25, 1, "#007D00"]);
-  makemenu(['Nostalgia FPS 20 (accurate)', 3, 20]);
-  makemenu(['Nostalgia FPS 30',    3, 30]);
+  //makemenu(['Flying solitaire',    0, false,  true,  false, false,       71*3, 96*3, 1.25, 1, "#007D00"]);
+  makemenu(['Nostalgia FPS',       3, 20]);
   makemenu(['Unrestricted FPS',    3]);
   makemenu(['Display FPS',         1]);
   makemenu(['Solitaire (draw 1)',  5, 1]);
@@ -1176,7 +1188,7 @@ window.onload = () => {
 
   alpha.src = 'win95.png';
   alpha.onload = () => {
-    restarted();
+    new_stars();
   }
 }
 </script></head>

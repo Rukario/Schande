@@ -309,7 +309,7 @@ var slots = [];
 var cheatslots = 8;
 var ncard = 52;
 var drawn = 1;
-var draw = [-1, -1];
+var draw = [-1, -1, true];
 var rev = -1;
 var slothistory = [];
 var solcomputer = false;
@@ -337,6 +337,7 @@ var drawx = () => {
     }
   } else {
     draw[0] = -1;
+    draw[2] = false;
     deck = [];
   }
 }
@@ -344,7 +345,7 @@ var drawx = () => {
 
 
 function new_deck() {
-  draw = [-1, -1];
+  draw = [-1, -1, true];
   rev = -1;
   deck = [];
   winanim = false;
@@ -462,7 +463,7 @@ function sol() {
   const dd = drawn-1-(draw[1]+drawn)%drawn;
   const ded = Math.min(drawn, deck.length);
 
-  if (dd && draw[0] < draw[1]+drawn) {
+  if (dd && draw[0] < draw[1]+drawn && draw[2]) {
     context.strokeStyle = "#00FF00";
     context.lineWidth = 2;
     context.beginPath();
@@ -675,12 +676,13 @@ var FFdown = (e_) => {
     //undo draw
     if(mousepos.x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale && mousepos.x < gap.x*3 + cardsize[0]*3 && mousepos.y > gap.y + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1/2){
       if (draw[0] > -1) {
-        if (!(drawn-1-(draw[1]+drawn)%drawn) || draw[0] > draw[1]) {
+        if (!(drawn-1-(draw[1]+drawn)%drawn) || draw[0] > draw[1] || !draw[2]) {
           draw[0] -= drawn;
           deck.splice(draw[0]+1);
         }
       } else {
-        draw[0] = slots[0][1].length-1;
+        draw[0] = slots[0][1].length - drawn - slots[0][1].slice(draw[1]).length%drawn;
+        draw[2] = true;
         for (const d of [...Array(draw[0]+1).keys()]) {
           deck.push(slots[0][1][d]);
         }
@@ -818,6 +820,7 @@ var FFup = (e_) => {
               deck.pop();
               draw[0] -= 1;
               draw[1] = draw[0];
+              draw[2] = true;
             }
             dragcard = false;
             returncard = false;
@@ -843,6 +846,7 @@ var FFup = (e_) => {
               deck.pop();
               draw[0] -= 1;
               draw[1] = draw[0];
+              draw[2] = true;
             }
             dragcard = false;
             returncard = false;
@@ -875,6 +879,7 @@ var FFup = (e_) => {
                 deck.pop();
                 draw[0] -= 1;
                 draw[1] = draw[0];
+                draw[2] = true;
               }
               dragcard = false;
               returncard = false;
@@ -895,6 +900,7 @@ var FFup = (e_) => {
               deck.pop();
               draw[0] -= 1;
               draw[1] = draw[0];
+              draw[2] = true;
             }
             dragcard = false;
             returncard = false;

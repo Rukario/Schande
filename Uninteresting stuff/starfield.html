@@ -437,8 +437,8 @@ function winsol() {
       return;
     }
     requestAnimationFrame(update);
-    if (flycards[i].y + cardsize[1] >= solsize[1] || isTouch && flycards[i].y + cardsize[1] >= window.visualViewport.height) {
-        flycards[i].y = (isTouch ? window.visualViewport.height : solsize[1]) - cardsize[1];
+    if (flycards[i].y + cardsize[1] >= solsize[1]) {
+        flycards[i].y = solsize[1] - cardsize[1];
         flycards[i].yvel = -flycards[i].yvel;
     } else if (flycards[i].y <= 0) {
         flycards[i].yvel = flycards[i].yvel;
@@ -733,6 +733,7 @@ var FFdown = (e_) => {
     }
 
     sol();
+    imawake();
 
     if (dragcard) {
       let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw[0]]];
@@ -916,15 +917,7 @@ var FFup = (e_) => {
   }
 }
 
-
-
-var FFmove = (e_) => {
-  clearTimeout(idlecursor);
-  idlecursor = setTimeout(() => {
-    c.style.cursor = "none";
-  }, 1500);
-  c.style.cursor = "default";
-
+var imawake = () => {
   if (solitaire && !stopscreensaver) {
     stopscreensaver = true;
     sol();
@@ -936,7 +929,15 @@ var FFmove = (e_) => {
       new_screensaver();
     }
   }, 60000);
+};
+
+var FFmove = (e_) => {
+  clearTimeout(idlecursor);
+  idlecursor = setTimeout(() => {
+    c.style.cursor = "none";
+  }, 1500);
   c.style.cursor = "default";
+  imawake();
 
   if (e_) {
     if (!isTouch || e_.touches.length === 1) {

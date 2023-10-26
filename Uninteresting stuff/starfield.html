@@ -312,6 +312,7 @@ var drawn = 1;
 var draw = [-1, -1];
 var rev = -1;
 var slothistory = [];
+var solcomputer = false;
 var readycomputer = false;
 var winanim = false;
 var winid = false;
@@ -550,11 +551,8 @@ function sol() {
     }
   }
 
-  if (readycomputer) {
+  if (solcomputer) {
     clearTimeout(readycomputer);
-    readycomputer = 0;
-  }
-  if (readycomputer === 0) {
     readycomputer = setTimeout(computerplaysol, 30);
   }
 }
@@ -1128,7 +1126,8 @@ window.onload = () => {
       });
     } else if (options[1] === 6) {
       e.addEventListener('click', () => {
-        readycomputer = readycomputer === 0 ? false : 0;
+        solcomputer = !solcomputer;
+        sol();
       });
     } else {
       e.addEventListener('click', () => {

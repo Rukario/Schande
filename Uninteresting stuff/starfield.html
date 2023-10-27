@@ -574,7 +574,7 @@ function computerplaysol() {
     if (slots[pos+5][1].length) {
       const depth = slots[pos+5][1].length-1;
       const card = slots[pos+5][1][depth];
-      if (!parseInt(slots[pos+5][1][0][1], 16) === 13 || slots[pos+5][0].length) {
+      if (!(parseInt(slots[pos+5][1][0][1], 16) === 13 && !slots[pos+5][0].length)) {
         stack.push([slots[pos+5][1][0], slots[pos+5], 0]);
       }
       stackforpile.push([slots[pos+5][1][0], slots[pos+5], 0]);

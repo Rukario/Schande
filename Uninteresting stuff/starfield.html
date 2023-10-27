@@ -408,25 +408,27 @@ function winsol() {
   winanim = true;
   const flycards = [];
   const gravity = {'x':0, 'y':1};
+  const kinecticloss = 0.85;
   let i = 0;
 
   for (const card of [...Array(ncard/4).keys()]){
     for (const pos of [...Array(4).keys()]){
-      const falldir = Math.floor((Math.random()-0.5)*14)+1;
+      const falldir = Math.floor(Math.random()*14-7)+1;
       const dep = Math.ceil((12-card)/4)*scale;
-      flycards.push({'card':slots[pos+1][1][12-card], 'x':gap.x*4 + gap.x*pos + cardsize[0]*(pos+3) + dep*2, 'y':gap.y + dep, 'xdir':1, 'ydir':1, 'xvel':falldir ? falldir : -1, 'yvel':Math.ceil((Math.random()-1)*3)*6});
+      flycards.push({'card':slots[pos+1][1][12-card], 'x':gap.x*4 + gap.x*pos + cardsize[0]*(pos+3) + dep*2, 'y':gap.y + dep, 'xdir':1, 'ydir':1, 'xvel':falldir ? falldir : -2, 'yvel':-Math.ceil(Math.random()*18)});
     }
   }
 
   const update = () => {
-    flycards[i].xvel += gravity.x;
-    flycards[i].yvel += gravity.y;
-    flycards[i].x += (flycards[i].xvel * flycards[i].xdir);
-    flycards[i].y += (flycards[i].yvel * flycards[i].ydir);
-    if (flycards[i].x < -cardsize[0] || flycards[i].x > c.width) {
+    const flycard = flycards[i];
+    flycard.xvel += gravity.x;
+    flycard.yvel += gravity.y;
+    flycard.x += (flycard.xvel * flycard.xdir);
+    flycard.y += (flycard.yvel * flycard.ydir);
+    if (flycard.x < -cardsize[0] || flycard.x > c.width) {
       clearTimeout(idlescreensaver);
       i++;
-      //flycards[i].xvel = -flycards[i].xvel;
+      //flycard.xvel = -flycard.xvel;
     }
     if (!winanim || i === ncard) {
       idlescreensaver = setTimeout(() => {
@@ -438,13 +440,11 @@ function winsol() {
       return;
     }
     requestAnimationFrame(update);
-    if (flycards[i].y + cardsize[1] >= solsize[1]) {
-        flycards[i].y = solsize[1] - cardsize[1];
-        flycards[i].yvel = -flycards[i].yvel;
-    } else if (flycards[i].y <= 0) {
-        flycards[i].yvel = flycards[i].yvel;
+    if (flycard.y + cardsize[1] > solsize[1]) {
+        flycard.y = solsize[1] - cardsize[1];
+        flycard.yvel = -flycard.yvel*kinecticloss;
     }
-    context.drawImage(cards[flycards[i]["card"]], flycards[i].x, flycards[i].y, ...cardsize);
+    context.drawImage(cards[flycard["card"]], flycard.x, flycard.y, ...cardsize);
   }
 
   winid = setTimeout(update, 1000);
@@ -630,11 +630,11 @@ function computerplaysol() {
     }
   }
 
-  if (slots[0][1].length) {
+  if (slots[0][1].length && !(draw[0] >= slots[0][1].length-1 && !draw[2])) {
     setTimeout(()=> {
       drawx();
       sol();
-    }, 30)
+    }, 30);
   } else {
     console.log("Help me? I'm stuck");
   }
@@ -1134,7 +1134,9 @@ window.onload = () => {
     } else if (options[1] === 6) {
       e.addEventListener('click', () => {
         solcomputer = !solcomputer;
-        sol();
+        if (solitaire) {
+          sol();
+        }
       });
     } else {
       e.addEventListener('click', () => {

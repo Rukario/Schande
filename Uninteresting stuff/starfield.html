@@ -344,7 +344,8 @@ var drawx = () => {
 }
 
 
-
+var cardsym = ['Clover', 'Diamond', 'Spade', 'Heart'];
+var cardname = [0, 'A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K'];
 function new_deck() {
   draw = [-1, -1, true];
   rev = -1;
@@ -357,12 +358,12 @@ function new_deck() {
     cards[card] = new Image();
     cards[card].src = `SOL/${card}.png`;
   } 
-  for (const [s, suit] of ['C', 'D', 'S', 'H'].entries()){
-    for (const [n, cs] of [0, 'A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K'].entries()){
+  for (const [s, suit] of cardsym.entries()){
+    for (const [n, cs] of cardname.entries()){
       if (n) {
         card = `${s}${n.toString(16)}`;
         cards[card] = new Image();
-        cards[card].src = `SOL/${cs}${suit}.png`;
+        cards[card].src = `SOL/${cs}${suit[0]}.png`;
         factorysealed.push(card);
       }
     }
@@ -475,7 +476,6 @@ function sol() {
     context.stroke();
   }
 
-
   context.drawImage(cards['slot'], 257*scale, gap.y, ...cardsize);
   context.drawImage(cards['slot'], 339*scale, gap.y, ...cardsize);
   context.drawImage(cards['slot'], 421*scale, gap.y, ...cardsize);
@@ -484,6 +484,13 @@ function sol() {
   //for (const pos of [...Array(cheatslots).keys()]) {
   //  context.drawImage(cards['busy'], 585*scale + 82*scale*pos, gap.y*2 + cardsize[1], ...cardsize);
   //}
+
+  if ((drawn === 1 || !slots[0][1].length) && slots.every((slot) => {return !slot[0].length})) {
+    result.innerHTML = "Solve!";
+    result.style.display = 'block';
+  } else {
+    result.style.display = 'none';
+  }
 
   if (draw[0] < slots[0][1].length-1) {
     const repeat = Math.ceil((slots[0][1].length-draw[0]-1)/10);
@@ -517,10 +524,6 @@ function sol() {
     }
   }
 
-  if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === ncard/4}) && !winanim) {
-    winsol();
-  }
-
   for (const pos of [...Array(4).keys()]){
     let dep = 0;
     const repeat = Math.ceil((slots[pos+1][1].length)/4);
@@ -536,6 +539,11 @@ function sol() {
       }
       context.drawImage(cards[card], gap.x+dep*2 + 82*(pos+3)*scale, gap.y+dep, ...cardsize);
     }
+  }
+
+  if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === ncard/4}) && !winanim) {
+    winsol();
+    return;
   }
 
   for (const pos of [...Array(7+cheatslots).keys()]){
@@ -560,6 +568,7 @@ function sol() {
 }
 
 function computerplaysol() {
+  imawake();
   const pile = [];
   const stack = [];
   const stackforpile = [];
@@ -659,6 +668,18 @@ function computerplaysol() {
                 }
               }
             }
+          }
+        }
+      }
+    }
+
+    for (const pos of [...Array(7).keys()]) {
+      if (slots[pos+5][0].length && slots[pos+5][1].length){
+        const card = slots[pos+5][1][0];
+        for (const slot of pile) {
+          if (card[0]%2 !== slot[0]%2 && parseInt(card[1], 16) < parseInt(slot[1], 16)) {
+            console.log("About to run into dead end and I'm not sure, maybe wanna move card", cardsym[parseInt(card[0], 16)], cardname[parseInt(card[1], 16)], "somehow? I see a larger number from pile that might be able to help with that.");
+            solcomputer = false;
           }
         }
       }

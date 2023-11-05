@@ -161,6 +161,17 @@ function screensaver(resolve) {
     elapsed = now - ti;
 
     if (!throttlebyfps || elapsed > fpsInterval) {
+      const sinceStart = now - startTime;
+      const toodiff = sinceStart / ++frameCount;
+      if (toodiff > (1000/fps) + fpsInterval/20) {
+        startTime = Date.now();
+        frameCount = 0;
+        fps = isFinite(fps) ? fps/(1+fpsInterval/400) : 57600/fpsInterval;
+      } else {
+        fps = Math.round(1000 / toodiff * 100) / 100;
+      }
+      result.innerHTML = `Uninterrupted for ${(Math.round(sinceStart / 1000 * 100) / 100).toFixed(2).padStart(3, '0')} seconds @ ${fps.toFixed(2).padStart(3, '0')} fps`;
+
       ti = now - (elapsed % fpsInterval);
       context.fillStyle = ccolor;
       context.fillRect(0, 0, c.width, c.height);
@@ -224,16 +235,6 @@ function screensaver(resolve) {
           context.fillRect(Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
         }
       }
-      const sinceStart = now - startTime;
-      const toodiff = sinceStart / ++frameCount;
-      if (toodiff > (1000/fps) + 2) {
-        startTime = Date.now();
-        frameCount = 0;
-        fps = isFinite(fps) ? fps/1.1 : 120;
-      } else {
-        fps = Math.round(1000 / toodiff * 100) / 100;
-      }
-      result.innerHTML = `Uninterrupted for ${(Math.round(sinceStart / 1000 * 100) / 100).toFixed(2).padStart(3, '0')} seconds @ ${fps.toFixed(2).padStart(3, '0')} fps`;
       rubbermouse.x = mousepos.x;
       rubbermouse.y = mousepos.y;
     }

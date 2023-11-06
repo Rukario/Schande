@@ -363,7 +363,7 @@ function new_deck() {
   clearTimeout(winid);
   winid = false;
   var factorysealed = [];
-  for (const card of ['card1', 'card2', 'deck', 'slot', 'undo', 'undo3']){
+  for (const card of ['card1', 'card2', 'deck', 'slot', 'undo', 'undo3', 'computer']){
     cards[card] = new Image();
     cards[card].src = `SOL/${card}.png`;
   } 
@@ -451,6 +451,14 @@ function winsol() {
   winid = setTimeout(update, 1000);
 }
 
+var invert = document.createElement('canvas');
+invert.width = cardsize[0];
+invert.height = Math.floor(cardsize[1]/2);
+
+var ice = invert.getContext('2d');
+ice.imageSmoothingEnabled = false;
+ice.filter = 'invert(1)';
+
 function sol() {
   context.fillStyle = "#003D00";
   context.fillRect(0, 0, c.width, c.height);
@@ -459,7 +467,19 @@ function sol() {
   context.fillRect(0, 0, ...solsize);
 
   context.drawImage(cards['deck'], gap.x, gap.y, ...cardsize);
-  context.drawImage(cards[drawn === 3 ? 'undo3' : 'undo'], gap.x*3 + cardsize[0]*2, gap.y, cardsize[0], cardsize[1]);
+  context.drawImage(cards[drawn === 3 ? 'undo3' : 'undo'], gap.x*3 + cardsize[0]*2, gap.y, ...cardsize);
+  context.drawImage(cards['computer'], gap.x*8 + cardsize[0]*7, gap.y, ...cardsize);
+
+  if(solcomputer) {
+    //context.strokeStyle = "#00FF00";
+    //context.lineWidth = 3;
+    //context.beginPath();
+    //const coord = cardsize[0]*8+gap.x*2;
+    //context.arc(coord, gap.y*2 + (debugcomputer ? 3+cardsize[1]*1/2 : 0), 2, 0, Math.PI*2);
+    //context.stroke();
+
+    context.drawImage(invert, gap.x*8 + cardsize[0]*7, gap.y + (debugcomputer ? cardsize[1]/2 : 0), invert.width, invert.height);
+  }
 
   const dd = drawn-1-(draw[1]+drawn)%drawn;
   const ded = Math.min(drawn, deck.length);
@@ -717,9 +737,8 @@ function computerplaysol() {
               }
             }
             console.log("About to run into a dead end and I'm not sure, maybe wanna move card", cardsym[parseInt(card[0], 16)], cardname[parseInt(card[1], 16)], "somehow? I see a larger number from pile that might be able to help with that.");
-            if (debugcomputer) {
-              solcomputer = false;
-            }
+            solcomputer = false;
+            sol();
             return;
           }
         }
@@ -731,6 +750,9 @@ function computerplaysol() {
       new_deck();
       sol();
       // teach computer to undo and retry with alternative card movement
+    } else {
+      solcomputer = false;
+      sol();
     }
 
     //solcomputer = false;
@@ -807,6 +829,26 @@ var FFdown = (e_) => {
       sol();
       return;
     }
+
+    // Solitaire with computer
+    if(mousepos.x > gap.x*8 + cardsize[0]*7 + 12*(drawn-1)*scale && mousepos.x < gap.x*8 + cardsize[0]*8 && mousepos.y > gap.y + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1/2){
+      solcomputer = debugcomputer ? true : !solcomputer;
+      debugcomputer = false;
+      computerspeed = 30;
+      ice.clearRect(0, 0, invert.width, invert.height);
+      ice.drawImage(cards['computer'], 0, 0, ...cardsize);
+      sol();
+    }
+
+    if(mousepos.x > gap.x*8 + cardsize[0]*7 + 12*(drawn-1)*scale && mousepos.x < gap.x*8 + cardsize[0]*8 && mousepos.y > gap.y + cardsize[1]*1/2 && mousepos.y < gap.y*1 + cardsize[1]*1){
+      solcomputer = !debugcomputer ? true : !solcomputer;
+      debugcomputer = true;
+      computerspeed = 1;
+      ice.clearRect(0, 0, invert.width, invert.height);
+      ice.drawImage(cards['computer'], 0, -cardsize[1]/2, ...cardsize);
+      sol();
+    }
+
 
     for (const pos of [...Array(4).keys()]){
       if(sel(pos+3, 0, 0)) {
@@ -1275,8 +1317,6 @@ window.onload = () => {
   makemenu(['Display FPS',         1]);
   makemenu(['Solitaire (draw 1)',  5, 1]);
   makemenu(['Solitaire (draw 3)',  5, 3]);
-  makemenu(['Solitaire with computer', 6, false]);
-  makemenu(['Solitaire with computer (debug)', 6, true]);
   makemenu(['Clear',               4, 0]);
   makemenu(['Ghost',               4, 1]);
   makemenu(['Paint',               4, 2]);

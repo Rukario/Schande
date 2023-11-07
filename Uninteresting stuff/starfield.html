@@ -171,8 +171,8 @@ function screensaver(resolve) {
       } else {
         fps = Math.round(1000 / toodiff * 100) / 100;
       }
-      const gx = (mousepos.x-dim.x)/gliden/life-(mousepos.x-rubbermouse.x)/friction.x*glidef;
-      const gy = (mousepos.y-dim.y)/gliden/life-(mousepos.y-rubbermouse.y)/friction.y*glidef;
+      const gx = (mousepos.x-dim.x)/gliden/(20/fpsInterval)/life-(mousepos.x-rubbermouse.x)/friction.x*glidef;
+      const gy = (mousepos.y-dim.y)/gliden/(20/fpsInterval)/life-(mousepos.y-rubbermouse.y)/friction.y*glidef;
       result.innerHTML = `Uninterrupted for ${(Math.round(sinceStart / 1000 * 100) / 100).toFixed(2).padStart(3, '0')} seconds @ ${fps.toFixed(2).padStart(3, '0')} fps`;
 
       ti = now - (elapsed % fpsInterval);
@@ -408,6 +408,7 @@ function new_deck() {
 }
 
 function winsol() {
+  solcomputer = false;
   winanim = true;
   const flycards = [];
   const gravity = {'x':0, 'y':1};
@@ -433,7 +434,10 @@ function winsol() {
       i++;
       //flycard.xvel = -flycard.xvel;
     }
-    if (!winanim || i === ncard) {
+    if (!winanim) {
+      return;
+    } 
+    if (i === ncard) {
       idlescreensaver = setTimeout(() => {
         if (stopscreensaver) {
           stopscreensaver = false;
@@ -462,6 +466,13 @@ ice.imageSmoothingEnabled = false;
 ice.filter = 'invert(1)';
 
 function sol() {
+  if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === ncard/4})) {
+    clearTimeout(winid);
+    winsol();
+  } else {
+    winanim = false;
+    imawake();
+  }
   context.fillStyle = "#003D00";
   context.fillRect(0, 0, c.width, c.height);
 
@@ -562,11 +573,6 @@ function sol() {
       }
       context.drawImage(cards[card], gap.x+dep*2 + 82*(pos+3)*scale, gap.y+dep, ...cardsize);
     }
-  }
-
-  if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === ncard/4}) && !winanim) {
-    winsol();
-    return;
   }
 
   for (const pos of [...Array(7+cheatslots).keys()]){

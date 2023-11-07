@@ -1251,9 +1251,11 @@ window.onload = () => {
         if (options.length > 2) {
           throttlebyfps = true;
           fpsInterval = 1000 / options[2];
+          fps = 57600/fpsInterval;
         } else {
           throttlebyfps = false;
           fpsInterval = 1000 / 120;
+          fps = 57600/fpsInterval;
         }
 
         startTime = Date.now();

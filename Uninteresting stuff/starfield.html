@@ -45,7 +45,7 @@ canvas {
   position:absolute;
   display:none;
   z-index: 3;
-  padding: 0px 25px;
+  padding: 0px 4px;
   line-height:1.5;
   box-shadow: inset -1px -1px #000, inset 1px 1px #c0c0c0, inset -2px -2px #848484, inset 2px 2px #fff;
   cursor: default;
@@ -1178,7 +1178,6 @@ function readcard(callback, is_star) {
 var winsoln = 0;
 
 function winningcookie() {
-  console.log("saved wins to cookie");
   const expires = new Date(Date.now() + 365 * 864e5).toUTCString()
   document.cookie = "winsol=" + encodeURIComponent(winsoln) + "; expires=" + expires + "; path=/; SameSite=Strict;";
   //no expiry would allow the cookie to be automatically deleted upon browser exit.
@@ -1260,7 +1259,15 @@ window.onload = () => {
 
   const makemenu = (options) => {
     e = document.createElement("DIV");
-    e.innerHTML = options[0];
+    if (options) {
+      e.innerHTML = options[0];
+    } else {
+      e.style.borderTop = "1px solid #848484";
+      e.style.borderBottom = "1px solid #fff";
+      poppy.appendChild(e);
+      return;
+    }
+    e.style.margin = "0 20px";
     if (options[1] === 1) {
       e.addEventListener('click', () => {
         displayfps = !displayfps;
@@ -1346,10 +1353,9 @@ window.onload = () => {
     }
   }
 
-  if (winsoln) {
-    console.log("Loading cookie successful", winsoln);
-  }
-
+  makemenu(['Solitaire (draw 1)',  5, 1]);
+  makemenu(['Solitaire (draw 3)',  5, 3]);
+  makemenu();
   makemenu(['Flying Windows',      0, 3,      true,  true,  'win95.png', 95, 95, 1.25, 75]);
   if (winsoln >= 1) {
     makemenu(['Slow Windows',        0, 3,      true,  true,  'win95.png', 95, 95, 10, 75]);
@@ -1367,8 +1373,6 @@ window.onload = () => {
     makemenu(['2000 flying Windows', 0, 3,      true,  true,  'win95.png', 95, 95, 1.25, 2000]);
   }
   //makemenu(['Flying solitaire',    0, false,  true,  false, false,       71*3, 96*3, 1.25, 1, "#007D00"]);
-  makemenu(['Solitaire (draw 1)',  5, 1]);
-  makemenu(['Solitaire (draw 3)',  5, 3]);
   if (winsoln >= 10 && false) {
     makemenu(['Clear',               4, 0]);
     makemenu(['Ghost',               4, 1]);

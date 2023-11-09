@@ -116,7 +116,7 @@ function canvasToAB(c, ext="png"){
   }
 }
 
-function canvasToFrame(stars, mask, callback, interFrameN){
+function canvasToFrame(mask, callback, interFrameN){
   let promise = new Promise(canvasToAB(mask, 'png'))
   promise.then(function(arri){
     newstar(ABtoIMG(ABtoAB(arri)));
@@ -255,6 +255,7 @@ function new_screensaver() {
   Promise.all([promise]).then(() => {
     busyscreensaver = false;
     stopscreensaver = false;
+    result.style.display = displayfps ? 'block' : 'none';
   });
 }
 
@@ -295,7 +296,7 @@ function new_stars() {
         maskcontext.globalCompositeOperation = "source-in";
         maskcontext.fillRect(0, 0, 95, 95);
       };
-      canvasToFrame(stars, mask, variant, i);
+      canvasToFrame(mask, variant, i);
     } else if (useimg) {
       for (let n=0;n<density;n++) {
         new_deck();
@@ -465,7 +466,6 @@ invert.height = Math.floor(cardsize[1]/2);
 
 var ice = invert.getContext('2d');
 ice.imageSmoothingEnabled = false;
-ice.filter = 'invert(1)';
 
 function sol() {
   if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === ncard/4})) {
@@ -527,7 +527,7 @@ function sol() {
       return;
     } else if (!won) {
       won = true;
-      winsoln += 1;
+      winsoln += drawn;
       winningcookie();
     }
   }
@@ -783,7 +783,6 @@ var returncard = false;
 var FFdown = (e_) => {
   if (poppy.style.display !== 'none') {
     poppy.style.display = 'none';
-    return;
   }
 
   if (e_) {
@@ -849,8 +848,29 @@ var FFdown = (e_) => {
       solcomputer = debugcomputer ? true : !solcomputer;
       debugcomputer = false;
       computerspeed = 30;
-      ice.clearRect(0, 0, invert.width, invert.height);
-      ice.drawImage(cards['computer'], 0, 0, ...cardsize);
+      if (ice.filter) {
+        ice.filter = 'invert(1)';
+        ice.globalCompositeOperation = 'source-over';
+        ice.clearRect(0, 0, invert.width, invert.height);
+        ice.drawImage(cards['computer'], 0, 0, ...cardsize);
+      } else {
+        ice.globalCompositeOperation = 'source-over';
+        ice.clearRect(0, 0, invert.width, invert.height);
+        ice.drawImage(cards['computer'], 0, 0, ...cardsize);
+        ice.globalCompositeOperation = 'difference';
+        ice.fillStyle = 'white';
+        ice.fillRect(0, 0, invert.width, invert.height);
+        let invert2 = document.createElement('canvas');
+        let ice2 = invert2.getContext('2d');
+        invert2.width = invert.width;
+        invert2.height = invert.height;
+        ice2.drawImage(cards['computer'], 0, 0, ...cardsize);
+        ice2.globalCompositeOperation = 'source-in';
+        ice2.fillStyle = 'black';
+        ice2.fillRect(0, 0, invert.width, invert.height);
+        ice.globalCompositeOperation = 'destination-in';
+        ice.drawImage(invert2, 0, 0, invert.width, invert.height);
+      }
       sol();
     }
 
@@ -858,8 +878,29 @@ var FFdown = (e_) => {
       solcomputer = !debugcomputer ? true : !solcomputer;
       debugcomputer = true;
       computerspeed = 1;
-      ice.clearRect(0, 0, invert.width, invert.height);
-      ice.drawImage(cards['computer'], 0, -cardsize[1]/2, ...cardsize);
+      if (ice.filter) {
+        ice.filter = 'invert(1)';
+        ice.globalCompositeOperation = 'source-over';
+        ice.clearRect(0, 0, invert.width, invert.height);
+        ice.drawImage(cards['computer'], 0, -cardsize[1]/2, ...cardsize);
+      } else {
+        ice.globalCompositeOperation = 'source-over';
+        ice.clearRect(0, 0, invert.width, invert.height);
+        ice.drawImage(cards['computer'], 0, -cardsize[1]/2, ...cardsize);
+        ice.globalCompositeOperation = 'difference';
+        ice.fillStyle = 'white';
+        ice.fillRect(0, 0, invert.width, invert.height);
+        let invert2 = document.createElement('canvas');
+        let ice2 = invert2.getContext('2d');
+        invert2.width = invert.width;
+        invert2.height = invert.height;
+        ice2.drawImage(cards['computer'], 0, -cardsize[1]/2, ...cardsize);
+        ice2.globalCompositeOperation = 'source-in';
+        ice2.fillStyle = 'black';
+        ice2.fillRect(0, 0, invert.width, invert.height);
+        ice.globalCompositeOperation = 'destination-in';
+        ice.drawImage(invert2, 0, 0, invert.width, invert.height);
+      }
       sol();
     }
 
@@ -1169,6 +1210,7 @@ function readcard(callback, is_star) {
     }))
   }
   Promise.all(promiseCards).then(() => {
+    result.style.display = displayfps && !solitaire ? 'block' : 'none';
     callback();
   }).catch((reason) => {
     console.log(reason);
@@ -1271,7 +1313,7 @@ window.onload = () => {
     if (options[1] === 1) {
       e.addEventListener('click', () => {
         displayfps = !displayfps;
-        result.style.display = displayfps ? 'block' : 'none';
+        result.style.display = displayfps && !solitaire ? 'block' : 'none';
       });
     } else if (options[1] === 2) {
       e.addEventListener('click', () => {
@@ -1366,22 +1408,20 @@ window.onload = () => {
   if (winsoln >= 3) {
     makemenu(['Starfield',           0, false,  false, false, false,       4, 4, 1.25, 200]);
   }
-  if (winsoln >= 20) {
+  if (winsoln >= 16) {
     makemenu(['8000 colorful stars', 0, 3,      false, false, false,       4, 4, 1.25, 8000]);
     makemenu(['8000 slow colorful stars', 0, 3, false, false, false,       4, 4, 10, 8000]);
     makemenu(['Surreal Xmas memory', 0, 1,      true,  true,  'light.png', 190, 190, 1.25, 800, "#072700"]);
     makemenu(['2000 flying Windows', 0, 3,      true,  true,  'win95.png', 95, 95, 1.25, 2000]);
   }
   //makemenu(['Flying solitaire',    0, false,  true,  false, false,       71*3, 96*3, 1.25, 1, "#007D00"]);
-  if (winsoln >= 10 && false) {
-    makemenu(['Clear',               4, 0]);
-    makemenu(['Ghost',               4, 1]);
-    makemenu(['Paint',               4, 2]);
-  }
-  if (winsoln >= 50) {
+  //makemenu(['Clear',               4, 0]);
+  //makemenu(['Ghost',               4, 1]);
+  //makemenu(['Paint',               4, 2]);
+  if (winsoln >= 32) {
     makemenu(['Fly',                 2, true]);
   }
-  if (winsoln >= 100) {
+  if (winsoln >= 64) {
     makemenu(['Glide',               2, false]);
   }
   if (winsoln >= 5) {

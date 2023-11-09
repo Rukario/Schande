@@ -195,7 +195,7 @@ function screensaver(resolve) {
         const sx = (star[1]+(fly||glide?(mousepos.x-dim.x)/6:0))/(speed*life-star[0])*speed*life + (glide?star[0]*speed/life*(-(mousepos.x-dim.x)/(900*friction.x)):0);
         const sy = (star[2]+(fly||glide?(mousepos.y-dim.x)/6:0))/(speed*life-star[0])*speed*life + (glide?star[0]*speed/life*(-(mousepos.y-dim.y)/(900*friction.y)):0);
 
-        if ( sx < (glide?Math.min(mousepos.x-c.width,-dim.x):-dim.x)-pixel.x/2 || sy < (glide?Math.min(mousepos.y-c.height,-dim.y):-dim.y)-pixel.y/2 || sx > (glide?Math.max(mousepos.x,dim.x):dim.x)+pixel.x/2 || sy > (glide?Math.max(mousepos.y,dim.y):dim.y)+pixel.y/2 || star[0] > (speed*life)) {
+        if ( sx < (glide?Math.min(mousepos.x-c.width,-dim.x):-dim.x)-pixel.x/2 || sy < (glide?Math.min(mousepos.y-c.height,-dim.y):-dim.y)-pixel.y/2 || sx > (glide?Math.max(mousepos.x,dim.x):dim.x)+pixel.x/2 || sy > (glide?Math.max(mousepos.y,dim.y):dim.y)+pixel.y/2 || star[0] >= (speed*life)) {
           star[0] = 0;
         } else {
           star[0] += speed / fps;

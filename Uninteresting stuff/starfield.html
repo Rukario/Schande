@@ -533,7 +533,7 @@ function sol() {
   }
 
   if (draw[0] < slots[0][1].length-1) {
-    const repeat = Math.ceil((slots[0][1].length-draw[0]-1)/10);
+    const repeat = Math.ceil((slots[0][1].length-draw[0])/10);
     for (const pos of [...Array(repeat).keys()]){
       context.drawImage(cards['card1'], gap.x + pos*2*scale, gap.y + pos*scale, ...cardsize);
     }
@@ -541,7 +541,7 @@ function sol() {
 
   if (deck.length) {
     let dep = 0;
-    const repeat = Math.ceil((deck.length-1)/10);
+    const repeat = Math.ceil((deck.length)/10);
     for (const pos of [...Array(repeat).keys()]){
       dep = pos*scale;
       context.drawImage(cards['01'], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);

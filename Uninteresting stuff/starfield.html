@@ -369,7 +369,7 @@ function new_deck() {
   clearTimeout(winid);
   winid = false;
   var factorysealed = [];
-  for (const card of ['card1', 'card2', 'deck', 'slot', 'undo', 'undo3', 'computer']){
+  for (const card of ['card1', 'card2', 'deck', 'undo', 'undo3', 'slot', 'computer', 'deal']){
     cards[card] = new Image();
     cards[card].src = `SOL/${card}.png`;
   } 
@@ -485,6 +485,7 @@ function sol() {
   context.drawImage(cards['deck'], gap.x, gap.y, ...cardsize);
   context.drawImage(cards[drawn === 3 ? 'undo3' : 'undo'], gap.x*3 + cardsize[0]*2, gap.y, ...cardsize);
   context.drawImage(cards['computer'], gap.x*8 + cardsize[0]*7, gap.y, ...cardsize);
+  context.drawImage(cards['deal'], gap.x*9 + cardsize[0]*8, gap.y, ...cardsize);
 
   if(solcomputer) {
     //context.strokeStyle = "#00FF00";
@@ -1004,6 +1005,15 @@ var FFup = (e_) => {
     if (dragcard){
       let slot = [];
       let cheat = false;
+
+      // Deal
+      if (mousepos.x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*9 + cardsize[0]*8 && mousepos.x - dragcard.dx + dragcard.x < gap.x*9 + cardsize[0]*9 && mousepos.y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*1 + cardsize[1]*0 && mousepos.y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1) {
+        dragcard = false;
+        returncard = false;
+        new_deck();
+        sol();
+        return;
+      }
 
       // Select pile from Foundation or an action for double click
       for (const pos of [...Array(4).keys()]) {

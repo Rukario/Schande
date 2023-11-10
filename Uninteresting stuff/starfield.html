@@ -533,16 +533,18 @@ function sol() {
     }
   }
 
+  // Deck
   if (draw[0] < slots[0][1].length-1) {
-    const repeat = Math.ceil((slots[0][1].length-draw[0])/10);
+    const repeat = Math.ceil((slots[0][1].length-draw[0]-1)/10);
     for (const pos of [...Array(repeat).keys()]){
       context.drawImage(cards['card1'], gap.x + pos*2*scale, gap.y + pos*scale, ...cardsize);
     }
   }
 
+  // Waste
   if (deck.length) {
     let dep = 0;
-    const repeat = Math.ceil((deck.length)/10);
+    const repeat = Math.ceil((deck.length-1)/10);
     for (const pos of [...Array(repeat).keys()]){
       dep = pos*scale;
       context.drawImage(cards['01'], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);
@@ -565,6 +567,7 @@ function sol() {
     }
   }
 
+  // Foundation
   for (const pos of [...Array(4).keys()]){
     let dep = 0;
     const repeat = Math.ceil((slots[pos+1][1].length)/4);
@@ -651,9 +654,9 @@ function computerplaysol() {
     // Deck to Foundation
     const card = deck[deck.length-1];
     if(!moved && (parseInt(card[1], 16) === 1 || foundations.some((pile) => {return card[0] === pile[0][pile[2]][0] && parseInt(card[1], 16) === parseInt(pile[0][pile[2]][1], 16)+1}))) {
-      const ded = Math.min(drawn, deck.length)-1;
-      const repeat = (Math.ceil((deck.length)/10)-1)*scale;
-      dragcard = {'x':gap.x*2 + cardsize[0]*1 + repeat*2 + ded*scale*14, 'y':gap.y*1 + cardsize[1]*0 + repeat + ded*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[0]};
+      const dep = Math.min(drawn, deck.length)-1;
+      const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
+      dragcard = {'x':gap.x*2 + cardsize[0]*1 + repeat*2 + dep*scale*14, 'y':gap.y*1 + cardsize[1]*0 + repeat + dep*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[0]};
       setTimeout(FFup, computerspeed*3);
       return;
     }
@@ -693,7 +696,7 @@ function computerplaysol() {
   }
 
   if (slots[0][1].length && !(draw[0] >= slots[0][1].length-1 && !draw[2])) {
-    // Draw
+    // Deck to Waste
     setTimeout(()=> {
       drawx();
       sol();
@@ -797,17 +800,19 @@ var FFdown = (e_) => {
     returncard = false;
     const sel = (x, y, e) => {return mousepos.x > gap.x*(x+1) + cardsize[0]*x && mousepos.x < gap.x*(x+1) + cardsize[0]*(x+1)+e && mousepos.y > gap.y*(y+1) + cardsize[1]*y && mousepos.y < gap.y*(y+1) + cardsize[1]*(y+1)};
 
+    // Deck to Waste
     if(sel(0, 0, 0)){
       drawx();
     }
 
-    const ded = Math.min(drawn, deck.length)-1;
+    // Drag card from Waste
+    const dep = Math.min(drawn, deck.length)-1;
     if (sel(1, 0, 14*(drawn-1)*scale) && deck.length) {
-      const repeat = (Math.ceil((deck.length)/10)-1)*scale;
-      dragcard = {'x':gap.x*2 + cardsize[0]*1 + repeat*2 + ded*scale*14, 'y':gap.y*1 + cardsize[1]*0 + repeat + ded*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[0]};
+      const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
+      dragcard = {'x':gap.x*2 + cardsize[0]*1 + repeat*2 + dep*scale*14, 'y':gap.y*1 + cardsize[1]*0 + repeat + dep*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[0]};
     }
 
-    //undo draw
+    // Undo draw
     if (mousepos.x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale && mousepos.x < gap.x*3 + cardsize[0]*3 && mousepos.y > gap.y + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1/2) {
       if (draw[0] > -1) {
         if (!(drawn-1-(draw[1]+drawn)%drawn) || draw[0] > draw[1] || !draw[2]) {
@@ -823,7 +828,7 @@ var FFdown = (e_) => {
       }
     }
 
-    // UNdo card movement
+    // Undo card movement
     if (mousepos.x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale && mousepos.x < gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 + 12/2*(drawn-1)*scale && mousepos.y > gap.y + cardsize[1]*1/2 && mousepos.y < gap.y*1 + cardsize[1]*1) {
       winanim = false;
       if (rev) {
@@ -834,7 +839,7 @@ var FFdown = (e_) => {
       return;
     }
 
-    // REdo card movement
+    // Redo card movement
     if (!winanim && mousepos.x > gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 + 12/2*(drawn-1)*scale && mousepos.x < gap.x*3 + cardsize[0]*3 && mousepos.y > gap.y + cardsize[1]*1/2 && mousepos.y < gap.y*1 + cardsize[1]*1) {
       if (rev < slothistory.length-1) {
         rev ++;
@@ -874,7 +879,6 @@ var FFdown = (e_) => {
       }
       sol();
     }
-
     if (!winanim && mousepos.x > gap.x*8 + cardsize[0]*7 + 12*(drawn-1)*scale && mousepos.x < gap.x*8 + cardsize[0]*8 && mousepos.y > gap.y + cardsize[1]*1/2 && mousepos.y < gap.y*1 + cardsize[1]*1) {
       solcomputer = !debugcomputer ? true : !solcomputer;
       debugcomputer = true;
@@ -905,7 +909,7 @@ var FFdown = (e_) => {
       sol();
     }
 
-
+    // Drag card from Foundation
     for (const pos of [...Array(4).keys()]) {
       if(sel(pos+3, 0, 0)) {
         if (slots[pos+1][1].length) {
@@ -917,6 +921,7 @@ var FFdown = (e_) => {
       }
     }
 
+    // Drag card from Stack
     for (const pos of [...Array(7+cheatslots).keys()]) {
       if (mousepos.x > gap.x*(pos+1) + cardsize[0]*pos && mousepos.x < gap.x*(pos+1) + cardsize[0]*(pos+1) && mousepos.y > gap.y*2 + cardsize[1]*1 && mousepos.y < gap.y*2 + cardsize[1]*2 + 3*scale*slots[pos+5][0].length + 15*scale*slots[pos+5][1].length) {
         if (slots[pos+5][1].length) {
@@ -1000,6 +1005,7 @@ var FFup = (e_) => {
       let slot = [];
       let cheat = false;
 
+      // Select pile from Foundation or an action for double click
       for (const pos of [...Array(4).keys()]) {
         if(mousepos.x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*(pos+4) + cardsize[0]*(pos+3) && mousepos.x - dragcard.dx + dragcard.x < gap.x*(pos+4) + cardsize[0]*(pos+4) && mousepos.y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*1 + cardsize[1]*0 && mousepos.y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1) {
           slot.push(slots[pos+1]);
@@ -1029,6 +1035,7 @@ var FFup = (e_) => {
         }
       }
 
+      // Drag card to this pile
       if (slot.length) {
         for (const s of slot){
           let stack = s[1][s[1].length-1];
@@ -1056,6 +1063,7 @@ var FFup = (e_) => {
       }
       slot = [];
 
+      // Select pile from Stack
       for (const pos of [...Array(7+cheatslots).keys()]) {
         if (mousepos.x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*(pos+1) + cardsize[0]*(pos) && mousepos.x - dragcard.dx + dragcard.x < gap.x*(pos+1) + cardsize[0]*(pos+1) && mousepos.y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*2 + cardsize[1]*1 && mousepos.y - dragcard.dy + dragcard.y < gap.y*2 + cardsize[1]*2 + 3*scale*slots[pos+5][0].length + 15*scale*(slots[pos+5][1].length-1)) {
           slot.push(slots[pos+5]);
@@ -1065,6 +1073,7 @@ var FFup = (e_) => {
         }
       }
 
+      // Drag card to this pile
       if (slot.length) {
         const card = dragcard.slot[1]['draw' in dragcard ? dragcard.draw : draw[0]];
         for (const s of slot){

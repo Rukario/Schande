@@ -339,7 +339,7 @@ function new_stars() {
 var deck = [];
 var cards = {};
 var slots = [];
-var cheatslots = 8;
+var cheatslots = 5;
 var ncard = 52;
 var drawn = 1;
 var draw = [-1, -1, true];
@@ -451,32 +451,35 @@ function winsol() {
   const update = () => {
     const flycard = flycards[i];
     for (const nth of Array(2).keys()) {
+      if (!winanim) {
+        return;
+      }
       flycard.xvel += gravity.x;
       flycard.yvel += gravity.y;
       flycard.x += (flycard.xvel * flycard.xdir);
       flycard.y += (flycard.yvel * flycard.ydir);
       if (flycard.x < -cardsize[0] || flycard.x > c.width) {
-        clearTimeout(idlescreensaver);
-        i++;
+        break;
         //flycard.xvel = -flycard.xvel;
       }
-      if (!winanim) {
-        return;
-      } 
-      if (i === ncard) {
-        idlescreensaver = setTimeout(() => {
-          if (stopscreensaver) {
-            stopscreensaver = false;
-            new_screensaver();
-          }
-        }, 1000);
-        return;
-      }
       if (flycard.y + cardsize[1] > solsize[1]) {
-          flycard.y = solsize[1] - cardsize[1];
-          flycard.yvel = -flycard.yvel*kinecticloss;
+        flycard.y = solsize[1] - cardsize[1];
+        flycard.yvel = -flycard.yvel*kinecticloss;
       }
       context.drawImage(cards[flycard["card"]], flycard.x, flycard.y, ...cardsize);
+    }
+    if (flycard.x < -cardsize[0] || flycard.x > c.width) {
+      clearTimeout(idlescreensaver);
+      i++;
+    }
+    if (i === ncard) {
+      idlescreensaver = setTimeout(() => {
+        if (stopscreensaver) {
+          stopscreensaver = false;
+          new_screensaver();
+        }
+      }, 1000);
+      return;
     }
     requestAnimationFrame(update);
   }
@@ -508,7 +511,7 @@ function sol() {
   context.drawImage(cards['deck'], gap.x, gap.y, ...cardsize);
   context.drawImage(cards[drawn === 3 ? 'undo3' : 'undo'], gap.x*3 + cardsize[0]*2, gap.y, ...cardsize);
   context.drawImage(cards['computer'], gap.x*8 + cardsize[0]*7, gap.y, ...cardsize);
-  context.drawImage(cards['deal'], gap.x*9 + cardsize[0]*8, gap.y, ...cardsize);
+  //context.drawImage(cards['deal'], gap.x*9 + cardsize[0]*8, gap.y, ...cardsize);
 
   if(solcomputer) {
     //context.strokeStyle = "#00FF00";
@@ -1143,13 +1146,13 @@ var FFup = (e_) => {
       let cheat = false;
 
       // Deal
-      if (mousepos.x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*9 + cardsize[0]*8 && mousepos.x - dragcard.dx + dragcard.x < gap.x*9 + cardsize[0]*9 && mousepos.y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*1 + cardsize[1]*0 && mousepos.y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1) {
-        dragcard = false;
-        returncard = false;
-        new_deck();
-        sol();
-        return;
-      }
+      //if (mousepos.x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*9 + cardsize[0]*8 && mousepos.x - dragcard.dx + dragcard.x < gap.x*9 + cardsize[0]*9 && mousepos.y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*1 + cardsize[1]*0 && mousepos.y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1) {
+      //  dragcard = false;
+      //  returncard = false;
+      //  new_deck();
+      //  sol();
+      //  return;
+      //}
 
       // Select pile from Foundation or an action for double click
       for (const pos of [...Array(4).keys()]) {

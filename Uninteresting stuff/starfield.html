@@ -29,7 +29,21 @@ canvas {
   pointer-events: none;
 }
 
-#result {
+.hint {
+  display: none;
+  background: repeating-linear-gradient(
+    45deg,
+    #f0f,
+    #f0f 10px,
+    #0f0 10px,
+    #0f0 20px
+  );
+  width: 738px;
+  height: 400px;
+  z-index: 1;
+}
+
+#result, #stdout {
   white-space: pre;
   display: none;
   color: #0f0;
@@ -38,6 +52,11 @@ canvas {
   z-index: 1;
   pointer-events: none;
   position: absolute;
+}
+
+#stdout {
+  top: 400px;
+  font-size: 14px;
 }
 
 #poppy {
@@ -248,6 +267,8 @@ function screensaver(resolve) {
 
 function new_screensaver() {
   winanim = false;
+  hint.style.display = 'none';
+  hintb.style.display = 'none';
   let promise = new Promise((resolve) => {
     busyscreensaver = true;
     screensaver(resolve);
@@ -423,39 +444,41 @@ function winsol() {
     for (const pos of [...Array(4).keys()]){
       const falldir = Math.floor(Math.random()*14-7)+1;
       const dep = Math.ceil((12-card)/4)*scale;
-      flycards.push({'card':slots[pos+1][1][12-card], 'x':gap.x*4 + gap.x*pos + cardsize[0]*(pos+3) + dep*2, 'y':gap.y + dep, 'xdir':1, 'ydir':1, 'xvel':falldir ? falldir : -2, 'yvel':-Math.ceil(Math.random()*18)});
+      flycards.push({'card':slots[pos+1][1][12-card], 'x':gap.x*4 + gap.x*pos + cardsize[0]*(pos+3) + dep*2, 'y':gap.y + dep, 'xdir':scale, 'ydir':scale, 'xvel':falldir ? falldir : -2, 'yvel':-Math.ceil(Math.random()*18)});
     }
   }
 
   const update = () => {
     const flycard = flycards[i];
-    flycard.xvel += gravity.x;
-    flycard.yvel += gravity.y;
-    flycard.x += (flycard.xvel * flycard.xdir);
-    flycard.y += (flycard.yvel * flycard.ydir);
-    if (flycard.x < -cardsize[0] || flycard.x > c.width) {
-      clearTimeout(idlescreensaver);
-      i++;
-      //flycard.xvel = -flycard.xvel;
-    }
-    if (!winanim) {
-      return;
-    } 
-    if (i === ncard) {
-      idlescreensaver = setTimeout(() => {
-        if (stopscreensaver) {
-          stopscreensaver = false;
-          new_screensaver();
-        }
-      }, 1000);
-      return;
+    for (const nth of Array(2).keys()) {
+      flycard.xvel += gravity.x;
+      flycard.yvel += gravity.y;
+      flycard.x += (flycard.xvel * flycard.xdir);
+      flycard.y += (flycard.yvel * flycard.ydir);
+      if (flycard.x < -cardsize[0] || flycard.x > c.width) {
+        clearTimeout(idlescreensaver);
+        i++;
+        //flycard.xvel = -flycard.xvel;
+      }
+      if (!winanim) {
+        return;
+      } 
+      if (i === ncard) {
+        idlescreensaver = setTimeout(() => {
+          if (stopscreensaver) {
+            stopscreensaver = false;
+            new_screensaver();
+          }
+        }, 1000);
+        return;
+      }
+      if (flycard.y + cardsize[1] > solsize[1]) {
+          flycard.y = solsize[1] - cardsize[1];
+          flycard.yvel = -flycard.yvel*kinecticloss;
+      }
+      context.drawImage(cards[flycard["card"]], flycard.x, flycard.y, ...cardsize);
     }
     requestAnimationFrame(update);
-    if (flycard.y + cardsize[1] > solsize[1]) {
-        flycard.y = solsize[1] - cardsize[1];
-        flycard.yvel = -flycard.yvel*kinecticloss;
-    }
-    context.drawImage(cards[flycard["card"]], flycard.x, flycard.y, ...cardsize);
   }
 
   winid = setTimeout(update, 1000);
@@ -498,10 +521,7 @@ function sol() {
     context.drawImage(invert, gap.x*8 + cardsize[0]*7, gap.y + (debugcomputer ? cardsize[1]/2 : 0), invert.width, invert.height);
   }
 
-  const dd = drawn-1-(draw[1]+drawn)%drawn;
-  const ded = Math.min(drawn, deck.length);
-
-  if (dd && draw[0] < draw[1]+drawn && draw[2]) {
+  if (drawn-1-(draw[1]+drawn)%drawn && draw[0] < draw[1]+drawn && draw[2]) {
     context.strokeStyle = "#00FF00";
     context.lineWidth = 2;
     context.beginPath();
@@ -550,6 +570,7 @@ function sol() {
       dep = pos*scale;
       context.drawImage(cards['01'], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);
     }
+    const ded = Math.min(drawn, deck.length);
     if (dragcard || returncard) {
       if (deck.length-1) {
         context.drawImage(cards[deck[deck.length-2]], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);
@@ -604,65 +625,144 @@ function sol() {
   if (solcomputer) {
     clearTimeout(readycomputer);
     readycomputer = setTimeout(computerplaysol, computerspeed);
+  } else {
+    computerplaysol(true);
+  }
+}
+
+
+
+function drawhint(x, y, dx, dy) {
+  if (!x) {
+    x = gap.x*8 + cardsize[0]*7 + Math.floor(cardsize[0]/2) - 8*scale;
+    y = gap.y*1 + cardsize[1]*0 + Math.floor(cardsize[1]/2) - 8*scale;
+    dx = x+16*scale;
+    dy = y+16*scale;
+    hintb.style.clipPath = `polygon(
+${x}px ${y}px,
+${dx}px ${y}px,
+${dx}px ${dy}px,
+${x}px ${dy}px,
+
+${x}px ${y}px,
+
+${x+2}px ${y}px,
+${x+2}px ${dy-2}px,
+${dx-2}px ${dy-2}px,
+${dx-2}px ${y+2}px,
+${x}px ${y+2}px
+)`;
+    hintb.style.display = "block";
+    return;
+  }
+  if (x === dx && y === dy) {
+    dx += cardsize[0];
+    dy += cardsize[1];
+    hint.style.clipPath = `polygon(
+${x}px ${y}px,
+${dx}px ${y}px,
+${dx}px ${dy}px,
+${x}px ${dy}px,
+
+${x}px ${y}px,
+
+${x+2}px ${y}px,
+${x+2}px ${dy-2}px,
+${dx-2}px ${dy-2}px,
+${dx-2}px ${y+2}px,
+${x}px ${y+2}px
+)`;
+  } else {
+    x += Math.floor(cardsize[0]/2);
+    dx += Math.floor(cardsize[0]/2);
+    if (x === dx){
+      hint.style.clipPath = `polygon(${x}px ${y}px,
+${x+1}px ${y}px,
+${dx+1}px ${dy}px,
+${dx}px ${dy}px)`;
+    } else {
+      hint.style.clipPath = `polygon(${x}px ${y}px,
+${x}px ${y+2}px,
+${dx}px ${dy+2}px,
+${dx}px ${dy}px)`;
+    }
   }
 }
 
 var moved = false;
-function computerplaysol() {
+function computerplaysol(forhint) {
   imawake();
   const foundations = [];
   const stack = [];
   const stackforpile = [];
 
+  // Register cards from Foundation piles
   for (const pos of [...Array(4).keys()]) {
     if (slots[pos+1][1].length) {
-      foundations.push([slots[pos+1][1], slots[pos+1], slots[pos+1][1].length-1]);
+      foundations.push([slots[pos+1], pos+1]);
     }
   }
 
+  // Register cards from Stack piles
   for (const pos of [...Array(7+cheatslots).keys()]){
     if (slots[pos+5][1].length) {
       if (!(parseInt(slots[pos+5][1][0][1], 16) === 13 && !slots[pos+5][0].length)) {
-        stack.push([slots[pos+5][1][0], slots[pos+5], 0]);
+        stack.push([slots[pos+5][1][0], slots[pos+5], pos+5, true]);
       }
-      stackforpile.push([slots[pos+5][1][0], slots[pos+5], pos, 0]);
+      stackforpile.push([slots[pos+5], pos]);
 
       // Stack to Foundation
       const depth = slots[pos+5][1].length-1;
       const card = slots[pos+5][1][depth];
-      if (!moved && (parseInt(card[1], 16) === 1 || foundations.some((pile) => {return card[0] === pile[0][pile[2]][0] && parseInt(card[1], 16) === parseInt(pile[0][pile[2]][1], 16)+1}))) {
-
-        dragcard = {'x':gap.x*(pos+1) + cardsize[0]*pos, 'y':gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length + depth*15*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[pos+5], 'draw':depth};
-        setTimeout(FFup, computerspeed*3);
+      if (!moved && (parseInt(card[1], 16) === 1 || foundations.some((f) => {const fca = f[0][1][f[0][1].length-1]; return card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16)+1}))) {
+        const x = gap.x*(pos+1) + cardsize[0]*pos;
+        const y = gap.y*2 + cardsize[1] + depth*15*scale + 3*scale*slots[pos+5][0].length;
+        drawhint(x, y, x, y);
+        if (!forhint) {
+          dragcard = {'x':x, 'y':y, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[pos+5], 'draw':depth};
+          setTimeout(FFup, computerspeed*3);
+        }
         return;
       }
     } else if (slots[pos+5][0].length) {
       // Flip card
-      const card = slots[pos+5][0][slots[pos+5][0].length-1]; 
-      slots[pos+5][0] = slots[pos+5][0].slice(0, -1);
-      slots[pos+5][1].push(card);
-      snapshot();
-      sol();
+      const x = gap.x*(pos+1) + cardsize[0]*pos;
+      const y = gap.y*2 + cardsize[1] + 3*scale*(slots[pos+5][0].length-1);
+      drawhint(x, y, x, y);
+      if (!forhint) {
+        const card = slots[pos+5][0][slots[pos+5][0].length-1]; 
+        slots[pos+5][0] = slots[pos+5][0].slice(0, -1);
+        slots[pos+5][1].push(card);
+        snapshot();
+        sol();
+      }
       return;
     } else if (pos < 7) {
-      stackforpile.push([slots[pos+5][1][0], slots[pos+5], pos, 0]);
+      stackforpile.push([slots[pos+5], pos]);
     }
   };
 
+  // Register Deck pile
   if (deck.length) {
-    stack.push([deck[deck.length-1], slots[0], false]);
+    stack.push([deck[deck.length-1], slots[0], 1, false]);
 
     // Deck to Foundation
     const card = deck[deck.length-1];
-    if(!moved && (parseInt(card[1], 16) === 1 || foundations.some((pile) => {return card[0] === pile[0][pile[2]][0] && parseInt(card[1], 16) === parseInt(pile[0][pile[2]][1], 16)+1}))) {
+    if(!moved && (parseInt(card[1], 16) === 1 || foundations.some((f) => {const fca = f[0][1][f[0][1].length-1]; return card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16)+1}))) {
       const dep = Math.min(drawn, deck.length)-1;
       const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
-      dragcard = {'x':gap.x*2 + cardsize[0]*1 + repeat*2 + dep*scale*14, 'y':gap.y*1 + cardsize[1]*0 + repeat + dep*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[0]};
-      setTimeout(FFup, computerspeed*3);
+      const x = gap.x*2 + cardsize[0]*1 + repeat*2 + dep*scale*14;
+      const y = gap.y*1 + cardsize[1]*0 + repeat + dep*scale;
+      drawhint(x, y, x, y);
+      if (!forhint) {
+        dragcard = {'x':x, 'y':y, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[0]};
+        setTimeout(FFup, computerspeed*3);
+      }
       return;
     }
   }
 
+  // Stack
   for (const pos of [...Array(7+cheatslots).keys()]){
     const vectors = [];
     if (slots[pos+5][1].length) {
@@ -685,32 +785,48 @@ function computerplaysol() {
       if (debugcomputer && vectors.length > 1) {
         console.log("Alternative card movement available!");
       };
-      const [car, slo, dep] = vectors[0];
-      dragcard = {'x':gap.x*(pos+1) + cardsize[0]*pos, 'y':gap.y*2 + cardsize[1]*1 + 3*scale*slo[0].length + dep*15*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slo};
-      if(dep !== false) {
-        dragcard['draw'] = dep;
+      const [card, slo, place, usedraw] = vectors[0];
+      let depth = slots[pos+5][1].length;
+      depth -= (depth ? 1 : 0)
+      const x = gap.x*(pos+1) + cardsize[0]*pos;
+      const y = gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length + depth*15*scale;
+      const des = place > 4 ? 1 : 0;
+      drawhint(x, y, gap.x*(place-(5*des)+1) + cardsize[0]*(place-(5*des)), gap.y*(des+1) + cardsize[1]*des + 3*scale*slo[0].length);
+      if (!forhint) {
+        dragcard = {'x':x, 'y':y, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slo};
+        if(usedraw) {
+          dragcard['draw'] = 0;
+        }
+        moved = false;
+        setTimeout(FFup, computerspeed*3);
       }
-      moved = false;
-      setTimeout(FFup, computerspeed*3);
       return;
     }
   }
 
   if (slots[0][1].length && !(draw[0] >= slots[0][1].length-1 && !draw[2])) {
     // Deck to Waste
-    setTimeout(()=> {
-      drawx();
-      sol();
-    }, computerspeed);
+    const repeat = draw[0] < slots[0][1].length-1 ? Math.ceil((slots[0][1].length-draw[0]-1)/10)-1 : 0;
+    const x = gap.x + repeat*2;
+    const y = gap.y + repeat;
+    //hint.style.display = "none";
+    drawhint(x, y, x, y);
+    if (!forhint) {
+      setTimeout(()=> {
+        drawx();
+        sol();
+      }, computerspeed);
+    }
   } else {
     // Stack to Foundation: Pile movement
-    for (const [pile, fslo, fdep] of foundations) {
-      for (const [car, slo, place, dep] of stackforpile) {
+    for (const [fslo, fpos] of foundations) {
+      for (const [slo, place] of stackforpile) {
         if (!slo[1].length) {
           continue;
         }
         for (const [n, card] of slo[1].entries()) {
-          if (pile[fdep][0] === card[0] && parseInt(pile[fdep][1], 16) === parseInt(card[1], 16)-1) {
+          const fca = fslo[1][fslo[1].length-1];
+          if (fca[0] === card[0] && parseInt(fca[1], 16) === parseInt(card[1], 16)-1) {
             const ch = slo[1][n+1];
             if (!ch) {
               continue;
@@ -720,11 +836,17 @@ function computerplaysol() {
                 const de = slots[pos+5][1].length-1;
                 const ca = slots[pos+5][1][de];
                 if (ch[0]%2 !== ca[0]%2 && parseInt(ch[1], 16) === parseInt(ca[1], 16)-1) {
-                  console.log("That was a special move!");
-                  drawx();
-                  dragcard = {'x':gap.x*(pos+1) + cardsize[0]*pos, 'y':gap.y*2 + cardsize[1]*1 + 3*scale*slo[0].length + de*15*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slo};
-                  dragcard['draw'] = n+1;
-                  setTimeout(FFup, computerspeed*3);
+                  const x = gap.x*(pos+1) + cardsize[0]*pos;
+                  const y = gap.y*2 + cardsize[1]*1 + de*15*scale + 3*scale*slots[pos+5][0].length;
+                  const des = place > 4 ? 1 : 0;
+                  drawhint(x, y, gap.x*(place-(5*des)+1) + cardsize[0]*(place-(5*des)), gap.y*(des+1) + cardsize[1]*(des+1) + (n+1)*15*scale + 3*scale*(slo[0].length+2));
+                  if (!forhint) {
+                    console.log("That was a special move!");
+                    drawx();
+                    dragcard = {'x':x, 'y':y, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slo};
+                    dragcard['draw'] = n+1;
+                    setTimeout(FFup, computerspeed*3);
+                  }
                   return;
                 }
               }
@@ -738,28 +860,42 @@ function computerplaysol() {
     for (const pos of [...Array(7).keys()]) {
       if (slots[pos+5][0].length && slots[pos+5][1].length){
         const card = slots[pos+5][1][0];
-        for (const [pile, fslo, fdep] of foundations) {
-          if (card[0]%2 !== pile[fdep][0]%2 && parseInt(card[1], 16) < parseInt(pile[fdep][1], 16)) {
-            if (parseInt(card[1], 16) < parseInt(pile[fdep][1], 16)-1) {
+        let unsure = false;
+        for (const [fslo, fpos] of foundations) {
+          const fca = fslo[1][fslo[1].length-1];
+          if (card[0]%2 !== fca[0]%2 && parseInt(card[1], 16) < parseInt(fca[1], 16)) {
+            if (parseInt(card[1], 16) < parseInt(fca[1], 16)-1) {
               console.log('Takes more than 1 card to do it! Trying...');
             }
-            for (const [car, slo, place, dep] of stackforpile) {
+            for (const [slo, place] of stackforpile) {
               const ca = slo[1][slo[1].length-1];
-              if (parseInt(pile[fdep][1], 16) === 13 && !ca || ca && pile[fdep][0]%2 !== ca[0]%2 && parseInt(pile[fdep][1], 16) === parseInt(ca[1], 16)-1) {
-                drawx();
-                dragcard = {'x':gap.x*(place+1) + cardsize[0]*place, 'y':gap.y*2 + cardsize[1]*1 + 3*scale*slo[0].length + dep*15*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':fslo};
-                dragcard['draw'] = fdep;
-                console.log("moved", pile[fdep], "to", ca);
-                moved = true;
-                setTimeout(FFup, computerspeed*3);
+              if (parseInt(fca[1], 16) === 13 && !ca || ca && fca[0]%2 !== ca[0]%2 && parseInt(fca[1], 16) === parseInt(ca[1], 16)-1) {
+                const des = fpos > 4 ? 1 : 0;
+                const repeat = Math.floor(Math.abs(fslo[1].length-2)/4)*scale;
+                const x = gap.x*(place+1) + cardsize[0]*place;
+                const y = gap.y*2 + cardsize[1]*1 + 15*scale*(slo[1].length-(slo[1].length ? 1 : 0)) + 3*scale*slo[0].length;
+                drawhint(x, y, gap.x*(fpos+3) + cardsize[0]*(fpos+2) + repeat*2, gap.y*(des+1) + cardsize[1]*(des*1) + repeat);
+                if (!forhint) {
+                  drawx();
+                  dragcard = {'x':x, 'y':y, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':fslo};
+                  dragcard['draw'] = fslo[1].length-1;
+                  console.log("moved", fca, "to", ca);
+                  moved = true;
+                  setTimeout(FFup, computerspeed*3);
+                }
                 return;
               }
             }
-            console.log("About to run into a dead end and I'm not sure, maybe wanna move card", cardsym[parseInt(card[0], 16)], cardname[parseInt(card[1], 16)], "somehow? I see a larger number from pile that might be able to help with that.");
-            solcomputer = false;
-            sol();
-            return;
+            unsure = true;
           }
+        }
+        if (unsure) {
+          console.log("About to run into a dead end and I'm not sure, maybe wanna move card", cardsym[parseInt(card[0], 16)], cardname[parseInt(card[1], 16)], "somehow? I see a larger number from pile that might be able to help with that.");
+          solcomputer = false;
+          if (!forhint) {
+            sol();
+          }
+          return;
         }
       }
     }
@@ -769,7 +905,7 @@ function computerplaysol() {
       new_deck();
       sol();
       // teach computer to undo and retry with alternative card movement
-    } else {
+    } else if (!forhint) {
       solcomputer = false;
       sol();
     }
@@ -1147,6 +1283,7 @@ var FFup = (e_) => {
 var imawake = () => {
   if (solitaire && !stopscreensaver) {
     stopscreensaver = true;
+    hintb.style.display = 'block';
     if (!winanim) {
       sol();
     }
@@ -1174,6 +1311,13 @@ var FFmove = (e_) => {
       mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop: e_.y;
       e_.preventDefault();
     }
+  }
+
+  if (solitaire && !winanim && mousepos.x > gap.x*8 + cardsize[0]*7 + cardsize[0]/2 - 8*scale && mousepos.x < gap.x*8 + cardsize[0]*7 + cardsize[0]/2 + 8*scale && mousepos.y > gap.y + cardsize[1]*0 + cardsize[1]/2 - 8*scale && mousepos.y < gap.y*1 + cardsize[1]*0 + cardsize[1]/2 + 8*scale) {
+    hint.style.display = 'block';
+    hintb.style.display = 'none';
+  } else {
+    //hint.style.display = 'none';
   }
 
   if (solitaire && dragcard){
@@ -1382,6 +1526,7 @@ window.onload = () => {
         solitaire = true;
         stopscreensaver = true;
         drawn = options[2];
+        drawhint();
         readcard(sol);
       });
     } else if (options[1] === 6) {
@@ -1490,5 +1635,5 @@ window.onload = () => {
 }
 </script></head>
 <body>
-<div id="fgbg"></div><div id="result"></div><div id="poppy"></div></body>
+<div id="fgbg"></div><div style="position:absolute; z-index:1; pointer-events:none;"><div class="hint" id="hint"></div><div class="hint" id="hintb"></div></div><div id="result"></div><div id="stdout">Output:</div><div id="poppy"></div></body>
 </html>

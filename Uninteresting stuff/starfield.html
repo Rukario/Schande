@@ -656,6 +656,7 @@ ${dx-2}px ${y+2}px,
 ${x}px ${y+2}px
 )`;
     hintb.style.display = "block";
+    hint.style.display = "none";
     return;
   }
   if (x === dx && y === dy) {
@@ -813,6 +814,7 @@ function computerplaysol(forhint) {
     const x = gap.x + repeat*2;
     const y = gap.y + repeat;
     //hint.style.display = "none";
+    //hintb.style.display = "block";
     drawhint(x, y, x, y);
     if (!forhint) {
       setTimeout(()=> {
@@ -1300,6 +1302,8 @@ var imawake = () => {
   }, 60000);
 };
 
+var crosshint;
+var givehint = false;
 var FFmove = (e_) => {
   clearTimeout(idlecursor);
   idlecursor = setTimeout(() => {
@@ -1316,11 +1320,20 @@ var FFmove = (e_) => {
     }
   }
 
-  if (solitaire && !winanim && mousepos.x > gap.x*8 + cardsize[0]*7 + cardsize[0]/2 - 8*scale && mousepos.x < gap.x*8 + cardsize[0]*7 + cardsize[0]/2 + 8*scale && mousepos.y > gap.y + cardsize[1]*0 + cardsize[1]/2 - 8*scale && mousepos.y < gap.y*1 + cardsize[1]*0 + cardsize[1]/2 + 8*scale) {
-    hint.style.display = 'block';
-    hintb.style.display = 'none';
-  } else {
-    //hint.style.display = 'none';
+  if (solitaire && !winanim) {
+    if (mousepos.x > gap.x*8 + cardsize[0]*7 + cardsize[0]/2 - 8*scale && mousepos.x < gap.x*8 + cardsize[0]*7 + cardsize[0]/2 + 8*scale && mousepos.y > gap.y + cardsize[1]*0 + cardsize[1]/2 - 8*scale && mousepos.y < gap.y*1 +   cardsize[1]*0 + cardsize[1]/2 + 8*scale) {
+      clearTimeout(crosshint);
+      crosshint = setTimeout(() => {
+        givehint = !givehint;
+      }, 200);
+      if (givehint) {
+        hint.style.display = 'block';
+        hintb.style.display = 'none';
+      } else {
+        hint.style.display = 'none';
+        hintb.style.display = 'block';
+      }
+    }
   }
 
   if (solitaire && dragcard){

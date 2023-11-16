@@ -1585,11 +1585,11 @@ function savestar() {
 function graphdraw(e) {
   if (graphdrawing) {
     const rect = graph.getBoundingClientRect();
-    const x = Math.min(Math.floor((isTouch ? e.touches[0].clientX : e.clientX) - rect.left)-3, 200);
-    const y = Math.min(Math.floor((isTouch ? e.touches[0].clientY : e.clientY) - rect.top)-4, 200);
-    graphdot.style.left = x + "px";
-    graphdot.style.top = y + "px";
-    life = parseFloat((15.75 - x/13.334).toFixed(2));
+    const x = Math.min(Math.floor((isTouch ? e.touches[0].clientX : e.clientX) - rect.left)-1, 200);
+    const y = Math.min(Math.floor((isTouch ? e.touches[0].clientY : e.clientY) - rect.top)-2, 200);
+    graphdot.style.left = x - 2 + "px";
+    graphdot.style.top = y - 2 + "px";
+    life = parseFloat((10.75 - x/20).toFixed(2));
     pixel = {'x':(200-y)*2+1, 'y':(200-y)*2+1};
     graphstat.innerHTML = `Pixel: ${pixel.x}px Life: ${life}s`;
   }
@@ -1606,6 +1606,14 @@ function leverdraw(e) {
     fps = 57600/fpsInterval;
     leverstat.innerHTML = `Accelerate: ${accelerate/200}s`;
   }
+}
+
+function updatestat() {
+  graphdot.style.left = 200-life*20+13 + "px";
+  graphdot.style.top = 200-pixel.x/2-2 + "px";
+  graphstat.innerHTML = `Pixel: ${pixel.x}px Life:${life}s`;
+  leverdot.style.left = 204-accelerate/8 + "px";
+  leverstat.innerHTML = `Accelerate: ${accelerate/200}s`;
 }
 
 function makemenu() {
@@ -1632,6 +1640,7 @@ function makemenu() {
     } else {
       new_stars();
     }
+    updatestat();
   }
 
   const tc = 'click';
@@ -1869,6 +1878,7 @@ function makemenu() {
     staropt.appendChild(graph);
 
     graphstat = document.createElement("DIV");
+    staropt.appendChild(graphstat);
     graphdot = document.createElement("DIV");
     graphdot.style.background = "#00f";
     graphdot.style.position = "relative";
@@ -1890,15 +1900,6 @@ function makemenu() {
     graph.addEventListener("touchend", (e) => {
       FFup(e);
     });
-    graphstat.innerHTML = `Pixel: ${pixel.x}px Life:${life}s`;
-    staropt.appendChild(graphstat);
-
-    //graph.addEventListener("mouseup", () => {
-    //  graphdrawing = false;
-    //});
-    //graph.addEventListener("mouseleave", () => {
-    //  graphdrawing = false;
-    //});
 
     lever = document.createElement("DIV");
     lever.style.padding = "10px 0";
@@ -1913,9 +1914,11 @@ function makemenu() {
     staropt.appendChild(lever);
 
     leverstat = document.createElement("DIV");
+    staropt.appendChild(leverstat);
     leverdot = document.createElement("DIV");
     leverdot.classList = "leverdot";
     staropt.appendChild(leverdot);
+    updatestat();
 
     lever.addEventListener("mousedown", () => {
       leverdrawing = true;
@@ -1930,8 +1933,6 @@ function makemenu() {
     lever.addEventListener("touchend", (e) => {
       FFup(e);
     });
-    leverstat.innerHTML = `Accelerate: ${accelerate/200}s`;
-    staropt.appendChild(leverstat);
 
   } else {
     unlock(`Glide (${64-winsoln})`);
@@ -1975,9 +1976,9 @@ window.onload = () => {
       e_.preventDefault();
     });
   } else {
-    c.addEventListener('mousedown', FFdown);
-    c.addEventListener('mouseup', FFup);
-    c.addEventListener("mousemove", FFmove);
+    document.addEventListener('mousedown', FFdown);
+    document.addEventListener('mouseup', FFup);
+    document.addEventListener("mousemove", FFmove);
     document.addEventListener('contextmenu', (e_) => {
       rightc(e_);
     });

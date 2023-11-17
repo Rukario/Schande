@@ -463,7 +463,7 @@ var slots = [];
 var cheatslots = 5;
 var ncard = 52;
 var drawn = 1;
-var draw = [-1, -1, true];
+var draw = {};
 var rev = -1;
 var slothistory = [];
 var solcomputer = false;
@@ -478,6 +478,8 @@ var gap = {'x':11*scale, 'y':5*scale};
 var solsize = [((gap.x+1)*scale+cardsize[0])*(7+cheatslots), 400*scale];
 
 var snapshot = () => {
+  dragcard = false;
+  returncard = false;
   rev ++;
   if (rev < slothistory.length){
     slothistory.splice(rev);
@@ -486,15 +488,15 @@ var snapshot = () => {
 }
 
 var drawx = () => {
-  if (draw[0] < slots[0][1].length-1) {
+  if (draw.draw < slots[0][1].length-1) {
     const dd = Math.min(drawn, slots[0][1].length-deck.length);
-    draw[0] += dd;
+    draw.draw += dd;
     for (const i of [...Array(dd).keys()]) {
-      deck.push(slots[0][1][draw[0]-dd+1+i]);
+      deck.push(slots[0][1][draw.draw-dd+1+i]);
     }
   } else {
-    draw[0] = -1;
-    draw[2] = false;
+    draw.draw = -1;
+    draw.cycle = false;
     deck = [];
   }
 }
@@ -509,7 +511,7 @@ function mb32(a) {
 var cardsym = ['Clover', 'Diamond', 'Spade', 'Heart'];
 var cardname = [0, 'A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K'];
 function new_deck() {
-  draw = [-1, -1, true];
+  draw = {'draw':-1, 'last':-1, 'cycle':true};
   rev = -1;
   deck = [];
   won = false;
@@ -518,7 +520,7 @@ function new_deck() {
   winid = false;
   give_hint = false;
   var factorysealed = [];
-  for (const card of ['card1', 'card2', 'deck', 'undo', 'undo3', 'slot', 'computer', 'deal']){
+  for (const card of ['card1', 'card2', 'deck', 'undo', 'undo3', 'slot', 'computer', 'deal', 'sym']){
     cards[card] = new Image();
     cards[card].src = `SOL/${card}.png`;
   } 
@@ -656,7 +658,7 @@ function sol() {
     context.drawImage(invert, gap.x*8 + cardsize[0]*7, gap.y + (debugcomputer ? cardsize[1]/2 : 0), invert.width, invert.height);
   }
 
-  if (drawn-1-(draw[1]+drawn)%drawn && draw[0] < draw[1]+drawn && draw[2]) {
+  if (drawn-1-(draw.last+drawn)%drawn && draw.draw < draw.last+drawn && draw.cycle) {
     context.strokeStyle = "#00FF00";
     context.lineWidth = 2;
     context.beginPath();
@@ -696,8 +698,8 @@ function sol() {
   }
 
   // Deck
-  if (draw[0] < slots[0][1].length-1) {
-    const repeat = Math.ceil((slots[0][1].length-draw[0]-1)/10);
+  if (draw.draw < slots[0][1].length-1) {
+    const repeat = Math.ceil((slots[0][1].length-draw.draw-1)/10);
     for (const pos of [...Array(repeat).keys()]){
       context.drawImage(cards['card1'], gap.x + pos*2*scale, gap.y + pos*scale, ...cardsize);
     }
@@ -718,12 +720,12 @@ function sol() {
       }
       for (const i of [...Array(ded).keys()]) {
         const card = deck[deck.length-ded+i];
-        if (dragcard && dragcard.slot[1][draw[0]] === card || returncard && returncard.slot[1][draw[0]] === card) {
+        if (dragcard && dragcard.slot[1][draw.draw] === card || returncard && returncard.slot[1][draw.draw] === card) {
           break;
         };
         context.drawImage(cards[card], gap.x+dep*2 + 82*scale + 14*i, gap.y+dep+i, ...cardsize);
       };
-    } else if (!dragcard || dragcard.slot[1][draw[0]] !== deck[deck.length]) {
+    } else if (!dragcard || dragcard.slot[1][draw.draw] !== deck[deck.length]) {
       for (const i of [...Array(ded).keys()]) {
         context.drawImage(cards[deck[deck.length-ded+i]], gap.x+dep*2 + 82*scale + 14*i, gap.y+dep+i, ...cardsize);
       }
@@ -972,9 +974,9 @@ function computerplaysol(forhint) {
   }
   hints = 1;
 
-  if (slots[0][1].length && !(draw[0] >= slots[0][1].length-1 && !draw[2])) {
+  if (slots[0][1].length && !(draw.draw >= slots[0][1].length-1 && !draw.cycle)) {
     // Deck to Waste
-    const repeat = draw[0] < slots[0][1].length-1 ? Math.ceil((slots[0][1].length-draw[0]-1)/10)-1 : 0;
+    const repeat = draw.draw < slots[0][1].length-1 ? Math.ceil((slots[0][1].length-draw.draw-1)/10)-1 : 0;
     const x = gap.x + repeat*2;
     const y = gap.y + repeat;
     //hint.style.display = "none";
@@ -1070,7 +1072,7 @@ function computerplaysol(forhint) {
     }
 
     console.log("Ran into a dead end");
-    const repeat = draw[0] < slots[0][1].length-1 ? Math.ceil((slots[0][1].length-draw[0]-1)/10)-1 : 0;
+    const repeat = draw.draw < slots[0][1].length-1 ? Math.ceil((slots[0][1].length-draw.draw-1)/10)-1 : 0;
     const x = gap.x + repeat*2;
     const y = gap.y + repeat;
     drawhint(hint, x, y, x, y);
@@ -1133,15 +1135,16 @@ var FFdown = (e_) => {
 
     // Undo draw
     if (mousepos.x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale && mousepos.x < gap.x*3 + cardsize[0]*3 && mousepos.y > gap.y + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1/2) {
-      if (draw[0] > -1) {
-        if (!(drawn-1-(draw[1]+drawn)%drawn) || draw[0] > draw[1] || !draw[2]) {
-          draw[0] -= drawn;
-          deck.splice(draw[0]+1);
+      if (draw.draw > -1) {
+        if (!(drawn-1-(draw.last+drawn)%drawn) || draw.draw > draw.last || !draw.cycle) {
+          draw.draw -= drawn;
+          deck.splice(draw.draw+1);
         }
       } else {
-        draw[0] = slots[0][1].length - drawn - slots[0][1].slice(draw[1]).length%drawn;
-        draw[2] = true;
-        for (const d of [...Array(draw[0]+1).keys()]) {
+        const part = slots[0][1].slice(draw.last).length%drawn;
+        draw.draw = slots[0][1].length - (part ? part : drawn);
+        draw.cycle = true;
+        for (const d of [...Array(draw.draw+1).keys()]) {
           deck.push(slots[0][1][d]);
         }
       }
@@ -1260,7 +1263,7 @@ var FFdown = (e_) => {
     imawake();
 
     if (dragcard) {
-      let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw[0]]];
+      let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
       let des = 0;
       for (const card of dragcards){
         context.drawImage(cards[card], dragcard.x, dragcard.y+des, ...cardsize);
@@ -1275,7 +1278,7 @@ var FFdown = (e_) => {
 
 function rubberband(){
   returncard = dragcard;
-  let returncards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw[0]]];
+  let returncards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
   const ribbersize = 4;
   let rubberstep = ribbersize;
   const update = () => {
@@ -1307,6 +1310,15 @@ var FFup = (e_) => {
     e_.preventDefault();
   }
   if (solitaire){
+
+    const deckpop = () => {
+      slots[0][1] = [...dragcard.slot[1].slice(0, draw.draw), ...dragcard.slot[1].slice(draw.draw+1)];
+      deck.pop();
+      draw.draw -= 1;
+      draw.last = draw.draw;
+      draw.cycle = true;
+    }
+
     if (dragcard){
       let slot = [];
       let cheat = false;
@@ -1327,22 +1339,16 @@ var FFup = (e_) => {
         }
         if (fastclick + 200 > Date.now()) {
           let stack = slots[pos+1][1][slots[pos+1][1].length-1];
-          let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw[0]]];
+          let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
           let card = dragcards[dragcards.length-1];
           if (!stack && parseInt(card[1], 16) === 1 || stack && dragcards.length === 1 && parseInt(card[0], 16) === parseInt(stack[0], 16) && parseInt(card[1], 16) === parseInt(stack[1], 16)+1){
             if ('draw' in dragcard) {
               slots[pos+1][1].push(...dragcard.slot[1].slice(dragcard.draw));
               dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
             } else {
-              slots[pos+1][1].push(dragcard.slot[1][draw[0]]);
-              slots[0][1] = [...dragcard.slot[1].slice(0, draw[0]), ...dragcard.slot[1].slice(draw[0]+1)];
-              deck.pop();
-              draw[0] -= 1;
-              draw[1] = draw[0];
-              draw[2] = true;
+              slots[pos+1][1].push(dragcard.slot[1][draw.draw]);
+              deckpop();
             }
-            dragcard = false;
-            returncard = false;
             snapshot();
             sol();
             return;
@@ -1354,22 +1360,16 @@ var FFup = (e_) => {
       if (slot.length) {
         for (const s of slot){
           let stack = s[1][s[1].length-1];
-          let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw[0]]];
+          let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
           let card = dragcards[dragcards.length-1];
           if (!stack && parseInt(card[1], 16) === 1 || stack && dragcards.length === 1 && parseInt(card[0], 16) === parseInt(stack[0], 16) && parseInt(card[1], 16) === parseInt(stack[1], 16)+1){
             if ('draw' in dragcard) {
               s[1].push(...dragcard.slot[1].slice(dragcard.draw));
               dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
             } else {
-              s[1].push(dragcard.slot[1][draw[0]]);
-              slots[0][1] = [...dragcard.slot[1].slice(0, draw[0]), ...dragcard.slot[1].slice(draw[0]+1)];
-              deck.pop();
-              draw[0] -= 1;
-              draw[1] = draw[0];
-              draw[2] = true;
+              s[1].push(dragcard.slot[1][draw.draw]);
+              deckpop();
             }
-            dragcard = false;
-            returncard = false;
             snapshot();
             sol();
             return;
@@ -1390,7 +1390,7 @@ var FFup = (e_) => {
 
       // Drag card to this pile
       if (slot.length) {
-        const card = dragcard.slot[1]['draw' in dragcard ? dragcard.draw : draw[0]];
+        const card = dragcard.slot[1]['draw' in dragcard ? dragcard.draw : draw.draw];
         for (const s of slot){
           if (!s[1].length) {
             if (parseInt(card[1], 16) === ncard/4 || cheat === 2 && !(dragcard.draw)) {
@@ -1398,15 +1398,9 @@ var FFup = (e_) => {
                 s[1].push(...dragcard.slot[1].slice(dragcard.draw));
                 dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
               } else {
-                s[1].push(dragcard.slot[1][draw[0]]);
-                slots[0][1] = [...dragcard.slot[1].slice(0, draw[0]), ...dragcard.slot[1].slice(draw[0]+1)];
-                deck.pop();
-                draw[0] -= 1;
-                draw[1] = draw[0];
-                draw[2] = true;
+                s[1].push(dragcard.slot[1][draw.draw]);
+                deckpop();
               }
-              dragcard = false;
-              returncard = false;
               snapshot();
               sol();
               fastclick = Date.now();
@@ -1419,15 +1413,9 @@ var FFup = (e_) => {
               s[1].push(...dragcard.slot[1].slice(dragcard.draw));
               dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
             } else {
-              s[1].push(dragcard.slot[1][draw[0]]);
-              slots[0][1] = [...dragcard.slot[1].slice(0, draw[0]), ...dragcard.slot[1].slice(draw[0]+1)];
-              deck.pop();
-              draw[0] -= 1;
-              draw[1] = draw[0];
-              draw[2] = true;
+              s[1].push(dragcard.slot[1][draw.draw]);
+              deckpop();
             }
-            dragcard = false;
-            returncard = false;
             snapshot();
             sol();
             fastclick = Date.now();
@@ -1511,7 +1499,7 @@ var FFmove = (e_) => {
 
   if (solitaire && dragcard){
     sol();
-    let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw[0]]];
+    let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
     let des = 0;
     for (const card of dragcards){
       context.drawImage(cards[card], mousepos.x-dragcard.dx+dragcard.x, mousepos.y-dragcard.dy+dragcard.y+des, ...cardsize);

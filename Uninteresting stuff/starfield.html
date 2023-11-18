@@ -695,6 +695,7 @@ function new_deck() {
 }
 
 function readcard(callback, is_star) {
+  cards = {};
   for (const card of ['card0', 'card1', 'card2', 'deck', 'undo', 'undo3', 'slot', 'computer', 'mon', 'sym']){
     cards[card] = new Image();
     cards[card].src = `SOL/${card}.png`;

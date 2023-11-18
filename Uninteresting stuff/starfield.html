@@ -510,6 +510,150 @@ function mb32(a) {
 
 var cardsym = ['Clover', 'Diamond', 'Spade', 'Heart'];
 var cardname = [0, 'A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K'];
+var cloverloc = [
+  [[29, 41]],
+  [[28, 10], [28, 71]],
+  [[28, 10], [28, 41], [28, 71]],
+  [[16, 10], [41, 10], [16, 71], [41, 71]],
+  [[16, 10], [41, 10], [29, 41], [16, 71], [41, 71]],
+  [[16, 10], [41, 10], [16, 41], [41, 41], [16, 71], [41, 71]],
+  [[16, 10], [41, 10], [29, 27], [16, 41], [41, 41], [16, 71], [41, 71]],
+  [[15, 10], [41, 10], [15, 31], [41, 31], [15, 50], [41, 50], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [15, 31], [41, 31], [28, 39], [15, 50], [41, 50], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [28, 21], [15, 31], [41, 31], [15, 50], [41, 50], [28, 60], [15, 71], [41, 71]],
+];
+var diamondloc = [
+  [[29, 40]],
+  [[28, 10], [28, 71]],
+  [[28, 10], [28, 41], [28, 71]],
+  [[15, 10], [41, 10], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [28, 40], [15, 71], [41, 71]],
+  [[14, 10], [42, 10], [14, 41], [42, 41], [14, 71], [42, 71]],
+  [[14, 10], [42, 10], [28, 26], [14, 41], [42, 41], [14, 71], [42, 71]],
+  [[14, 10], [42, 10], [28, 26], [14, 41], [42, 41], [28, 55], [14, 71], [42, 71]],
+  [[14, 10], [42, 10], [14, 30], [42, 30], [28, 40], [14, 51], [42, 51], [14, 71], [42, 71]],
+  [[14, 10], [42, 10], [28, 21], [14, 30], [42, 30], [14, 51], [42, 51], [28, 60], [14, 71], [42, 71]],
+];
+var spadeloc = [
+  [[0, 0]],
+  [[28, 10], [28, 71]],
+  [[28, 10], [28, 41], [28, 71]],
+  [[15, 10], [41, 10], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [28, 39], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [15, 39], [41, 39], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [28, 27], [15, 41], [41, 41], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [15, 31], [41, 31], [15, 50], [41, 50], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [15, 30], [41, 30], [28, 39], [15, 52], [41, 52], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [28, 20], [15, 31], [41, 31], [15, 50], [41, 50], [28, 61], [15, 71], [41, 71]],
+];
+var heartloc = [
+  [[29, 41]],
+  [[29, 10], [29, 71]],
+  [[29, 10], [29, 41], [29, 71]],
+  [[15, 10], [41, 10], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [28, 41], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [15, 41], [41, 41], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [28, 25], [15, 41], [41, 41], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [15, 31], [41, 31], [15, 50], [41, 50], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [15, 31], [41, 31], [28, 43], [15, 50], [41, 50], [15, 71], [41, 71]],
+  [[15, 10], [41, 10], [28, 20], [15, 31], [41, 31], [15, 50], [41, 50], [28, 61], [15, 71], [41, 71]],
+];
+
+function new_card(next, suit) {
+  let flip = false;
+
+  const acard = document.createElement("canvas");
+  const acardc = acard.getContext('2d');
+  acard.width = 71;
+  acard.height = 96;
+
+  const sym = document.createElement("canvas");
+  const symc = sym.getContext('2d');
+
+  const symloc = [cloverloc, diamondloc, spadeloc, heartloc][suit];
+  //suit + (pos+1).toString(16)
+  acardc.drawImage(cards['card0'], 0, 0, acard.width, acard.height);
+  if (next === 0 && suit === 2) {
+    // Spade A
+    sym.width = 39;
+    sym.height = 39;
+    symc.clearRect(0, 0, sym.width, sym.height);
+    symc.drawImage(cards['sym'], -132, 0, 171, 60);
+    acardc.drawImage(sym, 17, 25, 39, 39);
+  } else if (next >= 10) {
+    sym.width = 47;
+    sym.height = 74;
+    symc.clearRect(0, 0, sym.width, sym.height);
+    symc.drawImage(cards['mon'], -47*suit, -74*(next-10), 188, 222);
+    acardc.drawImage(sym, 12, 11, 47, 74);
+  } else {
+    sym.width = 15;
+    sym.height = 15;
+    symc.clearRect(0, 0, sym.width, sym.height);
+    symc.drawImage(cards['sym'], -22, -15*suit, 171, 60);
+    for (const n of [...Array(symloc[next].length).keys()]) {
+      if (symloc[next][n][1] > 48 && !flip) {
+        symc.clearRect(0, 0, sym.width, sym.height);
+        symc.translate(sym.width, sym.height);
+        symc.scale(-1, -1);
+        symc.drawImage(cards['sym'], -22, -15*suit, 171, 60);
+        flip = true;
+      }
+      acardc.drawImage(sym, symloc[next][n][0], symloc[next][n][1], 15, 15);
+    }
+  }
+  symc.setTransform(1,0,0,1,0,0);
+  flip = false;
+
+  const x = 37 + 12*(next%8);
+  const y = 15*Math.floor(next/8) + 30*(suit%2);
+
+  sym.width = 12;
+  sym.height = 14;
+  symc.clearRect(0, 0, sym.width, sym.height);
+  symc.drawImage(cards['sym'], -x, -y, 171, 60);
+  acardc.drawImage(sym, 2, 4, 12, 14);
+  symc.clearRect(0, 0, sym.width, sym.height);
+  symc.translate(sym.width, sym.height);
+  symc.scale(-1, -1);
+  symc.drawImage(cards['sym'], -x, -y, 171, 60);
+  acardc.drawImage(sym, 57, 78, 12, 14);
+  symc.setTransform(1,0,0,1,0,0);
+
+  sym.width = 11;
+  sym.height = 11;
+  symc.clearRect(0, 0, sym.width, sym.height);
+  symc.drawImage(cards['sym'], -11*(next >= 10 ? 1: 0), -15*suit, 171, 60);
+  const ms = {'x':3, 'y':18};
+  if (suit === 1) {
+    // Diamond
+    ms.x = 2;
+    ms.y = 17;
+  } else if (next >= 10 && suit === 0) {
+    // Spade mon
+    ms.x = 1;
+    ms.y = 17;
+  } else if (next === 11 && suit === 3) {
+    // Heart Queen
+    ms.x = 2;
+    ms.y = 18;
+  } else if (next >= 10) {
+    ms.x = 2;
+    ms.y = 17;
+  }
+  acardc.drawImage(sym, ms.x, ms.y, 11, 11);
+  symc.clearRect(0, 0, sym.width, sym.height);
+  symc.translate(sym.width, sym.height);
+  symc.scale(-1, -1);
+  symc.drawImage(cards['sym'], -11*(next >= 10 ? 1: 0), -15*suit, 171, 60);
+  symc.setTransform(1,0,0,1,0,0);
+  acardc.drawImage(sym, 60-ms.x, 85-ms.y, 11, 11);
+
+  return acard;
+}
+
+
+var factorysealed = [];
 function new_deck() {
   draw = {'draw':-1, 'last':-1, 'cycle':true};
   rev = -1;
@@ -519,22 +663,6 @@ function new_deck() {
   clearTimeout(winid);
   winid = false;
   give_hint = false;
-  var factorysealed = [];
-  for (const card of ['card1', 'card2', 'deck', 'undo', 'undo3', 'slot', 'computer', 'deal', 'sym']){
-    cards[card] = new Image();
-    cards[card].src = `SOL/${card}.png`;
-  } 
-  for (const [s, suit] of cardsym.entries()){
-    for (const [n, cs] of cardname.entries()){
-      if (n) {
-        card = `${s}${n.toString(16)}`;
-        cards[card] = new Image();
-        cards[card].src = `SOL/${cs}${suit[0]}.png`;
-        factorysealed.push(card);
-      }
-    }
-  }
-
   ncard = factorysealed.length;
 
   const alphaseed = seed.value !== '' ? seed.value.replace(/\W/g, '') : Math.random().toString(36).slice(2);
@@ -564,6 +692,45 @@ function new_deck() {
   deck = [];
   slothistory = [];
   snapshot();
+}
+
+function readcard(callback, is_star) {
+  for (const card of ['card0', 'card1', 'card2', 'deck', 'undo', 'undo3', 'slot', 'computer', 'mon', 'sym']){
+    cards[card] = new Image();
+    cards[card].src = `SOL/${card}.png`;
+  }
+  let promiseCards = [];
+  for (const card of Object.keys(cards)) {
+    promiseCards.push(new Promise((resolve, reject) => {
+      if (is_star && card.length === 2) {
+        newstar(cards[card]);
+      }
+      setTimeout(() => {
+        reject(cards[card]);
+      }, 1000);
+      cards[card].onload = function() {
+        resolve();
+      };
+    }))
+  }
+  Promise.all(promiseCards).then(() => {
+    result.style.display = displayfps && !solitaire ? 'block' : 'none';
+    for (const [n, cs] of cardname.entries()){
+      if (n) {
+        for (const [s, suit] of cardsym.entries()){
+          card = `${s}${n.toString(16)}`;
+          //cards[card] = new Image();
+          //cards[card].src = `SOL/${cs}${suit[0]}.png`;
+          cards[card] = new_card(n-1, s);
+          factorysealed.push(card);
+        }
+      }
+    }
+    new_deck();
+    callback();
+  }).catch((reason) => {
+    console.log(reason);
+  })
 }
 
 function winsol() {
@@ -1539,29 +1706,6 @@ function typeOf(obj) {
   return type.toLowerCase();
 }
 
-function readcard(callback, is_star) {
-  let promiseCards = [];
-  for (const card of Object.keys(cards)) {
-    promiseCards.push(new Promise((resolve, reject) => {
-      if (is_star && card.length === 2) {
-        newstar(cards[card]);
-      }
-      setTimeout(() => {
-        reject(cards[card]);
-      }, 1000);
-      cards[card].onload = function() {
-        resolve();
-      };
-    }))
-  }
-  Promise.all(promiseCards).then(() => {
-    result.style.display = displayfps && !solitaire ? 'block' : 'none';
-    callback();
-  }).catch((reason) => {
-    console.log(reason);
-  })
-}
-
 var winsoln = 0;
 var staropt, options, graph, graphdot, graphstat, lever, leverdot, leverstat;
 var graphdrawing = false;
@@ -1697,7 +1841,6 @@ function makemenu() {
       });
     } else if (options[1] === 5) {
       e.addEventListener(tc, () => {
-        new_deck();
         solitaire = true;
         stopscreensaver = true;
         drawn = options[2];
@@ -1712,7 +1855,6 @@ function makemenu() {
         if (solitaire) {
           sol();
         } else {
-          new_deck();
           solitaire = true;
           stopscreensaver = true;
           drawn = 1;

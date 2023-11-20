@@ -694,6 +694,7 @@ function new_deck() {
 
 var factorysealed = [];
 function readcard(callback, is_star) {
+  factorysealed = [];
   cards = {};
   for (const card of ['card0', 'card1', 'card2', 'deck', 'undo', 'undo3', 'slot', 'computer', 'mon', 'sym']){
     cards[card] = new Image();

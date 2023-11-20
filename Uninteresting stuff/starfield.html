@@ -442,7 +442,6 @@ function new_stars() {
       canvasToFrame(mask, variant, i);
     } else if (useimg) {
       for (let n=0;n<density;n++) {
-        new_deck();
         readcard(new_screensaver, true);
       }
     } else {
@@ -652,8 +651,6 @@ function new_card(next, suit) {
   return acard;
 }
 
-
-var factorysealed = [];
 function new_deck() {
   draw = {'draw':-1, 'last':-1, 'cycle':true};
   rev = -1;
@@ -663,15 +660,16 @@ function new_deck() {
   clearTimeout(winid);
   winid = false;
   give_hint = false;
-  ncard = factorysealed.length;
+  var breakseal = [...factorysealed];
+  ncard = breakseal.length;
 
   const alphaseed = seed.value !== '' ? seed.value.replace(/\W/g, '') : Math.random().toString(36).slice(2);
   seednow.value = alphaseed;
   let sprouting = parseInt(alphaseed, 36) / Math.pow(36, alphaseed.length).toString(10).slice(2);
-  while (factorysealed.length) {
-    let pick = Math.floor(mb32(sprouting) * factorysealed.length);
-    deck.push(factorysealed[pick]);
-    factorysealed.splice(pick, 1);
+  while (breakseal.length) {
+    let pick = Math.floor(mb32(sprouting) * breakseal.length);
+    deck.push(breakseal[pick]);
+    breakseal.splice(pick, 1);
     sprouting++;
   }
 
@@ -694,6 +692,7 @@ function new_deck() {
   snapshot();
 }
 
+var factorysealed = [];
 function readcard(callback, is_star) {
   cards = {};
   for (const card of ['card0', 'card1', 'card2', 'deck', 'undo', 'undo3', 'slot', 'computer', 'mon', 'sym']){
@@ -804,10 +803,11 @@ function sol() {
     winanim = false;
     imawake();
   }
-  context.fillStyle = "#003D00";
+
+  context.fillStyle = "#003D00"; // "#130733"
   context.fillRect(0, 0, c.width, c.height);
 
-  context.fillStyle = "#007D00";
+  context.fillStyle = "#007D00"; // "#260f66"
   context.fillRect(0, 0, ...solsize);
 
   context.drawImage(cards['deck'], gap.x, gap.y, ...cardsize);

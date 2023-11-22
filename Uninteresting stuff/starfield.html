@@ -29,6 +29,14 @@ canvas {
   pointer-events: none;
 }
 
+.hintscreen {
+  position:absolute;
+  pointer-events:none;
+  width: 100% /*738px*/;
+  height: 100% /*400px*/;
+  z-index: 1;
+}
+
 .hint {
   display: none;
   background: repeating-linear-gradient(
@@ -38,9 +46,8 @@ canvas {
     #0f0 10px,
     #0f0 20px
   );
-  width: 738px;
-  height: 400px;
-  z-index: 1;
+  width: 100%;
+  height: 100%;
 }
 
 #hint2 {
@@ -126,6 +133,14 @@ canvas {
     linear-gradient(to bottom, #000 1px, transparent 1px);
 }
 
+.graphdot {
+  background: #00f;
+  position: relative;
+  width: 5px;
+  height: 5px;
+  pointer-events: none;
+}
+
 .leverdot {
   background: #fff;
   border-top: 6px solid #fff;
@@ -149,6 +164,15 @@ canvas {
   pointer-events: none;
   position: absolute;
   clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
+}
+
+.leverbar {
+  border-top: 2px solid #848484;
+  border-left: 2px solid #848484;
+  border-bottom: 2px solid #fff;
+  border-right: 2px solid #fff;
+  width: 208px;
+  pointer-events: none;
 }
 
 .poppy2 {
@@ -188,7 +212,7 @@ canvas {
 <script>
 var fps = 15;
 var speed = 60;
-var accelerate = 1600; // supposedly; jumpscare if too low
+var accelerate = 400; // supposedly; jumpscare if too low
 var throttlebyfps = true;
 var displayfps = false;
 var life = 1; // per second
@@ -500,62 +524,47 @@ var drawx = () => {
   }
 }
 
-function mb32(a) {
-  var t = a += 0x6D2B79F5;
-  t = Math.imul(t ^ t >>> 15, t | 1);
-  t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-  return ((t ^ t >>> 14) >>> 0) / 4294967296;
-}
-
 var cardsym = ['Clover', 'Diamond', 'Spade', 'Heart'];
 var cardname = [0, 'A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K'];
+var commonloc = [
+  [[35, 48]],
+  [[35, 17], [35, 78]],
+  [[35, 17], [35, 48], [35, 78]],
+  [[22, 17], [48, 17], [22, 78], [48, 78]],
+  [[22, 17], [48, 17], [35, 48], [22, 78], [48, 78]],
+];
 var cloverloc = [
-  [[29, 41]],
-  [[28, 10], [28, 71]],
-  [[28, 10], [28, 41], [28, 71]],
-  [[16, 10], [41, 10], [16, 71], [41, 71]],
-  [[16, 10], [41, 10], [29, 41], [16, 71], [41, 71]],
-  [[16, 10], [41, 10], [16, 41], [41, 41], [16, 71], [41, 71]],
-  [[16, 10], [41, 10], [29, 27], [16, 41], [41, 41], [16, 71], [41, 71]],
-  [[15, 10], [41, 10], [15, 31], [41, 31], [15, 50], [41, 50], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [15, 31], [41, 31], [28, 39], [15, 50], [41, 50], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [28, 21], [15, 31], [41, 31], [15, 50], [41, 50], [28, 60], [15, 71], [41, 71]],
+  ...commonloc,
+  [[22, 17], [48, 17], [22, 48], [48, 48], [22, 78], [48, 78]],
+  [[22, 17], [48, 17], [35, 34], [22, 48], [48, 48], [22, 78], [48, 78]],
+  [[22, 17], [48, 17], [22, 38], [48, 38], [22, 57], [48, 57], [22, 78], [48, 78]],
+  [[22, 17], [48, 17], [22, 38], [48, 38], [35, 46], [22, 57], [48, 57], [22, 78], [48, 78]],
+  [[22, 17], [48, 17], [35, 28], [22, 38], [48, 38], [22, 57], [48, 57], [35, 67], [22, 78], [48, 78]],
 ];
 var diamondloc = [
-  [[29, 40]],
-  [[28, 10], [28, 71]],
-  [[28, 10], [28, 41], [28, 71]],
-  [[15, 10], [41, 10], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [28, 40], [15, 71], [41, 71]],
-  [[14, 10], [42, 10], [14, 41], [42, 41], [14, 71], [42, 71]],
-  [[14, 10], [42, 10], [28, 26], [14, 41], [42, 41], [14, 71], [42, 71]],
-  [[14, 10], [42, 10], [28, 26], [14, 41], [42, 41], [28, 55], [14, 71], [42, 71]],
-  [[14, 10], [42, 10], [14, 30], [42, 30], [28, 40], [14, 51], [42, 51], [14, 71], [42, 71]],
-  [[14, 10], [42, 10], [28, 21], [14, 30], [42, 30], [14, 51], [42, 51], [28, 60], [14, 71], [42, 71]],
+  ...commonloc,
+  // stretch
+  [[21, 17], [49, 17], [21, 48], [49, 48], [21, 78], [49, 78]],
+  [[21, 17], [49, 17], [35, 33], [21, 48], [49, 48], [21, 78], [49, 78]],
+  [[21, 17], [49, 17], [35, 33], [21, 48], [49, 48], [35, 62], [21, 78], [49, 78]],
+  [[21, 17], [49, 17], [21, 37], [49, 37], [35, 48], [21, 58], [49, 58], [21, 78], [49, 78]],
+  [[21, 17], [49, 17], [35, 28], [21, 37], [49, 37], [21, 58], [49, 58], [35, 67], [21, 78], [49, 78]],
 ];
 var spadeloc = [
-  [[0, 0]],
-  [[28, 10], [28, 71]],
-  [[28, 10], [28, 41], [28, 71]],
-  [[15, 10], [41, 10], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [28, 39], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [15, 39], [41, 39], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [28, 27], [15, 41], [41, 41], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [15, 31], [41, 31], [15, 50], [41, 50], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [15, 30], [41, 30], [28, 39], [15, 52], [41, 52], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [28, 20], [15, 31], [41, 31], [15, 50], [41, 50], [28, 61], [15, 71], [41, 71]],
+  ...commonloc,
+  [[22, 17], [48, 17], [22, 46], [48, 46], [22, 78], [48, 78]],
+  [[22, 17], [48, 17], [35, 34], [22, 48], [48, 48], [22, 78], [48, 78]],
+  [[22, 17], [48, 17], [22, 38], [48, 38], [22, 57], [48, 57], [22, 78], [48, 78]],
+  [[22, 17], [48, 17], [22, 37], [48, 37], [35, 46], [22, 59], [48, 59], [22, 78], [48, 78]],
+  [[22, 17], [48, 17], [35, 27], [22, 38], [48, 38], [22, 57], [48, 57], [35, 68], [22, 78], [48, 78]],
 ];
 var heartloc = [
-  [[29, 41]],
-  [[29, 10], [29, 71]],
-  [[29, 10], [29, 41], [29, 71]],
-  [[15, 10], [41, 10], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [28, 41], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [15, 41], [41, 41], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [28, 25], [15, 41], [41, 41], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [15, 31], [41, 31], [15, 50], [41, 50], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [15, 31], [41, 31], [28, 43], [15, 50], [41, 50], [15, 71], [41, 71]],
-  [[15, 10], [41, 10], [28, 20], [15, 31], [41, 31], [15, 50], [41, 50], [28, 61], [15, 71], [41, 71]],
+  ...commonloc,
+  [[22, 17], [48, 17], [22, 48], [48, 48], [22, 78], [48, 78]],
+  [[22, 17], [48, 17], [35, 32], [22, 48], [48, 48], [22, 78], [48, 78]],
+  [[22, 17], [48, 17], [22, 38], [48, 38], [22, 57], [48, 57], [22, 78], [48, 78]],
+  [[22, 17], [48, 17], [22, 38], [48, 38], [35, 50], [22, 57], [48, 57], [22, 78], [48, 78]],
+  [[22, 17], [48, 17], [35, 27], [22, 38], [48, 38], [22, 57], [48, 57], [35, 68], [22, 78], [48, 78]],
 ];
 
 function new_card(next, suit) {
@@ -569,7 +578,6 @@ function new_card(next, suit) {
   const sym = document.createElement("canvas");
   const symc = sym.getContext('2d');
 
-  const symloc = [cloverloc, diamondloc, spadeloc, heartloc][suit];
   //suit + (pos+1).toString(16)
   acardc.drawImage(cards['card0'], 0, 0, acard.width, acard.height);
   if (next === 0 && suit === 2) {
@@ -590,15 +598,15 @@ function new_card(next, suit) {
     sym.height = 15;
     symc.clearRect(0, 0, sym.width, sym.height);
     symc.drawImage(cards['sym'], -22, -15*suit, 171, 60);
-    for (const n of [...Array(symloc[next].length).keys()]) {
-      if (symloc[next][n][1] > 48 && !flip) {
+    for (const symloc of [cloverloc, diamondloc, spadeloc, heartloc][suit][next]) {
+      if (symloc[1] > 51 && !flip) {
         symc.clearRect(0, 0, sym.width, sym.height);
         symc.translate(sym.width, sym.height);
         symc.scale(-1, -1);
         symc.drawImage(cards['sym'], -22, -15*suit, 171, 60);
         flip = true;
       }
-      acardc.drawImage(sym, symloc[next][n][0], symloc[next][n][1], 15, 15);
+      acardc.drawImage(sym, symloc[0]-7, symloc[1]-7, 15, 15);
     }
   }
   symc.setTransform(1,0,0,1,0,0);
@@ -651,6 +659,37 @@ function new_card(next, suit) {
   return acard;
 }
 
+function cyrb128(str) {
+  let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+  for (let i = 0, k; i < str.length; i++) {
+    k = str.charCodeAt(i);
+    h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+    h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+    h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+    h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+  }
+  h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+  h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+  h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+  h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+  h1 ^= (h2 ^ h3 ^ h4), h2 ^= h1, h3 ^= h1, h4 ^= h1;
+  return [h1>>>0, h2>>>0, h3>>>0, h4>>>0];
+}
+
+function sfc32(a, b, c, d) {
+  return function() {
+    a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0; 
+    var t = (a + b) | 0;
+    a = b ^ b >>> 9;
+    b = c + (c << 3) | 0;
+    c = (c << 21 | c >>> 11);
+    d = d + 1 | 0;
+    t = t + d | 0;
+    c = c + t | 0;
+    return (t >>> 0) / 4294967296;
+  }
+}
+
 function new_deck() {
   draw = {'draw':-1, 'last':-1, 'cycle':true};
   rev = -1;
@@ -665,12 +704,12 @@ function new_deck() {
 
   const alphaseed = seed.value !== '' ? seed.value.replace(/\W/g, '') : Math.random().toString(36).slice(2);
   seednow.value = alphaseed;
-  let sprouting = parseInt(alphaseed, 36) / Math.pow(36, alphaseed.length).toString(10).slice(2);
+  const s = parseInt(alphaseed, 36) / Math.pow(36, alphaseed.length).toString(10).slice(2);
+  const rand = sfc32(s, s+16, s+32, s+64);
   while (breakseal.length) {
-    let pick = Math.floor(mb32(sprouting) * breakseal.length);
+    let pick = Math.floor(rand() * breakseal.length);
     deck.push(breakseal[pick]);
     breakseal.splice(pick, 1);
-    sprouting++;
   }
 
   slots = Array(12+cheatslots);
@@ -694,8 +733,12 @@ function new_deck() {
 
 var factorysealed = [];
 function readcard(callback, is_star) {
-  factorysealed = [];
-  cards = {};
+  if (!is_star && factorysealed.length) {
+    new_deck();
+    callback();
+    return;
+  };
+
   for (const card of ['card0', 'card1', 'card2', 'deck', 'undo', 'undo3', 'slot', 'computer', 'mon', 'sym']){
     cards[card] = new Image();
     cards[card].src = `SOL/${card}.png`;
@@ -716,6 +759,23 @@ function readcard(callback, is_star) {
   }
   Promise.all(promiseCards).then(() => {
     result.style.display = displayfps && !solitaire ? 'block' : 'none';
+
+    //optional hue
+    for (const [pos, card] of Object.keys(cards).entries()) {
+      break;
+      const hue = document.createElement("canvas");
+      hue.width = cardsize[0];
+      hue.height = cardsize[1];
+      const huec = hue.getContext('2d');
+      huec.filter = "brightness(0.6) contrast(3) saturate(2.5) hue-rotate(130deg)";
+      if (['deck', 'undo', 'undo3', 'slot', 'computer'].includes(card)) {
+        huec.clearRect(0, 0 , ...cardsize);
+        huec.drawImage(cards[card], 0, 0, ...cardsize);
+        cards[card] = hue;
+        //context.drawImage(cards[card], pos*100, 0, ...cardsize);
+      }
+    }
+
     for (const [n, cs] of cardname.entries()){
       if (n) {
         for (const [s, suit] of cardsym.entries()){
@@ -727,8 +787,10 @@ function readcard(callback, is_star) {
         }
       }
     }
-    new_deck();
-    callback();
+    if (!is_star) {
+      new_deck();
+      callback();
+    }
   }).catch((reason) => {
     console.log(reason);
   })
@@ -796,6 +858,16 @@ invert.height = Math.floor(cardsize[1]/2);
 var ice = invert.getContext('2d');
 ice.imageSmoothingEnabled = false;
 
+function drawcross(x, y) {
+  context.strokeStyle = "#00FF00";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.arc(x, y, 8, 0, Math.PI*2);
+  context.moveTo(x - 6, y - 6);
+  context.lineTo(x + 6, y + 6);
+  context.stroke();
+}
+
 function sol() {
   if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === ncard/4})) {
     clearTimeout(winid);
@@ -828,14 +900,7 @@ function sol() {
   }
 
   if (drawn-1-(draw.last+drawn)%drawn && draw.draw < draw.last+drawn && draw.cycle) {
-    context.strokeStyle = "#00FF00";
-    context.lineWidth = 2;
-    context.beginPath();
-    const coord = cardsize[0]*3+gap.x*(drawn*0.6-0.8);
-    context.arc(coord, gap.y*2, 8, 0, Math.PI*2);
-    context.moveTo(coord - 6, gap.y*2 - 6);
-    context.lineTo(coord + 6, gap.y*2 + 6);
-    context.stroke();
+    drawcross(cardsize[0]*3+gap.x*(drawn*0.6-0.8), gap.y*2);
   }
 
   context.drawImage(cards['slot'], 257*scale, gap.y, ...cardsize);
@@ -934,6 +999,27 @@ function sol() {
     }
   }
 
+  if (givehint) {
+    // Draw preview
+    let y = 400 + gap.y;
+    for (const [n, card] of slots[0][1].entries()) {
+      context.drawImage(cards[card], 5*(n+1) + cardsize[0]*n, y + 15* Math.min(1, (n === slots[0][1].length-1 ? 0 : drawn-1-(n > draw.last-1 ? n-(draw.last-drawn+1)%drawn : n)%drawn)), ...cardsize);
+    }
+    if (drawn-1-(draw.last+drawn)%drawn) {
+      const coord = Math.floor(draw.last/drawn)*drawn;
+      drawcross(Math.max(0, 5*coord + cardsize[0]*coord - cardsize[0]/2), y+8)
+    }
+    y += cardsize[1] + gap.y + 15;
+    for (const [n, card] of slots[0][1].entries()) {
+      context.drawImage(cards[card], 5*(n+1) + cardsize[0]*n, y + 15* Math.min(1, drawn-1-n%drawn), ...cardsize);
+    }
+    if (draw.cycle) {
+      y -= cardsize[1] + gap.y + 15;
+    }
+    const x = 5*(draw.draw+1) + cardsize[0]*draw.draw;
+    drawhint(hint4, x, y, x, y);
+  }
+
   if (solcomputer) {
     clearTimeout(readycomputer);
     readycomputer = setTimeout(computerplaysol, computerspeed);
@@ -1014,7 +1100,10 @@ function computerplaysol(forhint) {
   imawake();
   drawhint(hint2);
   drawhint(hint3);
-  drawhint(hint4);
+  if (!givehint) {
+    drawhint(hint4);
+  }
+
   const foundations = [];
   const stack = [[], []];
   const stackforpile = [];
@@ -1129,7 +1218,6 @@ function computerplaysol(forhint) {
           if(!isdeck) {
             dragcard['draw'] = 0;
           }
-          moved = false;
           setTimeout(FFup, computerspeed*3);
           return;
         }
@@ -1181,10 +1269,10 @@ function computerplaysol(forhint) {
                   const des = place > 4 ? 1 : 0;
                   drawhint(hint, x, y, gap.x*(place-(5*des)+1) + cardsize[0]*(place-(5*des)), gap.y*(des+1) + cardsize[1]*(des+1) + (n+1)*15*scale + 3*scale*(slo[0].length+2));
                   if (!forhint) {
-                    console.log("That was a special move!");
                     drawx();
                     dragcard = {'x':x, 'y':y, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slo};
                     dragcard['draw'] = n+1;
+                    console.log("That was a special move!");
                     setTimeout(FFup, computerspeed*3);
                   }
                   return;
@@ -1215,12 +1303,12 @@ function computerplaysol(forhint) {
                 const x = gap.x*(place+1) + cardsize[0]*place;
                 const y = gap.y*2 + cardsize[1]*1 + 15*scale*(slo[1].length-(slo[1].length ? 1 : 0)) + 3*scale*slo[0].length;
                 drawhint(hint, x, y, gap.x*(fpos+3) + cardsize[0]*(fpos+2) + repeat*2, gap.y*(des+1) + cardsize[1]*(des*1) + repeat);
+                moved = true;
                 if (!forhint) {
                   drawx();
                   dragcard = {'x':x, 'y':y, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':fslo};
                   dragcard['draw'] = fslo[1].length-1;
                   console.log("moved", fca, "to", ca);
-                  moved = true;
                   setTimeout(FFup, computerspeed*3);
                 }
                 return;
@@ -1305,13 +1393,46 @@ var FFdown = (e_) => {
     // Undo draw
     if (mousepos.x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale && mousepos.x < gap.x*3 + cardsize[0]*3 && mousepos.y > gap.y + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1/2) {
       if (draw.draw > -1) {
-        if (!(drawn-1-(draw.last+drawn)%drawn) || draw.draw > draw.last || !draw.cycle) {
+        // Partial backwards
+        if (slots[0][1].length-1 <= draw.draw && draw.cycle) {
+          console.log("detected last card so do partial backwards");
+
+          const stopper = (draw.last-drawn+1)%drawn;
+
+          //(slots[0][1].length-1-draw.last)%drawn
+          console.log();
+
+          const part = drawn - (slots[0][1].length)%drawn;
+          if (part) {
+            console.log("partial", part);
+            draw.draw -= part;
+            deck.splice(draw.draw+1);
+          } else {
+            console.log("full", drawn);
+            draw.draw -= drawn;
+            deck.splice(draw.draw+1);
+          }
+        } else {
           draw.draw -= drawn;
           deck.splice(draw.draw+1);
         }
+
+        // Standard backwards
+        //if (!(drawn-1-(draw.last+drawn)%drawn) || draw.draw > draw.last || !draw.cycle) {
+        //  draw.draw -= drawn;
+        //  deck.splice(draw.draw+1);
+        //}
       } else {
-        const part = slots[0][1].slice(draw.last).length%drawn;
-        draw.draw = slots[0][1].length - (part ? part : drawn);
+        // Unflip deck
+        draw.draw = slots[0][1].length-1;
+        //const part = slots[0][1].slice(draw.last).length%drawn;
+        //if (part) {
+        //  console.log("partial", part);
+        //  draw.draw = slots[0][1].length - part;
+        //} else {
+        //  console.log("full");
+        //  draw.draw = slots[0][1].length - drawn;
+        //}
         draw.cycle = true;
         for (const d of [...Array(draw.draw+1).keys()]) {
           deck.push(slots[0][1][d]);
@@ -1598,6 +1719,7 @@ var FFup = (e_) => {
       }
     }
     dragcard = false;
+    moved = false;
     if (!winanim) {
       sol();
     }
@@ -1760,32 +1882,33 @@ function updatestat() {
   leverstat.innerHTML = `Accelerate: ${accelerate/200}s`;
 }
 
-function makemenu() {
-  poppy.innerHTML = "";
-
-  const change_screensaver = (o) => {
-    colorful = o[2];
-    useimg = o[3];
-    ismask = o[4];
-    pixel = {'x':o[6], 'y':o[7]};
-    life = o[8];
-    density = o[9];
-    if (o.length == 11) {
-      ccolor = o[10];
-    } else {
-      ccolor = '#000';
-    }
-    lastcolor = ccolor;
-    if (o[5]) {
-      alpha.src = o[5];
-      alpha.onload = () => {
-        new_stars();
-      }
-    } else {
+function change_screensaver(o) {
+  colorful = o[2];
+  useimg = o[3];
+  ismask = o[4];
+  pixel = {'x':o[6], 'y':o[7]};
+  life = o[8];
+  density = o[9];
+  accelerate = o[10]*200;
+  if (o[11]) {
+    ccolor = o[11];
+  } else {
+    ccolor = '#000';
+  }
+  lastcolor = ccolor;
+  if (o[5]) {
+    alpha.src = o[5];
+    alpha.onload = () => {
       new_stars();
     }
-    updatestat();
+  } else {
+    new_stars();
   }
+  updatestat();
+}
+
+function makemenu() {
+  poppy.innerHTML = "";
 
   const tc = 'click';
   const addmenu = (options) => {
@@ -1799,12 +1922,18 @@ function makemenu() {
       return;
     }
     e.style.margin = "0 20px";
-    if (options[1] === 1) {
+    if (options[1] === 'displayfps') {
       e.addEventListener(tc, () => {
         displayfps = !displayfps;
         result.style.display = displayfps && !solitaire ? 'block' : 'none';
       });
-    } else if (options[1] === 2) {
+    } else if (options[1] === 'responsive') {
+      e.addEventListener(tc, () => {
+        console.log("Unimplemented");
+        context.fillStyle = "#000077";
+        context.fillRect(0, 0, c.width, c.height);
+      });
+    } else if (options[1] === 'fly') {
       e.addEventListener(tc, () => {
         if (options[2]) {
           fly = glide ? true : !fly;
@@ -1815,7 +1944,7 @@ function makemenu() {
         }
         savestar();
       });
-    } else if (options[1] === 3) {
+    } else if (options[1] === 'fps') {
       e.addEventListener(tc, () => {
         if (options.length > 2) {
           throttlebyfps = true;
@@ -1827,21 +1956,11 @@ function makemenu() {
           fps = 57600/fpsInterval;
         }
 
-        startTime = Date.now();
-        frameCount = 0;
+        //startTime = Date.now();
+        //frameCount = 0;
         savestar();
       });
-    } else if (options[1] === 4) {
-      e.addEventListener(tc, () => {
-        if (options[2] == 0) {
-          ccolor = lastcolor;
-        } else if (options[2] == 1) {
-          ccolor = "rgba(0, 0, 0, 0.1)";
-        } else {
-          ccolor = "rgba(0, 0, 0, 0)";
-        }
-      });
-    } else if (options[1] === 5) {
+    } else if (options[1] === 'solitaire') {
       e.addEventListener(tc, () => {
         solitaire = true;
         stopscreensaver = true;
@@ -1849,7 +1968,7 @@ function makemenu() {
         drawhint();
         readcard(sol);
       });
-    } else if (options[1] === 6) {
+    } else if (options[1] === 'solcomputer') {
       e.addEventListener(tc, () => {
         solcomputer = !solcomputer;
         debugcomputer = options[2];
@@ -1863,7 +1982,23 @@ function makemenu() {
           readcard(sol);
         }
       });
-    } else {
+    } else if (options[1] === 'qix') {
+      e.addEventListener(tc, () => {
+        console.log("Unimplemented");
+        context.fillStyle = "#000077";
+        context.fillRect(0, 0, c.width, c.height);
+      });
+    } else if (options[1] === 'paint') {
+      e.addEventListener(tc, () => {
+        if (options[2] == 0) {
+          ccolor = lastcolor;
+        } else if (options[2] == 1) {
+          ccolor = "rgba(0, 0, 0, 0.1)";
+        } else {
+          ccolor = "rgba(0, 0, 0, 0)";
+        }
+      });
+    } else if (options[1] === 'screensaver') {
       e.addEventListener(tc, () => {
         stopscreensaver = true;
         if (solitaire) {
@@ -1873,6 +2008,8 @@ function makemenu() {
         change_screensaver(options);
         savestar();
       });
+    } else {
+      console.log("Unknown option");
     }
     poppy.appendChild(e);
   };
@@ -1894,15 +2031,18 @@ function makemenu() {
 
   let new_unlockables = 0;
   if (!winsoln || winsoln >= 5) {
-    addmenu(['Solitaire (draw 1)',  5, 1]);
+    addmenu(['Solitaire (draw 1)', 'solitaire', 1]);
   } else {
     unlock(`Solitaire (draw 1) (${5-winsoln} or reset)`);
   }
   if (winsoln >= 1) {
-    addmenu(['Solitaire (draw 3)',  5, 3]);
+    addmenu(['Solitaire (draw 3)', 'solitaire', 3]);
   } else {
     unlock('Solitaire (draw 3) (1)');
   }
+
+  addmenu(['Qix', 'qix']);
+  //addmenu(['Chess',  5, 3]);
 
   let e = document.createElement("DIV");
   e.innerHTML = 'Options';
@@ -1966,41 +2106,41 @@ function makemenu() {
 
   addmenu();
 
-  addmenu(['Flying Windows',      0, 3,      true,  true,  'win95.png', 95, 95, 1, 75]);
+  addmenu(['Flying Windows',             'screensaver', 3, true,  true,  'win95.png', 95, 95, 1, 75, 2, false]);
   if (winsoln >= 1) {
-    addmenu(['Slow Windows',        0, 3,      true,  true,  'win95.png', 95, 95, 10, 75]);
+    addmenu(['Slow Windows',             'screensaver', 3, true,  true,  'win95.png', 95, 95, 10, 75, 2, false]);
   } else {
     unlock(`Slow Windows (${1-winsoln})`);
   }
   if (winsoln >= 5) {
-    addmenu(['Big Windows',         0, 3,      true,  true,  'win95.png', 380, 380, 1, 75]);
+    addmenu(['Big Windows',              'screensaver', 3, true,  true,  'win95.png', 380, 380, 1, 75, 2, false]);
   } else {
     unlock(`Big Windows (${5-winsoln})`);
   }
   if (winsoln >= 10) {
-    addmenu(['Starfield',           0, false,  false, false, false,       4, 4, 1.50, 200]);
+    addmenu(['Starfield',                'screensaver', 0, false, false, false,       4, 4, 1.50, 200, 0, false]);
   } else {
     unlock(`Starfield (${10-winsoln})`);
   }
   if (winsoln >= 16) {
-    addmenu(['8000 colorful stars', 0, 3,      false, false, false,       4, 4, 1.25, 8000]);
-    addmenu(['8000 slow colorful stars', 0, 3, false, false, false,       4, 4, 10, 8000]);
-    addmenu(['Surreal Xmas memory', 0, 1,      true,  true,  'light.png', 190, 190, 1.25, 800, "#072700"]);
-    addmenu(['2000 flying Windows', 0, 3,      true,  true,  'win95.png', 95, 95, 1.25, 2000]);
+    addmenu(['8000 colorful stars',      'screensaver', 3, false, false, false,       4, 4, 1.25, 8000, 0, false]);
+    addmenu(['8000 slow colorful stars', 'screensaver', 3, false, false, false,       4, 4, 10, 8000, 0, false]);
+    addmenu(['Surreal Xmas memory',      'screensaver', 1, true,  true,  'light.png', 190, 190, 1.25, 800, 2, "#072700"]);
+    addmenu(['2000 flying Windows',      'screensaver', 3, true,  true,  'win95.png', 95, 95, 1.25, 2000, 2, false]);
   }
-  //addmenu(['Flying solitaire',    0, false,  true,  false, false,       71*3, 96*3, 1.25, 1, "#007D00"]);
+  //addmenu(['Flying solitaire',         'screensaver', 0,  true,  false, false,       71*3, 96*3, 1.25, 1, "#007D00"]);
   //addmenu(['Clear',               4, 0]);
   //addmenu(['Ghost',               4, 1]);
   //addmenu(['Paint',               4, 2]);
   addmenu();
   if (winsoln >= 32) {
-    addmenu(['Fly',                 2, true]);
+    addmenu(['Fly', 'fly', true]);
   } else {
     unlock(`Fly (${32-winsoln})`);
   }
   staropt = document.createElement("DIV");
   if (winsoln >= 64) {
-    addmenu(['Glide',               2, false]);
+    addmenu(['Glide', 'fly', false]);
 
     document.addEventListener("wheel", (event) => {
       const w = -event.wheelDelta/480;
@@ -2038,11 +2178,7 @@ function makemenu() {
     graphstat = document.createElement("DIV");
     staropt.appendChild(graphstat);
     graphdot = document.createElement("DIV");
-    graphdot.style.background = "#00f";
-    graphdot.style.position = "relative";
-    graphdot.style.width = "5px";
-    graphdot.style.height = "5px";
-    graphdot.style.pointerEvents = "none";
+    graphdot.classList.add("graphdot");
     graph.appendChild(graphdot);
 
     graph.addEventListener("mousedown", () => {
@@ -2061,13 +2197,9 @@ function makemenu() {
 
     lever = document.createElement("DIV");
     lever.style.padding = "10px 0";
+
     const leverbar = document.createElement("DIV");
-    leverbar.style.borderTop = "2px solid #848484";
-    leverbar.style.borderLeft = "2px solid #848484";
-    leverbar.style.borderBottom = "2px solid #fff";
-    leverbar.style.borderRight = "2px solid #fff";
-    leverbar.style.width = "208px";
-    leverbar.style.pointerEvents = "none";
+    leverbar.classList.add("leverbar");
     lever.appendChild(leverbar);
     staropt.appendChild(lever);
 
@@ -2098,10 +2230,11 @@ function makemenu() {
   }
 
   addmenu();
-  addmenu(['Display FPS',         1]);
-  addmenu(['Nostalgia FPS',       3, 15]);
+  addmenu(['Responsiveness', 'responsive']);
+  addmenu(['Display FPS', 'displayfps']);
+  addmenu(['Nostalgia FPS', 'fps', 15]);
   if (winsoln >= 16) {
-    addmenu(['Unrestricted FPS',    3]);
+    addmenu(['Unrestricted FPS', 'fps']);
   } else {
     unlock(`Unrestricted FPS (${16-winsoln})`);
   }
@@ -2199,5 +2332,14 @@ window.onload = () => {
 }
 </script></head>
 <body>
-<div id="fgbg"></div><div style="position:absolute; z-index:1; pointer-events:none;"><div class="hint" id="hint"></div></div><div style="position:absolute; z-index:1; pointer-events:none;"><div class="hint" id="hint2"></div></div><div style="position:absolute; z-index:1; pointer-events:none;"><div class="hint" id="hint3"></div><div class="hint" id="hint4"></div><div class="hint" id="hintb"></div></div><div id="result"></div><div id="stdout">Output:</div><div class="poppy" id="poppy"></div><div id="dialogbox"><div id="close">&times;</div><div id="dialog"></div></div></body>
+<div id="fgbg"></div>
+<div class="hintscreen"><div class="hint" id="hint"></div></div>
+<div class="hintscreen"><div class="hint" id="hint2"></div></div>
+<div class="hintscreen"><div class="hint" id="hint3"></div></div>
+<div class="hintscreen"><div class="hint" id="hint4"></div></div>
+<div class="hintscreen"><div class="hint" id="hintb"></div></div>
+<div id="result"></div>
+<div id="stdout">Output:</div>
+<div class="poppy" id="poppy"></div>
+<div id="dialogbox"><div id="close">&times;</div><div id="dialog"></div></div></body>
 </html>

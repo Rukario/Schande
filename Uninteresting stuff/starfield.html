@@ -526,46 +526,66 @@ var drawx = () => {
 
 var cardsym = ['Clover', 'Diamond', 'Spade', 'Heart'];
 var cardname = [0, 'A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K'];
-var commonloc = [
-  [[35, 48]],
-  [[35, 17], [35, 78]],
-  [[35, 17], [35, 48], [35, 78]],
-  [[22, 17], [48, 17], [22, 78], [48, 78]],
-  [[22, 17], [48, 17], [35, 48], [22, 78], [48, 78]],
-];
-var cloverloc = [
-  ...commonloc,
-  [[22, 17], [48, 17], [22, 48], [48, 48], [22, 78], [48, 78]],
-  [[22, 17], [48, 17], [35, 34], [22, 48], [48, 48], [22, 78], [48, 78]],
-  [[22, 17], [48, 17], [22, 38], [48, 38], [22, 57], [48, 57], [22, 78], [48, 78]],
-  [[22, 17], [48, 17], [22, 38], [48, 38], [35, 46], [22, 57], [48, 57], [22, 78], [48, 78]],
-  [[22, 17], [48, 17], [35, 28], [22, 38], [48, 38], [22, 57], [48, 57], [35, 67], [22, 78], [48, 78]],
-];
-var diamondloc = [
-  ...commonloc,
-  // stretch
-  [[21, 17], [49, 17], [21, 48], [49, 48], [21, 78], [49, 78]],
-  [[21, 17], [49, 17], [35, 33], [21, 48], [49, 48], [21, 78], [49, 78]],
-  [[21, 17], [49, 17], [35, 33], [21, 48], [49, 48], [35, 62], [21, 78], [49, 78]],
-  [[21, 17], [49, 17], [21, 37], [49, 37], [35, 48], [21, 58], [49, 58], [21, 78], [49, 78]],
-  [[21, 17], [49, 17], [35, 28], [21, 37], [49, 37], [21, 58], [49, 58], [35, 67], [21, 78], [49, 78]],
-];
-var spadeloc = [
-  ...commonloc,
-  [[22, 17], [48, 17], [22, 46], [48, 46], [22, 78], [48, 78]],
-  [[22, 17], [48, 17], [35, 34], [22, 48], [48, 48], [22, 78], [48, 78]],
-  [[22, 17], [48, 17], [22, 38], [48, 38], [22, 57], [48, 57], [22, 78], [48, 78]],
-  [[22, 17], [48, 17], [22, 37], [48, 37], [35, 46], [22, 59], [48, 59], [22, 78], [48, 78]],
-  [[22, 17], [48, 17], [35, 27], [22, 38], [48, 38], [22, 57], [48, 57], [35, 68], [22, 78], [48, 78]],
-];
-var heartloc = [
-  ...commonloc,
-  [[22, 17], [48, 17], [22, 48], [48, 48], [22, 78], [48, 78]],
-  [[22, 17], [48, 17], [35, 32], [22, 48], [48, 48], [22, 78], [48, 78]],
-  [[22, 17], [48, 17], [22, 38], [48, 38], [22, 57], [48, 57], [22, 78], [48, 78]],
-  [[22, 17], [48, 17], [22, 38], [48, 38], [35, 50], [22, 57], [48, 57], [22, 78], [48, 78]],
-  [[22, 17], [48, 17], [35, 27], [22, 38], [48, 38], [22, 57], [48, 57], [35, 68], [22, 78], [48, 78]],
-];
+function newloc(l=0, r=26) {
+  const arri = [];
+  for (const index of [[9],[1,16],[1,9,16],[0,2,15,17],[0,2,9,15,17],[0,2,8,10,15,17],[0,2,4,8,10,15,17],[0,2,5,7,11,13,15,17],[0,2,5,7,9,11,13,15,17],[0,2,3,5,7,11,13,14,15,17]]) {
+    const loc = [];
+    for (const i of index) {
+      loc.push([
+[l,0], [13,0], [r,0],
+       [13,10],
+       [13,16],
+[l,21],[13,21],[r,21],
+[l,31],[13,31],[r,31],
+[l,40],[13,40],[r,40],
+       [13,50],
+[l,61],[13,61],[r,61]
+      ][i]);
+    }
+    arri.push(loc);
+  }
+  return arri;
+}
+
+var cloverloc = newloc();
+var diamondloc = newloc(-1, 27);
+var spadeloc = newloc();
+var heartloc = newloc();
+
+//custom symbol locations
+cloverloc[6][2][1] += 1;
+cloverloc[8][4][1] -= 2;
+cloverloc[9][2][1] += 1;
+
+diamondloc[8][2][1] -= 1;
+diamondloc[8][3][1] -= 1;
+diamondloc[8][5][1] += 1;
+diamondloc[8][6][1] += 1;
+
+diamondloc[7][2] = [13, 16];
+diamondloc[7][3] = [-1, 31];
+diamondloc[7][4] = [27, 31];
+diamondloc[7][5] = [13, 45];
+
+diamondloc[9][2][1] += 1;
+diamondloc[9][3][1] -= 1;
+diamondloc[9][4][1] -= 1;
+diamondloc[9][5][1] += 1;
+diamondloc[9][6][1] += 1;
+
+spadeloc[5][2][1] -= 2;
+spadeloc[5][3][1] -= 2;
+spadeloc[6][2][1] += 1;
+spadeloc[8][2][1] -= 1;
+spadeloc[8][3][1] -= 1;
+spadeloc[8][4][1] -= 2;
+spadeloc[8][5][1] += 2;
+spadeloc[8][6][1] += 2;
+spadeloc[9][7][1] += 1;
+
+heartloc[6][2][1] -= 1;
+heartloc[8][4][1] += 2;
+heartloc[9][7][1] += 1;
 
 function new_card(next, suit) {
   let flip = false;
@@ -578,7 +598,6 @@ function new_card(next, suit) {
   const sym = document.createElement("canvas");
   const symc = sym.getContext('2d');
 
-  //suit + (pos+1).toString(16)
   acardc.drawImage(cards['card0'], 0, 0, acard.width, acard.height);
   if (next === 0 && suit === 2) {
     // Spade A
@@ -599,14 +618,14 @@ function new_card(next, suit) {
     symc.clearRect(0, 0, sym.width, sym.height);
     symc.drawImage(cards['sym'], -22, -15*suit, 171, 60);
     for (const symloc of [cloverloc, diamondloc, spadeloc, heartloc][suit][next]) {
-      if (symloc[1] > 51 && !flip) {
+      if (symloc[1] > 33 && !flip) {
         symc.clearRect(0, 0, sym.width, sym.height);
         symc.translate(sym.width, sym.height);
         symc.scale(-1, -1);
         symc.drawImage(cards['sym'], -22, -15*suit, 171, 60);
         flip = true;
       }
-      acardc.drawImage(sym, symloc[0]-7, symloc[1]-7, 15, 15);
+      acardc.drawImage(sym, symloc[0]+15, symloc[1]+10, 15, 15);
     }
   }
   symc.setTransform(1,0,0,1,0,0);
@@ -1019,6 +1038,11 @@ function sol() {
     const x = 5*(draw.draw+1) + cardsize[0]*draw.draw;
     drawhint(hint4, x, y, x, y);
   }
+
+  // Card design preview
+  //for (const [n, card] of Object.keys(cards).entries()) {
+  //  context.drawImage(cards[card], 5*((n%9)+1) + cardsize[0]*(n%9), 220 + (cardsize[1] + gap.y)*Math.floor(n/9), ...cardsize);
+  //}
 
   if (solcomputer) {
     clearTimeout(readycomputer);

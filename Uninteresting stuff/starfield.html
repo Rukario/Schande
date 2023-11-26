@@ -344,7 +344,7 @@ function screensaver(resolve) {
       if (toodiff > (1000/fps) + fpsInterval/20) {
         startTime = Date.now();
         frameCount = 0;
-        fps = isFinite(fps) ? fps/(1+fpsInterval/accelerate) : 57600/fpsInterval;
+        fps = isFinite(fps) ? fps/(1+fpsInterval/(accelerate?accelerate:1)) : 57600/fpsInterval;
       } else {
         fps = Math.round(1000 / toodiff * 100) / 100;
       }

@@ -29,6 +29,79 @@ canvas {
   pointer-events: none;
 }
 
+#keyboard {
+  display:none;
+}
+
+.keysocket {
+  font-size: 11px;
+  background:#aab4b4;
+  border:2px solid #ccc;
+  border-radius:4px;
+  padding:1px;
+  display: inline-block;
+  vertical-align: text-bottom;
+}
+
+.keycapface {
+  background: #dddad7;
+  width: 31px;
+  height: 34px;
+  color: #088;
+  margin: -3px;
+  padding: 2px;
+  border-radius: 4px;
+  pointer-events: none;
+
+  &.pressed {
+    width: 29px;
+    height: 32px;
+    background: #9cc;
+  }
+}
+
+.keycap {
+  position: relative;
+  display: inline-block;
+  background: #c4c2bb;
+  margin: 1px;
+  border-top: 5px solid #c4c2bb;
+  border-left: 10px solid #a4a29b;
+  border-right: 10px solid #a4a29b;
+  border-bottom: 11px solid #989692;
+  border-radius: 3px;
+
+  &.pressed {
+    margin: 2px 3px 4px 3px;
+    top: 1px;
+    border-top: 4px solid #8bb;
+    border-left: 9px solid #7aa;
+    border-right: 9px solid #7aa;
+    border-bottom: 10px solid #699;
+  }
+}
+
+.keycapface2 {
+  background: #b6b4b9;
+  width: 31px;
+  height: 34px;
+  color: #088;
+  margin: -3px;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.keycap2 {
+  display: inline-block;
+  background: #9d9ba0;
+  margin: 1px;
+  border-top: 5px solid #a4a2a0;
+  border-left: 10px solid #8d8b90;
+  border-right: 10px solid #8d8b90;
+  border-bottom: 11px solid #817e84;
+  border-radius: 3px;
+}
+
 .hintscreen {
   position:absolute;
   pointer-events:none;
@@ -80,17 +153,14 @@ canvas {
   );
 }
 
-#qix {
-  display: none;
+#qixscr2 {
   background: repeating-linear-gradient(
     45deg,
-    #f0f,
-    #f0f 10px,
-    #0f0 10px,
-    #0f0 20px
+    #802,
+    #802 10px,
+    #f00 10px,
+    #f00 20px
   );
-  width: 100%;
-  height: 100%;
 }
 
 #result, #stdout {
@@ -239,6 +309,7 @@ var gliden = 200;
 var glidef = 1; //0.66
 var friction = {'x':2, 'y':2};
 var solitaire = false;
+var qix = false;
 var scale = 1;
 
 var dim = {'x':0, 'y': 0};
@@ -1069,18 +1140,6 @@ function sol() {
   }
 }
 
-
-var qixpos = {'x':0, 'y':0};
-function drawqix(x=1, y=1){
-  qixpos.x += x;
-  qixpos.y += y;
-  qix.style.clipPath = `polygon(${qixpos.x+10}px ${qixpos.y}px,
-${qixpos.x+20}px ${qixpos.y+10}px,
-${qixpos.x+10}px ${qixpos.y+20}px,
-${qixpos.y}px ${qixpos.y+10}px
-)`;
-}
-
 function drawhint(h, x, y, dx, dy) {
   if (!h) {
     x = gap.x*8 + cardsize[0]*7 + Math.floor(cardsize[0]/2) - 16*scale;
@@ -1405,6 +1464,7 @@ var dragcard = false;
 var returncard = false;
 
 var FFdown = (e_) => {
+  mousec.down = 1;
   if (e_) {
     if (!isTouch || e_.touches.length === 1) {
       mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft: e_.x;
@@ -1626,6 +1686,7 @@ function rubberband(){
 
 
 var FFup = (e_) => {
+  mousec.down = 0;
   leverdrawing = false;
   graphdrawing = false;
   if (e_) {
@@ -1939,6 +2000,274 @@ function change_screensaver(o) {
   updatestat();
 }
 
+
+
+//var qixmap = new Array(200*200).fill(0);
+var qixmask = document.createElement("canvas");
+var qixmaskc = qixmask.getContext("2d");
+qixmask.width = 150;
+qixmask.height = 100;
+var qixmap = qixmaskc.createImageData(qixmask.width, qixmask.height);
+
+for (let i=0; i < qixmap.data.length; i += 4) {
+  qixmap.data[i] = 0;
+  qixmap.data[i+1] = 0;
+  qixmap.data[i+2] = 0;
+  qixmap.data[i+3] = 255;
+}
+
+var qixsc = 6;
+var qixpos = {'x':75*qixsc, 'y':50*qixsc, 's':0};
+var qixpos2 = {'x':37*qixsc, 'y':25*qixsc, 's':0};
+var qixlines = [];
+var qixline = {'x':0, 'y':0, 'd':'x'};
+
+function qixscan() {
+  const satellite = [Math.floor(qixpos2.x/qixsc), Math.floor(qixpos2.y/qixsc)];
+  const monstermap = new Uint8Array(qixmask.width*qixmask.height);
+  for (const n of Array(qixmask.width*qixmask.height).keys()) {
+    monstermap[n] = qixmap.data[n*4+3] >= 128 ? 1 : 0;
+  }
+  while (satellite.length > 0) {
+    const y = satellite.pop();
+    const x = satellite.pop();
+    if (x >= 0 && y >= 0 && x < qixmask.width && y < qixmask.height && monstermap[y*qixmask.width + x]) {
+      monstermap[y * qixmask.width + x] = 0;
+      satellite.push(x + 1, y);
+      satellite.push(x - 1, y);
+      satellite.push(x, y + 1);
+      satellite.push(x, y - 1);
+    }
+  }
+  for (const [n, pixel] of monstermap.entries()) {
+    if (pixel) {
+      qixmap.data[n*4+3] = 128;
+    }
+  }
+  qixmaskc.putImageData(qixmap, 0, 0);
+}
+
+function clearSq(x, y, w, h) {
+  const ww = qixmask.width;
+  const yh = h>0 ? [y,h+1] : [y+h,-h+1];
+  const xw = w>0 ? [x,w+1] : [x+w,-w+1];
+  const d = ww*yh[0]*4;
+  const r = xw[0]*4;
+  for (const i of Array(yh[1]).keys()) {
+    const ii = d+ww*i*4 + 3;
+    for (const j of Array(xw[1]).keys()) {
+      qixmap.data[ii + r+j*4] = 0;
+    }
+  }
+  qixmaskc.putImageData(qixmap, 0, 0);
+}
+clearSq(70, 45, 10, 10);
+clearSq(0, 0, 150, 0);
+clearSq(0, 0, 0, 100);
+clearSq(0, 99, 150, 0);
+clearSq(149, 0, 0, 100);
+
+function stixpath() {
+  const x = Math.floor(qixpos.x/qixsc);
+  const y = Math.floor(qixpos.y/qixsc);
+  if (!qixlines.length) {
+    qixlines = [[x, y, 0, 0]];
+  }
+  const stix = qixlines[qixlines.length-1];
+  if (qixline[qixline.d] === x) {
+    stix[3] = y-stix[1];
+  } else if (qixline[qixline.d] === y) {
+    stix[2] = x-stix[0];
+  } else {
+    qixlines.push([x, y, 0, 0]);
+    qixline.x = x;
+    qixline.y = y;
+    qixline.d = qixline.d === 'x' ? 'y' : 'x';
+  }
+}
+
+function qixstep() {
+  const x = Math.floor(qixpos.x/qixsc);
+  const y = Math.floor(qixpos.y/qixsc);
+  const nx = (Keypress[4]?1:0) + (Keypress[1]?-1:0);
+  const ny = (Keypress[19]?1:0) + (Keypress[23]?-1:0);
+  if (x+nx >= 0 && y+ny >= 0 && x+nx < qixmask.width && y+ny < qixmask.height) {
+    const o = x + nx + qixmask.width*(y + ny);
+    if (qixmap.data[o*4+3] !== 255){
+      qixpos.x += nx;
+      qixpos.y += ny;
+      //stixpath();
+      if (mousec.hold) {
+        mousec.hold = 0;
+        for (const area of qixlines) {
+          clearSq(...area);
+        }
+        qixlines = [];
+        qixscan();
+      }
+    } else if (mousec.down) {
+      mousec.hold = 1;
+      qixpos.x += nx;
+      qixpos.y += ny;
+      stixpath();
+    }
+  }
+}
+
+function qixstep2() {
+  const x = Math.floor(qixpos2.x/qixsc);
+  const y = Math.floor(qixpos2.y/qixsc);
+  const nx = (Keypress[8]?1:0) + (Keypress[6]?-1:0);
+  const ny = (Keypress[7]?1:0) + (Keypress[20]?-1:0);
+  if (x+nx >= 0 && y+ny >= 0 && x+nx < qixmask.width && y+ny < qixmask.height) {
+    const o = x + nx + qixmask.width*(y + ny);
+    if (qixmap.data[o*4+3] === 255){
+      qixpos2.x += nx;
+      qixpos2.y += ny;
+    }
+  }
+}
+
+function drawqix(scr, pos, s=1){
+  const tail = [];
+  const dir = {'x':0, 'y':0, 'w':0, 'h':0, 'nw':0, 'nh':0};
+  for (const area of qixlines) {
+    const nx = area[0]+area[2];
+    const ny = area[1]+area[3];
+    if (dir.x > 0) {
+      if (area[3] > 0) {
+        dir.w = 1;
+        dir.h = 0;
+      } else {
+        dir.w = 0;
+        dir.h = 0;
+      }
+    } else if (dir.y > 0) {
+      if (area[2] < 0) {
+        dir.w = 1;
+        dir.h = 1;
+      } else {
+        dir.w = 1;
+        dir.h = 0;
+      }
+    } else if (dir.x < 0) {
+      if (area[3] < 0) {
+        dir.w = 0;
+        dir.h = 1;
+      } else {
+        dir.w = 1;
+        dir.h = 1;
+      }
+    } else if (dir.y < 0) {
+      if (area[2] > 0) {
+        dir.w = 0;
+        dir.h = 0;
+      } else {
+        dir.w = 0;
+        dir.h = 1;
+      }
+    } else {
+      dir.nw = nx;
+      dir.nh = ny;
+    };
+    dir.x = area[2];
+    dir.y = area[3];
+    tail.push(`${(dir.nw+dir.w)*qixsc}px ${(dir.nh+dir.h)*qixsc}px`);
+    dir.nw = nx;
+    dir.nh = ny;
+  };
+  const x = pos.x+0.5;
+  const y = pos.y+0.5;
+  tail.push(`${x}px ${y-10*s}px,
+${x+10*s}px ${y}px,
+${x}px ${y+10*s}px,
+${x-10*s}px ${y}px`);
+  for (const area of qixlines.toReversed()) {
+    const nx = area[0]+area[2];
+    const ny = area[1]+area[3];
+    if (dir.nx > 0) {
+      if (dir.y > 0) {
+        dir.w = 0;
+        dir.h = 1;
+      } else {
+        dir.w = 1;
+        dir.h = 1;
+      }
+    } else if (dir.ny > 0) {
+      if (dir.x < 0) {
+        dir.w = 0;
+        dir.h = 0;
+      } else {
+        dir.w = 0;
+        dir.h = 1;
+      }
+    } else if (dir.nx < 0) {
+      if (dir.y < 0) {
+        dir.w = 1;
+        dir.h = 0;
+      } else {
+        dir.w = 0;
+        dir.h = 0;
+      }
+    } else if (dir.ny < 0) {
+      if (dir.x > 0) {
+        dir.w = 1;
+        dir.h = 1;
+      } else {
+        dir.w = 1;
+        dir.h = 0;
+      }
+    } else {
+      dir.nw = nx;
+      dir.nh = ny;
+    };
+    dir.nx = dir.x;
+    dir.ny = dir.y;
+    dir.x = area[2];
+    dir.y = area[3];
+    tail.push(`${(dir.nw+dir.w)*qixsc}px ${(dir.nh+dir.h)*qixsc}px`);
+    dir.nw = nx;
+    dir.nh = ny;
+  };
+  scr.style.clipPath = `polygon(${tail.join(',')})`;
+}
+
+var currentFrame = 0;
+var anim = new Image();
+var mousec = {'down':0, 'hold':0};
+function qixupdate() {
+  if (Keypress[4] || Keypress[23] || Keypress[1] || Keypress[19]) {
+    qixstep();
+    drawqix(qixscr, qixpos);
+  } else if (Keypress[6] || Keypress[20] || Keypress[7] || Keypress[8]) {
+    qixstep2();
+    drawqix(qixscr2, qixpos2, 2);
+  }
+  if (!qix) {
+    return;
+  }
+
+  context.fillStyle = "#9d9ba0";
+  context.fillRect(0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
+  //context.drawImage(anim,
+  //  // Selection
+  //  (anim.width-c.width) * ((Math.floor(currentFrame) % 120)/120),
+  //  600, // sy
+  //  c.width, // sWidth
+  //  c.height, // sHeight
+  //  // Drawing
+  //  0, // dx
+  //  0, // dy
+  //  c.width, // dWidth
+  //  c.height // dHeight
+  //);
+  context.drawImage(qixmask, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
+  currentFrame += 1;
+  requestAnimationFrame(qixupdate);
+};
+
+
+
 function makemenu() {
   poppy.innerHTML = "";
 
@@ -1989,6 +2318,10 @@ function makemenu() {
     } else if (options[1] === 'solitaire') {
       e.addEventListener(tc, () => {
         solitaire = true;
+        qix = false;
+        keyboard.style.display = "none";
+        qixscr.style.display = "none";
+        qixscr2.style.display = "none";
         stopscreensaver = true;
         drawn = options[2];
         drawhint();
@@ -2003,6 +2336,10 @@ function makemenu() {
           sol();
         } else {
           solitaire = true;
+          qix = false;
+          keyboard.style.display = "none";
+          qixscr.style.display = "none";
+          qixscr2.style.display = "none";
           stopscreensaver = true;
           drawn = 1;
           readcard(sol);
@@ -2010,11 +2347,19 @@ function makemenu() {
       });
     } else if (options[1] === 'qix') {
       e.addEventListener(tc, () => {
-        console.log("Unimplemented");
-        context.fillStyle = "#000077";
-        context.fillRect(0, 0, c.width, c.height);
-        qix.style.display = "block";
-        drawqix();
+        solitaire = false;
+        hintb.style.display = "none";
+        stopscreensaver = true;
+        qix = true;
+        qixscr.style.display = "block";
+        qixscr2.style.display = "block";
+        drawqix(qixscr, qixpos);
+        drawqix(qixscr2, qixpos2, 2);
+        //anim.src = '';
+        //anim.onload = () => {
+          keyboard.style.display = "inline-block";
+          qixupdate();
+        //};
       });
     } else if (options[1] === 'paint') {
       e.addEventListener(tc, () => {
@@ -2029,8 +2374,13 @@ function makemenu() {
     } else if (options[1] === 'screensaver') {
       e.addEventListener(tc, () => {
         stopscreensaver = true;
-        if (solitaire) {
+        if (solitaire || qix) {
+          qix = false;
+          keyboard.style.display = "none";
+          qixscr.style.display = "none";
+          qixscr2.style.display = "none";
           solitaire = false;
+          hintb.style.display = "none";
           new_screensaver();
         }
         change_screensaver(options);
@@ -2267,7 +2617,163 @@ function makemenu() {
   }
 }
 
+function pressed(e, i) {
+  Keypress[i] = true;
+  e.target.classList = "keycap pressed";
+  e.target.childNodes[0].classList = "keycapface pressed";
+}
+
+var registerkeys = "?ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+function drawkeyboard(keycaps, socket) {
+  for (const ks of keycaps) {
+    for (const k of ks){
+      const i = registerkeys.indexOf(k);
+      const cap = document.createElement("div");
+      cap.innerHTML = k;
+      cap.classList = "keycapface";
+      const keycap = document.createElement("div");
+      keycap.appendChild(cap);
+      keycap.classList = "keycap";
+      if (i) {
+        if (isTouch) {
+          keycap.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            pressed(e, i);
+          });
+          keycap.addEventListener("touchend", (e) => {
+            e.preventDefault();
+            Keypress[i] = false;
+            e.target.classList = "keycap";
+            e.target.childNodes[0].classList = "keycapface";
+          });
+        } else {
+          keycap.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            pressed(e, i);
+          });
+          keycap.addEventListener("mouseup", (e) => {
+            e.preventDefault();
+            Keypress[i] = false;
+            e.target.classList = "keycap";
+            e.target.childNodes[0].classList = "keycapface";
+          });
+        }
+      };
+      socket.appendChild(keycap);
+    }
+  }
+}
+
+function drawkeycap(key, w, cl="keycapface2", cl2="keycap2") {
+  const cap = document.createElement("div");
+  cap.innerHTML = key;
+  cap.classList = cl;
+  cap.style.width = "100%";
+
+  const keycap = document.createElement("div");
+  keycap.classList.add(cl2);
+  keycap.style.width = w;
+  keycap.style.display = "inline-block";
+  keycap.appendChild(cap);
+
+  alphakeys.appendChild(keycap);
+}
+
+function windo(win) {
+  let mask = document.createElement('canvas');
+  mask.width = 95;
+  mask.height = 95;
+ 
+  let maskcontext = mask.getContext('2d');
+  if (colorful == 1 && Math.floor(Math.random()*4)) {
+    maskcontext.drawImage(foliage, 0, 0);
+  } else {
+    maskcontext.fillStyle = "#088";
+    maskcontext.drawImage(win, 0, 0);
+    maskcontext.globalCompositeOperation = "source-in";
+    maskcontext.fillRect(0, 0, 95, 95);
+  };
+ 
+  let promise = new Promise(canvasToAB(mask, 'png'))
+  promise.then(function(arri){
+    const url = ABtoAB(arri);
+    const wind = document.getElementsByClassName("windo");
+    for (const win of wind) {
+      const img = document.createElement("img");
+      img.style.height = "10px";
+      //img.style.imageRendering = "pixelated";
+      img.src = ABtoURL(url);
+      win.innerHTML = img.outerHTML;
+    }
+  })
+};
+
+var Keypress = Array(37).fill(false);
+
 window.onload = () => {
+  let win = document.createElement("img");
+  win.src = 'win95.png';
+  win.onload = () => {
+    windo(win);
+  }
+
+  drawkeyboard([["Esc"]], esc);
+  drawkeyboard([["F1", "F2", "F3", "F4"]], f1);
+  drawkeyboard([["F5", "F6", "F7", "F8"]], f5);
+  drawkeyboard([["F9", "F10", "F11", "F12"]], f9);
+
+  drawkeyboard([["` ~", "1 !", "2 @", "3 #", "4 $", "5 %", "6 ^", "7 &", "8 *", "9 (", "0 )", "- _", "= +"]], alphakeys);
+  drawkeycap("Backspace", "88px");
+
+  let br = document.createElement("br");
+  alphakeys.appendChild(br);
+
+  drawkeycap("Tab", "58px");
+  drawkeyboard(["QWERTYUIOP", ["[ {", "] }"]], alphakeys);
+  drawkeycap("\\ |", "59px", "keycapface", "keycap");
+
+  br = document.createElement("br");
+  alphakeys.appendChild(br);
+
+  drawkeycap("Caps Lock", "68px");
+  drawkeyboard(["ASDFGHJKL", ["; :", "' \""]], alphakeys);
+  drawkeycap("Enter", "100px");
+
+  br = document.createElement("br");
+  alphakeys.appendChild(br);
+
+  drawkeycap("Shift", "95px");
+  drawkeyboard(["ZXCVBNM", [", <", ". >", "/ ?"]], alphakeys);
+  drawkeycap("Shift", "124px");
+
+  br = document.createElement("br");
+  alphakeys.appendChild(br);
+
+  drawkeycap("Ctrl", "43px");
+  drawkeycap("&nbsp;", "43px", "keycapface2 windo");
+  drawkeycap("Alt", "43px");
+  drawkeycap("&nbsp;", "296px", "keycapface", "keycap");
+  drawkeycap("Alt", "43px");
+  drawkeycap("&nbsp;", "43px", "keycapface2 windo");
+  drawkeycap("Fn", "43px");
+  drawkeycap("Ctrl", "43px");
+
+  drawkeyboard(["↑"], arrows);
+
+  br = document.createElement("br");
+  arrows.appendChild(br);
+
+  drawkeyboard(["←", "↓", "→"], arrows);
+
+  drawkeyboard([["PrtSc", "ScrLk", "Pause"]], homekeys2);
+
+  drawkeyboard([["Ins", "Home", "PgUp"]], homekeys);
+
+  br = document.createElement("br");
+  homekeys.appendChild(br);
+
+  drawkeyboard([["Del", "End", "PgDn"]], homekeys);
+
   if (isTouch) {
     c.addEventListener('touchstart', (e_) => {
       FFdown(e_);
@@ -2296,7 +2802,7 @@ window.onload = () => {
   } else {
     document.addEventListener('mousedown', FFdown);
     document.addEventListener('mouseup', FFup);
-    document.addEventListener("mousemove", FFmove);
+    document.addEventListener('mousemove', FFmove);
     document.addEventListener('contextmenu', (e_) => {
       rightc(e_);
     });
@@ -2320,6 +2826,45 @@ window.onload = () => {
   }
 
   makemenu();
+
+  document.addEventListener("keydown", (e) => {
+    switch (e.keyCode) {
+      case 65:
+      case 37:
+      case 70:
+      case 68:
+      case 39:
+      case 72:
+      case 87:
+      case 38:
+      case 84:
+      case 83:
+      case 40:
+      case 71:
+        Keypress[e.keyCode-64] = true;
+        return;
+      default:
+        console.log(e.keyCode);
+    };
+  });
+  document.addEventListener("keyup", (e) => {
+    switch (e.keyCode) {
+      case 65:
+      case 37:
+      case 70:
+      case 68:
+      case 39:
+      case 72:
+      case 87:
+      case 38:
+      case 84:
+      case 83:
+      case 40:
+      case 71:
+        Keypress[e.keyCode-64] = false;
+        return;
+    };
+  });
 
   addEventListener("resize", () => {
     c.width = document.documentElement.clientWidth;
@@ -2365,9 +2910,12 @@ window.onload = () => {
 <div class="hintscreen"><div class="hint" id="hint3"></div></div>
 <div class="hintscreen"><div class="hint" id="hint4"></div></div>
 <div class="hintscreen"><div class="hint" id="hintb"></div></div>
-<div class="hintscreen"><div id="qix"></div></div>
+<div class="hintscreen"><div class="hint" id="qixscr"></div></div>
+<div class="hintscreen"><div class="hint" id="qixscr2"></div></div>
 <div id="result"></div>
 <div id="stdout">Output:</div>
 <div class="poppy" id="poppy"></div>
-<div id="dialogbox"><div id="close">&times;</div><div id="dialog"></div></div></body>
+<div id="dialogbox"><div id="close">&times;</div><div id="dialog"></div></div>
+<div id="keyboard" style="position:absolute; bottom:0px; z-index:2; background:#fff; border-radius:4px; padding:12px 18px; vertical-align:text-top;"><div style="display:inline-block;"><div class="keysocket" id="esc" style="margin-right:44px;"></div><div class="keysocket" id="f1" style="margin-right:24px;"></div><div class="keysocket" id="f5" style="margin-right:24px;"></div><div class="keysocket" id="f9"></div><div></div><div class="keysocket" id="alphakeys" style="margin-top:12px;"></div></div><div style="display:inline-block; margin-left:6px;"><div class="keysocket" id="homekeys2"></div><div style="height:12px;"></div><div class="keysocket" id="homekeys"></div><div style="height:44px;"></div><div class="keysocket" id="arrows"></div></div></div>
+</body>
 </html>

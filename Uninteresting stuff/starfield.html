@@ -2144,11 +2144,11 @@ function qixstep() {
   }
 }
 
-function qixstep2() {
+function qixstep2(k=false) {
   const x = Math.floor(qixpos2.x/qixsc);
   const y = Math.floor(qixpos2.y/qixsc);
-  const nx = (Keypress[8]?1:0) + (Keypress[6]?-1:0);
-  const ny = (Keypress[7]?1:0) + (Keypress[20]?-1:0);
+  const nx = k ? (Keypress[8]?1:0) + (Keypress[6]?-1:0) : Math.round((Math.random()-0.5)*8);
+  const ny = k ? (Keypress[7]?1:0) + (Keypress[20]?-1:0) : Math.round((Math.random()-0.5)*8);
   if (x+nx >= 0 && y+ny >= 0 && x+nx < qixmask.width && y+ny < qixmask.height) {
     const o = x + nx + qixmask.width*(y + ny);
     if (qixmap.data[o*4+3] === 255){
@@ -2270,10 +2270,13 @@ function qixupdate() {
   if (Keypress[4] || Keypress[23] || Keypress[1] || Keypress[19]) {
     qixstep();
     drawqix(qixscr, qixpos);
-  } else if (Keypress[6] || Keypress[20] || Keypress[7] || Keypress[8]) {
-    qixstep2();
-    drawqix(qixscr2, qixpos2, 2);
   }
+  if (Keypress[6] || Keypress[20] || Keypress[7] || Keypress[8]) {
+    qixstep2(true);
+  } else {
+    qixstep2();
+  }
+  drawqix(qixscr2, qixpos2, 2);
   if (!qix || stopqix) {
     stopqix = false;
     return;

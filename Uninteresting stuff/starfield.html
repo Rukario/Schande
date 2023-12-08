@@ -2676,10 +2676,10 @@ function drawkeyboard(keycaps, socket) {
         if (isTouch) {
           keycap.addEventListener("touchstart", (e) => {
             e.preventDefault();
-            //10ms timeout anti-stutter
+            //17ms timeout anti-stutter
             setTimeout(() => {
               pressed(i, true);
-            }, 10);
+            }, 17);
           });
           keycap.addEventListener("touchend", (e) => {
             e.preventDefault();

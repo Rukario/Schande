@@ -2033,18 +2033,29 @@ qixmask.width = 160;
 qixmask.height = 102;
 var qixmap = qixmaskc.createImageData(qixmask.width, qixmask.height);
 
-for (let i=0; i < qixmap.data.length; i += 4) {
-  qixmap.data[i] = 0;
-  qixmap.data[i+1] = 0;
-  qixmap.data[i+2] = 0;
-  qixmap.data[i+3] = 255;
-}
-
 var qixsc = 6;
-var qixpos = {'x':80*qixsc, 'y':51*qixsc, 's':0};
-var qixpos2 = {'x':37*qixsc, 'y':25*qixsc, 's':0};
-var qixlines = [];
-var qixline = {'x':0, 'y':0, 'd':'x'};
+var qixpos, qixpos2, qixlines, qixline;
+
+function new_qix() {
+  if (qix) {
+    stopqix = true;
+  }
+  qixpos = {'x':80*qixsc, 'y':51*qixsc, 's':0};
+  qixpos2 = {'x':Math.floor((Math.random()*qixmask.width-2)+1)*qixsc, 'y':Math.floor((Math.random()*qixmask.height-2)+1)*qixsc, 's':0};
+  qixlines = [];
+  qixline = {'x':0, 'y':0, 'd':'x'};
+  for (let i=0; i < qixmap.data.length; i += 4) {
+    qixmap.data[i] = 0;
+    qixmap.data[i+1] = 0;
+    qixmap.data[i+2] = 0;
+    qixmap.data[i+3] = 255;
+  }
+  clearSq(75, 46, 10, 10);
+  clearSq(0, 0, 160, 0);
+  clearSq(0, 0, 0, 102);
+  clearSq(0, 101, 160, 0);
+  clearSq(159, 0, 0, 102);
+}
 
 function qixscan() {
   const satellite = [Math.floor(qixpos2.x/qixsc), Math.floor(qixpos2.y/qixsc)];
@@ -2085,11 +2096,6 @@ function clearSq(x, y, w, h) {
   }
   qixmaskc.putImageData(qixmap, 0, 0);
 }
-clearSq(75, 46, 10, 10);
-clearSq(0, 0, 160, 0);
-clearSq(0, 0, 0, 102);
-clearSq(0, 101, 160, 0);
-clearSq(159, 0, 0, 102);
 
 function stixpath() {
   const x = Math.floor(qixpos.x/qixsc);
@@ -2257,6 +2263,7 @@ ${x-10*s}px ${y}px`);
 }
 
 var currentFrame = 0;
+var stopqix = false;
 var anim = new Image();
 var mousec = {'down':0, 'hold':0};
 function qixupdate() {
@@ -2267,7 +2274,8 @@ function qixupdate() {
     qixstep2();
     drawqix(qixscr2, qixpos2, 2);
   }
-  if (!qix) {
+  if (!qix || stopqix) {
+    stopqix = false;
     return;
   }
 
@@ -2384,9 +2392,10 @@ function makemenu() {
         solitaire = false;
         hintb.style.display = "none";
         stopscreensaver = true;
-        qix = true;
         qixscr.style.display = "block";
         qixscr2.style.display = "block";
+        new_qix();
+        qix = true;
         drawqix(qixscr, qixpos);
         drawqix(qixscr2, qixpos2, 2);
         anim.src = 'flower.jpg';

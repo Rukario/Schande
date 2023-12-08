@@ -58,7 +58,7 @@ canvas {
 
 .keysocket {
   font-size: 11px;
-  background:#aab4b4;
+  background:#6c7074;
   border:2px solid #ccc;
   border-radius:4px;
   padding:1px;
@@ -77,9 +77,10 @@ canvas {
   pointer-events: none;
 
   &.pressed {
+    color: #fff;
     width: 29px;
     height: 32px;
-    background: #9cc;
+    background: #36c;
   }
 }
 
@@ -97,10 +98,10 @@ canvas {
   &.pressed {
     margin: 2px 3px 4px 3px;
     top: 1px;
-    border-top: 4px solid #8bb;
-    border-left: 9px solid #7aa;
-    border-right: 9px solid #7aa;
-    border-bottom: 10px solid #699;
+    border-top: 4px solid #25b;
+    border-left: 9px solid #14a;
+    border-right: 9px solid #14a;
+    border-bottom: 10px solid #039;
   }
 }
 
@@ -179,10 +180,10 @@ canvas {
 #qixscr2 {
   background: repeating-linear-gradient(
     45deg,
-    #802,
-    #802 10px,
-    #f00 10px,
-    #f00 20px
+    #50a,
+    #50a 10px,
+    #80f 10px,
+    #80f 20px
   );
 }
 
@@ -2028,8 +2029,8 @@ function change_screensaver(o) {
 //var qixmap = new Array(200*200).fill(0);
 var qixmask = document.createElement("canvas");
 var qixmaskc = qixmask.getContext("2d");
-qixmask.width = 150;
-qixmask.height = 100;
+qixmask.width = 160;
+qixmask.height = 102;
 var qixmap = qixmaskc.createImageData(qixmask.width, qixmask.height);
 
 for (let i=0; i < qixmap.data.length; i += 4) {
@@ -2040,7 +2041,7 @@ for (let i=0; i < qixmap.data.length; i += 4) {
 }
 
 var qixsc = 6;
-var qixpos = {'x':75*qixsc, 'y':50*qixsc, 's':0};
+var qixpos = {'x':80*qixsc, 'y':51*qixsc, 's':0};
 var qixpos2 = {'x':37*qixsc, 'y':25*qixsc, 's':0};
 var qixlines = [];
 var qixline = {'x':0, 'y':0, 'd':'x'};
@@ -2084,11 +2085,11 @@ function clearSq(x, y, w, h) {
   }
   qixmaskc.putImageData(qixmap, 0, 0);
 }
-clearSq(70, 45, 10, 10);
-clearSq(0, 0, 150, 0);
-clearSq(0, 0, 0, 100);
-clearSq(0, 99, 150, 0);
-clearSq(149, 0, 0, 100);
+clearSq(75, 46, 10, 10);
+clearSq(0, 0, 160, 0);
+clearSq(0, 0, 0, 102);
+clearSq(0, 101, 160, 0);
+clearSq(159, 0, 0, 102);
 
 function stixpath() {
   const x = Math.floor(qixpos.x/qixsc);
@@ -2270,8 +2271,8 @@ function qixupdate() {
     return;
   }
 
-  context.fillStyle = "#9d9ba0";
-  context.fillRect(0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
+  //context.fillStyle = "#000";
+  //context.fillRect(0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
   //context.drawImage(anim,
   //  // Selection
   //  (anim.width-c.width) * ((Math.floor(currentFrame) % 120)/120),
@@ -2284,8 +2285,18 @@ function qixupdate() {
   //  c.width, // dWidth
   //  c.height // dHeight
   //);
+
+  for (let y=0; y < c.height; y += anim.height) {
+    for (let x=currentFrame; x < c.width; x += anim.width) {
+      context.drawImage(anim, x, y);
+    }
+  }
+
   context.drawImage(qixmask, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
-  currentFrame += 1;
+  currentFrame = currentFrame + 8;
+  if (currentFrame > 0) {
+    currentFrame = currentFrame - anim.width;
+  }
   requestAnimationFrame(qixupdate);
 };
 
@@ -2378,11 +2389,11 @@ function makemenu() {
         qixscr2.style.display = "block";
         drawqix(qixscr, qixpos);
         drawqix(qixscr2, qixpos2, 2);
-        //anim.src = '';
-        //anim.onload = () => {
+        anim.src = 'flower.jpg';
+        anim.onload = () => {
           keyboard.style.display = "inline-block";
           qixupdate();
-        //};
+        };
       });
     } else if (options[1] === 'paint') {
       e.addEventListener(tc, () => {
@@ -2642,8 +2653,8 @@ function makemenu() {
 
 function pressed(i, b) {
   Keypress[i] = b;
-  KeypressT[i].classList = b ? "keycap pressed" : "keycap";
   KeypressT[i].childNodes[0].classList = b ? "keycapface pressed" : "keycapface";
+  KeypressT[i].classList = b ? "keycap pressed" : "keycap";
 }
 
 var registerkeys = "?ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
@@ -2665,7 +2676,10 @@ function drawkeyboard(keycaps, socket) {
         if (isTouch) {
           keycap.addEventListener("touchstart", (e) => {
             e.preventDefault();
-            pressed(i, true);
+            //10ms timeout anti-stutter
+            setTimeout(() => {
+              pressed(i, true);
+            }, 10);
           });
           keycap.addEventListener("touchend", (e) => {
             e.preventDefault();
@@ -2929,6 +2943,6 @@ window.onload = () => {
 <div id="stdout">Output:</div>
 <div class="poppy" id="poppy"></div>
 <div id="dialogbox"><div id="close">&times;</div><div id="dialog"></div></div>
-<div id="keyboard" style="position:absolute; bottom:0px; z-index:2; background:#fff; border-radius:4px; padding:12px 18px; vertical-align:text-top;"><div style="display:inline-block;"><div class="keysocket" id="esc" style="margin-right:44px;"></div><div class="keysocket" id="f1" style="margin-right:24px;"></div><div class="keysocket" id="f5" style="margin-right:24px;"></div><div class="keysocket" id="f9"></div><div></div><div class="keysocket" id="alphakeys" style="margin-top:12px;"></div></div><div style="display:inline-block; margin-left:6px;"><div class="keysocket" id="homekeys2"></div><div style="height:12px;"></div><div class="keysocket" id="homekeys"></div><div style="height:44px;"></div><div class="keysocket" id="arrows"></div></div></div>
+<div id="keyboard" style="position:absolute; bottom:0px; z-index:2; background:#fff; border-radius:4px; padding:10px; vertical-align:text-top;"><div style="display:inline-block;"><div class="keysocket" id="esc" style="margin-right:44px;"></div><div class="keysocket" id="f1" style="margin-right:24px;"></div><div class="keysocket" id="f5" style="margin-right:24px;"></div><div class="keysocket" id="f9"></div><div></div><div class="keysocket" id="alphakeys" style="margin-top:12px;"></div></div><div style="display:inline-block; margin-left:6px;"><div class="keysocket" id="homekeys2"></div><div style="height:12px;"></div><div class="keysocket" id="homekeys"></div><div style="height:44px;"></div><div class="keysocket" id="arrows"></div></div></div>
 </body>
 </html>

@@ -33,6 +33,29 @@ canvas {
   display:none;
 }
 
+.plate {
+  background-color: #fff;
+  width: 51px;
+  height: 50px;
+  border-radius: 4px;
+  top: -8px;
+
+  display: inline-block;
+  position: relative;
+  margin: -10px -1px;
+  border-bottom: 2px solid #ccc;
+
+  &.left {
+    border-left: 2px solid #ccc;
+    right: -2px;
+  }
+
+  &.right {
+    border-right: 2px solid #ccc;
+    left: -2px;
+  }
+}
+
 .keysocket {
   font-size: 11px;
   background:#aab4b4;
@@ -2617,13 +2640,16 @@ function makemenu() {
   }
 }
 
-function pressed(e, i) {
-  Keypress[i] = true;
-  e.target.classList = "keycap pressed";
-  e.target.childNodes[0].classList = "keycapface pressed";
+function pressed(i, b) {
+  Keypress[i] = b;
+  KeypressT[i].classList = b ? "keycap pressed" : "keycap";
+  KeypressT[i].childNodes[0].classList = b ? "keycapface pressed" : "keycapface";
 }
 
-var registerkeys = "?ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+var registerkeys = "?ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
+registerkeys.push("0 )", "1 !", "2 @", "3 #", "4 $", "5 %", "6 ^", "7 &", "8 *", "9 (");
+registerkeys.push(..."←↑→↓".split(''));
+var KeypressT = Array(registerkeys.length).fill(null);
 function drawkeyboard(keycaps, socket) {
   for (const ks of keycaps) {
     for (const k of ks){
@@ -2635,27 +2661,24 @@ function drawkeyboard(keycaps, socket) {
       keycap.appendChild(cap);
       keycap.classList = "keycap";
       if (i) {
+        KeypressT[i] = keycap;
         if (isTouch) {
           keycap.addEventListener("touchstart", (e) => {
             e.preventDefault();
-            pressed(e, i);
+            pressed(i, true);
           });
           keycap.addEventListener("touchend", (e) => {
             e.preventDefault();
-            Keypress[i] = false;
-            e.target.classList = "keycap";
-            e.target.childNodes[0].classList = "keycapface";
+            pressed(i, false);
           });
         } else {
           keycap.addEventListener("mousedown", (e) => {
             e.preventDefault();
-            pressed(e, i);
+            pressed(i, true);
           });
           keycap.addEventListener("mouseup", (e) => {
             e.preventDefault();
-            Keypress[i] = false;
-            e.target.classList = "keycap";
-            e.target.childNodes[0].classList = "keycapface";
+            pressed(i, false);
           });
         }
       };
@@ -2758,7 +2781,15 @@ window.onload = () => {
   drawkeycap("Fn", "43px");
   drawkeycap("Ctrl", "43px");
 
+  let cap = document.createElement('div');
+  cap.innerHTML = "&nbsp;";
+  cap.classList = "plate right";
+  arrows.appendChild(cap);
   drawkeyboard(["↑"], arrows);
+  cap = document.createElement('div');
+  cap.innerHTML = "&nbsp;";
+  cap.classList = "plate left";
+  arrows.appendChild(cap);
 
   br = document.createElement("br");
   arrows.appendChild(br);
@@ -2828,41 +2859,23 @@ window.onload = () => {
   makemenu();
 
   document.addEventListener("keydown", (e) => {
-    switch (e.keyCode) {
-      case 65:
-      case 37:
-      case 70:
-      case 68:
-      case 39:
-      case 72:
-      case 87:
-      case 38:
-      case 84:
-      case 83:
-      case 40:
-      case 71:
-        Keypress[e.keyCode-64] = true;
-        return;
-      default:
-        console.log(e.keyCode);
+    if (65-1 < e.keyCode && e.keyCode < 90+1) {
+      pressed(e.keyCode-64, true);
+    } else if (48-1 < e.keyCode && e.keyCode < 57+1) {
+      pressed(e.keyCode-21, true);
+    } else if (37-1 < e.keyCode && e.keyCode < 40+1) {
+      pressed(e.keyCode, true);
+    } else {
+      console.log(e.keyCode, e.location);
     };
   });
   document.addEventListener("keyup", (e) => {
-    switch (e.keyCode) {
-      case 65:
-      case 37:
-      case 70:
-      case 68:
-      case 39:
-      case 72:
-      case 87:
-      case 38:
-      case 84:
-      case 83:
-      case 40:
-      case 71:
-        Keypress[e.keyCode-64] = false;
-        return;
+    if (65-1 < e.keyCode && e.keyCode < 90+1) {
+      pressed(e.keyCode-64, false);
+    } else if (48-1 < e.keyCode && e.keyCode < 57+1) {
+      pressed(e.keyCode-21, false);
+    } else if (37-1 < e.keyCode && e.keyCode < 40+1) {
+      pressed(e.keyCode, false);
     };
   });
 

@@ -78,8 +78,6 @@ canvas {
 
   &.pressed {
     color: #fff;
-    width: 29px;
-    height: 32px;
     background: #36c;
   }
 }
@@ -89,19 +87,17 @@ canvas {
   display: inline-block;
   background: #c4c2bb;
   margin: 1px;
+  border-radius: 3px;
   border-top: 5px solid #c4c2bb;
   border-left: 10px solid #a4a29b;
   border-right: 10px solid #a4a29b;
   border-bottom: 11px solid #989692;
-  border-radius: 3px;
 
   &.pressed {
-    margin: 2px 3px 4px 3px;
-    top: 1px;
-    border-top: 4px solid #25b;
-    border-left: 9px solid #14a;
-    border-right: 9px solid #14a;
-    border-bottom: 10px solid #039;
+    border-top: 5px solid #25b;
+    border-left: 10px solid #14a;
+    border-right: 10px solid #14a;
+    border-bottom: 11px solid #039;
   }
 }
 
@@ -2097,11 +2093,15 @@ function clearSq(x, y, w, h) {
   qixmaskc.putImageData(qixmap, 0, 0);
 }
 
-function stixpath() {
+function stixpath(nx, ny) {
   const x = Math.floor(qixpos.x/qixsc);
   const y = Math.floor(qixpos.y/qixsc);
   if (!qixlines.length) {
     qixlines = [[x, y, 0, 0]];
+    qixline.x = x;
+    qixline.y = y;
+    qixline.d = nx ? 'y' : 'x';
+    return;
   }
   const stix = qixlines[qixlines.length-1];
   if (qixline[qixline.d] === x) {
@@ -2112,15 +2112,15 @@ function stixpath() {
     qixlines.push([x, y, 0, 0]);
     qixline.x = x;
     qixline.y = y;
-    qixline.d = qixline.d === 'x' ? 'y' : 'x';
+    qixline.d = nx ? 'y' : 'x';
   }
 }
 
 function qixstep() {
   const x = Math.floor(qixpos.x/qixsc);
   const y = Math.floor(qixpos.y/qixsc);
-  const nx = (Keypress[4]?1:0) + (Keypress[1]?-1:0);
-  const ny = (Keypress[19]?1:0) + (Keypress[23]?-1:0);
+  const nx = (Keypress[4]||Keypress[39]?1:0) + (Keypress[1]||Keypress[37]?-1:0);
+  const ny = (Keypress[19]||Keypress[40]?1:0) + (Keypress[23]||Keypress[38]?-1:0);
   if (x+nx >= 0 && y+ny >= 0 && x+nx < qixmask.width && y+ny < qixmask.height) {
     const o = x + nx + qixmask.width*(y + ny);
     if (qixmap.data[o*4+3] !== 255){
@@ -2139,7 +2139,7 @@ function qixstep() {
       mousec.hold = 1;
       qixpos.x += nx;
       qixpos.y += ny;
-      stixpath();
+      stixpath(nx, ny);
     }
   }
 }
@@ -2160,105 +2160,155 @@ function qixstep2(k=false) {
 
 function drawqix(scr, pos, s=1){
   const tail = [];
-  const dir = {'x':0, 'y':0, 'w':0, 'h':0, 'nw':0, 'nh':0};
-  for (const area of qixlines) {
-    const nx = area[0]+area[2];
-    const ny = area[1]+area[3];
-    if (dir.x > 0) {
-      if (area[3] > 0) {
-        dir.w = 1;
-        dir.h = 0;
+  let dir = {'x':0, 'y':0, 'w':0, 'h':0, 'nw':0, 'nh':0};
+  if (s === 1) {
+    for (const area of qixlines) {
+      const nx = area[0]+area[2];
+      const ny = area[1]+area[3];
+      if (dir.x > 0) {
+        if (area[3] > 0) {
+          dir.w = 1;
+          dir.h = 0;
+        } else if (area[3] < 0) {
+          dir.w = 0;
+          dir.h = 0;
+        }
+      } else if (dir.y > 0) {
+        if (area[2] < 0) {
+          dir.w = 1;
+          dir.h = 1;
+        } else if (area[2] > 0) {
+          dir.w = 1;
+          dir.h = 0;
+        }
+      } else if (dir.x < 0) {
+        if (area[3] < 0) {
+          dir.w = 0;
+          dir.h = 1;
+        } else if (area[3] > 0) {
+          dir.w = 1;
+          dir.h = 1;
+        }
+      } else if (dir.y < 0) {
+        if (area[2] > 0) {
+          dir.w = 0;
+          dir.h = 0;
+        } else if (area[2] < 0) {
+          dir.w = 0;
+          dir.h = 1;
+        }
       } else {
-        dir.w = 0;
-        dir.h = 0;
-      }
-    } else if (dir.y > 0) {
-      if (area[2] < 0) {
-        dir.w = 1;
-        dir.h = 1;
-      } else {
-        dir.w = 1;
-        dir.h = 0;
-      }
-    } else if (dir.x < 0) {
-      if (area[3] < 0) {
-        dir.w = 0;
-        dir.h = 1;
-      } else {
-        dir.w = 1;
-        dir.h = 1;
-      }
-    } else if (dir.y < 0) {
-      if (area[2] > 0) {
-        dir.w = 0;
-        dir.h = 0;
-      } else {
-        dir.w = 0;
-        dir.h = 1;
-      }
-    } else {
+        dir.nw = area[0];
+        dir.nh = area[1];
+        if (area[2] > 0) {
+          dir.w = 1;
+          dir.h = 0;
+        } else if (area[3] > 0) {
+          dir.w = 1;
+          dir.h = 1;
+        } else if (area[2] < 0) {
+          dir.w = 0;
+          dir.h = 1;
+        } else if (area[3] < 0) {
+          dir.w = 0;
+          dir.h = 0;
+        }
+      };
+      dir.x = area[2];
+      dir.y = area[3];
+      tail.push(`${(dir.nw+dir.w)*qixsc}px ${(dir.nh+dir.h)*qixsc}px`);
       dir.nw = nx;
       dir.nh = ny;
     };
-    dir.x = area[2];
-    dir.y = area[3];
-    tail.push(`${(dir.nw+dir.w)*qixsc}px ${(dir.nh+dir.h)*qixsc}px`);
-    dir.nw = nx;
-    dir.nh = ny;
-  };
+    if (qixlines.length) {
+      tail.push(`${(dir.nw+dir.w)*qixsc}px ${(dir.nh+dir.h)*qixsc}px`);
+    }
+  }
   const x = pos.x+0.5;
   const y = pos.y+0.5;
   tail.push(`${x}px ${y-10*s}px,
 ${x+10*s}px ${y}px,
 ${x}px ${y+10*s}px,
-${x-10*s}px ${y}px`);
-  for (const area of qixlines.toReversed()) {
-    const nx = area[0]+area[2];
-    const ny = area[1]+area[3];
-    if (dir.nx > 0) {
-      if (dir.y > 0) {
-        dir.w = 0;
-        dir.h = 1;
-      } else {
-        dir.w = 1;
-        dir.h = 1;
-      }
-    } else if (dir.ny > 0) {
+${x-10*s}px ${y}px,
+${x}px ${y-10*s}px`);
+  if (s === 1) {
+    dir = {'x':0, 'y':0, 'w':0, 'h':0, 'nw':0, 'nh':0};
+    for (const area of qixlines.toReversed()) {
+      const nx = area[0]+area[2];
+      const ny = area[1]+area[3];
       if (dir.x < 0) {
-        dir.w = 0;
-        dir.h = 0;
+        if (area[3] < 0) {
+          dir.w = 1;
+          dir.h = 0;
+        } else if (area[3] > 0) {
+          dir.w = 0;
+          dir.h = 0;
+        }
+      } else if (dir.y < 0) {
+        if (area[2] > 0) {
+          dir.w = 1;
+          dir.h = 1;
+        } else if (area[2] < 0) {
+          dir.w = 1;
+          dir.h = 0;
+        }
+      } else if (dir.x > 0) {
+        if (area[3] > 0) {
+          dir.w = 0;
+          dir.h = 1;
+        } else if (area[3] < 0) {
+          dir.w = 1;
+          dir.h = 1;
+        }
+      } else if (dir.y > 0) {
+        if (area[2] < 0) {
+          dir.w = 0;
+          dir.h = 0;
+        } else if (area[2] > 0) {
+          dir.w = 0;
+          dir.h = 1;
+        }
       } else {
-        dir.w = 0;
-        dir.h = 1;
-      }
-    } else if (dir.nx < 0) {
-      if (dir.y < 0) {
-        dir.w = 1;
-        dir.h = 0;
-      } else {
-        dir.w = 0;
-        dir.h = 0;
-      }
-    } else if (dir.ny < 0) {
-      if (dir.x > 0) {
-        dir.w = 1;
-        dir.h = 1;
-      } else {
-        dir.w = 1;
-        dir.h = 0;
-      }
-    } else {
+        dir.nw = nx;
+        dir.nh = ny;
+        if (area[2] < 0) {
+          dir.w = 1;
+          dir.h = 0;
+        } else if (area[3] < 0) {
+          dir.w = 1;
+          dir.h = 1;
+        } else if (area[2] > 0) {
+          dir.w = 0;
+          dir.h = 1;
+        } else if (area[3] > 0) {
+          dir.w = 0;
+          dir.h = 0;
+        }
+      };
+      dir.x = area[2];
+      dir.y = area[3];
       dir.nw = nx;
       dir.nh = ny;
+      tail.push(`${(dir.nw+dir.w)*qixsc}px ${(dir.nh+dir.h)*qixsc}px`);
     };
-    dir.nx = dir.x;
-    dir.ny = dir.y;
-    dir.x = area[2];
-    dir.y = area[3];
-    tail.push(`${(dir.nw+dir.w)*qixsc}px ${(dir.nh+dir.h)*qixsc}px`);
-    dir.nw = nx;
-    dir.nh = ny;
-  };
+    if (qixlines.length) {
+      const area = qixlines[0];
+      if (area[2] < 0) {
+        dir.w = 0;
+        dir.h = 0;
+      } else if (area[3] < 0) {
+        dir.w = 1;
+        dir.h = 0;
+      } else if (area[2] > 0) {
+        dir.w = 1;
+        dir.h = 1;
+      } else if (area[3] > 0) {
+        dir.w = 0;
+        dir.h = 1;
+      }
+      tail.push(`${(area[0]+dir.w)*qixsc}px ${(area[1]+dir.h)*qixsc}px`);
+    }
+  }
   scr.style.clipPath = `polygon(${tail.join(',')})`;
 }
 
@@ -2267,7 +2317,7 @@ var stopqix = false;
 var anim = new Image();
 var mousec = {'down':0, 'hold':0};
 function qixupdate() {
-  if (Keypress[4] || Keypress[23] || Keypress[1] || Keypress[19]) {
+  if (Keypress[4] || Keypress[23] || Keypress[1] || Keypress[19] || Keypress[37] || Keypress[38] || Keypress[39] || Keypress[40]) {
     qixstep();
     drawqix(qixscr, qixpos);
   }
@@ -2688,10 +2738,7 @@ function drawkeyboard(keycaps, socket) {
         if (isTouch) {
           keycap.addEventListener("touchstart", (e) => {
             e.preventDefault();
-            //17ms timeout anti-stutter
-            setTimeout(() => {
-              pressed(i, true);
-            }, 17);
+            pressed(i, true);
           });
           keycap.addEventListener("touchend", (e) => {
             e.preventDefault();

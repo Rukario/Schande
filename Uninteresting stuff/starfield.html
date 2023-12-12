@@ -2092,6 +2092,9 @@ function qixscan() {
   if (Math.floor((pixels/monstermap.length)*10000)/100 > 99) {
     setTimeout(() => {
       stopqix = true;
+      winsoln += 1;
+      winningcookie();
+      makemenu();
     }, 0);
     setTimeout(() => {
       new_qix();
@@ -2494,8 +2497,12 @@ function makemenu() {
     unlock('Solitaire (draw 3) (1)');
   }
 
-  addmenu(['Qix', 'qix']);
-  //addmenu(['Chess',  5, 3]);
+  if (winsoln >= 5) {
+    addmenu(['Qix', 'qix']);
+    //addmenu(['Chess',  5, 3]);
+  } else {
+    unlock(`Qix (${5-winsoln})`);
+  }
 
   let e = document.createElement("DIV");
   e.innerHTML = 'Options';

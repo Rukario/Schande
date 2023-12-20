@@ -327,7 +327,7 @@ function ABtoAB(ab){
 
 function echoIMG(img, B){
   img.style = "max-height:400px;"
-  dl = document.createElement("a");
+  const dl = document.createElement("a");
   dl.download = B;
   dl.href = img.src;
   dl.appendChild(img);
@@ -342,10 +342,10 @@ function echoCanvas(){
 }
 
 function echoABtoDL(ab, B){
-  dl = document.createElement("a")
+  const dl = document.createElement("a");
   dl.href = ABtoURL(ABtoAB(ab));
   dl.download = B;
-  dl.innerHTML = "<br>" + B
+  dl.innerHTML = "<br>" + B;
   stdout.appendChild(dl);
 }
 
@@ -842,15 +842,226 @@ function Chunk(offset, len, type) {
   this.type = type;
 }
 
+
+
+const rechk = /^([<>])?(([1-9]\d*)?([xcbB?hHiIfdsp]))*$/
+const refmt = /([1-9]\d*)?([xcbB?hHiIfdsp])/g
+const str = (v,o,c) => String.fromCharCode(...new Uint8Array(v.buffer, v.byteOffset + o, c))
+const rts = (v,o,c,s) => new Uint8Array(v.buffer, v.byteOffset + o, c).set(s.split('').map(str => str.charCodeAt(0)))
+const pst = (v,o,c) => str(v, o + 1, Math.min(v.getUint8(o), c - 1))
+const tsp = (v,o,c,s) => { v.setUint8(o, s.length); rts(v, o + 1, c - 1, s) }
+const lut = le => ({
+    x: c=>[1,c,0],
+    c: c=>[c,1,o=>({u:v=>str(v, o, 1)      , p:(v,c)=>rts(v, o, 1, c)     })],
+    '?': c=>[c,1,o=>({u:v=>Boolean(v.getUint8(o)),p:(v,B)=>v.setUint8(o,B)})],
+    b: c=>[c,1,o=>({u:v=>v.getInt8(   o   ), p:(v,b)=>v.setInt8(   o,b   )})],
+    B: c=>[c,1,o=>({u:v=>v.getUint8(  o   ), p:(v,B)=>v.setUint8(  o,B   )})],
+    h: c=>[c,2,o=>({u:v=>v.getInt16(  o,le), p:(v,h)=>v.setInt16(  o,h,le)})],
+    H: c=>[c,2,o=>({u:v=>v.getUint16( o,le), p:(v,H)=>v.setUint16( o,H,le)})],
+    i: c=>[c,4,o=>({u:v=>v.getInt32(  o,le), p:(v,i)=>v.setInt32(  o,i,le)})],
+    I: c=>[c,4,o=>({u:v=>v.getUint32( o,le), p:(v,I)=>v.setUint32( o,I,le)})],
+    f: c=>[c,4,o=>({u:v=>v.getFloat32(o,le), p:(v,f)=>v.setFloat32(o,f,le)})],
+    d: c=>[c,8,o=>({u:v=>v.getFloat64(o,le), p:(v,d)=>v.setFloat64(o,d,le)})],
+    s: c=>[1,c,o=>({u:v=>str(v,o,c), p:(v,s)=>rts(v,o,c,s.slice(0,c    ) )})],
+    p: c=>[1,c,o=>({u:v=>pst(v,o,c), p:(v,s)=>tsp(v,o,c,s.slice(0,c - 1) )})]
+})
+const errbuf = new RangeError("Structure larger than remaining buffer")
+const errval = new RangeError("Not enough values for structure")
+function struct(format) {
+    let fns = [], size = 0, m = rechk.exec(format)
+    if (!m) { throw new RangeError("Invalid format string") }
+    const t = lut('<' === m[1]), lu = (n, c) => t[c](n ? parseInt(n, 10) : 1)
+    while ((m = refmt.exec(format))) { ((r, s, f) => {
+        for (let i = 0; i < r; ++i, size += s) { if (f) {fns.push(f(size))} }
+    })(...lu(...m.slice(1)))}
+    const unpack_from = (arrb, offs) => {
+        if (arrb.byteLength < (offs|0) + size) { throw errbuf }
+        let v = new DataView(arrb, offs|0)
+        return fns.map(f => f.u(v))
+    }
+    const pack_into = (arrb, offs, ...values) => {
+        if (values.length < fns.length) { throw errval }
+        if (arrb.byteLength < offs + size) { throw errbuf }
+        const v = new DataView(arrb, offs)
+        new Uint8Array(arrb, offs, size).fill(0)
+        fns.forEach((f, i) => f.p(v, values[i]))
+    }
+    const pack = (...values) => {
+        let b = new ArrayBuffer(size)
+        pack_into(b, 0, ...values)
+        return b
+    }
+    const unpack = arrb => unpack_from(arrb, 0)
+    function* iter_unpack(arrb) { 
+        for (let offs = 0; offs + size <= arrb.byteLength; offs += size) {
+            yield unpack_from(arrb, offs);
+        }
+    }
+    return Object.freeze({
+        unpack, pack, unpack_from, pack_into, iter_unpack, format, size})
+}
+
+function mod(n, m) {
+  return ((n % m) + m) % m;
+}
+
+const TMDIPack = struct("<7sxIII");
+const PAC_MAX_NAME = 64;
+const PAC_RESERVED = 48;
+const TPackerHeader = struct(`<4sIIII${PAC_RESERVED}x${PAC_MAX_NAME}s`);
+const HeaderStruct = struct("<IIII");
+const PAC = struct('<I');
+
 function echoMDP(arri) {
-  //arri
-  function inmdp(type, arri, offset, length) {
-    const dv = new DataView(arri.buffer);
-    switch (type) {
-      case 'PAC':
-        echo("gottem");
+  if (!decompress) {
+    stdout.insertAdjacentHTML("beforeend", 'Please try again with <a href="https://github.com/nodeca/pako/blob/master/dist/" target="_blank">pako_inflate.min.js</a>, save next to HTML then reload this page');
+    return;
+  }
+
+  const offset1 = TMDIPack.size;
+  const offset2 = TPackerHeader.size;
+  const offset3 = HeaderStruct.size;
+
+  let part = arri.subarray(0, offset1);
+  const [signature, version, mdiSize, mdibinSize] = TMDIPack.unpack(arri.buffer.slice(0, offset1));
+  const mdiBytes = arri.subarray(offset1, offset1 + mdiSize);
+  const El = readString(mdiBytes);
+  //console.log(El);
+
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(El, "text/xml");
+  const Mdiapp = xmlDoc.getElementsByTagName("Mdiapp")[0];
+  const w = Mdiapp.getAttribute("width");
+  const h = Mdiapp.getAttribute("height");
+
+  const layers = [];
+  const Layers = Mdiapp.getElementsByTagName("Layers")[0].getElementsByTagName("Layer");
+  for (const l of Layers) {
+    //console.log(l);
+    layers.push(l);
+  }
+
+  const mdp_mdibin = {};
+  let dl = 0;
+  let pos = offset1 + mdiSize;
+  while (dl < mdibinSize) {
+    let [signature, chunkSize, streamType, streamSize, archiveSize, archiveName] = TPackerHeader.unpack(arri.buffer.slice(pos, pos + offset2));
+    pos += offset2;
+    archiveName = archiveName.replace(/\0/g, '');
+    // console.log(streamType, archiveName);
+
+    let archiveData = new Uint8Array(arri.buffer.slice(pos, pos + streamSize));
+    pos += streamSize;
+
+    if (streamType === 0) { // nude
+      //Will decompress later
+    } else if (streamType === 1) { // zlib
+      //A thumbnail, decompress now
+      archiveData = pako.inflate(archiveData);
+      //bufsize=archiveSize
+    } else {
+      console.log(`Unknown streamType Code: ${streamType}`);
+    }
+    mdp_mdibin[archiveName] = archiveData;
+    dl += chunkSize;
+  }
+
+  for (const layer of layers) {
+    pos = 0;
+    const archiveData = mdp_mdibin[layer.getAttribute("bin")];
+    const tileNum = PAC.unpack(archiveData.buffer.slice(pos, pos + 4))[0];
+    pos += 4;
+
+    if (!tileNum) {
+      continue;
+    }
+
+    const dim = PAC.unpack(archiveData.buffer.slice(pos, pos + 4))[0];
+    pos += 4;
+
+    layer.tiles = [];
+    for (const n of Array(tileNum).keys()) {
+      const header = archiveData.buffer.slice(pos, pos + offset3);
+      pos += offset3;
+      const [x, y, ctype, size] = HeaderStruct.unpack(header);
+      const data = archiveData.buffer.slice(pos, pos + size);
+      pos += size;
+
+      // Byte Alignment
+      // archiveData.seek((4-size)%4, 1);
+      pos += mod(4-size, 4);
+
+      //console.log(x, y, ctype, size, Math.abs((4-size)%4));
+
+      if (ctype) {
+        console.log("Unknown Tile Compression Type:", ctype);
+      }
+      layer.tiles.push({"data":pako.inflate(data), "x":x*dim, "y":y*dim, "dim":dim});
     }
   }
+
+  c.width = w;
+  c.height = h;
+  //echoCanvas();
+  optimize = false;
+  const tilemask = document.createElement("canvas");
+  const tilemaskc = tilemask.getContext("2d");
+  for (const layer of layers) {
+    const visible = layer.getAttribute('visible') == 'true' ? true : false;
+    if (!visible) {
+      continue;
+    }
+    const alpha = layer.getAttribute('alpha');
+    if (alpha) {
+      context.globalAlpha = alpha/255;
+    } else {
+      context.globalAlpha = 1;
+    }
+    const mode = layer.getAttribute('mode');
+    if (mode == "normal") {
+      context.globalCompositeOperation = "source-over";
+    } else if (mode == 'mul') {
+      context.globalCompositeOperation = "multiply";
+    }
+    const type = layer.getAttribute('type');
+    for (const tile of layer.tiles) {
+      tilemask.width = tile.dim;
+      tilemask.height = tile.dim;
+      const tilemap = tilemaskc.createImageData(tilemask.width, tilemask.height);
+      const layerColor = layer.getAttribute('color');
+      if (layerColor) {
+        const [a, r, g, b] = [layerColor.substring(0, 2), layerColor.substring(2, 4), layerColor.substring(4, 6), layerColor.substring(6, 8)];
+        tilemaskc.fillStyle = `#${r}${g}${b}${a}`;
+        tilemaskc.fillRect(0, 0, tilemask.width, tilemask.height);
+      }
+      switch (type) {
+        case '32bpp':
+          for (let n = 0; n < tile.data.length; n += 4) {
+            tilemap.data[n] = tile.data[n+2];
+            tilemap.data[n+1] = tile.data[n+1];
+            tilemap.data[n+2] = tile.data[n];
+            tilemap.data[n+3] = tile.data[n+3];
+          }
+          tilemaskc.putImageData(tilemap, 0, 0);
+          break;
+        case '8bpp':
+        case '1bpp':
+          for (let n = 0; n < tile.data.length*4; n += 4) {
+            tilemap.data[n] = 0;
+            tilemap.data[n+1] = 0;
+            tilemap.data[n+2] = 0;
+            tilemap.data[n+3] = tile.data[Math.ceil(n/4)];
+          }
+          tilemaskc.putImageData(tilemap, 0, 0);
+          break;
+      }
+      context.drawImage(tilemask, tile.x, tile.y, tilemask.width, tilemask.height);
+    }
+    echoIMGfromCanvas(c);
+    context.clearRect(0, 0, c.width, c.height);
+  }
+
+  return;
 }
 
 
@@ -947,6 +1158,7 @@ function eachChunk(arri, callback) {
 }
 
 function readString(arri) {
+    //return new TextDecoder().decode(arri);
     return String.fromCharCode.apply(String, Array.prototype.slice.call(arri));
 }
 
@@ -1452,16 +1664,15 @@ function echoAPNG() {
         const fps = Math.floor(1000 * 10 / (timeStamp - last_fps));
         //stdout.innerHTML = `${timeStamp.toFixed(2).padStart(3, '0')} ${fps} fps`;
 
+        vfps += frames[n][2][1]/frames[n][2][0];
         if (vfps >= fps) {
-          vfps = 0;
+          vfps = vfps-fps;
           if (n > frames.length-2) {
             n = 0;
           } else {
             n++;
           }
           context.drawImage(frames[n][0], ...frames[n][1]);
-        } else {
-          vfps += frames[n][2][1]/frames[n][2][0];
         }
       }
       requestAnimationFrame(update);
@@ -1806,7 +2017,7 @@ function loaded(){
         var src = window.URL.createObjectURL(f);
         img.src = src;
         img.style = "max-height:400px;"
-        dl = document.createElement("a");
+        const dl = document.createElement("a");
         dl.download = f.name;
         dl.href = src;
         dl.appendChild(img);
@@ -1908,6 +2119,13 @@ function loaded(){
   }
 
   s = document.createElement("script");
+  s.src = "pako_inflate.min.js?" + Date.now();
+  document.body.appendChild(s);
+  s.onload = () => {
+    decompress = true;
+  }
+
+  s = document.createElement("script");
   s.src = "libheif.js?" + Date.now();
   document.body.appendChild(s);
   s.onload = () => {
@@ -1951,6 +2169,7 @@ var fps = 0;
 var framearray = [];
 var apngarray = [];
 var optimize = false;
+var decompress = false;
 var convert = false;
 var ti = [0, 0, 0, 0];
 var c = document.createElement("canvas");
@@ -1961,7 +2180,7 @@ var maxres = [0, 0, 1, 1];
 var bg = false;
 var createbg = false;
 var interecho = false;
-var arri, seqFrameN, seqAPNG, img, dl, Module, name, decoder;
+var arri, seqFrameN, seqAPNG, img, Module, name, decoder;
 
 window.onload = () => {
   document.body.innerHTML = `<div style="margin-bottom:12px; background:inherit;">

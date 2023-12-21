@@ -335,7 +335,7 @@ function echoIMG(img, B){
   stdout.appendChild(dl);
 }
 
-function echoCanvas(){
+function echoCanvas(c){
   c.style = "max-height:400px;";
   stdout.insertAdjacentHTML("beforeend", "<br>");
   stdout.appendChild(c);
@@ -911,8 +911,9 @@ const PAC_RESERVED = 48;
 const TPackerHeader = struct(`<4sIIII${PAC_RESERVED}x${PAC_MAX_NAME}s`);
 const HeaderStruct = struct("<IIII");
 const PAC = struct('<I');
+let layers = [];
 
-function echoMDP(arri) {
+function readMDP(arri) {
   if (!decompress) {
     stdout.insertAdjacentHTML("beforeend", 'Please try again with <a href="https://github.com/nodeca/pako/blob/master/dist/" target="_blank">pako_inflate.min.js</a>, save next to HTML then reload this page');
     return;
@@ -931,13 +932,13 @@ function echoMDP(arri) {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(El, "text/xml");
   const Mdiapp = xmlDoc.getElementsByTagName("Mdiapp")[0];
-  const w = Mdiapp.getAttribute("width");
-  const h = Mdiapp.getAttribute("height");
+  c.width = Mdiapp.getAttribute("width");
+  c.height = Mdiapp.getAttribute("height");
 
-  const layers = [];
+  layers = [];
   const e = Mdiapp.getElementsByTagName("Layers")[0].getElementsByTagName("Layer");
-  for (const layer of e) {
-    layers.push(layer);
+  for (const l of e) {
+    layers.push(l);
   }
 
   const mdp_mdibin = {};
@@ -954,18 +955,19 @@ function echoMDP(arri) {
 
     if (streamType === 0) { // nude
       //Will decompress later
+      mdp_mdibin[archiveName] = archiveData;
     } else if (streamType === 1) { // zlib
-      //A thumbnail, decompress now
-      archiveData = pako.inflate(archiveData);
-      //bufsize=archiveSize
+      //A thumbnail, skipped, it can be decompressed like so
+      //archiveData = pako.inflate(archiveData);
     } else {
       console.log(`Unknown streamType Code: ${streamType}`);
     }
-    mdp_mdibin[archiveName] = archiveData;
     dl += chunkSize;
   }
 
   for (const layer of layers) {
+    //ti[0] = performance.now();
+
     pos = 0;
     const archiveData = mdp_mdibin[layer.getAttribute("bin")];
     const tileNum = PAC.unpack(archiveData.buffer.slice(pos, pos + 4))[0];
@@ -978,41 +980,72 @@ function echoMDP(arri) {
     const dim = PAC.unpack(archiveData.buffer.slice(pos, pos + 4))[0];
     pos += 4;
 
-    layer.tiles = [];
+    const tilemask = document.createElement("canvas");
+    tilemask.width = dim;
+    tilemask.height = dim;
+    const tilemaskc = tilemask.getContext("2d");
+    const type = layer.getAttribute('type');
+
+    const canvas = document.createElement("canvas");
+    canvas.width = c.width;
+    canvas.height = c.height;
+    const ctx = canvas.getContext("2d");
+
+    //ti[1] = performance.now();
     for (const n of Array(tileNum).keys()) {
       const header = archiveData.buffer.slice(pos, pos + offset3);
       pos += offset3;
-      const [x, y, ctype, size] = HeaderStruct.unpack(header);
-      const data = archiveData.buffer.slice(pos, pos + size);
-      pos += size;
 
-      // Byte Alignment
-      // archiveData.seek((4-size)%4, 1);
-      pos += mod(4-size, 4);
-
-      //console.log(x, y, ctype, size, Math.abs((4-size)%4));
-
-      if (ctype) {
-        console.log("Unknown Tile Compression Type:", ctype);
+      const layerColor = layer.getAttribute('color');
+      if (layerColor) {
+        const [a, r, g, b] = [layerColor.substring(0, 2), layerColor.substring(2, 4), layerColor.substring(4, 6), layerColor.substring(6, 8)];
+        tilemaskc.fillStyle = `#${r}${g}${b}${a}`;
+        tilemaskc.fillRect(0, 0, dim, dim);
       }
-      layer.tiles.push({"data":pako.inflate(data), "x":x*dim, "y":y*dim, "dim":dim});
+
+      const [x, y, ctype, size] = HeaderStruct.unpack(header);
+      const bytes = archiveData.buffer.slice(pos, pos + size);
+      pos += size + mod(4-size, 4);
+
+      const tilemap = tilemaskc.createImageData(dim, dim);
+      const data = pako.inflate(bytes);
+      switch (type) {
+        case '32bpp':
+          for (let n = 0; n < data.length; n += 4) {
+            tilemap.data[n] = data[n+2];
+            tilemap.data[n+1] = data[n+1];
+            tilemap.data[n+2] = data[n];
+            tilemap.data[n+3] = data[n+3];
+          }
+          break;
+        case '8bpp':
+        case '1bpp':
+          for (let n = 0; n < data.length*4; n += 4) {
+            tilemap.data[n] = 0;
+            tilemap.data[n+1] = 0;
+            tilemap.data[n+2] = 0;
+            tilemap.data[n+3] = data[Math.ceil(n/4)];
+          }
+          break;
+      }
+      tilemaskc.putImageData(tilemap, 0, 0);
+      ctx.drawImage(tilemask, x*dim, y*dim, dim, dim);
     }
+    layer.canvas = canvas;
+    //echo(`${layer.getAttribute("name")} with ${tileNum} tiles took ${(performance.now()-ti[1])/1000} seconds`);
   }
 
-  c.width = w;
-  c.height = h;
-  //echoCanvas();
-  optimize = false;
-  const tilemask = document.createElement("canvas");
-  const tilemaskc = tilemask.getContext("2d");
+  echo("echoMDP");
+  setTimeout(echoMDP, 1000);
+  return;
+}
+
+function echoMDP() {
   const canvas2 = document.createElement("canvas");
   const ctx2 = canvas2.getContext("2d");
-  const mask = document.createElement("canvas");
-  const maskcontext = mask.getContext("2d");
-  canvas2.width = w;
-  canvas2.height = h;
-  mask.width = w;
-  mask.height = h;
+  canvas2.width = c.width;
+  canvas2.height = c.height;
+
   let started = true;
   let usemode = "source-over";
   let usealpha = 1;
@@ -1055,53 +1088,33 @@ function echoMDP(arri) {
       }
     }
 
-    for (const tile of layer.tiles) {
-      tilemask.width = tile.dim;
-      tilemask.height = tile.dim;
-      const tilemap = tilemaskc.createImageData(tilemask.width, tilemask.height);
-      const layerColor = layer.getAttribute('color');
-      if (layerColor) {
-        const [a, r, g, b] = [layerColor.substring(0, 2), layerColor.substring(2, 4), layerColor.substring(4, 6), layerColor.substring(6, 8)];
-        tilemaskc.fillStyle = `#${r}${g}${b}${a}`;
-        tilemaskc.fillRect(0, 0, tilemask.width, tilemask.height);
-      }
-      switch (type) {
-        case '32bpp':
-          for (let n = 0; n < tile.data.length; n += 4) {
-            tilemap.data[n] = tile.data[n+2];
-            tilemap.data[n+1] = tile.data[n+1];
-            tilemap.data[n+2] = tile.data[n];
-            tilemap.data[n+3] = tile.data[n+3];
-          }
-          tilemaskc.putImageData(tilemap, 0, 0);
-          ctx2.drawImage(tilemask, tile.x, tile.y, tilemask.width, tilemask.height);
-          break;
-        case '8bpp':
-        case '1bpp':
-          for (let n = 0; n < tile.data.length*4; n += 4) {
-            tilemap.data[n] = 0;
-            tilemap.data[n+1] = 0;
-            tilemap.data[n+2] = 0;
-            tilemap.data[n+3] = tile.data[Math.ceil(n/4)];
-          }
-          tilemaskc.putImageData(tilemap, 0, 0);
-          maskcontext.drawImage(tilemask, tile.x, tile.y, tilemask.width, tilemask.height);
-          break;
-      }
-    }
-    if (type == '8bpp') {
-      maskcontext.globalCompositeOperation = "source-out";
-      maskcontext.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
-      maskcontext.globalCompositeOperation = "source-over";
-      ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
-      ctx2.drawImage(mask, 0, 0, mask.width, mask.height);
-      maskcontext.clearRect(0, 0, mask.width, mask.height);
+    switch (type) {
+      case '32bpp':
+        ctx2.drawImage(layer.canvas, 0, 0, c.width, c.height);
+        break;
+      case '8bpp':
+      case '1bpp':
+        const mask = document.createElement("canvas");
+        mask.width = c.width;
+        mask.height = c.height;
+
+        const maskcontext = mask.getContext("2d");
+        maskcontext.drawImage(layer.canvas, 0, 0, c.width, c.height);
+        maskcontext.globalCompositeOperation = "source-out";
+        maskcontext.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
+        maskcontext.globalCompositeOperation = "source-over";
+
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        ctx2.drawImage(mask, 0, 0, mask.width, mask.height);
+        break;
     }
   }
 
   context.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
+  //ctx2.drawImage(c, 0, 0, c.width, c.height);
+  //echoCanvas(canvas2);
+  //optimize = false;
   echoIMGfromCanvas(c, name.split('.').slice(0, -1).join('.') + ".png");
-  return;
 }
 
 
@@ -1649,7 +1662,7 @@ function compileapngs() {
 }
 
 function echoAPNG() {
-  echoCanvas();
+  echoCanvas(c);
   const frames = [];
   seqAPNG = apnglist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return e;})
   function readFile(interAPNG, resolve) {
@@ -2011,9 +2024,10 @@ function loaded(){
     if (get_ext(f) === "mdp") {
       var fr = new FileReader();
       fr.readAsArrayBuffer(f);
+      echo("readMDP");
       fr.onload = () => {
         const arri = new Uint8Array(fr.result);
-        echoMDP(arri);
+        readMDP(arri);
       }
       return;
     } else if (isVideo(get_ext(f))) {

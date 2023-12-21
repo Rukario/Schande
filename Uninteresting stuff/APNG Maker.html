@@ -1100,7 +1100,7 @@ function echoMDP(arri) {
   }
 
   context.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
-  echoIMGfromCanvas(c);
+  echoIMGfromCanvas(c, name.split('.').slice(0, -1).join('.') + ".png");
   return;
 }
 
@@ -2007,6 +2007,7 @@ function loaded(){
   document.getElementById("viewer").addEventListener('change', (event) => {
     stdout.insertAdjacentHTML("beforeend", "<br>");
     var f = event.target.files[0];
+    name = f.name;
     if (get_ext(f) === "mdp") {
       var fr = new FileReader();
       fr.readAsArrayBuffer(f);

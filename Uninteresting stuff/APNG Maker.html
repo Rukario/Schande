@@ -915,7 +915,7 @@ let layers = [];
 
 function readMDP(arri) {
   if (!decompress) {
-    stdout.insertAdjacentHTML("beforeend", 'Please try again with <a href="https://github.com/nodeca/pako/blob/master/dist/" target="_blank">pako_inflate.min.js</a>, save next to HTML then reload this page');
+    stdout.insertAdjacentHTML("beforeend", 'Please try again with <a href="https://github.com/nodeca/pako/blob/master/dist/" target="_blank">pako.min.js</a>, save next to HTML then reload this page');
     return;
   }
 
@@ -967,6 +967,9 @@ function readMDP(arri) {
   for (const layer of layers) {
     //ti[0] = performance.now();
 
+    if (layer.getAttribute("type") == "folder") {
+      continue;
+    };
     let pos = mdp_mdibin[layer.getAttribute("bin")];
     const tileNum = PAC.unpack(arri.buffer.slice(pos, pos + 4))[0];
     pos += 4;
@@ -1019,27 +1022,34 @@ function readMDP(arri) {
           tilemaskc.putImageData(tilemap, 0, 0);
           ctx.drawImage(tilemask, x*dim, y*dim, dim, dim);
 
-          // let IHDR = new Array(0);
-          // IHDR = IHDR.concat(int32ToAB(dim));
-          // IHDR = IHDR.concat(int32ToAB(dim));
-          // IHDR = IHDR.concat([0x08, 0x06, 0x00, 0x00, 0x00]); // RGBA
+          //let fdata = new Array(0);
+          //for (let i = 0; i < dim; i++) {
+          //  fdata = fdata.concat([0x00]);
+          //  fdata = fdata.concat(Array.from(data.slice(i*dim, (i+1)*dim)));
+          //}
+          //const better_clean_IDAT = pako.deflate(new Uint8Array(fdata));
           //
-          // const IDATz = [];
-          // let IDAT = new Array(0);
-          // IDATz.push(int32ToAB(4 + size));
-          // IDATz.push([0x49, 0x44, 0x41, 0x54]); // IDAT
-          // IDATz.push(clean_IDAT);
-          // IDATz.forEach((z) => {
-          //    IDAT = IDAT.concat(Array.from(z))
-          // });
+          //let IHDR = new Array(0);
+          //IHDR = IHDR.concat(int32ToAB(dim));
+          //IHDR = IHDR.concat(int32ToAB(dim));
+          //IHDR = IHDR.concat([0x08, 0x06, 0x00, 0x00, 0x00]); // RGBA
           //
-          // let constPNG = [];
-          // constPNG.push(new Uint8Array(PNG_signature));
-          // constPNG.push(new Uint8Array(makeChunkBytes('IHDR', IHDR)));
-          // constPNG.push(new Uint8Array(IDAT));
-          // constPNG.push(new Uint8Array(int32ToAB(crc32(IDAT), 4)));
-          // constPNG.push(new Uint8Array(IEND));
-          // echoIMG(ABtoIMG(constPNG), name.split('.').slice(0, -1).join('.') + " (tile).png");
+          //const IDATz = [];
+          //let IDAT = new Array(0);
+          //IDATz.push(int32ToAB(4 + size));
+          //IDATz.push([0x49, 0x44, 0x41, 0x54]); // IDAT
+          //IDATz.push(better_clean_IDAT);
+          //IDATz.forEach((z) => {
+          //   IDAT = IDAT.concat(Array.from(z))
+          //});
+          //
+          //let constPNG = [];
+          //constPNG.push(new Uint8Array(PNG_signature));
+          //constPNG.push(new Uint8Array(makeChunkBytes('IHDR', IHDR)));
+          //constPNG.push(new Uint8Array(IDAT));
+          //constPNG.push(new Uint8Array(int32ToAB(crc32(IDAT), 4)));
+          //constPNG.push(new Uint8Array(IEND));
+          //echoIMG(ABtoIMG(constPNG), name.split('.').slice(0, -1).join('.') + " (tile).png");
 
           break;
         case '8bpp':
@@ -2198,7 +2208,7 @@ function loaded(){
   }
 
   s = document.createElement("script");
-  s.src = "pako_inflate.min.js?" + Date.now();
+  s.src = "pako.min.js?" + Date.now();
   document.body.appendChild(s);
   s.onload = () => {
     decompress = true;

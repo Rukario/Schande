@@ -950,34 +950,32 @@ function readMDP(arri) {
     archiveName = archiveName.replace(/\0/g, '');
     // console.log(streamType, archiveName);
 
-    let archiveData = new Uint8Array(arri.buffer.slice(pos, pos + streamSize));
-    pos += streamSize;
-
     if (streamType === 0) { // nude
       //Will decompress later
-      mdp_mdibin[archiveName] = archiveData;
+      mdp_mdibin[archiveName] = pos;
     } else if (streamType === 1) { // zlib
-      //A thumbnail, skipped, it can be decompressed like so
-      //archiveData = pako.inflate(archiveData);
+      //A thumbnail, skipped, but it can be decompressed like so
+      //data = pako.inflate(arri.slice(pos, pos + streamSize));
     } else {
       console.log(`Unknown streamType Code: ${streamType}`);
     }
+
+    pos += streamSize;
     dl += chunkSize;
   }
 
   for (const layer of layers) {
     //ti[0] = performance.now();
 
-    pos = 0;
-    const archiveData = mdp_mdibin[layer.getAttribute("bin")];
-    const tileNum = PAC.unpack(archiveData.buffer.slice(pos, pos + 4))[0];
+    let pos = mdp_mdibin[layer.getAttribute("bin")];
+    const tileNum = PAC.unpack(arri.buffer.slice(pos, pos + 4))[0];
     pos += 4;
 
     if (!tileNum) {
       continue;
     }
 
-    const dim = PAC.unpack(archiveData.buffer.slice(pos, pos + 4))[0];
+    const dim = PAC.unpack(arri.buffer.slice(pos, pos + 4))[0];
     pos += 4;
 
     const tilemask = document.createElement("canvas");
@@ -993,7 +991,7 @@ function readMDP(arri) {
 
     //ti[1] = performance.now();
     for (const n of Array(tileNum).keys()) {
-      const header = archiveData.buffer.slice(pos, pos + offset3);
+      const header = arri.buffer.slice(pos, pos + offset3);
       pos += offset3;
 
       const layerColor = layer.getAttribute('color');
@@ -1004,11 +1002,12 @@ function readMDP(arri) {
       }
 
       const [x, y, ctype, size] = HeaderStruct.unpack(header);
-      const bytes = archiveData.buffer.slice(pos, pos + size);
+      const clean_IDAT = arri.slice(pos, pos + size);
       pos += size + mod(4-size, 4);
 
       const tilemap = tilemaskc.createImageData(dim, dim);
-      const data = pako.inflate(bytes);
+      const data = pako.inflate(clean_IDAT);
+
       switch (type) {
         case '32bpp':
           for (let n = 0; n < data.length; n += 4) {
@@ -1017,6 +1016,31 @@ function readMDP(arri) {
             tilemap.data[n+2] = data[n];
             tilemap.data[n+3] = data[n+3];
           }
+          tilemaskc.putImageData(tilemap, 0, 0);
+          ctx.drawImage(tilemask, x*dim, y*dim, dim, dim);
+
+          // let IHDR = new Array(0);
+          // IHDR = IHDR.concat(int32ToAB(dim));
+          // IHDR = IHDR.concat(int32ToAB(dim));
+          // IHDR = IHDR.concat([0x08, 0x06, 0x00, 0x00, 0x00]); // RGBA
+          //
+          // const IDATz = [];
+          // let IDAT = new Array(0);
+          // IDATz.push(int32ToAB(4 + size));
+          // IDATz.push([0x49, 0x44, 0x41, 0x54]); // IDAT
+          // IDATz.push(clean_IDAT);
+          // IDATz.forEach((z) => {
+          //    IDAT = IDAT.concat(Array.from(z))
+          // });
+          //
+          // let constPNG = [];
+          // constPNG.push(new Uint8Array(PNG_signature));
+          // constPNG.push(new Uint8Array(makeChunkBytes('IHDR', IHDR)));
+          // constPNG.push(new Uint8Array(IDAT));
+          // constPNG.push(new Uint8Array(int32ToAB(crc32(IDAT), 4)));
+          // constPNG.push(new Uint8Array(IEND));
+          // echoIMG(ABtoIMG(constPNG), name.split('.').slice(0, -1).join('.') + " (tile).png");
+
           break;
         case '8bpp':
         case '1bpp':
@@ -1026,10 +1050,10 @@ function readMDP(arri) {
             tilemap.data[n+2] = 0;
             tilemap.data[n+3] = data[Math.ceil(n/4)];
           }
+          tilemaskc.putImageData(tilemap, 0, 0);
+          ctx.drawImage(tilemask, x*dim, y*dim, dim, dim);
           break;
       }
-      tilemaskc.putImageData(tilemap, 0, 0);
-      ctx.drawImage(tilemask, x*dim, y*dim, dim, dim);
     }
     layer.canvas = canvas;
     //echo(`${layer.getAttribute("name")} with ${tileNum} tiles took ${(performance.now()-ti[1])/1000} seconds`);
@@ -1177,17 +1201,17 @@ function fromAPNG(arri){
   eachChunk(arri, inapng)
   apng.frames.push(frame);
 
-  apng.frames.forEach(function (frame) {
+  apng.frames.forEach((frame) => {
     var data = [];
     data.push(PNG_signature);
-    IHDR.set(int32ToAB(frame.width), 0);
-    IHDR.set(int32ToAB(frame.height), 4);
-    data.push(makeChunkBytes('IHDR', IHDR));
-    frame.IDATs.forEach(function (IDAT) {
+    IHDR.set(int32ToAB(frame.width), 0); // modify IHDR to have new width
+    IHDR.set(int32ToAB(frame.height), 4); // modify IHDR to have new height
+    data.push(makeChunkBytes('IHDR', IHDR)); // recalc crc32
+    frame.IDATs.forEach((IDAT) => {
         data.push(makeChunkBytes('IDAT', IDAT));
     });
     data.push(IEND);
-    data.forEach(function (u){
+    data.forEach((u) => {
        frame.arri = frame.arri.concat(Array.from(u))
     })
     frame.IDATs = [];
@@ -1225,14 +1249,14 @@ function utf8ToAB(utf8) {
 }
 
 function makeChunkBytes(type, dataBytes) {
-    const crc = type.length + dataBytes.length;
-    const bytes = new Uint8Array(crc + 8);
+    const len = type.length + dataBytes.length;
+    const bytes = new Uint8Array(len + 8);
     const dv = new DataView(bytes.buffer);
 
     dv.setUint32(0, dataBytes.length);
     bytes.set(utf8ToAB(type), 4);
     bytes.set(dataBytes, 8);
-    dv.setUint32(crc + 4, crc32(bytes, 4, crc));
+    dv.setUint32(len + 4, crc32(bytes, 4, len));
     return bytes;
 };
 
@@ -1287,7 +1311,7 @@ function toFrame(fps, bp=[0, 1]) {
       sequence_number +=1;
       var fcTL = new Array(0);
       fcTL = fcTL.concat( int32ToAB(26) );
-      fcTL = fcTL.concat([0x66, 0x63, 0x54, 0x4C]);
+      fcTL = fcTL.concat([0x66, 0x63, 0x54, 0x4C]); // fcTL
       fcTL = fcTL.concat( int32ToAB(sequence_number) );
       fcTL = fcTL.concat( int32ToAB(dim[3][2]) );
       fcTL = fcTL.concat( int32ToAB(dim[3][3]) );
@@ -1310,7 +1334,7 @@ function toFrame(fps, bp=[0, 1]) {
       sequence_number +=1;
       var fdAT = new Array(0);
       fdAT = fdAT.concat( int32ToAB(len) );
-      fdAT = fdAT.concat( [0x66, 0x64, 0x41, 0x54] );
+      fdAT = fdAT.concat( [0x66, 0x64, 0x41, 0x54] ); // fdAT
       fdAT = fdAT.concat( int32ToAB(sequence_number) );
       fdAT = fdAT.concat( clean_IDAT );
       fdAT = fdAT.concat( int32ToAB(crc32(fdAT.slice(4, 4 + 4 + len))) );
@@ -1327,7 +1351,7 @@ function makeAPNG(interFrameN, callback=false) {
   newAPNG.push(new Uint8Array(IEND));
 
   let acTL = new Array(0);
-  acTL = acTL.concat([0, 0, 0, 0x08, 0x61, 0x63, 0x54, 0x4C])
+  acTL = acTL.concat([0, 0, 0, 0x08, 0x61, 0x63, 0x54, 0x4C]); // acTL
   acTL = acTL.concat(int32ToAB(frame_counter + 1));
   acTL = acTL.concat([0, 0, 0, 0]) //loop times, infinity
 

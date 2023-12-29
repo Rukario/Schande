@@ -416,6 +416,12 @@ function canvasToAB(c, ext="png", callback=false){
           } else {
             arri = optipng(arri, ['-force', '-zw', '32k', '-f', '0', '-zs', '0', '-zm', '8', '-zc', '9', '-strip', 'all']).data;
           }
+          // Pako:
+          //const clean_IDAT = arri.slice(pos, pos + size);
+          //const data = pako.inflate(clean_IDAT);
+          //combine data, divide by 32 KB window size, iDAT headers each
+          //better_clean_IDAT = new pako.deflate(pixels, {level: 9});
+          //reconst PNG with better_clean_IDAT
         }
         ti[2] = performance.now()
         //echo((ti[2] - ti[1])/1000 + "s OptiPNG")
@@ -936,8 +942,8 @@ function readMDP(arri) {
   c.height = Mdiapp.getAttribute("height");
 
   layers = [];
-  const e = Mdiapp.getElementsByTagName("Layers")[0].getElementsByTagName("Layer");
-  for (const l of e) {
+  const layerelements = Mdiapp.getElementsByTagName("Layers")[0].getElementsByTagName("Layer");
+  for (const l of layerelements) {
     layers.push(l);
   }
 
@@ -1069,9 +1075,88 @@ function readMDP(arri) {
     //echo(`${layer.getAttribute("name")} with ${tileNum} tiles took ${(performance.now()-ti[1])/1000} seconds`);
   }
 
-  echo("echoMDP");
-  setTimeout(echoMDP, 1000);
-  return;
+  layerlist.innerHTML = "";
+  for (const [n, layer] of layers.entries()) {
+    let mode = layer.getAttribute('mode');
+    switch (mode) {
+      // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
+      case 'normal':
+        mode = "source-over";
+        break;
+      case 'add':
+        mode = "lighter";
+        break;
+      case 'mul':
+        mode = "multiply";
+        break;
+      case 'screen':
+        mode = "screen";
+        break;
+      case 'overlay':
+        mode = "overlay";
+        break;
+      case 'dark':
+        mode = "darken";
+        break;
+      case 'light':
+        mode = "lighten";
+        break;
+      case 'dodge':
+        mode = "color-dodge";
+        break;
+      case 'burn':
+        mode = "color-burn";
+        break;
+      case 'hardlight':
+        mode = "soft-light";
+        break;
+      case 'softlight':
+        mode = "hard-light";
+        break;
+      case 'diff':
+        mode = "difference";
+        break;
+      case 'idonthaveexclusion':
+        mode = "exclusion";
+        break;
+      case 'hue':
+        mode = "hue";
+        break;
+      case 'saturation':
+        mode = "saturation";
+        break;
+      case 'color':
+        mode = "color";
+        break;
+      case 'luminosity':
+        mode = "luminosity";
+        break;
+      case 'div': //might that be synonymous with subtract?
+      default:
+        mode = "source-over";
+    }
+    layer.setAttribute('mode', mode);
+
+
+
+    const visible = layer.getAttribute('visible') == 'true' ? 1 : 0;
+    layer.setAttribute('visible', visible);
+
+    const alpha = layer.getAttribute('alpha')/255;
+    layer.setAttribute('alpha', alpha);
+
+    const type = layer.getAttribute('type');
+    if (layer.getAttribute('masking') == 'true') {
+      layer.setAttribute('type', "mask");
+      layerlist.innerHTML += `${n} ${visible} ${alpha} mask\n`;
+    } else {
+      layerlist.innerHTML += `${n} ${visible} ${alpha} ${type} ${mode}\n`;
+    }
+  }
+
+  let e = document.getElementById("echolayers");
+  e.setAttribute("onclick", "echoMDP();")
+  e.classList = "next";
 }
 
 function echoMDP() {
@@ -1084,102 +1169,15 @@ function echoMDP() {
   let visibleformask = false;
   let usemode = "source-over";
   let usealpha = 1;
-  for (const layer of layers) {
-    const visible = layer.getAttribute('visible') == 'true' ? true : false;
-    if (!visible) {
+  for (const next of layerlist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return e;})) {
+    const seq = next.split(" ");
+    if (!parseInt(seq[1])) {
       visibleformask = false;
       continue;
     }
 
-    const type = layer.getAttribute('type');
-    if (type == '32bpp') {
-      visibleformask = true;
-      if (!started) {
-        context.globalCompositeOperation = usemode;
-        context.globalAlpha = usealpha;
-        context.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
-
-        // reset
-        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
-        context.globalCompositeOperation = "source-over";
-        context.globalAlpha = 1;
-      } else {
-        started = false;
-      }
-
-      const mode = layer.getAttribute('mode');
-      switch (mode) {
-        // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
-        case 'normal':
-          usemode = "source-over";
-          break;
-        case 'add':
-          usemode = "lighter";
-          break;
-        case 'mul':
-          usemode = "multiply";
-          break;
-        case 'screen':
-          usemode = "screen";
-          break;
-        case 'overlay':
-          usemode = "overlay";
-          break;
-        case 'dark':
-          usemode = "darken";
-          break;
-        case 'light':
-          usemode = "lighten";
-          break;
-        case 'dodge':
-          usemode = "color-dodge";
-          break;
-        case 'burn':
-          usemode = "color-burn";
-          break;
-        case 'hardlight':
-          usemode = "soft-light";
-          break;
-        case 'softlight':
-          usemode = "hard-light";
-          break;
-        case 'diff':
-          usemode = "difference";
-          break;
-        case 'idonthaveexclusion':
-          usemode = "exclusion";
-          break;
-        case 'hue':
-          usemode = "hue";
-          break;
-        case 'saturation':
-          usemode = "saturation";
-          break;
-        case 'color':
-          usemode = "color";
-          break;
-        case 'luminosity':
-          usemode = "luminosity";
-          break;
-        case 'div': //might that be synonymous with subtract?
-        default:
-          usemode = "source-over";
-      }
-
-      const alpha = layer.getAttribute('alpha');
-      if (alpha) {
-        usealpha = alpha/255;
-      } else {
-        usealpha = 1;
-      }
-    }
-
-    switch (type) {
-      case '32bpp':
-        ctx2.drawImage(layer.canvas, 0, 0, c.width, c.height);
-        break;
-      case '8bpp':
-      case '1bpp':
+    switch (seq[3]) {
+      case 'mask':
         if (!visibleformask) {
           continue;
         }
@@ -1188,7 +1186,7 @@ function echoMDP() {
         mask.height = c.height;
 
         const maskcontext = mask.getContext("2d");
-        maskcontext.drawImage(layer.canvas, 0, 0, c.width, c.height);
+        maskcontext.drawImage(layers[parseInt(seq[0])].canvas, 0, 0, c.width, c.height);
         maskcontext.globalCompositeOperation = "source-out";
         maskcontext.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
         maskcontext.globalCompositeOperation = "source-over";
@@ -1196,16 +1194,40 @@ function echoMDP() {
         ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
         ctx2.drawImage(mask, 0, 0, mask.width, mask.height);
         break;
+      default:
+        visibleformask = true;
+        if (!started) {
+          context.globalCompositeOperation = usemode;
+          context.globalAlpha = usealpha;
+          context.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
+       
+          // reset
+          ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+          context.globalCompositeOperation = "source-over";
+          context.globalAlpha = 1;
+        } else {
+          started = false;
+        }
+
+        usealpha = parseFloat(seq[2]);
+        usemode = seq[4];
+
+        ctx2.drawImage(layers[parseInt(seq[0])].canvas, 0, 0, c.width, c.height);
+        break;
     }
   }
 
   context.globalCompositeOperation = usemode;
   context.globalAlpha = usealpha;
   context.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
-  //ctx2.drawImage(c, 0, 0, c.width, c.height);
-  //echoCanvas(canvas2);
-  //optimize = false;
-  echoIMGfromCanvas(c, name.split('.').slice(0, -1).join('.') + ".png");
+
+  const e = document.getElementById("echoimg");
+  if (e.hasAttribute("onclick")) {
+    echoCanvas(c);
+    e.removeAttribute("onclick");
+    e.addEventListener("click", () => {echoIMGfromCanvas(c, name.split('.').slice(0, -1).join('.') + ".png")});
+    e.classList = "next";
+  }
 }
 
 
@@ -2106,6 +2128,8 @@ function loaded(){
     framelist.setAttribute("contenteditable", "true");
     apnglist.setAttribute("onpaste", "plaintext(this, event)");
     apnglist.setAttribute("contenteditable", "true");
+    layerlist.setAttribute("onpaste", "plaintext(this, event)");
+    layerlist.setAttribute("contenteditable", "true");
   }
 
   document.getElementById("viewer").addEventListener('change', (event) => {
@@ -2115,12 +2139,10 @@ function loaded(){
     if (get_ext(f) === "mdp") {
       var fr = new FileReader();
       fr.readAsArrayBuffer(f);
-      echo("readMDP");
       fr.onload = () => {
         const arri = new Uint8Array(fr.result);
         readMDP(arri);
       }
-      return;
     } else if (isVideo(get_ext(f))) {
       if (isVideo(get_ext(f)) == "webm" && window.OGVPlayer == undefined){
         currentvideo = window.URL.createObjectURL(f);
@@ -2326,7 +2348,7 @@ var maxres = [0, 0, 1, 1];
 var bg = false;
 var createbg = false;
 var interecho = false;
-var arri, seqFrameN, seqAPNG, img, Module, name, decoder;
+var arri, seqFrameN, seqAPNG, seqLayerN, img, Module, name, decoder;
 
 window.onload = () => {
   document.body.innerHTML = `<div style="margin-bottom:12px; background:inherit;">
@@ -2362,13 +2384,13 @@ Resave: <button class="previous" onclick="echo('Filelist is empty!')" id="resave
 
 
 
-<div class="backtip cell">
+<div class="backtip cell" style="width:242px;">
 <div class="backtip" style="top:-11px; display:table;">🦦 -(Merge)</div>
 <label class="next"><input id="loadapng" type="file" multiple></input>Load APNG</label>
 <label class="next"><input id="moreapng" type="file" multiple></input>Load more</label>
 <div></div>
 
-<div style="display:flex; width:350px; vertical-align:top;">
+<div style="display:flex; width:260px; vertical-align:top;">
 <div><div id="apnglist" class="stdout" style="color:#fd6; cursor:text;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
 <div style="margin:12px;">Edit list to rearrange, repeat, or skip APNG series.</div>
 </div>
@@ -2376,6 +2398,21 @@ Resave: <button class="previous" onclick="echo('Filelist is empty!')" id="resave
 
 <button class="previous" onclick="echo('APNG list is empty!')" id="mergeapng">Merge APNG</button>
 <button class="previous" onclick="echo('APNG list is empty!')" id="echoapng">APNG to Canvas</button>
+</div>
+
+
+
+<div class="backtip cell" style="width:242px;">
+<div class="backtip" style="top:-11px; display:table;">🦦 -(Layers)</div>
+
+<div style="display:flex; width:260px; vertical-align:top;">
+<div><div id="layerlist" class="stdout" style="color:#fd6; cursor:text;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
+<div style="margin:12px;">Edit list to rearrange, repeat, or skip layers.</div>
+</div>
+<div></div>
+
+<button class="previous" onclick="echo('Layer list is empty!')" id="echolayers">Layers to Canvas</button>
+<button class="previous" onclick="echo('No suitable canvas found!')" id="echoimg">Make as PNG</button>
 </div>
 <div></div>
 

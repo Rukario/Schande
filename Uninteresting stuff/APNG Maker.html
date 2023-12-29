@@ -1081,16 +1081,19 @@ function echoMDP() {
   canvas2.height = c.height;
 
   let started = true;
+  let visibleformask = false;
   let usemode = "source-over";
   let usealpha = 1;
   for (const layer of layers) {
     const visible = layer.getAttribute('visible') == 'true' ? true : false;
     if (!visible) {
+      visibleformask = false;
       continue;
     }
 
     const type = layer.getAttribute('type');
     if (type == '32bpp') {
+      visibleformask = true;
       if (!started) {
         context.globalCompositeOperation = usemode;
         context.globalAlpha = usealpha;
@@ -1106,12 +1109,21 @@ function echoMDP() {
 
       const mode = layer.getAttribute('mode');
       switch (mode) {
+        // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
         case 'normal':
           usemode = "source-over";
           break;
         case 'mul':
           usemode = "multiply";
           break;
+        case 'overlay':
+          usemode = "overlay";
+          break;
+        case 'saturation':
+          usemode = "saturation";
+          break;
+        default:
+          usemode = "source-over";
       }
 
       const alpha = layer.getAttribute('alpha');
@@ -1128,6 +1140,9 @@ function echoMDP() {
         break;
       case '8bpp':
       case '1bpp':
+        if (!visibleformask) {
+          continue;
+        }
         const mask = document.createElement("canvas");
         mask.width = c.width;
         mask.height = c.height;
@@ -1144,6 +1159,8 @@ function echoMDP() {
     }
   }
 
+  context.globalCompositeOperation = usemode;
+  context.globalAlpha = usealpha;
   context.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
   //ctx2.drawImage(c, 0, 0, c.width, c.height);
   //echoCanvas(canvas2);

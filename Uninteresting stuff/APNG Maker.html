@@ -1171,7 +1171,7 @@ function echoMDP() {
   let usealpha = 1;
   for (const next of layerlist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return e;})) {
     const seq = next.split(" ");
-    if (!parseInt(seq[1])) {
+    if (!parseInt(seq[1]) || seq[3] == 'folder') {
       visibleformask = false;
       continue;
     }

@@ -1113,15 +1113,55 @@ function echoMDP() {
         case 'normal':
           usemode = "source-over";
           break;
+        case 'add':
+          usemode = "lighter";
+          break;
         case 'mul':
           usemode = "multiply";
+          break;
+        case 'screen':
+          usemode = "screen";
           break;
         case 'overlay':
           usemode = "overlay";
           break;
+        case 'dark':
+          usemode = "darken";
+          break;
+        case 'light':
+          usemode = "lighten";
+          break;
+        case 'dodge':
+          usemode = "color-dodge";
+          break;
+        case 'burn':
+          usemode = "color-burn";
+          break;
+        case 'hardlight':
+          usemode = "soft-light";
+          break;
+        case 'softlight':
+          usemode = "hard-light";
+          break;
+        case 'diff':
+          usemode = "difference";
+          break;
+        case 'idonthaveexclusion':
+          usemode = "exclusion";
+          break;
+        case 'hue':
+          usemode = "hue";
+          break;
         case 'saturation':
           usemode = "saturation";
           break;
+        case 'color':
+          usemode = "color";
+          break;
+        case 'luminosity':
+          usemode = "luminosity";
+          break;
+        case 'div': //might that be synonymous with subtract?
         default:
           usemode = "source-over";
       }

@@ -417,33 +417,42 @@ function canvasToAB(c, ext="png", callback=false){
             } else {
               arri = optipng(arri, ['-force', '-zw', '32k', '-f', '0', '-zs', '0', '-zm', '8', '-zc', '9', '-strip', 'all']).data;
             }
-          } else if (decompress) {
-            const pos = PNG_signature.length + 25 + 8; // IHDR and IDAT header
-            const len = arri.length - 4 - IEND.length; // -CRC
-            const clean_IDAT = arri.slice(pos, len);
-            const pixels = pako.inflate(clean_IDAT);
-            //combine pixels, divide by 32 KB window size, iDAT headers each
-            const better_clean_IDAT = pako.deflate(pixels, {level: 9});
-            //reconst PNG with better_clean_IDAT
-            
-            const IHDR = arri.slice(PNG_signature.length, PNG_signature.length + 25);
-            
-            const IDATz = [];
-            let IDAT = new Array(0);
-            IDATz.push([0x49, 0x44, 0x41, 0x54]); // IDAT
-            IDATz.push(better_clean_IDAT);
-            IDATz.forEach((z) => {
-               IDAT = IDAT.concat(Array.from(z))
-            });
-            
+          } else if (decompress && false) {
+            // echoIMG(ABtoIMG(ABtoAB(arri)), name.split('.').slice(0, -1).join('.') + " (canvas).png");
+
+            //let pos = PNG_signature.length + 25 + 8; // IHDR and IDAT header
+            //const len = arri.length - 4 - IEND.length; // -CRC
+            //const clean_IDAT = arri.slice(pos, len);
+            //const pixels = pako.inflate(clean_IDAT);
+
             let constPNG = [];
-            arri = new Array(0);
             constPNG.push(PNG_signature);
+
+            const IHDR = arri.slice(PNG_signature.length, PNG_signature.length + 25); // IHDR inherited
             constPNG.push(IHDR);
-            constPNG.push(int32ToAB(better_clean_IDAT.length));
-            constPNG.push(IDAT);
-            constPNG.push(int32ToAB(crc32(IDAT)));
+
+            for (const IDAT of findPos(arri, "IDAT", false)) {
+              const clean_IDAT = arri.slice(IDAT.offset + 8, IDAT.offset + 8 + IDAT.len);
+              const pixels = pako.inflate(clean_IDAT);
+              console.log(pixels);
+              //combine pixels, divide by 32 KB window size, IDAT headers each
+              const better_clean_IDAT = pako.deflate(pixels, {level:9});
+
+              const IDATz = [];
+              let new_IDAT = new Array(0);
+              IDATz.push([0x49, 0x44, 0x41, 0x54]); // IDAT
+              IDATz.push(better_clean_IDAT);
+              IDATz.forEach((z) => {
+                 new_IDAT = new_IDAT.concat(Array.from(z))
+              });
+
+              constPNG.push(int32ToAB(better_clean_IDAT.length));
+              constPNG.push(new_IDAT);
+              constPNG.push(int32ToAB(crc32(new_IDAT)));
+            }
+
             constPNG.push(IEND);
+            arri = new Array(0);
             constPNG.forEach((z) => {
                arri = arri.concat(Array.from(z))
             });
@@ -855,23 +864,6 @@ function Frame() {
   this.blendOp = 0;
   this.arri = new Array(0);
   this.IDATs = [];
-}
-
-function findPos(ab, type) {
-  let offset = 8;
-  while (offset < ab.length) {
-    let len = ABtoInt32(ab.slice(offset, offset + 4));
-    if (readString(ab.slice(offset + 4, offset + 8)) === type) {
-      return new Chunk(offset, len, type);
-    }
-    offset += 4 + 4 + len + 4;
-  }
-}
-
-function Chunk(offset, len, type) {
-  this.offset = offset;
-  this.len = len;
-  this.type = type;
 }
 
 
@@ -1389,6 +1381,34 @@ var newframe = new Frame();
 var frame_counter = -1;
 var sequence_number = -1;
 
+function findPos(arri, type, any=true) {
+  let offset = 8;
+  const indexes = [];
+  while (offset < arri.length) {
+    const chunk = arri.slice(offset, offset + 4);
+    let len = ABtoInt32(chunk);
+    if (readString(arri.slice(offset + 4, offset + 8)) === type) {
+      if (type === "IDAT" && (chunk[0] || chunk[1])) {
+        len = arri.length - PNG_signature.length - 25 - 12 - IEND.length; //-IHDR -UNK
+      }
+
+      if (any) {
+        return new Chunk(offset, len, type);
+      } else {
+        indexes.push(new Chunk(offset, len, type));
+      }
+    }
+    offset += 4 + 4 + len + 4;
+  }
+  return indexes;
+}
+
+function Chunk(offset, len, type) {
+  this.offset = offset;
+  this.len = len;
+  this.type = type;
+}
+
 function toFrame(fps, bp=[0, 1]) {
   ti[1] = performance.now()
   frame_counter += 1;
@@ -1402,26 +1422,11 @@ function toFrame(fps, bp=[0, 1]) {
     newAPNG.push([]); //acTL reserved
   }
 
-  var offset = 8;
-  var IDATs = [];
-  while (offset < newframe.arri.length) {
-    var chunk = newframe.arri.slice(offset, offset + 4);
-    var len = ABtoInt32(chunk);
-    if (readString(newframe.arri.slice(offset + 4, offset + 8)) === "IDAT") {
-      if (chunk[0] || chunk[1]) {
-        len = newframe.arri.length - PNG_signature.length - 25 - 12 - IEND.length; //-IHDR -UNK
-      }
-      IDATs.push(new Chunk(offset, len, "IDAT"));
-    }
-    offset += 4 + 4 + len + 4;
-  }
-  //echo("IDATs: " + IDATs.length)
-
-  for (const [i, IDAT] of IDATs.entries()) {
+  for (const [i, IDAT] of findPos(newframe.arri, "IDAT", false).entries()) {
     if (!i) {
       //echo(i + "th IDAT size: " + IDAT.len)
       sequence_number +=1;
-      var fcTL = new Array(0);
+      let fcTL = new Array(0);
       fcTL = fcTL.concat( int32ToAB(26) );
       fcTL = fcTL.concat([0x66, 0x63, 0x54, 0x4C]); // fcTL
       fcTL = fcTL.concat( int32ToAB(sequence_number) );
@@ -1439,11 +1444,11 @@ function toFrame(fps, bp=[0, 1]) {
     if (!frame_counter) {
       newAPNG.push(new Uint8Array(newframe.arri.slice(IDAT.offset, IDAT.offset + 12 + IDAT.len)))
     } else {
-      var clean_IDAT = newframe.arri.slice(IDAT.offset + 8, IDAT.offset + 8 + IDAT.len);
-      var len = IDAT.len + 4;
+      const clean_IDAT = newframe.arri.slice(IDAT.offset + 8, IDAT.offset + 8 + IDAT.len);
+      const len = IDAT.len + 4;
 
       sequence_number +=1;
-      var fdAT = new Array(0);
+      let fdAT = new Array(0);
       fdAT = fdAT.concat( int32ToAB(len) );
       fdAT = fdAT.concat( [0x66, 0x64, 0x41, 0x54] ); // fdAT
       fdAT = fdAT.concat( int32ToAB(sequence_number) );

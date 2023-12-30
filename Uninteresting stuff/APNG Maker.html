@@ -420,36 +420,36 @@ function canvasToAB(c, ext="png", callback=false){
           } else if (decompress && false) {
             // echoIMG(ABtoIMG(ABtoAB(arri)), name.split('.').slice(0, -1).join('.') + " (canvas).png");
 
-            //let pos = PNG_signature.length + 25 + 8; // IHDR and IDAT header
-            //const len = arri.length - 4 - IEND.length; // -CRC
-            //const clean_IDAT = arri.slice(pos, len);
-            //const pixels = pako.inflate(clean_IDAT);
-
             let constPNG = [];
             constPNG.push(PNG_signature);
 
             const IHDR = arri.slice(PNG_signature.length, PNG_signature.length + 25); // IHDR inherited
             constPNG.push(IHDR);
 
+            const inflator = new pako.Inflate();
             for (const IDAT of findPos(arri, "IDAT", false)) {
               const clean_IDAT = arri.slice(IDAT.offset + 8, IDAT.offset + 8 + IDAT.len);
-              const pixels = pako.inflate(clean_IDAT);
-              console.log(pixels);
-              //combine pixels, divide by 32 KB window size, IDAT headers each
-              const better_clean_IDAT = pako.deflate(pixels, {level:9});
-
-              const IDATz = [];
-              let new_IDAT = new Array(0);
-              IDATz.push([0x49, 0x44, 0x41, 0x54]); // IDAT
-              IDATz.push(better_clean_IDAT);
-              IDATz.forEach((z) => {
-                 new_IDAT = new_IDAT.concat(Array.from(z))
-              });
-
-              constPNG.push(int32ToAB(better_clean_IDAT.length));
-              constPNG.push(new_IDAT);
-              constPNG.push(int32ToAB(crc32(new_IDAT)));
+              inflator.push(clean_IDAT);
             }
+
+            const pixels = inflator.result;
+            if (!inflator.ended) {
+              throw new Error('unexpected end of file');
+            }
+
+            const better_clean_IDAT = pako.deflate(pixels, {'level':6});
+
+            const IDATz = [];
+            let new_IDAT = new Array(0);
+            IDATz.push([0x49, 0x44, 0x41, 0x54]); // IDAT
+            IDATz.push(better_clean_IDAT);
+            IDATz.forEach((z) => {
+               new_IDAT = new_IDAT.concat(Array.from(z))
+            });
+
+            constPNG.push(int32ToAB(better_clean_IDAT.length));
+            constPNG.push(new_IDAT);
+            constPNG.push(int32ToAB(crc32(new_IDAT)));
 
             constPNG.push(IEND);
             arri = new Array(0);
@@ -1139,6 +1139,7 @@ function readMDP(arri) {
           //constPNG.push(new Uint8Array(IDAT));
           //constPNG.push(new Uint8Array(int32ToAB(crc32(IDAT))));
           //constPNG.push(new Uint8Array(IEND));
+          //
           //echoIMG(ABtoIMG(constPNG), name.split('.').slice(0, -1).join('.') + " (tile).png");
 
           break;
@@ -1492,22 +1493,23 @@ function makeAPNG(interFrameN, callback=false) {
 
 
 var table = new Uint32Array(256);
-for (let i = 0; i < 256; i++) {
+for (const i of Array(256).keys()) {
   let x = i;
-  for (let k = 0; k < 8; k++) {
+  for (const k of Array(8).keys()) {
     x = (x & 1) ? 0xEDB88320 ^ (x >>> 1) : x >>> 1;
   }
   table[i] = x;
 }
 
-function crc32(ab, start=0, len=0) {
+function crc32(arri, start=0, len=0) {
   if (!len) {
-    len = ab.length - start
+    len = arri.length - start;
   }
 
   let crc = -1;
-  for (let i=start, l = start + len; i < l; i++) {
-    crc = crc >>> 8 ^ table[(crc ^ ab[i]) & 0xFF];
+  const l = start + len;
+  for (let i=start; i < l; i++) {
+    crc = crc >>> 8 ^ table[(crc ^ arri[i]) & 0xFF];
   }
   return crc ^ -1;
 }

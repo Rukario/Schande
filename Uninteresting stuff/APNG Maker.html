@@ -286,6 +286,19 @@ function isVideo(ext) {
   return false;
 }
 
+function isUTF8(ext) {
+  switch (ext.toLowerCase()) {
+    case 'txt':
+    case 'bat':
+    case 'json':
+    case 'js':
+    case 'css':
+    case 'html':
+      return true;
+  }
+  return false;
+}
+
 function setfps(text) {
   if(isNaN(text)){
     getfps.style.backgroundColor = "#399"
@@ -2178,6 +2191,32 @@ function loaded(){
       fr.onload = () => {
         const arri = new Uint8Array(fr.result);
         readMDP(arri);
+      }
+    } else if (isUTF8(get_ext(f))) {
+      var fr = new FileReader();
+      fr.readAsArrayBuffer(f);
+      fr.onload = () => {
+        const arri = new Uint8Array(fr.result);
+        const sq = Math.sqrt(arri.length/4);
+        const [w, h] = [parseInt(sq), 1 + parseInt(sq) + (sq%1 ? 1 : 0)];
+
+        let IHDR = new Array(0);
+        IHDR = IHDR.concat(int32ToAB(w));
+        IHDR = IHDR.concat(int32ToAB(h));
+        IHDR = IHDR.concat([0x08, 0x06, 0x00, 0x00, 0x00]); // RGBA
+        IHDR = makeChunkBytes('IHDR', IHDR);
+
+        let fdata = new Array(0);
+        for (const i of Array((w)*4).keys()) {
+          fdata = fdata.concat([0x00]);
+          fdata = fdata.concat(Array.from(arri.slice(i*w*4, (i+1)*w*4)));
+        }
+
+        const constPNG = reconstPNG(IHDR, pako.deflate(new Uint8Array(fdata)));
+        img = ABtoIMG(ABtoAB(constPNG));
+        img.onload = () => {
+          echoIMG(img, name.split('.').slice(0, -1).join('.') + " (steg).png");
+        }
       }
     } else if (isVideo(get_ext(f))) {
       if (isVideo(get_ext(f)) == "webm" && window.OGVPlayer == undefined){

@@ -397,6 +397,31 @@ function echoPalette(h=8, s=1){
   palette = [];
 }
 
+function reconstPNG(IHDR, arri) {  
+  const IDATz = [];
+  let new_IDAT = new Array(0);
+  IDATz.push([0x49, 0x44, 0x41, 0x54]); // IDAT
+  IDATz.push(arri);
+  IDATz.forEach((z) => {
+     new_IDAT = new_IDAT.concat(Array.from(z))
+  });
+
+  let constPNG = [];
+  constPNG.push(PNG_signature);
+  constPNG.push(IHDR);
+  constPNG.push(int32ToAB(arri.length));
+  constPNG.push(new_IDAT);
+  constPNG.push(int32ToAB(crc32(new_IDAT)));
+  constPNG.push(IEND);
+
+  arri = new Array(0);
+  constPNG.forEach((z) => {
+     arri = arri.concat(Array.from(z))
+  });
+
+  return arri;
+}
+
 function canvasToAB(c, ext="png", callback=false){
   return function(resolve) {
     c.toBlob((blob0) => {
@@ -420,11 +445,7 @@ function canvasToAB(c, ext="png", callback=false){
           } else if (decompress && false) {
             // echoIMG(ABtoIMG(ABtoAB(arri)), name.split('.').slice(0, -1).join('.') + " (canvas).png");
 
-            let constPNG = [];
-            constPNG.push(PNG_signature);
-
             const IHDR = arri.slice(PNG_signature.length, PNG_signature.length + 25); // IHDR inherited
-            constPNG.push(IHDR);
 
             const inflator = new pako.Inflate();
             for (const IDAT of findPos(arri, "IDAT", false)) {
@@ -437,25 +458,7 @@ function canvasToAB(c, ext="png", callback=false){
               throw new Error('unexpected end of file');
             }
 
-            const better_clean_IDAT = pako.deflate(pixels, {'level':6});
-
-            const IDATz = [];
-            let new_IDAT = new Array(0);
-            IDATz.push([0x49, 0x44, 0x41, 0x54]); // IDAT
-            IDATz.push(better_clean_IDAT);
-            IDATz.forEach((z) => {
-               new_IDAT = new_IDAT.concat(Array.from(z))
-            });
-
-            constPNG.push(int32ToAB(better_clean_IDAT.length));
-            constPNG.push(new_IDAT);
-            constPNG.push(int32ToAB(crc32(new_IDAT)));
-
-            constPNG.push(IEND);
-            arri = new Array(0);
-            constPNG.forEach((z) => {
-               arri = arri.concat(Array.from(z))
-            });
+            arri = reconstPNG(IHDR, pako.deflate(pixels, {'level':6}));
           }
         }
         ti[2] = performance.now()
@@ -1054,11 +1057,20 @@ function readMDP(arri) {
     dl += chunkSize;
   }
 
-  for (const layer of layers) {
+  layerlist.innerHTML = "";
+  function readLayer(LayerN) {
+    if (LayerN >= layers.length) {
+      let e = document.getElementById("echolayers");
+      e.setAttribute("onclick", "echoMDP();")
+      e.classList = "next";
+      return;
+    }
+
+    const layer = layers[LayerN];
     //ti[0] = performance.now();
 
     if (layer.type == "folder") {
-      continue;
+      setTimeout(() => {readLayer(LayerN+1)}, 1000);
     };
 
     let pos = mdp_mdibin[layer.bin];
@@ -1066,7 +1078,13 @@ function readMDP(arri) {
     pos += 4;
 
     if (!tileNum) {
-      continue;
+      setTimeout(() => {readLayer(LayerN+1)}, 1000);
+    }
+
+    if (layer.type == 'mask') {
+      layerlist.innerHTML += `${LayerN} ${layer.visible} ${layer.alpha} ${layer.type}\n`;
+    } else {
+      layerlist.innerHTML += `${LayerN} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.mode}\n`;
     }
 
     const dim = PAC.unpack(arri.buffer.slice(pos, pos + 4))[0];
@@ -1083,7 +1101,12 @@ function readMDP(arri) {
     const ctx = canvas.getContext("2d");
 
     //ti[1] = performance.now();
-    for (const n of Array(tileNum).keys()) {
+    function readTile(TileN) {
+      if (TileN >= tileNum) {
+        layer.canvas = canvas;
+        setTimeout(() => {readLayer(LayerN+1)}, 0);
+        return;
+      }
       const header = arri.buffer.slice(pos, pos + offset3);
       pos += offset3;
 
@@ -1100,48 +1123,40 @@ function readMDP(arri) {
 
       const tilemap = tilemaskc.createImageData(dim, dim);
       const data = pako.inflate(clean_IDAT);
-
       switch (layer.type) {
         case '32bpp':
-          for (let n = 0; n < data.length; n += 4) {
-            tilemap.data[n] = data[n+2];
-            tilemap.data[n+1] = data[n+1];
-            tilemap.data[n+2] = data[n];
-            tilemap.data[n+3] = data[n+3];
+          if (true) {
+            for (let n = 0; n < data.length; n += 4) {
+              tilemap.data[n] = data[n+2];
+              tilemap.data[n+1] = data[n+1];
+              tilemap.data[n+2] = data[n];
+              tilemap.data[n+3] = data[n+3];
+            }
+            tilemaskc.putImageData(tilemap, 0, 0);
+            ctx.drawImage(tilemask, x*dim, y*dim, dim, dim);
+            readTile(TileN+1);
+          } else {
+            // PNGified tiles
+            let IHDR = new Array(0);
+            IHDR = IHDR.concat(int32ToAB(dim));
+            IHDR = IHDR.concat(int32ToAB(dim));
+            IHDR = IHDR.concat([0x08, 0x06, 0x00, 0x00, 0x00]); // RGBA
+            IHDR = makeChunkBytes('IHDR', IHDR);
+
+            let fdata = new Array(0);
+            for (const i of Array(dim*4).keys()) {
+              fdata = fdata.concat([0x00]);
+              fdata = fdata.concat(Array.from(data.slice(i*dim*4, (i+1)*dim*4)));
+            }
+
+            const constPNG = reconstPNG(IHDR, pako.deflate(new Uint8Array(fdata)));
+            img = ABtoIMG(ABtoAB(constPNG));
+            img.onload = () => {
+              ctx.drawImage(img, x*dim, y*dim, dim, dim);
+              readTile(TileN+1);
+              // echoIMG(img, name.split('.').slice(0, -1).join('.') + " (tile).png");
+            }
           }
-          tilemaskc.putImageData(tilemap, 0, 0);
-          ctx.drawImage(tilemask, x*dim, y*dim, dim, dim);
-
-          //let fdata = new Array(0);
-          //for (let i = 0; i < dim; i++) {
-          //  fdata = fdata.concat([0x00]);
-          //  fdata = fdata.concat(Array.from(data.slice(i*dim, (i+1)*dim)));
-          //}
-          //const better_clean_IDAT = pako.deflate(new Uint8Array(fdata));
-          //
-          //let IHDR = new Array(0);
-          //IHDR = IHDR.concat(int32ToAB(dim));
-          //IHDR = IHDR.concat(int32ToAB(dim));
-          //IHDR = IHDR.concat([0x08, 0x06, 0x00, 0x00, 0x00]); // RGBA
-          //
-          //const IDATz = [];
-          //let IDAT = new Array(0);
-          //IDATz.push([0x49, 0x44, 0x41, 0x54]); // IDAT
-          //IDATz.push(better_clean_IDAT);
-          //IDATz.forEach((z) => {
-          //   IDAT = IDAT.concat(Array.from(z))
-          //});
-          //
-          //let constPNG = [];
-          //constPNG.push(new Uint8Array(PNG_signature));
-          //constPNG.push(new Uint8Array(makeChunkBytes('IHDR', IHDR)));
-          //constPNG.push(new Uint8Array(int32ToAB(4 + size)));
-          //constPNG.push(new Uint8Array(IDAT));
-          //constPNG.push(new Uint8Array(int32ToAB(crc32(IDAT))));
-          //constPNG.push(new Uint8Array(IEND));
-          //
-          //echoIMG(ABtoIMG(constPNG), name.split('.').slice(0, -1).join('.') + " (tile).png");
-
           break;
         case '8bpp':
         case '1bpp':
@@ -1154,25 +1169,16 @@ function readMDP(arri) {
           }
           tilemaskc.putImageData(tilemap, 0, 0);
           ctx.drawImage(tilemask, x*dim, y*dim, dim, dim);
+          readTile(TileN+1);
           break;
+        default:
+          console.log("illegal");
       }
     }
-    layer.canvas = canvas;
+    readTile(0);
     //echo(`${layer.getAttribute("name")} with ${tileNum} tiles took ${(performance.now()-ti[1])/1000} seconds`);
   }
-
-  layerlist.innerHTML = "";
-  for (const [n, layer] of layers.entries()) {
-    if (layer.type == 'mask') {
-      layerlist.innerHTML += `${n} ${layer.visible} ${layer.alpha} ${layer.type}\n`;
-    } else {
-      layerlist.innerHTML += `${n} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.mode}\n`;
-    }
-  }
-
-  let e = document.getElementById("echolayers");
-  e.setAttribute("onclick", "echoMDP();")
-  e.classList = "next";
+  readLayer(0);
 }
 
 function echoMDP() {

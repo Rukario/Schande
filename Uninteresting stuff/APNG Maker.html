@@ -1103,6 +1103,7 @@ function readMDP(arri) {
     //ti[1] = performance.now();
     function readTile(TileN) {
       if (TileN >= tileNum) {
+        // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
         layer.canvas = canvas;
         setTimeout(() => {readLayer(LayerN+1)}, 0);
         return;

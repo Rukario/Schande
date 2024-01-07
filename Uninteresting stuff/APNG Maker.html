@@ -1317,8 +1317,8 @@ function fromGIF(arri) {
 
         const packed_field = fcTL[8];
 
-        frame.numerator = 1;
-        frame.denominator = fcTLbuffer.denominator * 10;
+        frame.numerator = fcTLbuffer.denominator;
+        frame.denominator = 100;
         frame.disposeOp = (packed_field & 0b00011100) >> 2;
         //frame.blendOp = 0;
 

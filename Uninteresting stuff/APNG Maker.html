@@ -1377,6 +1377,14 @@ function fromGIF(arri) {
       case 0x3B: // ';' end of file
         return;
       case 0x21: // Extension Introducer
+        function skipBytes() {
+          let size = true;
+          while (size) {
+            size = arri[pos++];
+            pos += size;
+          }
+        }
+
         const nextByte = arri[pos++];
         if (nextByte === 0xF9) { // Graphic Control Extension
           pos++; // size I think is always 4 so skipping this byte
@@ -1386,19 +1394,20 @@ function fromGIF(arri) {
           pos++; // transparent color flag
 
           pos++; // terminator
-        } else if (nextByte === 0xFF) { // Application Extension, is it ONLY NETSCAPE or there's other variant?
+        } else if (nextByte === 0xFF) { // Application Extension
           const size = arri[pos++];
-
-          if (readString(arri.slice(pos, pos + size)) === NETSCAPE_sig) {
+          const s = readString(arri.slice(pos, pos + size));
+          if (s === NETSCAPE_sig) {
             pos += size; // length of sub-block & terminator
             const subsize = arri[pos++] + 1;
             pos += subsize;
+          } else {
+            skipBytes();
           }
         } else if (nextByte === 0xFE) { // Comment Extension
-          pos += arri[pos++];
+          skipBytes();
         } else if (nextByte === 0x01) { // Plain Text Extension
-          pos += arri[pos++];
-          pos += arri[pos++];
+          skipBytes();
         }
         break;
     }

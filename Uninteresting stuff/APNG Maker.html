@@ -350,7 +350,7 @@ function echoIMG(img, B){
 }
 
 function echoCanvas(c){
-  c.style = "max-height:400px;";
+  // c.style = "max-height:400px;";
   stdout.insertAdjacentHTML("beforeend", "<br>");
   stdout.appendChild(c);
 }
@@ -1276,6 +1276,7 @@ function fromGIF(arri) {
   // IHDR[6]: Pixel Aspect Ratio
 
   pos += 7; // IHDR length
+  let IHDRpos = 7;
 
   // console.log(packed_field.toString(16));
   gif.colorRes = (packed_field & 0b01110000) >> 4;
@@ -1287,36 +1288,60 @@ function fromGIF(arri) {
       arri.slice(pos, pos + 3).forEach((a) => {
         IHDR.push(a);
       })
-      colors.push([IHDR[pos-6], IHDR[pos-5], IHDR[pos-4]]);
       pos += 3;
+
+      colors.push([IHDR[IHDRpos], IHDR[IHDRpos+1], IHDR[IHDRpos+2]]);
+      IHDRpos += 3;
     }
     gif.globalColorTable = colors;
   }
 
-  function ingif(arri) {
-    switch (arri[pos++]) {
+  function ingif() {
+    const firstByte = arri[pos++];
+    switch (firstByte) {
       case 0x2C: // ',' image separator
-
         frame = new Frame();
         gif.frames.push(frame);
 
         const fcTL = [];
-        arri.slice(pos, pos + 10).forEach((a) => {
+        arri.slice(pos, pos + 9).forEach((a) => {
           fcTL.push(a);
         })
-        pos += 10;
+        pos += 9;
+        let fcTLpos = 9;
 
         frame.left = fcTL[0] + (fcTL[1] << 8);
         frame.top = fcTL[2] + (fcTL[3] << 8);
         frame.width = fcTL[4] + (fcTL[5] << 8);
         frame.height = fcTL[6] + (fcTL[7] << 8);
 
+        const packed_field = fcTL[8];
+
         frame.numerator = 1;
-        frame.denominator = fcTLbuffer.denominator * 20;
-        frame.disposeOp = (fcTLbuffer.packed_field & 0b00011100) >> 2;;
+        frame.denominator = fcTLbuffer.denominator * 10;
+        frame.disposeOp = (packed_field & 0b00011100) >> 2;
         //frame.blendOp = 0;
 
-        const packed_field = fcTL[8];
+        frame.transparencyIndex = fcTLbuffer.packed_field & 0b00000001 ? fcTLbuffer.transparencyIndex : undefined;
+        frame.localColorTableFlag = packed_field & 0b10000000 ? true : false;
+        frame.localColorCount = 1 << ((packed_field & 0b00000111) + 1);
+
+        if (frame.localColorTableFlag) {
+          let colors = [];
+          for (const n of Array(frame.localColorCount).keys()) {
+            arri.slice(pos, pos + 3).forEach((a) => {
+              fcTL.push(a);
+            })
+            pos += 3;
+
+            colors.push([fcTL[fcTLpos], fcTL[fcTLpos+1], fcTL[fcTLpos+2]]);
+            fcTLpos += 3;
+          }
+          frame.localColorTable = colors;
+        }
+
+        fcTL.push(arri[pos++]);
+        const minSize = fcTL[fcTLpos];
 
         let size = [];
         const clean_IDAT = [];
@@ -1363,6 +1388,7 @@ function fromGIF(arri) {
           pos++; // terminator
         } else if (nextByte === 0xFF) { // Application Extension, is it ONLY NETSCAPE or there's other variant?
           const size = arri[pos++];
+
           if (readString(arri.slice(pos, pos + size)) === NETSCAPE_sig) {
             pos += size; // length of sub-block & terminator
             const subsize = arri[pos++] + 1;
@@ -1376,9 +1402,9 @@ function fromGIF(arri) {
         }
         break;
     }
-    ingif(arri);
+    ingif();
   };
-  ingif(arri);
+  ingif();
   return gif;
 }
 

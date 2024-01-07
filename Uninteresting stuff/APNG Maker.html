@@ -263,12 +263,13 @@ function isImage(ext) {
   switch (ext.toLowerCase()) {
     case 'jpg':
     case 'jpeg':
-    case 'gif':
     case 'bmp':
     case 'png':
       return true;
     case 'heic':
       return 'heic';
+    case 'gif':
+      return 'gif';
   }
   return false;
 }
@@ -410,27 +411,25 @@ function echoPalette(h=8, s=1){
   palette = [];
 }
 
+function constPNG(ar, z) {
+  Array.from(z).forEach((a) => {
+    ar.push(a);
+  })
+}
+
 function reconstPNG(IHDR, arri) {  
-  const IDATz = [];
-  let new_IDAT = new Array(0);
-  IDATz.push([0x49, 0x44, 0x41, 0x54]); // IDAT
-  IDATz.push(arri);
-  IDATz.forEach((z) => {
-     new_IDAT = new_IDAT.concat(Array.from(z))
-  });
+  const new_IDAT = [];
+  constPNG(new_IDAT, [0x49, 0x44, 0x41, 0x54]); // IDAT
+  constPNG(new_IDAT, arri);
 
-  let constPNG = [];
-  constPNG.push(PNG_signature);
-  constPNG.push(IHDR);
-  constPNG.push(int32ToAB(arri.length));
-  constPNG.push(new_IDAT);
-  constPNG.push(int32ToAB(crc32(new_IDAT)));
-  constPNG.push(IEND);
-
-  arri = new Array(0);
-  constPNG.forEach((z) => {
-     arri = arri.concat(Array.from(z))
-  });
+  const size = arri.length;
+  arri = [];
+  constPNG(arri, PNG_signature);
+  constPNG(arri, IHDR);
+  constPNG(arri, int32ToAB(size));
+  constPNG(arri, new_IDAT);
+  constPNG(arri, int32ToAB(crc32(new_IDAT)));
+  constPNG(arri, IEND);
 
   return arri;
 }
@@ -863,22 +862,25 @@ function canvasdiff(m, s) {
 function APNG() {
   this.width = 0;
   this.height = 0;
-  this.numPlays = 0;
-  this.playTime = 0;
   this.frames = [];
-  this.arri = new Array(0);
 }
 
-function Frame() {
-  this.left = 0;
-  this.top = 0;
+function GIF() {
   this.width = 0;
   this.height = 0;
+  this.frames = [];
+};
+
+function Frame() {
+  this.width = 0;
+  this.height = 0;
+  this.left = 0;
+  this.top = 0;
   this.numerator = 0;
   this.denominator = 0;
   this.disposeOp = 0;
   this.blendOp = 0;
-  this.arri = new Array(0);
+  this.arri = [];
   this.IDATs = [];
 }
 
@@ -953,6 +955,49 @@ const HeaderStruct = struct("<IIII");
 const PAC = struct('<I');
 let layers = [];
 
+function toCanvasMode(vaguemode) {
+  switch (vaguemode) {
+    // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
+    case 'normal':
+      return "source-over";
+    case 'add':
+      return "lighter";
+    case 'mul':
+      return "multiply";
+    case 'screen':
+      return "screen";
+    case 'overlay':
+      return "overlay";
+    case 'dark':
+      return "darken";
+    case 'light':
+      return "lighten";
+    case 'dodge':
+      return "color-dodge";
+    case 'burn':
+      return "color-burn";
+    case 'hardlight':
+      return "soft-light";
+    case 'softlight':
+      return "hard-light";
+    case 'diff':
+      return "difference";
+    case 'idonthaveexclusion':
+      return "exclusion";
+    case 'hue':
+      return "hue";
+    case 'saturation':
+      return "saturation";
+    case 'color':
+      return "color";
+    case 'luminosity':
+      return "luminosity";
+    case 'div': //might that be synonymous with subtract?
+    default:
+      return "source-over";
+  }
+}
+
 function readMDP(arri) {
   if (!decompress) {
     stdout.insertAdjacentHTML("beforeend", 'Please try again with <a href="https://github.com/nodeca/pako/blob/master/dist/" target="_blank">pako.min.js</a>, save next to HTML then reload this page');
@@ -988,63 +1033,7 @@ function readMDP(arri) {
     layer.color = e.getAttribute("color");
     layer.alpha = Math.ceil(e.getAttribute('alpha')/255*100)/100;
     layer.visible = e.getAttribute('visible') == 'true' ? 1 : 0;
-    switch (e.getAttribute("mode")) {
-      // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
-      case 'normal':
-        layer.mode = "source-over";
-        break;
-      case 'add':
-        layer.mode = "lighter";
-        break;
-      case 'mul':
-        layer.mode = "multiply";
-        break;
-      case 'screen':
-        layer.mode = "screen";
-        break;
-      case 'overlay':
-        layer.mode = "overlay";
-        break;
-      case 'dark':
-        layer.mode = "darken";
-        break;
-      case 'light':
-        layer.mode = "lighten";
-        break;
-      case 'dodge':
-        layer.mode = "color-dodge";
-        break;
-      case 'burn':
-        layer.mode = "color-burn";
-        break;
-      case 'hardlight':
-        layer.mode = "soft-light";
-        break;
-      case 'softlight':
-        layer.mode = "hard-light";
-        break;
-      case 'diff':
-        layer.mode = "difference";
-        break;
-      case 'idonthaveexclusion':
-        layer.mode = "exclusion";
-        break;
-      case 'hue':
-        layer.mode = "hue";
-        break;
-      case 'saturation':
-        layer.mode = "saturation";
-        break;
-      case 'color':
-        layer.mode = "color";
-        break;
-      case 'luminosity':
-        layer.mode = "luminosity";
-        break;
-      case 'div': //might that be synonymous with subtract?
-      default:
-        layer.mode = "source-over";
-    }
+    layer.mode = toCanvasMode(e.getAttribute("mode"));
     layers.push(layer);
   }
 
@@ -1268,6 +1257,133 @@ function echoMDP() {
 
 
 
+function fromGIF(arri) {
+  const gif = new APNG();
+  const fcTLbuffer = {};
+  let pos = GIF89a_signature.length;
+
+  const IHDR = [];
+  arri.slice(pos, pos + 7).forEach((a) => {
+    IHDR.push(a);
+  })
+
+  gif.width = IHDR[0] + (IHDR[1] << 8);
+  gif.height = IHDR[2] + (IHDR[3] << 8);
+  //Fossil specification
+ 
+  const packed_field = IHDR[4]; // Global Color Table, should read as binary
+  // IHDR[5]: Background Color Index
+  // IHDR[6]: Pixel Aspect Ratio
+
+  pos += 7; // IHDR length
+
+  // console.log(packed_field.toString(16));
+  gif.colorRes = (packed_field & 0b01110000) >> 4;
+  gif.globalColorCount = 1 << ((packed_field & 0b00000111) + 1);
+
+  if (packed_field & 0b10000000) {
+    let colors = [];
+    for (const n of Array(gif.globalColorCount).keys()) {
+      arri.slice(pos, pos + 3).forEach((a) => {
+        IHDR.push(a);
+      })
+      colors.push([IHDR[pos-6], IHDR[pos-5], IHDR[pos-4]]);
+      pos += 3;
+    }
+    gif.globalColorTable = colors;
+  }
+
+  function ingif(arri) {
+    switch (arri[pos++]) {
+      case 0x2C: // ',' image separator
+
+        frame = new Frame();
+        gif.frames.push(frame);
+
+        const fcTL = [];
+        arri.slice(pos, pos + 10).forEach((a) => {
+          fcTL.push(a);
+        })
+        pos += 10;
+
+        frame.left = fcTL[0] + (fcTL[1] << 8);
+        frame.top = fcTL[2] + (fcTL[3] << 8);
+        frame.width = fcTL[4] + (fcTL[5] << 8);
+        frame.height = fcTL[6] + (fcTL[7] << 8);
+
+        frame.numerator = 1;
+        frame.denominator = fcTLbuffer.denominator * 10;
+        frame.disposeOp = (fcTLbuffer.packed_field & 0b00011100) >> 2;;
+        //frame.blendOp = 0;
+
+        const packed_field = fcTL[8];
+
+        let size = [];
+        const clean_IDAT = [];
+        while (size !== 0) {
+          size = arri[pos++];
+          clean_IDAT.push(size);
+          arri.slice(pos, pos + size).forEach((a) => {
+            clean_IDAT.push(a);
+          })
+          pos += size;
+        }
+
+        if (pos >= arri.length) {
+          console.log("I've read past the end of file!");
+        }
+
+        IHDR[0] = fcTL[4]; // modify IHDR to have new width
+        IHDR[1] = fcTL[5]; // modify IHDR to have new width
+        IHDR[2] = fcTL[6]; // modify IHDR to have new height
+        IHDR[3] = fcTL[7]; // modify IHDR to have new height
+
+        constPNG(frame.arri, GIF89a_signature);
+        constPNG(frame.arri, IHDR);
+        constPNG(frame.arri, [0x21, 0xFF, 0x0B]);
+        constPNG(frame.arri, utf8ToAB(NETSCAPE_sig));
+        constPNG(frame.arri, [0x03, 0x01, 0x00, 0x00, 0x00]);
+        constPNG(frame.arri, [0x2C]);
+        constPNG(frame.arri, fcTL);
+        constPNG(frame.arri, clean_IDAT);
+        constPNG(frame.arri, [0x3B]);
+
+        break;
+      case 0x3B: // ';' end of file
+        return;
+      case 0x21: // Extension Introducer
+        const nextByte = arri[pos++];
+        if (nextByte === 0xF9) { // Graphic Control Extension
+          pos++; // size I think is always 4 so skipping this byte
+
+          fcTLbuffer.packed_field = arri[pos++]; // disposal method
+          fcTLbuffer.denominator = (arri[pos++]) + ((arri[pos++]) << 8);
+          pos++; // transparent color flag
+
+          pos++; // terminator
+        } else if (nextByte === 0xFF) { // Application Extension, is it ONLY NETSCAPE or there's other variant?
+          const size = arri[pos++];
+          if (readString(arri.slice(pos, pos + size)) === NETSCAPE_sig) {
+            pos += size; // length of sub-block & terminator
+            const subsize = arri[pos++] + 1;
+            pos += subsize;
+          }
+        } else if (nextByte === 0xFE) { // Comment Extension
+          pos += arri[pos++];
+        } else if (nextByte === 0x01) { // Plain Text Extension
+          pos += arri[pos++];
+          pos += arri[pos++];
+        }
+        break;
+    }
+    ingif(arri);
+  };
+  ingif(arri);
+  return gif;
+}
+
+
+
 function fromAPNG(arri){
   let IHDR = null;
   let frame = null;
@@ -1282,9 +1398,6 @@ function fromAPNG(arri){
         apng.width = dv.getUint32(offset + 8);
         apng.height = dv.getUint32(offset + 12);
         break;
-      case 'acTL':
-        apng.numPlays = dv.getUint32(offset + 8 + 4);
-        break;
       case 'fcTL':
         if (frame) {
           apng.frames.push(frame);
@@ -1297,7 +1410,6 @@ function fromAPNG(arri){
         frame.top = dv.getUint32(offset + 8 + 16);
         frame.numerator = dv.getUint16(offset + 8 + 20);
         frame.denominator = dv.getUint16(offset + 8 + 22);
-        apng.playTime += frame.delay;
         frame.disposeOp = dv.getUint8(offset + 8 + 24);
         frame.blendOp = dv.getUint8(offset + 8 + 25);
         if (frame.width > maxres[2]){
@@ -1323,24 +1435,20 @@ function fromAPNG(arri){
     }
   }
 
-  eachChunk(arri, inapng)
+  eachChunk(arri, inapng);
   apng.frames.push(frame);
-
   apng.frames.forEach((frame) => {
-    var data = [];
-    data.push(PNG_signature);
     IHDR.set(int32ToAB(frame.width), 0); // modify IHDR to have new width
     IHDR.set(int32ToAB(frame.height), 4); // modify IHDR to have new height
-    data.push(makeChunkBytes('IHDR', IHDR)); // recalc crc32
+
+    constPNG(frame.arri, PNG_signature);
+    constPNG(frame.arri, makeChunkBytes('IHDR', IHDR)); // recalc crc32
     frame.IDATs.forEach((IDAT) => {
-        data.push(makeChunkBytes('IDAT', IDAT));
+      constPNG(frame.arri, makeChunkBytes('IDAT', IDAT));
     });
-    data.push(IEND);
-    data.forEach((u) => {
-       frame.arri = frame.arri.concat(Array.from(u))
-    })
+    constPNG(frame.arri, IEND);
+
     frame.IDATs = [];
-    data = [];
   });
   return apng;
 }
@@ -1360,41 +1468,43 @@ function eachChunk(arri, callback) {
 }
 
 function readString(arri) {
-    //return new TextDecoder().decode(arri);
-    return String.fromCharCode.apply(String, Array.prototype.slice.call(arri));
+  //return new TextDecoder().decode(arri);
+  return String.fromCharCode.apply(String, Array.prototype.slice.call(arri));
 }
 
 function utf8ToAB(utf8) {
   const len = utf8.length;
   const arr = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
+  for (const i of Array(len).keys()) {
     arr[i] = utf8.charCodeAt(i);
   }
   return arr;
 }
 
 function makeChunkBytes(type, dataBytes) {
-    const len = type.length + dataBytes.length;
-    const bytes = new Uint8Array(len + 8);
-    const dv = new DataView(bytes.buffer);
+  const len = type.length + dataBytes.length;
+  const bytes = new Uint8Array(len + 8);
+  const dv = new DataView(bytes.buffer);
 
-    dv.setUint32(0, dataBytes.length);
-    bytes.set(utf8ToAB(type), 4);
-    bytes.set(dataBytes, 8);
-    dv.setUint32(len + 4, crc32(bytes, 4, len));
-    return bytes;
+  dv.setUint32(0, dataBytes.length);
+  bytes.set(utf8ToAB(type), 4);
+  bytes.set(dataBytes, 8);
+  dv.setUint32(len + 4, crc32(bytes, 4, len));
+  return bytes;
 };
 
 function int32ToAB(int32) {
-    return [int32 >>> 24 & 0xff, int32 >>> 16 & 0xff, int32 >>> 8 & 0xff, int32 & 0xff];
+  return [int32 >>> 24 & 0xff, int32 >>> 16 & 0xff, int32 >>> 8 & 0xff, int32 & 0xff];
 };
 
 function ABtoInt32(ab) {
-   return (ab[0] << 24) + (ab[1] << 12) + (ab[2] << 8) + ab[3];
+  return (ab[0] << 24) + (ab[1] << 12) + (ab[2] << 8) + ab[3];
 }
 
 
 
+var GIF89a_signature = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61];
+var NETSCAPE_sig = "NETSCAPE2.0";
 var PNG_signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 var IEND = [0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82];
 var newAPNG = [];
@@ -1522,14 +1632,9 @@ for (const i of Array(256).keys()) {
 }
 
 function crc32(arri, start=0, len=0) {
-  if (!len) {
-    len = arri.length - start;
-  }
-
   let crc = -1;
-  const l = start + len;
-  for (let i=start; i < l; i++) {
-    crc = crc >>> 8 ^ table[(crc ^ arri[i]) & 0xFF];
+  for (const i of Array(len ? len : arri.length-start).keys()) {
+    crc = crc >>> 8 ^ table[(crc ^ arri[i+start]) & 0xFF];
   }
   return crc ^ -1;
 }
@@ -1565,8 +1670,8 @@ function frameSaver(interFrameN, i) {
 
 function drawobj(x) {
   context.beginPath();
-  for(let k=0;k < x.length;k++){
-    if(k==0){
+  for (const k of Array(x.length).keys()) {
+    if (k === 0) {
       context.moveTo(x[0][0], x[0][1]);
     } else{
       context.lineTo(x[k][0], x[k][1]);
@@ -1614,8 +1719,8 @@ function randobg() {
 
   context.lineWidth = 40;
 
-  for(let i=0;i < 5;i++){
-    for(let j=0;j < 4;j++){
+  for (const i of Array(5).keys()) {
+    for (const j of Array(4).keys()) {
       drawobj([[100+Math.floor(Math.random()*t)+j*s, 350+Math.floor(Math.random()*t)+i*s], [200+Math.floor(Math.random()*t)+j*s, 200+Math.floor(Math.random()*t)+i*s], [300+Math.floor(Math.random()*t)+j*s, 350+Math.floor(Math.random()*t)+i*s]]);
     }
   }
@@ -1727,7 +1832,7 @@ function compileframes(multi=true, dea=false) {
     }
   }
   delayFrame(0);
-  nextFrame = 2
+  nextFrame = 2;
 }
 
 function compileapngs() {
@@ -1897,40 +2002,40 @@ function echoAPNG() {
 }
 
 function editframelist(){
-  framelist.innerHTML = ""
-  for(var i=1; i<framearray.length+1; i++){
-    framelist.innerHTML += i + "\n"
+  framelist.innerHTML = "";
+  for (const i of Array(framearray.length).keys()) {
+    framelist.innerHTML += i+1 + "\n";
   }
 
   let e = document.getElementById("makeapng");
-  e.setAttribute("onclick", "compileframes();")
+  e.setAttribute("onclick", "compileframes();");
   e.classList = "next";
 
   e = document.getElementById("detect");
-  e.setAttribute("onclick", "detect();")
+  e.setAttribute("onclick", "detect();");
   e.classList = "reverse";
 
-  e = document.getElementById("resave")
+  e = document.getElementById("resave");
   e.classList = "next";
-  e.setAttribute("onclick", "compileframes(false);")
+  e.setAttribute("onclick", "compileframes(false);");
 
-  e = document.getElementById("deapng")
+  e = document.getElementById("deapng");
   e.classList = "next";
-  e.setAttribute("onclick", "compileframes(false, true);")
+  e.setAttribute("onclick", "compileframes(false, true);");
 }
 
 function editapnglist(){
-  apnglist.innerHTML = ""
-  for(var i=1;i<apngarray.length+1;i++){
-    apnglist.innerHTML += i + "\n"
+  apnglist.innerHTML = "";
+  for (const i of Array(apngarray.length).keys()) {
+    apnglist.innerHTML += i+1 + "\n";
   }
 
   let e = document.getElementById("mergeapng");
-  e.setAttribute("onclick", "compileapngs();")
+  e.setAttribute("onclick", "compileapngs();");
   e.classList = "next";
 
   e = document.getElementById("echoapng");
-  e.setAttribute("onclick", "echoAPNG();")
+  e.setAttribute("onclick", "echoAPNG();");
   e.classList = "next";
 }
 
@@ -1974,10 +2079,17 @@ function readapng(filelist){
       img = ABtoIMG([arri])
       img.onload = () => {
         let isAPNG = false;
+        let isGIF = false;
         if (Array.prototype.some.call(PNG_signature, function (b, i) {
           return b !== arri[i];
         })) {
-          echo(" &gt; File excluded: " + filelist[i].name + " is not a PNG");
+          if (Array.prototype.some.call(GIF89a_signature, function (b, i) {
+            return b !== arri[i];
+          })) {
+            echo(" &gt; File excluded: " + filelist[i].name + " is not a PNG or GIF");
+          } else {
+            apngarray.push(fromGIF(arri));
+          }
         } else {
           eachChunk(arri, function (type) {
             return !(isAPNG = type === 'acTL');
@@ -2461,7 +2573,7 @@ Resave: <button class="previous" onclick="echo('Filelist is empty!')" id="resave
 
 <div class="backtip cell" style="width:242px;">
 <div class="backtip" style="top:-11px; display:table;">🦦 -(Merge)</div>
-<label class="next"><input id="loadapng" type="file" multiple></input>Load APNG</label>
+<label class="next"><input id="loadapng" type="file" multiple></input>Load APNG or GIF</label>
 <label class="next"><input id="moreapng" type="file" multiple></input>Load more</label>
 <div></div>
 

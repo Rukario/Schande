@@ -1358,10 +1358,17 @@ function fromGIF(arri) {
           console.log("I've read past the end of file!");
         }
 
-        IHDR[0] = fcTL[4]; // modify IHDR to have new width
-        IHDR[1] = fcTL[5]; // modify IHDR to have new width
-        IHDR[2] = fcTL[6]; // modify IHDR to have new height
-        IHDR[3] = fcTL[7]; // modify IHDR to have new height
+        IHDR[0] = fcTL[4];
+        IHDR[1] = fcTL[5];
+        IHDR[2] = fcTL[6];
+        IHDR[3] = fcTL[7];
+
+        fcTL[0] = 0x00;
+        fcTL[1] = 0x00;
+        fcTL[2] = 0x00;
+        fcTL[3] = 0x00;
+
+        // And to figure out how to fix transparency problem . . .
 
         constPNG(frame.arri, GIF89a_signature);
         constPNG(frame.arri, IHDR);

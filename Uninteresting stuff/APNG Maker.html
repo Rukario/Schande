@@ -1312,7 +1312,7 @@ function fromGIF(arri) {
         frame.height = fcTL[6] + (fcTL[7] << 8);
 
         frame.numerator = 1;
-        frame.denominator = fcTLbuffer.denominator * 10;
+        frame.denominator = fcTLbuffer.denominator * 20;
         frame.disposeOp = (fcTLbuffer.packed_field & 0b00011100) >> 2;;
         //frame.blendOp = 0;
 

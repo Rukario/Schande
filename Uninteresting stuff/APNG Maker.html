@@ -1258,6 +1258,7 @@ function echoMDP() {
 
 
 function fromGIF(arri) {
+  let GCe = false;
   const gif = new APNG();
   const fcTLbuffer = {};
   let pos = GIF89a_signature.length;
@@ -1279,12 +1280,11 @@ function fromGIF(arri) {
   let IHDRpos = 7;
 
   // console.log(packed_field.toString(16));
-  gif.colorRes = (packed_field & 0b01110000) >> 4;
-  gif.globalColorCount = 1 << ((packed_field & 0b00000111) + 1);
+  const color_counter = 1 << ((packed_field & 0b00000111) + 1);
 
   if (packed_field & 0b10000000) {
     let colors = [];
-    for (const n of Array(gif.globalColorCount).keys()) {
+    for (const n of Array(color_counter).keys()) {
       arri.slice(pos, pos + 3).forEach((a) => {
         IHDR.push(a);
       })
@@ -1293,7 +1293,6 @@ function fromGIF(arri) {
       colors.push([IHDR[IHDRpos], IHDR[IHDRpos+1], IHDR[IHDRpos+2]]);
       IHDRpos += 3;
     }
-    gif.globalColorTable = colors;
   }
 
   function ingif() {
@@ -1319,16 +1318,14 @@ function fromGIF(arri) {
 
         frame.numerator = fcTLbuffer.denominator;
         frame.denominator = 100;
-        frame.disposeOp = (packed_field & 0b00011100) >> 2;
-        //frame.blendOp = 0;
+        frame.disposeOp = fcTLbuffer.disposeOp;
 
-        frame.transparencyIndex = fcTLbuffer.packed_field & 0b00000001 ? fcTLbuffer.transparencyIndex : undefined;
-        frame.localColorTableFlag = packed_field & 0b10000000 ? true : false;
-        frame.localColorCount = 1 << ((packed_field & 0b00000111) + 1);
+        fcTLbuffer.localColorTable = packed_field & 0b10000000 ? true : false;
+        const color_counter = 1 << ((packed_field & 0b00000111) + 1);
 
-        if (frame.localColorTableFlag) {
+        if (fcTLbuffer.localColorTable) {
           let colors = [];
-          for (const n of Array(frame.localColorCount).keys()) {
+          for (const n of Array(color_counter).keys()) {
             arri.slice(pos, pos + 3).forEach((a) => {
               fcTL.push(a);
             })
@@ -1337,11 +1334,9 @@ function fromGIF(arri) {
             colors.push([fcTL[fcTLpos], fcTL[fcTLpos+1], fcTL[fcTLpos+2]]);
             fcTLpos += 3;
           }
-          frame.localColorTable = colors;
         }
 
         fcTL.push(arri[pos++]);
-        const minSize = fcTL[fcTLpos];
 
         let size = [];
         const clean_IDAT = [];
@@ -1368,13 +1363,16 @@ function fromGIF(arri) {
         fcTL[2] = 0x00;
         fcTL[3] = 0x00;
 
-        // And to figure out how to fix transparency problem . . .
-
         constPNG(frame.arri, GIF89a_signature);
         constPNG(frame.arri, IHDR);
         constPNG(frame.arri, [0x21, 0xFF, 0x0B]);
         constPNG(frame.arri, utf8ToAB(NETSCAPE_sig));
         constPNG(frame.arri, [0x03, 0x01, 0x00, 0x00, 0x00]);
+        if (GCe) {
+          constPNG(frame.arri, [0x21, 0xF9]);
+          constPNG(frame.arri, GCe);
+          GCe = false;
+        }
         constPNG(frame.arri, [0x2C]);
         constPNG(frame.arri, fcTL);
         constPNG(frame.arri, clean_IDAT);
@@ -1394,29 +1392,32 @@ function fromGIF(arri) {
 
         const nextByte = arri[pos++];
         if (nextByte === 0xF9) { // Graphic Control Extension
-          pos++; // size I think is always 4 so skipping this byte
+          GCe = [];
+          arri.slice(pos, pos + 6).forEach((a) => {
+            GCe.push(a);
+          })
+          pos += 6; // Assuming Graphic Control Extension size is always 4, then a terminator
 
-          fcTLbuffer.packed_field = arri[pos++]; // disposal method
-          fcTLbuffer.denominator = (arri[pos++]) + ((arri[pos++]) << 8);
-          pos++; // transparent color flag
-
-          pos++; // terminator
+          const packed_field = GCe[1]; // disposal method
+          fcTLbuffer.denominator = (GCe[2]) + ((GCe[3]) << 8);
+          fcTLbuffer.transparencyIndex = packed_field & 0b00000001 ? GCe[4] : 256;
+          fcTLbuffer.disposeOp = (packed_field & 0b00011100) >> 2;
         } else if (nextByte === 0xFF) { // Application Extension
           const size = arri[pos++];
           const s = readString(arri.slice(pos, pos + size));
           if (s === NETSCAPE_sig) {
-            pos += size; // length of sub-block & terminator
-            const subsize = arri[pos++] + 1;
+            pos += size;
+            const subsize = arri[pos++] + 1; // length of sub-block & terminator
             pos += subsize;
           } else {
             skipBytes();
           }
-        } else if (nextByte === 0xFE) { // Comment Extension
-          skipBytes();
-        } else if (nextByte === 0x01) { // Plain Text Extension
+        } else if (nextByte === 0x01 || nextByte === 0xFE) { // Plain Text or Comment Extension
           skipBytes();
         }
         break;
+      default:
+        console.log(`Illegal byte ${firstByte}`, pos);
     }
     ingif();
   };

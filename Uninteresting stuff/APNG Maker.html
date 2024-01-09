@@ -1401,7 +1401,8 @@ function fromGIF(arri) {
           const packed_field = GCe[1]; // disposal method
           fcTLbuffer.denominator = (GCe[2]) + ((GCe[3]) << 8);
           fcTLbuffer.transparencyIndex = packed_field & 0b00000001 ? GCe[4] : 256;
-          fcTLbuffer.disposeOp = (packed_field & 0b00011100) >> 2;
+          const dispose = (packed_field & 0b00011100) >> 2;
+          fcTLbuffer.disposeOp = dispose ? dispose-1 : 0;
         } else if (nextByte === 0xFF) { // Application Extension
           const size = arri[pos++];
           const s = readString(arri.slice(pos, pos + size));
@@ -1427,7 +1428,7 @@ function fromGIF(arri) {
 
 
 
-function fromAPNG(arri){
+function fromAPNG(arri) {
   let IHDR = null;
   let frame = null;
   let frameNumber = 0;
@@ -1993,13 +1994,13 @@ function echoAPNG() {
             c.width = dim[4][2];
             c.height = dim[4][3];
             //context.drawImage(img, ...dim[4]);
-            frames.push([img, [...dim[4]], [frame.numerator, frame.denominator]]);
+            frames.push([img, [...dim[4]], [frame.disposeOp, frame.numerator, frame.denominator]]);
           } else {
             //context.drawImage(img, ...dim[3]);
-            frames.push([img, [...dim[3]], [frame.numerator, frame.denominator]]);
+            frames.push([img, [...dim[3]], [frame.disposeOp, frame.numerator, frame.denominator]]);
           }
         } else {
-          frames.push([img, [...dim[3]], [frame.numerator, frame.denominator]]);
+          frames.push([img, [...dim[3]], [frame.disposeOp, frame.numerator, frame.denominator]]);
           //context.drawImage(img, ...dim[3]);
         }
         if (interFrameN+1 == raw_frames.length) {
@@ -2018,6 +2019,14 @@ function echoAPNG() {
     let n = 0;
     let historical_timeStamp = [];
     let vfps = 0;
+
+    let lastOp = 0;
+    const canvas = document.createElement('canvas');
+    canvas.width = c.width;
+    canvas.height = c.height;
+    const ctx = canvas.getContext('2d');
+    // echoCanvas(canvas);
+
     const update = (timeStamp) => {
       if (timeStamp) {
         historical_timeStamp.unshift(timeStamp);
@@ -2027,7 +2036,7 @@ function echoAPNG() {
         const fps = Math.floor(1000 * 10 / (timeStamp - last_fps));
         //stdout.innerHTML = `${timeStamp.toFixed(2).padStart(3, '0')} ${fps} fps`;
 
-        vfps += frames[n][2][1]/frames[n][2][0];
+        vfps += frames[n][2][2]/frames[n][2][1];
         if (vfps >= fps) {
           vfps = vfps-fps;
           if (n > frames.length-2) {
@@ -2035,6 +2044,20 @@ function echoAPNG() {
           } else {
             n++;
           }
+
+          // Incomplete, expect small number of stray pixels
+          if (lastOp === 0) {
+            ctx.drawImage(c, 0, 0, c.width, c.height);
+          } else if (lastOp === 1) {
+            console.log(lastOp);
+            context.drawImage(canvas, 0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+          } else if (lastOp == 2) {
+            context.drawImage(canvas, 0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+          }
+          lastOp = frames[n][2][0];
+
           context.drawImage(frames[n][0], ...frames[n][1]);
         }
       }

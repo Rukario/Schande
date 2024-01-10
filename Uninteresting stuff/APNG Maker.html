@@ -320,42 +320,45 @@ function setfps(text) {
 }
 
 function echo(B, b) {
-  if (!b) B = "<br>" + B
-  if (b) B = " " + B
+  if (!b) {
+    B = "<br>" + B;
+  } else {
+    B = " " + B;
+  }
   stdout.insertAdjacentHTML("beforeend", B);
 }
 
-function ABtoURL(ab){
+function ABtoURL(ab) {
   return URL.createObjectURL(new Blob(ab, {type: 'application/octet-stream'}));
 }
 
-function ABtoIMG(ab){
+function ABtoIMG(ab) {
   img = document.createElement("img");
   img.src = ABtoURL(ab);
   return img;
 }
 
-function ABtoAB(ab){
+function ABtoAB(ab) {
   return [new Uint8Array(ab)]
 }
 
-function echoIMG(img, B){
+function echoIMG(img, B) {
   img.style = "max-height:400px;"
   const dl = document.createElement("a");
   dl.download = B;
   dl.href = img.src;
   dl.appendChild(img);
-  stdout.insertAdjacentHTML("beforeend", "<br>");
+  echo('');
   stdout.appendChild(dl);
 }
 
-function echoCanvas(c){
-  // c.style = "max-height:400px;";
-  stdout.insertAdjacentHTML("beforeend", "<br>");
+function echoCanvas(c) {
+  c.style = "max-height:400px;";
+  echo('');
   stdout.appendChild(c);
 }
 
-function echoABtoDL(ab, B){
+function echoABtoDL(ab, B) {
   const dl = document.createElement("a");
   dl.href = ABtoURL(ABtoAB(ab));
   dl.download = B;
@@ -999,7 +1002,7 @@ function toCanvasMode(vaguemode) {
 }
 
 function readMDP(arri) {
-  if (!decompress) {
+  if (!pako) {
     stdout.insertAdjacentHTML("beforeend", 'Please try again with <a href="https://github.com/nodeca/pako/blob/master/dist/" target="_blank">pako.min.js</a>, save next to HTML then reload this page');
     return;
   }

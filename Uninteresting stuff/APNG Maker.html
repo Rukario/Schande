@@ -171,11 +171,11 @@ function quicklook(e) {
     c.width = dim[3][2];
     c.height = dim[3][3];
 
-    if(s.src == m.src) {
+    if (s.src == m.src) {
       context.fillRect(...dim[3]);
     } else {
       m.onload = function () {
-        fps = 1
+        fps = 1;
         //s.onload = apngdiff(m, s);
         s.onload = canvasdiff(m, s);
       }
@@ -445,9 +445,9 @@ function canvasToAB(c, ext="png", apngprod=false){
       fr.onload = () => {
         arri = new Uint8Array(fr.result);
         Module = {};
-        ti[2] = performance.now()
-        //echo((ti[2] - ti[1])/1000 + "s canvasToAB(c)")
-        ti[1] = performance.now()
+        Fi[2] = performance.now()
+        //echo((Fi[2] - Fi[1])/1000 + "s canvasToAB(c)")
+        Fi[1] = performance.now()
         if (ext == "png") {
           if (decompress) {
             //https://manpages.debian.org/stretch/optipng/optipng.1.en.html
@@ -476,8 +476,8 @@ function canvasToAB(c, ext="png", apngprod=false){
             arri = reconstPNG(IHDR, pako.deflate(pixels, {'level':6}));
           }
         }
-        ti[2] = performance.now()
-        //echo((ti[2] - ti[1])/1000 + "s OptiPNG")
+        Fi[2] = performance.now()
+        //echo((Fi[2] - Fi[1])/1000 + "s OptiPNG")
         resolve(arri);
       };
     }, 'image/' + ext);
@@ -506,14 +506,14 @@ function get_dim(image, i) {
 }
 
 function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=false){
-  ti[1] = performance.now()
+  Fi[1] = performance.now()
   arri = Array.from(arri);
   newframe.arri = arri;
-  ti[2] = performance.now()
-  //echo((ti[2] - ti[1])/1000 + "s ArrayBuffer")
+  Fi[2] = performance.now()
+  //echo((Fi[2] - Fi[1])/1000 + "s ArrayBuffer")
   if(callback == undefined){
-    ti[3] = performance.now()
-    echo("Frame " + (interFrameN+1) + " in " + (ti[3] - ti[0])/1000 + "s")
+    Fi[3] = performance.now()
+    echo("Frame " + (interFrameN+1) + " in " + (Fi[3] - Fi[0])/1000 + "s")
     document.title = "Frame " + (interFrameN+1);
     echoIMG(ABtoIMG(ABtoAB(arri)), name)
     if (callback2){
@@ -529,7 +529,7 @@ function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=
     callback(0, callback2);
   } else {
     if (filler){
-      echo("APNGified")
+      echo("APNGified");
     } else {
       echo("Frame " + (interFrameN+1));
       document.title = "Frame " + (interFrameN+1);
@@ -543,8 +543,8 @@ function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=
 }
 
 function canvasToFrame(callback, interFrameN, fpsm=1, callback2=false, filler=false){
-  ti[1] = performance.now()
-  let promise = new Promise(canvasToAB(c, 'png', callback))
+  Fi[1] = performance.now()
+  let promise = new Promise(canvasToAB(c, 'png', true))
   promise.then(function(arri){
     ABtoFrame(arri, callback, interFrameN, fpsm, callback2, filler)
   })
@@ -592,8 +592,8 @@ function Convolute(pixels, weights) {
 }
 
 function edge(m) {
-  ti[0] = performance.now();
-  ti[1] = performance.now();
+  Fi[0] = performance.now();
+  Fi[1] = performance.now();
   if(bg){
     context.drawImage(bg, ...dim[1]);
   }
@@ -654,15 +654,15 @@ function contour(a) {
 }
 
 function detect() {
-  seqFrameN = framelist.innerHTML.split("\n").filter(function(el) { return el; })
+  seqFrameN = framelist.innerHTML.split("\n").filter((el) => {return el;});
   c.width = dim[1][2];
   c.height = dim[1][3];
-  dim[3] = [...dim[1]]
-  if(seqFrameN.length > 1) {
-    if(fps == 0){
-      echo("Bad FPS")
+  dim[3] = [...dim[1]];
+  if (seqFrameN.length > 1) {
+    if (fps == 0) {
+      echo("Bad FPS");
     } else {
-      apngdiff(framearray[seqFrameN[0]-1][0], framearray[seqFrameN[1]-1][0], ((3==seqFrameN.length)?framearray[seqFrameN[2]-1][0]:false));
+      apngdiff(framearray[seqFrameN[0]-1][0], framearray[seqFrameN[1]-1][0], seqFrameN.length === 3 ? framearray[seqFrameN[2]-1][0] : false);
     }
   } else {
     edge(framearray[seqFrameN[0]-1][0]);
@@ -671,11 +671,11 @@ function detect() {
 
 var palette = [];
 function frame_diff(a, b, i) {
-  var d = {x:[], y:[]};
-  for(var y=0;y<dim[i][3];y++){
-    var o = (y+1)*dim[i][2]
-    for(var x=(o-dim[i][2])*4;x<o*4;x+=4){
-      if(b[x+3] !== 0 && a[x+3] == 255 && a[x] == b[x] && a[x+1] == b[x+1] && a[x+2] == b[x+2]){
+  const d = {'x':[], 'y':[]};
+  for (const y of Array(dim[i][3]).keys()) {
+    const o = (y+1)*dim[i][2];
+    for (let x = (o-dim[i][2])*4; x<o*4; x+=4) {
+      if (b[x+3] !== 0 && a[x+3] == 255 && a[x] == b[x] && a[x+1] == b[x+1] && a[x+2] == b[x+2]) {
         b[x+3] = 0;
       } else {
         d.x.push((x/4)+dim[i][2]-o);
@@ -693,11 +693,11 @@ function frame_diff(a, b, i) {
 }
 
 function draw(x, i) {
-  ti[0] = performance.now()
-  ti[1] = performance.now()
+  Fi[0] = performance.now();
+  Fi[1] = performance.now();
   c.width = dim[1][2];
   c.height = dim[1][3];
-  if(bg){
+  if (bg) {
     context.drawImage(bg, ...dim[1]);
   }
   context.drawImage(x, ...dim[1]);
@@ -770,15 +770,15 @@ function apngdiff(m, s, s2=false) {
   }
 
   function r2(){
-    ti[0] = performance.now()
-    ti[1] = performance.now()
+    Fi[0] = performance.now()
+    Fi[1] = performance.now()
     dim[3] = reuse[2]
     ABtoFrame(reuse[0], (s2?r3:d1), 1)
   }
 
   function r3(){
-    ti[0] = performance.now()
-    ti[1] = performance.now()
+    Fi[0] = performance.now()
+    Fi[1] = performance.now()
     dim[3] = reuse[3]
     ABtoFrame(reuse[1], d1, 2)
   }
@@ -1072,7 +1072,7 @@ function readMDP(arri) {
     }
 
     const layer = layers[LayerN];
-    //ti[0] = performance.now();
+    //Fi[0] = performance.now();
 
     if (layer.type == "folder") {
       setTimeout(() => {readLayer(LayerN+1)}, 1000);
@@ -1105,7 +1105,7 @@ function readMDP(arri) {
     canvas.height = c.height;
     const ctx = canvas.getContext("2d");
 
-    //ti[1] = performance.now();
+    //Fi[1] = performance.now();
     function readTile(TileN) {
       if (TileN >= tileNum) {
         // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
@@ -1182,7 +1182,7 @@ function readMDP(arri) {
       }
     }
     readTile(0);
-    //echo(`${layer.getAttribute("name")} with ${tileNum} tiles took ${(performance.now()-ti[1])/1000} seconds`);
+    //echo(`${layer.getAttribute("name")} with ${tileNum} tiles took ${(performance.now()-Fi[1])/1000} seconds`);
   }
   readLayer(0);
 }
@@ -1587,7 +1587,7 @@ function Chunk(offset, len, type) {
 }
 
 function toFrame(fps, bp=[0, 1]) {
-  ti[1] = performance.now()
+  Fi[1] = performance.now()
   frame_counter += 1;
 
   if (!frame_counter) {
@@ -1634,10 +1634,10 @@ function toFrame(fps, bp=[0, 1]) {
       newAPNG.push(new Uint8Array(fdAT));
     };
   }
-  ti[2] = performance.now();
-  //echo((ti[2] - ti[1])/1000 + "s toFrame()")
-  ti[3] = performance.now();
-  echo("in " + (ti[3] - ti[0])/1000 + "s", 1)
+  Fi[2] = performance.now();
+  //echo((Fi[2] - Fi[1])/1000 + "s toFrame()")
+  Fi[3] = performance.now();
+  echo("in " + (Fi[3] - Fi[0])/1000 + "s", 1)
 }
 
 function makeAPNG(interFrameN, callback=false) {
@@ -1700,7 +1700,7 @@ function crop() {
 }
 
 function frameSaver(interFrameN, i) {
-  ti[1] = performance.now();
+  Fi[1] = performance.now();
   if (interFrameN == 0) {
     frameBuffer[0] = context.getImageData(...dim[i]);
   } else {
@@ -1710,8 +1710,8 @@ function frameSaver(interFrameN, i) {
     context.putImageData(frameBuffer[1], 0, 0);
     crop();
   }
-  ti[2] = performance.now();
-  //echo((ti[2] - ti[1])/1000 + "s frameSaver()")
+  Fi[2] = performance.now();
+  //echo((Fi[2] - Fi[1])/1000 + "s frameSaver()")
 }
 
 function drawobj(x) {
@@ -1773,8 +1773,8 @@ function randobg() {
 }
 
 function staticAPNG(interFrameN, callback=false) {
-  ti[0] = performance.now();
-  ti[1] = performance.now();
+  Fi[0] = performance.now();
+  Fi[1] = performance.now();
 
   dim[3] = [0, 0, 1, 1];
   c.width = 1;
@@ -1811,13 +1811,13 @@ function compileframes(multi=true, dea=false) {
         canvasToFrame(delayFrame, interFrameN, fpsm);
       }
     }
-    ti[2] = performance.now();
-    //echo((ti[2] - ti[1])/1000 + "s canvasing")
+    Fi[2] = performance.now();
+    //echo((Fi[2] - Fi[1])/1000 + "s canvasing")
   }
 
   function readFrame(interFrameN, fpsm) {
-    ti[0] = performance.now();
-    ti[1] = performance.now();
+    Fi[0] = performance.now();
+    Fi[1] = performance.now();
 
     if (!multi && !bg) {
       get_dim(framearray[seqFrameN[interFrameN]-1][0], 1);
@@ -1887,8 +1887,8 @@ function compileapngs() {
   seqAPNG = apnglist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter((e) => {return e;});
   const reuse = [false, false, false]; // pos, dim, arri
   function readFile(interAPNG) {
-    ti[0] = performance.now();
-    ti[1] = performance.now();
+    Fi[0] = performance.now();
+    Fi[1] = performance.now();
     if(interAPNG == seqAPNG.length){
       makeAPNG();
       return;
@@ -1923,8 +1923,8 @@ function compileapngs() {
       arri = frame.arri;
       img = ABtoIMG(ABtoAB(arri));
       img.onload = () => {
-        ti[0] = performance.now();
-        ti[1] = performance.now();
+        Fi[0] = performance.now();
+        Fi[1] = performance.now();
         if (interFrameN == 0) {
           if (interAPNG == 0) {
             get_dim(img, 4);
@@ -2426,7 +2426,7 @@ function loaded() {
     } else if (isImage(get_ext(f))) {
       img = document.createElement("img");
       if (isImage(get_ext(f)) == "heic") {
-        if (convert){
+        if (decoder){
           const fr = new FileReader();
           fr.readAsArrayBuffer(f);
           fr.onload = () => {
@@ -2558,7 +2558,6 @@ function loaded() {
   s.src = "libheif.js?" + Date.now();
   document.body.appendChild(s);
   s.onload = () => {
-    convert = true;
     decoder = new libheif.HeifDecoder();
   }
   s.onerror = () => {
@@ -2598,8 +2597,8 @@ var fps = 0;
 var framearray = [];
 var apngarray = [];
 var decompress = false;
-var convert = false;
-var ti = [0, 0, 0, 0];
+var decoder = false;
+var Fi = [0, 0, 0, 0];
 var c = document.createElement("canvas");
 var context = c.getContext("2d");
 var frameBuffer = [false, false, false, false];
@@ -2608,7 +2607,7 @@ var maxres = [0, 0, 1, 1];
 var bg = false;
 var createbg = false;
 var interecho = false;
-var arri, seqFrameN, seqAPNG, seqLayerN, img, Module, name, decoder;
+var arri, seqFrameN, seqAPNG, seqLayerN, img, Module, name;
 
 window.onload = () => {
   document.body.innerHTML = `<div style="margin-bottom:12px; background:inherit;">

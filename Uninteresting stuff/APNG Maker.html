@@ -1700,7 +1700,6 @@ function crop() {
 }
 
 function frameSaver(interFrameN, i) {
-  echo(interFrameN);
   ti[1] = performance.now();
   if (interFrameN == 0) {
     frameBuffer[0] = context.getImageData(...dim[i]);
@@ -2497,7 +2496,7 @@ function loaded() {
   rbg.addEventListener('click', (e) => {
     if (rbg.classList.contains("reverse")){
       rbg.classList = "inverse";
-      rbg.innerHTML = "Random background";
+      rbg.innerHTML = "Alpha background";
       createbg = true;
     } else {
       rbg.classList = "reverse";
@@ -2508,7 +2507,7 @@ function loaded() {
 
   recompress.addEventListener('click', (e) => {
     if (recompress.classList.contains("reverse")){
-      if (!optimize) {
+      if (!optipng) {
         echo('Optimize frames with <a href="https://github.com/LI-NA/optipng.js/tree/master/demo/js" target="_blank">optipng.min.js</a>, save next to HTML then reload this page and try again');
         return;
       }
@@ -2550,9 +2549,6 @@ function loaded() {
   var s = document.createElement("script");
   s.src = "optipng.min.js?" + Date.now();
   document.body.appendChild(s);
-  s.onload = () => {
-    optimize = true;
-  }
 
   s = document.createElement("script");
   s.src = "pako.min.js?" + Date.now();
@@ -2601,7 +2597,6 @@ function newtip(y, z){
 var fps = 0;
 var framearray = [];
 var apngarray = [];
-var optimize = false;
 var decompress = false;
 var convert = false;
 var ti = [0, 0, 0, 0];

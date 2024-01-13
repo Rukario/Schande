@@ -586,6 +586,12 @@
   "Ika's Sheath Signature":[[501, 1274], "azure", 0, 1],
   "Magnus' Sheath Signature":[[292, 1269], "red", 0, 1],
 
+  "Signature rideable":true,
+  "flint's rideable signature":[1309, "???", 0, 0],
+  "ika's rideable signature":[1313, "???", 0, 0],
+  "mystic's rideable signature":[1307, "???", 0, 0],
+  "orochi's rideable signature":[1311, "???", 0, 0],
+
   "Natural":true,
   "Abyss' Natural":[1278, "sky blue", 2, 0, "machine", 2, 0],
   "Apollo's Natural":[[70, 773], "lavender", 0, 0, "beeswax", 0, 0],
@@ -719,6 +725,14 @@
   "Ika's Sheath Natural":[[500, 1273], "lime", 0, 1],
   "Magnus' Sheath Natural":[[293, 1270], "garnet", 0, 1],
 
+  "Natural rideable":true,
+  "flint's rideable natural":[1308, "???", 0, 0],
+  "ika's rideable natural":[1312, "???", 0, 0],
+  "mystic's rideable natural":[1306, "???", 0, 0],
+  "orochi's rideable natural":[1310, "???", 0, 0],
+
+
+
   "Legacies":true,
   "Chance's Natural (legacy)":[57, "???", 0, 0],
   "David's Sheath Natural legacy":[295, "???", 0, 0],
@@ -777,6 +791,13 @@
   "Turquoise legacy":[[170, 1210], "???", 0, 0],
 
   "Retired/Mislabelled":true,
+  "morning dew":[null, "???", 0, 0],
+  "splendid violet":[null, "???", 0, 0],
+  "satin green":[null, "???", 0, 0],
+  "luster blue":[null, "???", 0, 0],
+
+
+
   "Deep Freeze":[[528, 533], "???", 0, 0],
   "Iceblight":[[569, 571], "???", 0, 0],
   "Blizzard":[[531, 532], "???", 0, 0],

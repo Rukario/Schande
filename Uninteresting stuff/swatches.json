@@ -597,8 +597,8 @@
 "cs david's signature legacy": {"description": "It's a full moon out! A white highlight, a marbled shaft that glows in the dark, and a blue base. Awroo!", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/57d8a1a0-47eb-47e0-9275-cd1d18cdb99e"},
 "cs elliot's signature": {"description": "Metallic gold to a metallic copper fade", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/c3b00f83-dab1-47b5-be27-49762542c752"},
 "cs elliot's natural": {"description": "A cherry blossom tip fading to blue balls.", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/c1d694e0-2c37-4e46-b8f2-372aa7d311c4"},
-"cs duke's signature": {"description": "A 3 color marble of onyx, crimson and metallic silver", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/f0c92047-23b5-4791-b281-caf5ec53990d"},
-"cs duke's natural": {"description": "A marble in Bad Dragon's official colors!", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/56d872ee-baf7-4a16-9567-a91f4fb87bd9"},
+"cs duke's signature": {"description": "Crimson fading to a Black Cherry with Red dazzle throughout", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/4ccb77ad-bb4e-4fdb-b58f-1da11ff31253"},
+"cs duke's natural": {"description": "A dazzling Black marbled with Glistening Crimson", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/cdf9ae4c-04fe-489f-b2c6-d5bb4fd1d1ab"},
 "cs razor's signature": {"description": "A plum red to a blacker plum red", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/225b1cc2-f401-4d15-a8a7-a1980563ff11"},
 "cs razor's natural": {"description": "A metallic red shaft with a base of dark bronze marbled with black with gold dazzle.", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/d75937d8-bbe5-466b-b7b9-5f9a69417a9d"},
 "cs lenneth's signature": {"description": "Pearly blue shaft with a marble of black and pearly silver base", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/f4f87d4f-8368-43f1-8ee9-4fc9569a14ad"},
@@ -1231,6 +1231,12 @@
 "festive surprise blue": {"description": "Pearlescent Blue", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/fef60cfe-5a4d-47c2-be21-a45f2834d08d"},
 "con mango magic mas": {"description": "Soft metallic pink, golden orange, pastel tangerine, and transparent red make this fully UV reactive marble pop!", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/4a9b2a32-f9eb-40a5-beb4-6ba28a76c64d"},
 "con iris infusion mas": {"description": "Metallic sky blue, transparent Violet, metallic ocean blue and pastel magenta marbled together in this fully UV reactive convention exclusive color", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/4e38728d-b797-4b39-87f5-b753d4a4c8ea"},
+"con natural 2024": {"description": "A marble of Blue, Pink and Purple that are all UV Reactive", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/58f286ef-ae17-49a5-a435-dbf3fd38ba4f"},
+"con signature 2024": {"description": "An assault to the eyes caused by this 4 color marble of Neon Teal, Neon Orange, Neon Yellow and Neon Magenta", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/01f14cd5-829a-4998-8245-51ad27538ac7"},
+"cs nokken's signature": {"description": " A faded shaft of metallic light Purple transitioning into a Grayish Blue and a deep ocean Green with rainbow dazzle throughout and featuring a base with Black that shimmers Blue", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/a93f1f30-4bf8-40ae-88b3-d232f13acad5"},
+"ice age": {"description": "A fade of transparent, dazzling silver to a frigid light blue with a silver base", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/06294cea-8322-42c0-b8b3-f476df3f5664"},
+"andre's natural": {"description": "Marketing", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/7fbfb596-e46d-47a6-918a-c49338ea4a3f"},
+"cs nokken's natural": {"description": "A glimmering Blue faded into a metallic Green-Gold", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/683193b0-8f4a-4386-898b-07f899d2469b"},
+"andre's signature": {"description": "Marketing", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/4508165e-4025-4c77-9a5f-2af598e1f3a5"},
 "meatcanyon's signature": {"description": "A UV Reactive buttery Yellow niptip that glows Blue with a fleshy bubblegum Pink that glows Green", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/69d15a11-387b-4bd1-aeeb-b558c4507a69"},
-"meatcanyon's natural": {"description": "A grotesque coloration of a natural Flesh niptip with a decaying Green flesh shaft", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/8785369f-f65b-4771-b6dd-f2c2a4990119"}
-}
+"meatcanyon's natural": {"description": "A grotesque coloration of a natural Flesh niptip with a decaying Green flesh shaft", "swatchImage": "https://da6npmvqm28oa.cloudfront.net/8785369f-f65b-4771-b6dd-f2c2a4990119"}}

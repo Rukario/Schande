@@ -252,6 +252,7 @@
   "Black Xmas":[[null, 1318], "???", 0, 0],
   "Festive Surprise Blue":[1328, "???", 0, 0],
   "Festive Surprise Silver":[1329, "???", 0, 0],
+  "Ice Age":[1336, "???", 0, 0],
 
   "More colors":true,
   "Toxin":[1002, "grape", 0, 0],
@@ -458,6 +459,7 @@
 
   "Signature":true,
   "Abyss' Signature":[[1277, 1276], "gold", 0, 0, "orange", 0, 2, "maroon", 0, 2, "galaxy", 0, 0],
+  "Andre's Signature":[1331, "???", 0, 0],
   "Apollo's Signature":[[857, 772], "white", 0, 0, "azure", 2, 0, "mold", 0, 0],
   "Austin's Signature":[[490, 719], "white", 0, 0, "sky blue", 0, 2, "blueberry", 2, 0],
   "Axel's Signature":[[296, 707], "white", 0, 0, "sky blue", 0, 2, "machine", 0, 2],
@@ -594,6 +596,7 @@
 
   "Natural":true,
   "Abyss' Natural":[1278, "sky blue", 2, 0, "machine", 2, 0],
+  "Andre's Natural":[1330, "???", 0, 0],
   "Apollo's Natural":[[70, 773], "lavender", 0, 0, "beeswax", 0, 0],
   "Audio Jack Natural":[850, "smoke", 0, 0, "black", 0, 0],
   "Austin's Natural":[[16, 718], "scarlet", 0, 0, "cream", 0, 0, "copper", 3, 0],

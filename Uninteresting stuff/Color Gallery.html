@@ -6,7 +6,8 @@
 <meta name="viewport" content="user-scalable=0">
 <title>Color Gallery</title>
 <style>
-html,body {caret-color:#ffbbff; font-family:courier; font-size:14px; -webkit-user-select:none;}
+body {caret-color:#ffbbff; font-family:courier; font-size:14px; -webkit-user-select:none; user-select:none;}
+/* :root {color-scheme: light dark; body {background-color: Canvas;}} */
 ::selection {background:rgba(255, 192, 255, 0.25);}
 [contenteditable]:focus, input:focus {outline:none;}
 .editor {padding:8px 12px; min-width:606px; min-height:12px; line-height:1.1; white-space:pre-wrap;}
@@ -24,7 +25,7 @@ input[type="file"] {display: none;}
 input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0;}
 ::placeholder {color:#3cb;}
 
-.cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:45px; cursor:pointer; line-height:1.1;}
+.cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:44px; cursor:pointer; line-height:1.1;}
 .previous, .reverse, .inverse, .next, .tangerine, .brown {white-space:nowrap; font-family:sans-serif; font-size:90%; position:relative; display:inline-block; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
 .next {color:#6fe; background-color:#066;}
 .previous {color:#6fe; background-color:#399;}
@@ -53,23 +54,26 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
     transform:rotate(360deg);
   }
 }
+
 .menu {background-color:#110c13; color:#9b859d;}
 .exitmenu {background-color:#10100c; color:#088;}
+
 </style>
 <script>
-var fc = {"black":"#000000", "anubis":"#292220", "mold":"#222922", "machine":"#202229", "concrete":"#666666", "smoke":"#999999", "cream":"#dcd6cc", "white":"#ffffff", "galaxy":"#111114", "wine":"#500040", "purple":"#992282", "magenta":"#ff33e2", "cherry blossom":"#ffc9e8", "maroon":"#820045", "rose":"#d60159", "orchid":"#ff6c9b", "garnet":"#770017", "cherry":"#d9002b", "cerise":"#ff464e", "rouge":"#ffb9c0", "crimson":"#771700", "red":"#c7291b", "scarlet":"#f35548", "magic":"#eff6ff", "chestnut":"#bd3f20", "coral":"#f1876a", "jovial":"#f7c3b3", "rosewood":"#9f400f", "copper":"#e86423", "peach":"#ffc397", "chocolate":"#61300b", "bronze":"#c26718", "orange":"#ff8a00", "honey":"#ffbe6a", "gold":"#ffc11d", "brass":"#ffd76b", "beeswax":"#c4af22", "lemon":"#ffe900", "beige":"#fff8a8", "olive":"#707916", "fern":"#b4cd20", "tennis ball":"#e5ff00", "pistachio":"#e5ff9f", "forest":"#234d00", "green":"#64c900", "lime":"#adff69", "xanadu":"#c2ffaf", "teal":"#009677", "robin egg":"#2deacf", "mist":"#a3ffe1", "azure":"#1898cf", "sky blue":"#5ed5ff", "arctic":"#caf6ff", "ink":"#30228c", "blueberry":"#6666ff", "glaucous":"#aac6ff", "indigo":"#401187", "electric indigo":"#7f36df", "lavender indigo":"#b796ff", "grape":"#4b0078", "violet":"#8904d1", "psychic":"#bb6eff", "lavender":"#e0caff"}
+var fc = {"black":"#000000", "anubis":"#292220", "mold":"#222922", "machine":"#202229", "concrete":"#666666", "smoke":"#999999", "cream":"#dcd6cc", "white":"#ffffff", "galaxy":"#111114", "wine":"#500040", "purple":"#992282", "magenta":"#ff33e2", "maroon":"#820045", "rose":"#d60159", "orchid":"#ff6c9b", "cherry blossom":"#ffc9e8", "raspberry":"#aa5c7b", "garnet":"#770017", "cherry":"#d9002b", "cerise":"#ff464e", "rouge":"#ffb9c0", "puce":"#aa7370", "crimson":"#771700", "red":"#c7291b", "scarlet":"#f35548", "chestnut":"#bd3f20", "coral":"#f1876a", "jovial":"#f7c3b3", "rosewood":"#9f400f", "copper":"#e86423", "peach":"#ffc397", "chocolate":"#61300b", "bronze":"#c26718", "orange":"#ff8a00", "honey":"#ffbe6a", "caramel":"#aa7e4a", "gold":"#ffc11d", "brass":"#ffd76b", "beeswax":"#c4af22", "lemon":"#ffe900", "beige":"#fff8a8", "olive":"#707916", "fern":"#b4cd20", "tennis ball":"#e5ff00", "pistachio":"#e5ff9f", "forest":"#234d00", "green":"#64c900", "lime":"#adff69", "xanadu":"#c2ffaf", "grass":"#337744", "teal":"#009677", "robin egg":"#2deacf", "mist":"#a3ffe1", "azure":"#1898cf", "sky blue":"#5ed5ff", "arctic":"#caf6ff", "ink":"#30228c", "blueberry":"#6666ff", "glaucous":"#aac6ff", "magic":"#eff6ff", "indigo":"#401187", "electric indigo":"#7f36df", "lavender indigo":"#b796ff", "glossy grape":"#7c6699", "grape":"#4b0078", "violet":"#8904d1", "psychic":"#bb6eff", "lavender":"#e0caff"};
 
 var cn = [
   "black", "anubis", "mold", "machine",
+  null, "raspberry", "grass", "glossy grape",
   "concrete", "smoke", "cream", "white",
   "galaxy", "wine", "purple", "magenta",
   "maroon", "rose", "orchid", "cherry blossom",
   "garnet", "cherry", "cerise", "rouge",
-  "crimson", "red", "scarlet", null,
+  "crimson", "red", "scarlet", "puce",
   null, "chestnut", "coral", "jovial",
   null, "rosewood", "copper", "peach",
   "chocolate", "bronze", "orange", "honey",
-  null, null, "gold", "brass",
+  null, "caramel", "gold", "brass",
   null, "beeswax", "lemon", "beige",
   "olive", "fern", "tennis ball", "pistachio",
   "forest", "green", "lime", "xanadu",
@@ -78,7 +82,7 @@ var cn = [
   "ink", "blueberry", "glaucous", "magic",
   "indigo", "electric indigo", "lavender indigo", null,
   "grape", "violet", "psychic", "lavender"
-]
+];
 
 var palette = [
   ["concrete", "smoke", "cream", "white"],
@@ -88,8 +92,9 @@ var palette = [
   ["purple", "rose", "cherry", "red", "chestnut", "bronze", "beeswax", "fern", "green", "teal", "azure", "blueberry", "electric indigo", "violet"],
   ["cerise", "scarlet", "copper", "orange", "gold", "lemon", "tennis ball", "lime", "robin egg", "sky blue", "glaucous", "lavender indigo", "psychic"],
   ["magenta", "orchid", "coral"],
-  ["cherry blossom", "rouge", "jovial", "peach", "honey", "brass", "beige", "pistachio", "xanadu", "mist", "arctic", "magic", "lavender"]
-]
+  ["cherry blossom", "rouge", "jovial", "peach", "honey", "brass", "beige", "pistachio", "xanadu", "mist", "arctic", "magic", "lavender"],
+  ["raspberry", "puce", "caramel", "grass", "glossy grape"]
+];
 
 var colorsets = {};
 var pictures = {};
@@ -289,6 +294,10 @@ function makelink(cs){
     tt += "<br><img style='vertical-align:middle;' src='" + swatches[lowkey]["swatchImage"] + "'>"
     if(lowkey + " mas" in swatches){
       tt += " ꍯ <img src='" + swatches[lowkey + " mas"]["swatchImage"] + "'>"
+    } else if("cs " + lowkey in swatches){
+      tt += " ꍯ Swap available"
+    } else if(Array.isArray(c[0])){
+      tt += " ꍯ Swap N/A or naming issue"
     }
   }
   let s = document.createElement("span");
@@ -377,7 +386,20 @@ function FFdown(e) {
       }
     }
     rainbowfade = false;
-    pukefest.innerHTML = makedots(rainbow, 0) + `<button class="dark" id="fadeends" style="display:none;" onclick="rainbowfade=false; this.style.display='none'" data-tooltip="Fade ends">ꍯ</button>`
+    pukefest.innerHTML = makedots(rainbow, 0);
+
+    const b = document.createElement("button");
+    b.innerHTML = "ꍯ";
+    b.classList = "dark";
+    b.id = "fadeends";
+    b.style.display = "none";
+    b.addEventListener('click', () => {
+      rainbowfade = false;
+      fadeends.display = 'none';
+    });
+    b.setAttribute("data-tooltip", "Fade ends");
+    pukefest.appendChild(b);
+
     gallery.innerHTML = buffer;
     lazyload();
   } else if (e.target.getAttribute("id") == "gallerysave"){
@@ -402,7 +424,7 @@ function FFdown(e) {
     odnary.style.display = "none";
     cs.style.display = "none";
     mas.style.display = "none";
-    var t = link.innerHTML.toLowerCase()
+    var t = link.innerHTML.toLowerCase().replace(/'/g, "");
     if(Object.keys(pictures).includes(t)){
       odnary.style.display = "inline-block";
       odnary.setAttribute("data-colorset", t);
@@ -557,8 +579,19 @@ function FFdown(e) {
       rainbow = rainbow.slice(3);
       rainbow[2] = 0;
     }
-    pukefest.innerHTML = makedots(rainbow, 0) + `<button class="dark" id="fadeends" style="display:none;" onclick="rainbowfade=false;fadeends.style.display='none'" data-tooltip="Fade ends">ꍯ</button>`
-    fadeends.style.display = "initial"
+    pukefest.innerHTML = makedots(rainbow, 0);
+
+    const b = document.createElement("button");
+    b.innerHTML = "ꍯ";
+    b.classList = "dark";
+    b.id = "fadeends";
+    b.addEventListener('click', () => {
+      rainbowfade = false;
+      fadeends.style.display = 'none';
+    });
+    b.setAttribute("data-tooltip", "Fade ends");
+    pukefest.appendChild(b);
+
     colorlist.innerHTML = "<h3>Color sets using " + t + "-like silicone</h3>";
     colorsels = []
     var keys = Object.keys(colorsets);
@@ -857,9 +890,9 @@ window.onload = () => {
     }
   }, false);
 
-  var ca = document.cookie.split(';');
-  for(var i=0; i < ca.length; i++) {
-    var c = ca[i];
+  var cookies = document.cookie.split(';');
+  for(const cookie of cookies) {
+    var c = cookie;
 
     while (c.charAt(0) == ' '){
       var c = c.substring(1, c.length)
@@ -869,6 +902,7 @@ window.onload = () => {
       editor.innerHTML = decodeURIComponent(c.substring("gallerysave=".length, c.length));
     }
   }
+
   calc.addEventListener("keyup", function(e) {
     let c = calc.value;
     if (!c){

@@ -242,7 +242,7 @@ function makegallery(colorset){
     var colortip = ""
     for(var css=0; css<pictures["rogue"][i][k].length; css++){
       var cs = pictures["rogue"][i][k][css]
-      if(cs[0].toLowerCase() == colorset){
+      if(cs[0].toLowerCase().replace(/'/g, "") == colorset){
         featured = true;
       }
       colortip += "&gt; <span class='colorset'>" + cs[0] + "</span>";

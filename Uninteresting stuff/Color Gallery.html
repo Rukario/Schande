@@ -269,8 +269,8 @@ function makegallery(colorset){
   gallery.innerHTML = buffer;
 
   var links = document.querySelectorAll(".colorset")
-  for(var i=0; i < links.length; i++){
-    if(links[i].innerHTML.toLowerCase() == colorset){
+  for (var i=0; i < links.length; i++) {
+    if (links[i].innerHTML.toLowerCase().replace(/'/g, "") == colorset) {
       links[i].classList.add("colorsel");
     } else {
       links[i].classList.remove("colorsel");

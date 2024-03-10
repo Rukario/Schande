@@ -562,9 +562,10 @@ function new_stars() {
       if (colorful == 1 && Math.floor(Math.random()*4)) {
         maskcontext.drawImage(foliage, 0, 0);
       } else {
-        maskcontext.fillStyle = starcolor(colorful);
         maskcontext.drawImage(alpha, 0, 0);
         maskcontext.globalCompositeOperation = "source-in";
+
+        maskcontext.fillStyle = starcolor(colorful);
         maskcontext.fillRect(0, 0, 95, 95);
       };
       canvasToFrame(mask, variant, i);
@@ -771,34 +772,12 @@ function new_card(next, suit) {
   return acard;
 }
 
-function cyrb128(str) {
-  let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
-  for (let i = 0, k; i < str.length; i++) {
-    k = str.charCodeAt(i);
-    h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
-    h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
-    h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
-    h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
-  }
-  h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
-  h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
-  h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
-  h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
-  h1 ^= (h2 ^ h3 ^ h4), h2 ^= h1, h3 ^= h1, h4 ^= h1;
-  return [h1>>>0, h2>>>0, h3>>>0, h4>>>0];
-}
-
-function sfc32(a, b, c, d) {
+function splitmix32(a) {
   return function() {
-    a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0; 
-    var t = (a + b) | 0;
-    a = b ^ b >>> 9;
-    b = c + (c << 3) | 0;
-    c = (c << 21 | c >>> 11);
-    d = d + 1 | 0;
-    t = t + d | 0;
-    c = c + t | 0;
-    return (t >>> 0) / 4294967296;
+    a |= 0; a = a + 0x9e3779b9 | 0;
+    var t = a ^ a >>> 16; t = Math.imul(t, 0x21f0aaad);
+        t = t ^ t >>> 15; t = Math.imul(t, 0x735a2d97);
+    return ((t = t ^ t >>> 15) >>> 0) / 4294967296;
   }
 }
 
@@ -817,9 +796,9 @@ function new_deck() {
   const alphaseed = seed.value !== '' ? seed.value.replace(/\W/g, '') : Math.random().toString(36).slice(2);
   seednow.value = alphaseed;
   const s = parseInt(alphaseed, 36) / Math.pow(36, alphaseed.length).toString(10).slice(2);
-  const rand = sfc32(s, s+16, s+32, s+64);
+  const rand = splitmix32(s);
   while (breakseal.length) {
-    let pick = Math.floor(rand() * breakseal.length);
+    const pick = Math.floor(rand() * breakseal.length);
     deck.push(breakseal[pick]);
     breakseal.splice(pick, 1);
   }
@@ -2778,13 +2757,13 @@ function windo(win) {
  
   let promise = new Promise(canvasToAB(mask, 'png'))
   promise.then(function(arri){
-    const url = ABtoAB(arri);
+    const a = ABtoAB(arri);
     const wind = document.getElementsByClassName("windo");
     for (const win of wind) {
       const img = document.createElement("img");
       img.style.height = "10px";
       //img.style.imageRendering = "pixelated";
-      img.src = ABtoURL(url);
+      img.src = ABtoURL(a);
       win.innerHTML = img.outerHTML;
     }
   })
@@ -2928,6 +2907,7 @@ window.onload = () => {
       console.log(e.keyCode, e.location);
     };
   });
+
   document.addEventListener("keyup", (e) => {
     if (65-1 < e.keyCode && e.keyCode < 90+1) {
       pressed(e.keyCode-64, false);
@@ -2950,10 +2930,12 @@ window.onload = () => {
       sol();
     }
   });
+
   addEventListener("visibilitychange", (event) => {
     //startTime = Date.now();
     //frameCount = 0;
   });
+
   c.style.cursor = 'pointer';
   document.body.append(c);
 

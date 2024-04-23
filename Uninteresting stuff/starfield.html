@@ -183,7 +183,7 @@ canvas {
   );
 }
 
-#result, #stdout {
+#result, #stdout, #glyph {
   white-space: pre;
   display: none;
   color: #0f0;
@@ -2011,6 +2011,26 @@ var qixmap = qixmaskc.createImageData(qixmask.width, qixmask.height);
 var qixsc = 6;
 var qixpos, qixpos2, qixlines, qixline;
 
+var glyphm = document.createElement('canvas');
+var glyphmc = glyphm.getContext('2d');
+var glyphscr = document.createElement('canvas');
+var glyphc = glyphscr.getContext('2d');
+var glyphdn = 1;
+
+var glyphimg = new Image();
+glyphimg.src = "SOL/glyph.png";
+glyphimg.onload = () => {
+  glyphm.width = glyphimg.width;
+  glyphm.height = glyphimg.height;
+  glyphscr.width = 16*64;
+  glyphscr.height = 16*4;
+
+  glyphmc.drawImage(glyphimg, 0, 0);
+  glyphmc.globalCompositeOperation = "source-in";
+  glyphmc.fillStyle = "#0f0";
+  glyphmc.fillRect(0, 0, glyphimg.width, glyphimg.height);
+}
+
 function new_qix() {
   qixpos = {'x':80*qixsc, 'y':51*qixsc, 's':0};
   qixpos2 = {'x':Math.floor((Math.random()*qixmask.width-2)+1)*qixsc, 'y':Math.floor((Math.random()*qixmask.height-2)+1)*qixsc, 's':0};
@@ -2412,6 +2432,7 @@ function makemenu() {
           stopqix = true;
         }
         new_qix();
+        glyph.style.display = 'block';
         anim.src = 'flower.jpg';
         anim.onload = () => {
           keyboard.style.display = "inline-block";
@@ -2678,7 +2699,32 @@ function makemenu() {
   }
 }
 
+var glyphcur = 0;
+var glyphrn = 0;
 function pressed(i, b) {
+  if (b) {
+    console.log(i);
+    let x = i;
+    if (x > 9) {
+      x -= 1;
+    }
+    if (i == 17) {
+      x = 10;
+    }
+    if (x > 15) {
+      x -= 1;
+    }
+    if (x === 20 || x === 21) {
+      x = 19;
+    } else if (x > 20) {
+      x -= 2;
+    }
+    if (i > 26) {
+      x = i-26;
+    }
+    glyphc.drawImage(glyphm, 16*(x-1), i > 26 ? 0 : 16*glyphdn, 16, 16, 16*glyphcur, 16*glyphrn, 16, 16);
+    glyphcur += 1;
+  }
   Keypress[i] = b;
   KeypressT[i].childNodes[0].classList = b ? "keycapface pressed" : "keycapface";
   KeypressT[i].classList = b ? "keycap pressed" : "keycap";
@@ -2772,6 +2818,7 @@ function windo(win) {
 var Keypress = Array(37).fill(false);
 
 window.onload = () => {
+  glyph.appendChild(glyphscr);
   let win = document.createElement("img");
   win.src = 'win95.png';
   win.onload = () => {
@@ -2904,6 +2951,20 @@ window.onload = () => {
     } else if (37-1 < e.keyCode && e.keyCode < 40+1) {
       pressed(e.keyCode, true);
     } else {
+      if (e.keyCode === 8) {
+        glyphcur -= glyphcur ? 1 : 0;
+        glyphc.clearRect(16*glyphcur, 16*glyphrn, 16, 16);
+      }
+      if (e.keyCode === 16) {
+        glyphdn = 2;
+      }
+      if (e.keyCode === 32) {
+        glyphcur += 1;
+      }
+      if (e.keyCode === 13) {
+        glyphrn = glyphrn > 4 ? 0 : glyphrn + 1;
+        glyphcur = 0;
+      }
       console.log(e.keyCode, e.location);
     };
   });
@@ -2916,6 +2977,9 @@ window.onload = () => {
     } else if (37-1 < e.keyCode && e.keyCode < 40+1) {
       pressed(e.keyCode, false);
     };
+    if (e.keyCode === 16) {
+      glyphdn = 1;
+    }
   });
 
   addEventListener("resize", () => {
@@ -2967,6 +3031,7 @@ window.onload = () => {
 <div class="hintscreen"><div class="hint" id="qixscr"></div></div>
 <div class="hintscreen"><div class="hint" id="qixscr2"></div></div>
 <div id="result"></div>
+<div id="glyph" style="left:8px; top:8px;"></div>
 <div id="stdout">Output:</div>
 <div class="poppy" id="poppy"></div>
 <div id="dialogbox"><div id="close">&times;</div><div id="dialog"></div></div>

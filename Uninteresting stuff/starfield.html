@@ -2704,26 +2704,8 @@ var glyphrn = 0;
 function pressed(i, b) {
   if (b) {
     console.log(i);
-    let x = i;
-    if (x > 9) {
-      x -= 1;
-    }
-    if (i == 17) {
-      x = 10;
-    }
-    if (x > 15) {
-      x -= 1;
-    }
-    if (x === 20 || x === 21) {
-      x = 19;
-    } else if (x > 20) {
-      x -= 2;
-    }
-    if (i > 26) {
-      x = i-26;
-    }
     glyphc.clearRect(16*glyphcur, 16*glyphrn, 16, 16);
-    glyphc.drawImage(glyphm, 16*(x-1), i > 26 ? 0 : 16*glyphdn, 16, 16, 16*glyphcur, 16*glyphrn, 16, 16);
+    glyphc.drawImage(glyphm, 16*(i-1), i > 26 ? 0 : 16*glyphdn, 16, 16, 16*glyphcur, 16*glyphrn, 16, 16);
     if (glyphcur > 57) {
       glyphrn = glyphrn > 2 ? 0 : glyphrn + 1;
       glyphcur = 0;

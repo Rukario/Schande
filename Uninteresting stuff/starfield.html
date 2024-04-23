@@ -2022,7 +2022,7 @@ glyphimg.src = "SOL/glyph.png";
 glyphimg.onload = () => {
   glyphm.width = glyphimg.width;
   glyphm.height = glyphimg.height;
-  glyphscr.width = 16*64;
+  glyphscr.width = 16*59;
   glyphscr.height = 16*4;
 
   glyphmc.drawImage(glyphimg, 0, 0);
@@ -2722,8 +2722,14 @@ function pressed(i, b) {
     if (i > 26) {
       x = i-26;
     }
+    glyphc.clearRect(16*glyphcur, 16*glyphrn, 16, 16);
     glyphc.drawImage(glyphm, 16*(x-1), i > 26 ? 0 : 16*glyphdn, 16, 16, 16*glyphcur, 16*glyphrn, 16, 16);
-    glyphcur += 1;
+    if (glyphcur > 57) {
+      glyphrn = glyphrn > 2 ? 0 : glyphrn + 1;
+      glyphcur = 0;
+    } else {
+      glyphcur += 1;
+    }
   }
   Keypress[i] = b;
   KeypressT[i].childNodes[0].classList = b ? "keycapface pressed" : "keycapface";
@@ -2959,10 +2965,16 @@ window.onload = () => {
         glyphdn = 2;
       }
       if (e.keyCode === 32) {
-        glyphcur += 1;
+        glyphc.clearRect(16*glyphcur, 16*glyphrn, 16, 16);
+        if (glyphcur > 57) {
+          glyphrn = glyphrn > 2 ? 0 : glyphrn + 1;
+          glyphcur = 0;
+        } else {
+          glyphcur += 1;
+        }
       }
       if (e.keyCode === 13) {
-        glyphrn = glyphrn > 4 ? 0 : glyphrn + 1;
+        glyphrn = glyphrn > 2 ? 0 : glyphrn + 1;
         glyphcur = 0;
       }
       console.log(e.keyCode, e.location);

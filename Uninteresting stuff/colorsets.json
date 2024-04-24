@@ -805,8 +805,8 @@
   "Chance's Natural (legacy)":[57, "???", 0, 0],
   "David's Sheath Natural legacy":[295, "???", 0, 0],
   "David's Signature legacy":[[103, 802], "???", 0, 0],
-  "Fenrir Legacy's Signature":[[4, 752], "lemon", 0, 0, "olive", 0, 2],
-  "Fenrir Legacy's Natural":[[50, 751], "chestnut", 0, 0],
+  "Fenrir's Signature Legacy":[[4, 752], "lemon", 0, 0, "olive", 0, 2],
+  "Fenrir's Natural Legacy":[[50, 751], "chestnut", 0, 0],
   "Hanns' Natural legacy":[1224, "???", 0, 0],
   "Janine's Signature legacy":[146, "???", 0, 0],
   "Janine's Muzzle Signature (legacy)":[284, "???", 0, 0],
@@ -1117,5 +1117,7 @@
   "chi-chi (c)":[1045, "???", 0, 0],
   "noxeema (c)":[1046, "???", 0, 0],
   "vida (c)":[1044, "???", 0, 0],
-  "helius' signature":[1020, "???", 0, 0]
+  "helius' signature":[1020, "???", 0, 0],
+  "Fenrir Legacy's Signature":[[4, 752], "???", 0, 0],
+  "Fenrir Legacy's Natural":[[50, 751], "???", 0, 0]
 }

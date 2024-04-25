@@ -23,6 +23,7 @@ h3 {margin:4px;}
 input[type="text"] {padding:3px 11px; width:86px;} /*Firefox: padding:3px 11px 4px;*/
 input[type="file"] {display: none;}
 input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0;}
+ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:column; grid-column-gap:10px; list-style:none; padding:0; margin:0;}
 ::placeholder {color:#3cb;}
 
 .cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:44px; cursor:pointer; line-height:1.1;}
@@ -315,6 +316,16 @@ function makelink(cs){
   return "&gt; " + s.outerHTML
 }
 
+function makeUL(array) {
+  const list = document.createElement('ul');
+  for (const i of Array(array.length).keys()) {
+    const item = document.createElement('li');
+    item.appendChild(document.createTextNode(array[i]));
+    list.appendChild(item);
+  }
+  return list;
+}
+
 function FFdown(e) {
   if(link && e.target.tagName != "A"){
     link.classList.remove("blink");
@@ -463,7 +474,7 @@ function FFdown(e) {
     if (toys[t + " mas"]) {
       listtoys.push(...toys[t + " mas"].map((x) => {return "ꍯ " + x}));
     }
-    checkcom.setAttribute("data-tooltip", listtoys.join('<br>'));
+    checkcom.setAttribute("data-tooltip", makeUL(listtoys).outerHTML);
     where = link.getBoundingClientRect();
     gallery_tooltip.style.left = (window.scrollX + where.left -2) + "px";
     gallery_tooltip.style.top = (window.scrollY + where.top -28) + "px";

@@ -474,7 +474,10 @@ function FFdown(e) {
     if (toys[t + " mas"]) {
       listtoys.push(...toys[t + " mas"].map((x) => {return "ꍯ " + x}));
     }
-    checkcom.setAttribute("data-tooltip", makeUL(listtoys).outerHTML);
+    const UL = makeUL(listtoys);
+    const rows = listtoys.length >= 20 ? 20 : listtoys.length;
+    UL.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    checkcom.setAttribute("data-tooltip", UL.outerHTML);
     where = link.getBoundingClientRect();
     gallery_tooltip.style.left = (window.scrollX + where.left -2) + "px";
     gallery_tooltip.style.top = (window.scrollY + where.top -28) + "px";

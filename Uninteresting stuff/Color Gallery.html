@@ -25,7 +25,6 @@ input[type="file"] {display: none;}
 input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0;}
 ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:column; grid-column-gap:10px; list-style:none; padding:0; margin:0;}
 ::placeholder {color:#3cb;}
-
 .cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:44px; cursor:pointer; line-height:1.1;}
 .previous, .reverse, .inverse, .next, .tangerine, .brown {white-space:nowrap; font-family:sans-serif; font-size:90%; position:relative; display:inline-block; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
 .next {color:#6fe; background-color:#066;}
@@ -289,7 +288,7 @@ function makegallery(colorset){
 }
 
 function makelink(cs){
-  let c = colorsets[cs]
+  let c = colorsets[cs];
   let tt = c[0]?(Array.isArray(c[0])?c[0].join(' ꍯ '):c[0]):""
   let lowkey = cs.toLowerCase()
   if(lowkey in swatches){
@@ -313,8 +312,22 @@ function makelink(cs){
   }
   s.setAttribute("data-tooltip", tt)
   s.innerHTML = cs;
-  return "&gt; " + s.outerHTML
+  return s.outerHTML;
 }
+
+function makeDIV(id, t, tooltip, pointer=false) {
+  const d = document.createElement("DIV");
+  d.classList = "next";
+  d.id = id;
+  d.dataset.tooltip = tooltip;
+  d.innerHTML = t;
+
+  if (pointer) {
+    d.style.cursor = "pointer";
+  }
+
+  return d;
+};
 
 function makeUL(array) {
   const list = document.createElement('ul');
@@ -573,30 +586,63 @@ function FFdown(e) {
     var colortip = ""
     for (var css=0; css<colorsels.length; css++){
       let cs = colorsels[css];
-      colortip += makelink(cs)
+      colortip += "&gt; " + makelink(cs)
       colortip += makedots(colorsets[cs], 1) + "<br>"
     }
     colorlist.innerHTML += colortip
   } else if (e.target.getAttribute("id") == "viewall"){
     colorlist.innerHTML = "<h3>Choose a color!</h3>";
-    colorsels = Object.keys(colorsets)
-    var colortip = ""
-    for (var css=0; css<colorsels.length; css++){
-      let cs = colorsels[css]
-      if(colorsets[cs] == true){
-        colortip += colorsels[css] + "<br>"
-        continue
+    colorsels = Object.keys(colorsets);
+    var colortip = "";
+    for (const css of colorsels) {
+      if (colorsets[css] == true) {
+        colortip += css + "<br>";
+        continue;
       }
-      colortip += makelink(cs)
-      colortip += makedots(colorsets[cs], 1) + "<br>"
+      colortip += "&gt; " + makelink(css);
+      colortip += makedots(colorsets[css], 1) + "<br>";
     }
-    colorlist.innerHTML += colortip
-  } else if (e.target.hasAttribute("data-color")){
-    if(isTouch && e.target.hasAttribute("data-tooltip")){
+    colorlist.innerHTML += colortip;
+  } else if (e.target.getAttribute("id") == "numbered"){
+    colorlist.innerHTML = "<h3>Choose a color!</h3>";
+    colorsels = Object.keys(colorsets);
+    var colortip = "";
+    const presorted = {};
+
+    for (const css of colorsels) {
+      if (colorsets[css] == true) {
+        continue;
+      }
+      id = colorsets[css][0];
+      if (Array.isArray(id)) {
+        if (id[0]) {
+          presorted[id[0]] = css;
+        }
+        presorted[id[1]] = css;
+      } else if (id) {
+        presorted[id] = css;
+      }
+    }
+
+    let index = 1;
+    for (const id of Object.keys(presorted)) {
+      while (id > index) {
+        colortip += index.toString().padStart(4, ' ') + "<br>";
+        index++;
+      }
+      index++;
+
+      const css = presorted[id];
+      colortip += id.padStart(4, ' ') + " " + makelink(css);
+      colortip += makedots(colorsets[css], 1) + "<br>";
+    }
+    colorlist.innerHTML += colortip;
+  } else if (e.target.hasAttribute("data-color")) {
+    if (isTouch && e.target.hasAttribute("data-tooltip")) {
       return;
     }
     var t = e.target.getAttribute("data-color");
-    if(!t){
+    if (!t) {
       colorlist.innerHTML = "<h3>Choose a color!</h3>";
       return;
     }
@@ -650,7 +696,7 @@ function FFdown(e) {
     var colortip = ""
     for (var css=0; css<colorsels.length; css++){
       let cs = colorsels[css];
-      colortip += makelink(cs);
+      colortip += "&gt; " + makelink(cs);
       colortip += makedots(colorsets[cs], 1) + "<br>"
     }
     colorlist.innerHTML += colortip
@@ -785,19 +831,19 @@ var outbound;
 var FFover = function(e) {
   var t = e.target;
   var a = t.parentNode;
-  if(a.classList != undefined && a.classList.contains("fileThumb") && !a.parentNode.hasAttribute("busy")) {
+  if (a.classList != undefined && a.classList.contains("fileThumb") && !a.parentNode.hasAttribute("busy")) {
     a = a.parentNode;
     var d = document.createElement("div");
     d.innerHTML = "<div class='schande save'>Save</div><div class='schande' style='left:48px;'>Schande!</div>";
     a.appendChild(d);
     listener = (z) => {
-      z.target.style.opacity = 1
+      z.target.style.opacity = 1;
       if (z.target.classList.contains("schande")) {
         z.target.setAttribute("data-schande", (t.getAttribute("data-src")?t.getAttribute("data-src"):t.getAttribute("src")).replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/"))
       }
       z.target.removeEventListener("mouseover", listener);
       let left = () => {
-        z.target.style.opacity = 0.5
+        z.target.style.opacity = 0.5;
         z.target.removeEventListener("mouseleave", left);
       }
       z.target.addEventListener("mouseleave", left);
@@ -844,7 +890,7 @@ window.onload = () => {
 
 <div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><a class="next" href="" target="_blank" id="checkinv">🧺</a><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div><a class="next" href="" target="_blank" id="checkinv_mas">ꍯ🧺</a><span class="tangerine" id="checkcom" style="padding:4px;" data-tooltip="">🧸</span></div>
 
-<div class="next" id="translucents" data-tooltip="Fetch color sets using jam-like or translucent of selected color">Translucents</div><div class="next" id="creative" data-tooltip="Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway and bottom colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights">Creative mode</div><div class="next" id="exotic" style="cursor:pointer;" data-tooltip="View all color sets using fades or 4+ color marbles i.e. can't be altered">Exotic sets</div><div class="next" id="viewall" style="cursor:pointer;" data-tooltip="Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!">View all</div><span class="tangerine" style="padding:4px;" data-tooltip="• Choose several colors e.g. ${dotsample} for ${fadesample} fade bar to appear, as way to test as well as to anticipate for blend/smear issue.<br>• Write color name or color set name in text field of bookmarked pictures to manipulate fade bar.<br>&nbsp; ◦ <div class='next'>Replace gallery</div> to replace fade bar with written color names.<br>&nbsp; ◦ <div class='next'>Save</div> to save fade bar for next page visit.<br>&nbsp; ◦ Fade ends on non-color line.<br><br>Be mindful of translucent silicones<br>• Translucent silicones may overpower to each other especially darkened and/or pigmented ones if not become dull or muddled.<br>• Use fade bar for blend test of translucent silicones, they become pronounced of that.<br>• Solid silicones can create contours on translucent silicones or 3D depth behind translucent silicones.<br>Open <div class='next'>Gallery</div> for color set named <span class='colorset'>Arctic Ice</span>${makedots(['sky blue', 3, 0], 0)} from sky blue (${makedots(['sky blue', 0, 0], 0)}) color group for photo example of translucent silicone.">:?:</span><div style="display:inline-block;" id="pukefest"></div><div class="dark local_tooltip" id="local_tooltip"></div>
+<div id="toolbar"></div>
 <div></div>
 
 <div style="display:inline-block; position:relative; vertical-align:top; display:flex;">
@@ -858,7 +904,37 @@ window.onload = () => {
 <div></div>
 <div class="next" id="more" style="display:none; border:16px solid transparent; border-bottom:96px solid transparent; background-clip: padding-box;"></div>
 </div>
-</div>`
+</div>`;
+
+  const toolbar = document.getElementById("toolbar");
+
+  toolbar.appendChild(makeDIV("translucents", "Translucents", "Fetch color sets using jam-like or translucent of selected color"));
+
+  toolbar.appendChild(makeDIV("creative", "Creative mode", "Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway and bottom colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights"));
+
+  toolbar.appendChild(makeDIV("exotic", "Exotic sets", "View all color sets using fades or 4+ color marbles i.e. can't be altered", true));
+
+  toolbar.appendChild(makeDIV("viewall", "View all", "Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!", true));
+
+  toolbar.appendChild(makeDIV("numbered", "Numbered", "View color sets in order of color theme ID", true));
+
+  let d = document.createElement("DIV");
+  d.classList = "tangerine";
+  d.style.padding = "4px";
+  d.dataset.tooltip = `• Choose several colors e.g. ${dotsample} for ${fadesample} fade bar to appear, as way to test as well as to anticipate for blend/smear issue.<br>• Write color name or color set name in text field of bookmarked pictures to manipulate fade bar.<br>&nbsp; ◦ <div class='next'>Replace gallery</div> to replace fade bar with written color names.<br>&nbsp; ◦ <div class='next'>Save</div> to save fade bar for next page visit.<br>&nbsp; ◦ Fade ends on non-color line.<br><br>Be mindful of translucent silicones<br>• Translucent silicones may overpower to each other especially darkened and/or pigmented ones if not become dull or muddled.<br>• Use fade bar for blend test of translucent silicones, they become pronounced of that.<br>• Solid silicones can create contours on translucent silicones or 3D depth behind translucent silicones.<br>Open <div class='next'>Gallery</div> for color set named <span class='colorset'>Arctic Ice</span>${makedots(['sky blue', 3, 0], 0)} from sky blue (${makedots(['sky blue', 0, 0], 0)}) color group for photo example of translucent silicone.`;
+  d.innerHTML = ":?:";
+  toolbar.appendChild(d);
+
+  d = document.createElement("DIV");
+  d.style.display = "inline-block";
+  d.id = "pukefest";
+  toolbar.appendChild(d);
+
+  d = document.createElement("DIV");
+  d.classList = "dark local_tooltip";
+  d.id = "local_tooltip";
+  toolbar.appendChild(d);
+
   loadcolors("colorsets.json")
   loadcolors("pictures.json")
   loadcolors("swatches.json")

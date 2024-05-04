@@ -614,7 +614,7 @@ function FFdown(e) {
         continue;
       }
       id = colorsets[css][0];
-      if (Array.isArray(id)) {
+      if (Array.isArray(id) && !presorted[id[0]]) {
         if (id[0]) {
           presorted[id[0]] = css;
         }

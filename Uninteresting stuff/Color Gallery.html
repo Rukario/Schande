@@ -162,8 +162,13 @@ function lazyload(){
 
 function makedots(cs, pos){
   var gradientbg = "";
-  var newbar = []
-  while(pos < cs.length){
+  var newbar = [];
+
+  if (cs.length == 1) {
+    return "<div style='display:inline-block; padding:0px 3px; cursor:pointer; line-height:1.1;' data-color='droponly' data-tooltip='drop only'>✨</div>";
+  }
+
+  while (pos < cs.length) {
     var r1 = cs[pos];
     var r2 = cs[pos+1];
     var r3 = cs[pos+2];
@@ -172,110 +177,112 @@ function makedots(cs, pos){
     var tr = "";
     var st = "";
     if (r2%4 == 2){
-      tr = "jam-like "
+      tr = "jam-like ";
     } else if (r2%4 == 3){
-      tr = "translucent "
+      tr = "translucent ";
     }
-    if (r2 > 7){
-      tr += "metallic "
+    if (r2 > 7) {
+      tr += "metallic ";
       st = "✨";
-      bt -= 8
-    } else if (r2 > 3){
-      tr += "pearlescent "
+      bt -= 8;
+    } else if (r2 > 3) {
+      tr += "pearlescent ";
       st = "💫";
-      bt -= 4
+      bt -= 4;
     }
-    if(r1 == "black" || r1 == "galaxy"){
-      bc = "#556"
-      bt += 1
+    if (r1 == "black" || r1 == "galaxy") {
+      bc = "#556";
+      bt += 1;
     }
     if (r3 == 2){
-      if (creative && creative.classList == "previous"){
-        pos += 3
+      if (creative && creative.classList == "previous") {
+        pos += 3;
         continue;
       }
-      newbar[newbar.length-1][0].push(fc[r1])
+      newbar[newbar.length-1][0].push(fc[r1]);
     } else {
-      newbar.push([[fc[r1]], ""])
+      newbar.push([[fc[r1]], ""]);
     }
     newbar[newbar.length-1][1] += "<div style='display:inline-block; padding:0px 3px; cursor:pointer;' data-color='" + r1 + "' data-tooltip='" + tr + r1 + "'><div class='dot' style='pointer-events:none; height:" + (12-2*bt) + "px; width:" + (12-2*bt) + "px; border:" + bt + "px solid " + bc + "; background: transparent; color:rgba(255, 255, 255, 0.5); font-size:15px; filter: grayscale(100%);'>" + st + "</div></div>";
-    pos += 3
+    pos += 3;
   }
-  for(var i=0; i<newbar.length; i++){
-    var long = newbar[i][0].length*18-18
-    var fcc = "";
-    fcc += ", " + newbar[i][0][0] + " 6px"
-    for(var o=1; o<newbar[i][0].length; o++){
-      fcc += ", " + newbar[i][0][o] + " " + (6+18*o) + "px"
+
+  for (const color of newbar) {
+    const long = color[0].length*18-18;
+    let fcc = ", " + color[0][0] + " 6px";
+    for (const [n, o] of color[0].entries()) {
+      fcc += ", " + o + " " + (6+18*n) + "px";
     }
-    fcc += ", " + newbar[i][0][newbar[i][0].length-1]
-    gradientbg += "<div style='display:inline-block;'><div style='position:absolute;'>" + newbar[i][1] + "</div><div style='padding:0px 3px;'><div class='dot' style='pointer-events:none; height: 12px; width:" + (12 + long) + "px; border: none; background: linear-gradient(90deg" + fcc + ")';></div></div></div>";
+    fcc += ", " + color[0][color[0].length-1];
+    gradientbg += "<div style='display:inline-block;'><div style='position:absolute;'>" + color[1] + "</div><div style='padding:0px 3px;'><div class='dot' style='pointer-events:none; height: 12px; width:" + (12 + long) + "px; border: none; background: linear-gradient(90deg" + fcc + ")';></div></div></div>";
   }
-  return gradientbg
+  return gradientbg;
 }
 
 function galleryset2(){
-  var buffer = ""
-  for (var o=0; o<galleryset[1].length; o++){
-    buffer += "<div class='frame'><a class='fileThumb' href='" + galleryset[1][o] + "'><img class='lazy' data-src='" + galleryset[1][o] + "'></a></div>"
+  var buffer = "";
+  for (const gset of galleryset[1]) {
+    buffer += "<div class='frame'><a class='fileThumb' href='" + gset + "'><img class='lazy' data-src='" + gset + "'></a></div>";
   }
   gallery.insertAdjacentHTML("beforeend", buffer);
-  lazyload()
+  lazyload();
   more.style.display = "none"; 
 }
 
 var galleryset = [[], []];
 function makegallery(colorset){
-  if(!editor.innerHTML.startsWith("Connect to Bad Dragon")){
+  if (!editor.innerHTML.startsWith("Connect to Bad Dragon")) {
     echo("Replace this text field with 'Connect to Bad Dragon' and release me from liability.\nThis might strain Bad Dragon server/your computer and I'll not be held responsible for that.\n")
     return;
   }
-  more.style.display = "none";
-  var buffer = ""
 
+  more.style.display = "none";
+  var buffer = "";
   var bookmarks = editor.innerHTML.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
-  for (var i=0; i<bookmarks.length; i++){
-    buffer += "<div class='frame'><a class='fileThumb' href='" + bookmarks[i] + "'><img class='lazy' data-src='" + bookmarks[i] + "'></a></div>"
+
+  for (const bookmark of bookmarks) {
+    buffer += "<div class='frame'><a class='fileThumb' href='" + bookmark + "'><img class='lazy' data-src='" + bookmark + "'></a></div>";
   }
 
-  for(var i=0; i < pictures["rogue"].length; i++){
+  for (const rogue of pictures["rogue"]){
     var featured = false;
-    var k = Object.keys(pictures["rogue"][i])[0]
-    var colortip = ""
-    for(var css=0; css<pictures["rogue"][i][k].length; css++){
-      var cs = pictures["rogue"][i][k][css]
-      if(cs[0].toLowerCase().replace(/'/g, "") == colorset){
+    var k = Object.keys(rogue)[0];
+    var colortip = "";
+
+    for (const cs of rogue[k]) {
+      if (cs[0].toLowerCase().replace(/'/g, "") == colorset) {
         featured = true;
       }
       colortip += "&gt; <span class='colorset'>" + cs[0] + "</span>";
-      colortip += makedots(cs, 1) + "<br>"
+      colortip += makedots(cs, 1) + "<br>";
     }
+
     if(featured){
       buffer += "<div class='frame'><a class='fileThumb' href='" + k + "'><img class='lazy' data-src='" + k + "'></a><div style='display:inline-block; vertical-align:top;'>" + colortip + "</div></div>"
     }
   }
 
   galleryset = [[], []];
-  for (var i=0; i<pictures[colorset].length; i++){
-    if (i<12){
-      galleryset[0].push(pictures[colorset][i])
+  for (const [i, picture] of pictures[colorset].entries()){
+    if (i < 12){
+      galleryset[0].push(picture);
     } else {
-      galleryset[1].push(pictures[colorset][i])
+      galleryset[1].push(picture);
     }
   }
 
-  for (var o=0; o<galleryset[0].length; o++){
-    buffer += "<div class='frame'><a class='fileThumb' href='" + galleryset[0][o] + "'><img class='lazy' data-src='" + galleryset[0][o] + "'></a></div>"
+  for (const gset of galleryset[0]){
+    buffer += "<div class='frame'><a class='fileThumb' href='" + gset + "'><img class='lazy' data-src='" + gset + "'></a></div>"
   }
 
   gallery.innerHTML = buffer;
 
   var links = document.querySelectorAll(".colorset")
-  for (var i=0; i < links.length; i++) {
-    if (links[i].innerHTML.toLowerCase().replace(/'/g, "") == colorset) {
-      links[i].classList.add("colorsel");
+  for (const link of links) {
+    if (link.innerHTML.toLowerCase().replace(/'/g, "") == colorset) {
+      link.classList.add("colorsel");
     } else {
-      links[i].classList.remove("colorsel");
+      link.classList.remove("colorsel");
     }
   }
 
@@ -340,70 +347,70 @@ function makeUL(array) {
 }
 
 function FFdown(e) {
-  if(link && e.target.tagName != "A"){
+  if (link && e.target.tagName != "A") {
     link.classList.remove("blink");
     gallery_tooltip.style.display = "none";
   }
 
-  if (e.target.getAttribute("id") == "translucents"){
+  if (e.target.getAttribute("id") == "translucents") {
     if (translucents.classList == "next") {
       translucents.classList = "previous";
     } else {
       translucents.classList = "next";
     }
-  } else if (e.target.getAttribute("id") == "creative"){
+  } else if (e.target.getAttribute("id") == "creative") {
     if (creative.classList == "next") {
       creative.classList = "previous";
     } else {
       creative.classList = "next";
     }
-  } else if (e.target.getAttribute("id") == "odnary"){
+  } else if (e.target.getAttribute("id") == "odnary") {
     makegallery(odnary.getAttribute("data-colorset"));
-  } else if (e.target.getAttribute("id") == "replace"){
+  } else if (e.target.getAttribute("id") == "replace") {
     more.style.display = "none"; 
-    var buffer = ""
+    var buffer = "";
 
     galleryset = [[], []];
     var lines = editor.innerHTML.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n");
-    var bookmarks = lines.filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
-    for (var i=0; i<bookmarks.length; i++){
-      galleryset[0].push(bookmarks[i])
+    var bookmarks = lines.filter((e) => {return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
+    for (const bookmark of bookmarks) {
+      galleryset[0].push(bookmark);
     }
 
-    for (var o=0; o<galleryset[0].length; o++){
-      buffer += "<div class='frame'><a class='fileThumb' href='" + galleryset[0][o] + "'><img class='lazy' data-src='" + galleryset[0][o] + "'></a></div>"
+    for (const gset of galleryset[0]) {
+      buffer += "<div class='frame'><a class='fileThumb' href='" + gset + "'><img class='lazy' data-src='" + gset + "'></a></div>";
     }
-    rainbow = []
-    for (var i=0;i<lines.length;i++){
-      if (lines[i] in colorsets && colorsets[lines[i]] != true){
-        let cs = colorsets[lines[i]]
+    rainbow = [];
+    for (const line of lines) {
+      if (line in colorsets && colorsets[line] != true){
+        let cs = colorsets[line];
         rainbowfade = false;
-        for(var o=1;o<cs.length;o+=3){
-          rainbow.push(cs[o], 0, rainbowfade?2:0)
+        for (var o=1; o<cs.length; o+=3) {
+          rainbow.push(cs[o], 0, rainbowfade?2:0);
           rainbowfade = true;
-          if(rainbow.length>408*3){
+          if (rainbow.length > 408*3) {
             rainbow = rainbow.slice(3);
             rainbow[2] = 0;
           }
         }
         rainbowfade = false;
-      } else if (lines[i] == "palette"){
-        for (var p=0;p<palette.length;p++){
+      } else if (line == "palette") {
+        for (const p of palette) {
           rainbowfade = false;
-          for(var o=0;o<palette[p].length;o++){
-            rainbow.push(palette[p][o], 0, rainbowfade?2:0)
+          for (const palett of p) {
+            rainbow.push(palett, 0, rainbowfade?2:0);
             rainbowfade = true;
-            if(rainbow.length>408*3){
+            if (rainbow.length > 408*3) {
               rainbow = rainbow.slice(3);
               rainbow[2] = 0;
             }
           }
           rainbowfade = false;
         }
-      } else if (lines[i] in fc){
-        rainbow.push(lines[i], 0, rainbowfade?2:0)
+      } else if (line in fc) {
+        rainbow.push(line, 0, rainbowfade?2:0);
         rainbowfade = true;
-        if(rainbow.length>408*3){
+        if (rainbow.length>408*3) {
           rainbow = rainbow.slice(3);
           rainbow[2] = 0;
         }
@@ -428,51 +435,52 @@ function FFdown(e) {
 
     gallery.innerHTML = buffer;
     lazyload();
-  } else if (e.target.getAttribute("id") == "gallerysave"){
-    if (gallerysave.classList == "previous"){
+  } else if (e.target.getAttribute("id") == "gallerysave") {
+    if (gallerysave.classList == "previous") {
       return;
     }
-    let expires = new Date(Date.now() + 365 * 864e5).toUTCString()
-    var h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/")
+
+    let expires = new Date(Date.now() + 365 * 864e5).toUTCString();
+    var h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/");
     document.cookie = "gallerysave=" + encodeURIComponent(h) + "; expires=" + expires + "; path=/; SameSite=Strict;";
     //no expiry would allow the cookie to be automatically deleted upon browser exit.
-    gallerysave.classList = "previous"
-    gallerysave.innerHTML = "Save completed"
-  } else if (e.target.getAttribute("id") == "cs"){
+    gallerysave.classList = "previous";
+    gallerysave.innerHTML = "Save completed";
+  } else if (e.target.getAttribute("id") == "cs") {
     makegallery(cs.getAttribute("data-colorset"));
-  } else if (e.target.getAttribute("id") == "mas"){
+  } else if (e.target.getAttribute("id") == "mas") {
     makegallery(mas.getAttribute("data-colorset"));
-  } else if (e.target.getAttribute("id") == "more"){
+  } else if (e.target.getAttribute("id") == "more") {
     galleryset2();
-  } else if (e.target.classList.contains("colorset")){
+  } else if (e.target.classList.contains("colorset")) {
     link = e.target;
     link.classList.add("blink");
     odnary.style.display = "none";
     cs.style.display = "none";
     mas.style.display = "none";
     var t = link.innerHTML.toLowerCase().replace(/'/g, "");
-    if(Object.keys(pictures).includes(t)){
+    if (Object.keys(pictures).includes(t)) {
       odnary.style.display = "inline-block";
       odnary.setAttribute("data-colorset", t);
     }
-    if(Object.keys(pictures).includes("cs " + t)){
+    if (Object.keys(pictures).includes("cs " + t)) {
       cs.style.display = "inline-block";
       cs.setAttribute("data-colorset", "cs " + t);
     }
-    if(Object.keys(pictures).includes(t + " mas")){
+    if (Object.keys(pictures).includes(t + " mas")) {
       mas.style.display = "inline-block";
       mas.setAttribute("data-colorset", t + " mas");
     }
-    let ct = link.getAttribute("data-colorTheme")
-    if(ct && ct != "null"){
-      checkinv.style.display = "inline-block"
+    let ct = link.getAttribute("data-colorTheme");
+    if (ct && ct != "null") {
+      checkinv.style.display = "inline-block";
       checkinv.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct;
     } else {
-      checkinv.style.display = "none"
+      checkinv.style.display = "none";
     }
     let ct2 = link.getAttribute("data-colorTheme2");
-    if(ct2){
-      checkinv_mas.style.display = "inline-block"
+    if (ct2) {
+      checkinv_mas.style.display = "inline-block";
       checkinv_mas.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct2;
     } else {
       checkinv_mas.style.display = "none";
@@ -501,96 +509,110 @@ function FFdown(e) {
     var d = document.createElement("div");
     a.appendChild(d);
     t.addEventListener('touchmove', function(e) {e.preventDefault()});
-    if (t.classList.contains("save")){
-      if (isTouch){
+    if (t.classList.contains("save")) {
+      if (isTouch) {
         d.classList.add("right");
         var X = e.pageX;
         var Y = e.pageY;
         let listener = (z) => {
-          if (-20 < (Y - z.pageY) && (Y - z.pageY) < 20 && (z.pageX - X) > 50){
+          if (-20 < (Y - z.pageY) && (Y - z.pageY) < 20 && (z.pageX - X) > 50) {
             d.classList.remove("right");
-            echo(t.getAttribute("data-schande"))
+            echo(t.getAttribute("data-schande"));
             t.removeEventListener('touchend', listener);
             t.removeAttribute("busy");
             edit();
           }
         };
-        if (!t.hasAttribute("busy")){
+        if (!t.hasAttribute("busy")) {
           t.addEventListener('touchend', listener);
-          t.setAttribute("busy", true)
+          t.setAttribute("busy", true);
         }
         t.addEventListener('mouseleave', function() {
           d.classList.remove("right");
         });
       } else {
         let listener = () => {
-          echo(t.getAttribute("data-schande"))
+          echo(t.getAttribute("data-schande"));
           t.removeEventListener("mouseup", listener);
           edit();
         }
         t.addEventListener("mouseup", listener);
       }
     } else {
-      if (isTouch){
+      if (isTouch) {
         d.classList.add("left");
         var X = e.pageX;
         var Y = e.pageY;
         let listener = (z) => {
-          if (-20 < (Y - z.pageY) && (Y - z.pageY) < 20 && (X - z.pageX) > 50){
+          if (-20 < (Y - z.pageY) && (Y - z.pageY) < 20 && (X - z.pageX) > 50) {
             d.classList.remove("left");
-            echo("SHAME " + t.getAttribute("data-schande"))
+            echo("SHAME " + t.getAttribute("data-schande"));
             t.removeEventListener('touchend', listener);
             t.removeAttribute("busy");
             edit();
           }
         };
-        if (!t.hasAttribute("busy")){
+        if (!t.hasAttribute("busy")) {
           t.addEventListener('touchend', listener);
-          t.setAttribute("busy", true)
+          t.setAttribute("busy", true);
         }
         t.addEventListener('mouseleave', function() {
           d.classList.remove("left");
         });
       } else {
         let listener = () => {
-          echo("SHAME " + t.getAttribute("data-schande"))
+          echo("SHAME " + t.getAttribute("data-schande"));
           t.removeEventListener("mouseup", listener);
           edit();
         }
         t.addEventListener("mouseup", listener);
       }
     }
-  } else if (e.target.getAttribute("id") == "exotic"){
+  } else if (e.target.getAttribute("id") == "exotic") {
     colorlist.innerHTML = "<h3>Choose a color!</h3>";
-    colorsels = []
-    var keys = Object.keys(colorsets)
-    for (var i=0; i<keys.length; i++){
-      var k = colorsets[keys[i]]
+    colorsels = [];
+    var keys = Object.keys(colorsets);
+    for (const key of keys) {
+      var k = colorsets[key];
       var featured = false;
-      if(10 < k.length){
+      if (10 < k.length) {
        featured = true;
       } else {
-        var pos = 1
-        while (pos < k.length){
-          if (k[pos+2] > 1){
+        var pos = 1;
+        while (pos < k.length) {
+          if (k[pos+2] > 1) {
             featured = true;
-            break
+            break;
           }
-          pos += 3
+          pos += 3;
         }
       }
-      if (featured){
-        colorsels.push(keys[i])
+      if (featured) {
+        colorsels.push(key);
       }
     }
-    var colortip = ""
-    for (var css=0; css<colorsels.length; css++){
-      let cs = colorsels[css];
-      colortip += "&gt; " + makelink(cs)
-      colortip += makedots(colorsets[cs], 1) + "<br>"
+    var colortip = "";
+    for (const cs of colorsels) {
+      colortip += "&gt; " + makelink(cs);
+      colortip += makedots(colorsets[cs], 1) + "<br>";
     }
-    colorlist.innerHTML += colortip
-  } else if (e.target.getAttribute("id") == "viewall"){
+    colorlist.innerHTML += colortip;
+  } else if (e.target.getAttribute("id") == "droponly" || e.target.hasAttribute("data-color") && e.target.getAttribute("data-color") == "droponly") {
+    if (isTouch && e.target.hasAttribute("data-color") && e.target.hasAttribute("data-tooltip")) {
+      return;
+    }
+    colorlist.innerHTML = "<h3>Drop only color sets</h3>";
+    colorsels = Object.keys(colorsets);
+    var colortip = "";
+    for (const css of colorsels) {
+      if (colorsets[css] == true || colorsets[css].length != 1) {
+        continue;
+      }
+      colortip += "&gt; " + makelink(css);
+      colortip += makedots(colorsets[css], 1) + "<br>";
+    }
+    colorlist.innerHTML += colortip;
+  } else if (e.target.getAttribute("id") == "viewall") {
     colorlist.innerHTML = "<h3>Choose a color!</h3>";
     colorsels = Object.keys(colorsets);
     var colortip = "";
@@ -603,7 +625,7 @@ function FFdown(e) {
       colortip += makedots(colorsets[css], 1) + "<br>";
     }
     colorlist.innerHTML += colortip;
-  } else if (e.target.getAttribute("id") == "numbered"){
+  } else if (e.target.getAttribute("id") == "numbered") {
     colorlist.innerHTML = "<h3>Choose a color!</h3>";
     colorsels = Object.keys(colorsets);
     var colortip = "";
@@ -646,9 +668,9 @@ function FFdown(e) {
       colorlist.innerHTML = "<h3>Choose a color!</h3>";
       return;
     }
-    rainbow.push(t, 0, rainbowfade?2:0)
+    rainbow.push(t, 0, rainbowfade?2:0);
     rainbowfade = true;
-    if(rainbow.length>408*3){
+    if (rainbow.length > 408*3) {
       rainbow = rainbow.slice(3);
       rainbow[2] = 0;
     }
@@ -666,40 +688,38 @@ function FFdown(e) {
     pukefest.appendChild(b);
 
     colorlist.innerHTML = "<h3>Color sets using " + t + "-like silicone</h3>";
-    colorsels = []
+    colorsels = [];
     var keys = Object.keys(colorsets);
-    for (var i=0; i<keys.length; i++){
-      var k = colorsets[keys[i]]
-      var featured = false;
-      var pos = 1
-      while (pos < k.length){
-        if (k[pos] == t){
+    for (const key of keys) {
+      var k = colorsets[key];
+      let featured = false;
+      let pos = 1;
+      while (pos < k.length) {
+        if (k[pos] == t) {
           if (translucents.classList == "previous"){
-            if (k[pos+1] > 1){
+            if (k[pos+1] > 1) {
               featured = true;
             }
           } else {
             featured = true;
           }
-          if (featured && creative.classList == "previous"){
-            if (k[pos+2] > 0){
+          if (featured && creative.classList == "previous") {
+            if (k[pos+2] > 0) {
               featured = false;
             }
           }
         }
-        pos += 3
+        pos += 3;
       }
-      if (featured){
-        colorsels.push(keys[i])
+      if (featured) {
+        colorsels.push(key);
       }
     }
-    var colortip = ""
-    for (var css=0; css<colorsels.length; css++){
-      let cs = colorsels[css];
-      colortip += "&gt; " + makelink(cs);
-      colortip += makedots(colorsets[cs], 1) + "<br>"
+    let colortip = "";
+    for (const cs of colorsels) {
+      colortip += "&gt; " + makelink(cs) + makedots(colorsets[cs], 1) + "<br>";
     }
-    colorlist.innerHTML += colortip
+    colorlist.innerHTML += colortip;
   }
 }
 
@@ -914,11 +934,19 @@ window.onload = () => {
 
   toolbar.appendChild(makeDIV("exotic", "Exotic sets", "View all color sets using fades or 4+ color marbles i.e. can't be altered", true));
 
+  let d = document.createElement("SPAN");
+  d.id = "droponly";
+  d.innerHTML = "✨";
+  d.dataset.tooltip = "View drop only color sets (unavailable for custom ordering)";
+  // d.dataset.color = "drop only";
+  d.style.cursor = "pointer";
+  toolbar.appendChild(d);
+
   toolbar.appendChild(makeDIV("viewall", "View all", "Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!", true));
 
   toolbar.appendChild(makeDIV("numbered", "Numbered", "View color sets in order of color theme ID", true));
 
-  let d = document.createElement("DIV");
+  d = document.createElement("DIV");
   d.classList = "tangerine";
   d.style.padding = "4px";
   d.dataset.tooltip = `• Choose several colors e.g. ${dotsample} for ${fadesample} fade bar to appear, as way to test as well as to anticipate for blend/smear issue.<br>• Write color name or color set name in text field of bookmarked pictures to manipulate fade bar.<br>&nbsp; ◦ <div class='next'>Replace gallery</div> to replace fade bar with written color names.<br>&nbsp; ◦ <div class='next'>Save</div> to save fade bar for next page visit.<br>&nbsp; ◦ Fade ends on non-color line.<br><br>Be mindful of translucent silicones<br>• Translucent silicones may overpower to each other especially darkened and/or pigmented ones if not become dull or muddled.<br>• Use fade bar for blend test of translucent silicones, they become pronounced of that.<br>• Solid silicones can create contours on translucent silicones or 3D depth behind translucent silicones.<br>Open <div class='next'>Gallery</div> for color set named <span class='colorset'>Arctic Ice</span>${makedots(['sky blue', 3, 0], 0)} from sky blue (${makedots(['sky blue', 0, 0], 0)}) color group for photo example of translucent silicone.`;
@@ -935,22 +963,34 @@ window.onload = () => {
   d.id = "local_tooltip";
   toolbar.appendChild(d);
 
-  loadcolors("colorsets.json")
-  loadcolors("pictures.json")
-  loadcolors("swatches.json")
-  loadcolors("toys.json")
-  for(var i=0; i < cn.length; i++){
-    if(cn[i] == null){
-      colortable.innerHTML += "<div class='cell' data-color=''>&nbsp;</div>"
+  loadcolors("colorsets.json");
+  loadcolors("pictures.json");
+  loadcolors("swatches.json");
+  loadcolors("toys.json");
+
+  for (const ccn of cn) {
+    if (ccn == null) {
+      colortable.innerHTML += "<div class='cell' data-color=''>&nbsp;</div>";
     } else {
-      var cc = fc[cn[i]]
-      // if(parseInt(cc.slice(1, 3), 16) < 144 && parseInt(cc.slice(3, 5), 16) < 144 && parseInt(cc.slice(5), 16) < 144){
-      //   cc += "; color:rgba(255, 255, 255, 0.33)"
+      const cc = fc[ccn];
+      let cb = "#000000";
+
+      // if (!cc || parseInt(cc.slice(1, 3), 16) < 144 && parseInt(cc.slice(3, 5), 16) < 144 && parseInt(cc.slice(5), 16) < 144) {
+      //   cb = "rgba(255, 255, 255, 0.5)";
       // }
-      colortable.innerHTML += "<div class='cell' style='vertical-align:top; background-color:" + cc + ";' data-color='" + cn[i] + "'>" + cn[i] + "</div>"
+
+      const d = document.createElement("DIV");
+      d.classList = "cell";
+      d.style.verticalAlign = "top";
+      d.style.background = cc;
+      d.style.color = cb;
+      d.dataset.color = ccn;
+      d.innerHTML = ccn;
+      colortable.appendChild(d);
     }
   }
-  colorlist.innerHTML = "<h3>Choose a color!</h3>"
+
+  colorlist.innerHTML = "<h3>Choose a color!</h3>";
   document.addEventListener("click", FFclick);
   document.addEventListener("mousemove", FFmove);
   document.addEventListener("mouseover", FFover);
@@ -994,12 +1034,12 @@ window.onload = () => {
     }
   }, false);
 
-  var cookies = document.cookie.split(';');
-  for(const cookie of cookies) {
-    var c = cookie;
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    let c = cookie;
 
     while (c.charAt(0) == ' '){
-      var c = c.substring(1, c.length)
+      c = c.substring(1, c.length);
     };
 
     if (c.indexOf("gallerysave=") == 0){
@@ -1007,16 +1047,16 @@ window.onload = () => {
     }
   }
 
-  calc.addEventListener("keyup", function(e) {
+  calc.addEventListener("keyup", (e) => {
     let c = calc.value;
-    if (!c){
-      calc.style.backgroundColor = "#066"
+    if (!c) {
+      calc.style.backgroundColor = "#066";
     } else if (e.keyCode === 13) {
       try {
         calc.value = new Function('return ' + c)().toFixed(10)*1;
       } catch {
-        if(c.startsWith("u")){
-          calc.value = deuni("\\" + c)
+        if (c.startsWith("u")) {
+          calc.value = deuni("\\" + c);
         }
       }
     } else {
@@ -1024,12 +1064,12 @@ window.onload = () => {
         new Function('return ' + c)();
         calc.style.backgroundColor = "#066";
       } catch {
-        if(c.startsWith("u") && (!c.slice(1) || Number('0x'+c.slice(1)))){
-          if (c.length == 5){
+        if (c.startsWith("u") && (!c.slice(1) || Number('0x'+c.slice(1)))) {
+          if (c.length == 5) {
             calc.style.backgroundColor = "#066";
-          } else if (c.length > 5){
+          } else if (c.length > 5) {
             calc.style.backgroundColor = "#399";
-          } else if (c.length < 5){
+          } else if (c.length < 5) {
             calc.style.backgroundColor = "#033";
           }
         } else {

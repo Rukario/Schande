@@ -177,7 +177,7 @@ function makedots(cs, pos){
     var tr = "";
     var st = "";
     if (r2%4 == 2){
-      tr = "jam-like ";
+      tr = "semi-translucent ";
     } else if (r2%4 == 3){
       tr = "translucent ";
     }
@@ -919,7 +919,7 @@ window.onload = () => {
 
   const toolbar = document.getElementById("toolbar");
 
-  toolbar.appendChild(makeDIV("translucents", "Translucents", "Fetch color sets using jam-like or translucent of selected color"));
+  toolbar.appendChild(makeDIV("translucents", "Translucents", "Fetch color sets using semi-translucent or translucent of selected color"));
 
   toolbar.appendChild(makeDIV("creative", "Creative mode", "Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway and bottom colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights"));
 

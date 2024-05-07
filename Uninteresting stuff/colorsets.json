@@ -132,7 +132,6 @@
   "St. Patrick's Day":true,
   "Black Clover":[824, "mold", 0, 0, "forest", 0, 2],
   "Four Leaf Rover":[825, "teal", 0, 0, "xanadu", 0, 2, "galaxy", 0, 0],
-  "Running Serpent":[855, "galaxy", 2, 0, "grass", 2, 0, "arctic", 2, 0],
   "Shamrock Shake":[1193, "pistachio", 2, 0],
   "Shenanigan Green":[201, "green", 2, 0],
   "Clover Green":[1192, "mist", 3, 0],
@@ -269,10 +268,6 @@
   "Thunder Breathing":[870, "orange", 2, 0, "lemon", 0, 0, "machine", 2, 0],
   "Split Thunder Breathing":[893, "orange", 2, 0, "lemon", 0, 0, "machine", 2, 0],
 
-  "Game Over":true,
-  "Mad Titan":[[534, 537], "ink", 2, 0, "purple", 0, 0, "glossy grape", 0, 0],
-  "Quantum":[[535, 538], "???", 0, 0],
-
   "Newsletter promotions":true,
   "Moonlit Night":[844, "arctic", 0, 0, "robin egg", 0, 2, "electric indigo", 0, 2, "magic", 0, 0],
   "Spooky Seconds":[210, "magic", 3, 0, "arctic", 3, 0],
@@ -304,7 +299,6 @@
   "Stealthy Hacker":[881, "violet", 2, 0, "black", 0, 0, "robin egg", 0, 0, "magenta", 0, 0],
   "Split Stealthy Hacker":[884, "electric indigo", 0, 0, "violet", 2, 0, "black", 0, 0, "robin egg", 0, 0, "magenta", 0, 0],
   "The Jade Ox":[1031, "red", 0, 0, "gold", 0, 0, "xanadu", 0, 0],
-  "Soaring Sai":[856, "purple", 3, 0, "cream", 0, 0, "anubis", 0, 0],
   "Trouble Maker":[1075, "???", 0, 0],
   "The Places This Will Go":[1076, "beige", 0, 0, "azure", 0, 0, "orchid", 0, 0],
   "Tie Dye":[[1206, 1217], "orchid", 0, 0, "lemon", 0, 0, "orange", 0, 0, "xanadu", 0, 0],
@@ -933,6 +927,12 @@
   "Fatality":[527, "red", 0, 3, "peach", 0, 0, "coral", 2, 0],
   "Deep Freeze":[[528, 533], "???", 0, 0],
   "Get Over Here":[529, "???", 0, 0],
+  "Running Serpent":[855, "galaxy", 2, 0, "grass", 2, 0, "arctic", 2, 0],
+  "Soaring Sai":[856, "purple", 3, 0, "cream", 0, 0, "anubis", 0, 0],
+
+  "Game Over (retired ? )":true,
+  "Mad Titan":[[534, 537], "ink", 2, 0, "purple", 0, 0, "glossy grape", 0, 0],
+  "Quantum":[[535, 538], "???", 0, 0],
 
   "Dark Crystal (retired)":true,
   "Crystal":[567],

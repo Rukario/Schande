@@ -253,8 +253,7 @@ function makegallery(colorset){
       if (cs[0].toLowerCase().replace(/'/g, "") == colorset) {
         featured = true;
       }
-      colortip += "&gt; <span class='colorset'>" + cs[0] + "</span>";
-      colortip += makedots(cs, 1) + "<br>";
+      colortip += "&gt; <span class='colorset'>" + cs[0] + "</span>" + makedots(cs, 1) + "<br>";
     }
 
     if(featured){
@@ -296,28 +295,27 @@ function makegallery(colorset){
 
 function makelink(cs){
   let c = colorsets[cs];
-  let tt = c[0]?(Array.isArray(c[0])?c[0].join(' ꍯ '):c[0]):""
-  let lowkey = cs.toLowerCase()
-  if(lowkey in swatches){
-    tt += "<br>" + swatches[lowkey]["description"]
-    tt += "<br><img style='vertical-align:middle;' src='" + swatches[lowkey]["swatchImage"] + "'>"
-    if(lowkey + " mas" in swatches){
-      tt += " ꍯ <img src='" + swatches[lowkey + " mas"]["swatchImage"] + "'>"
-    } else if("cs " + lowkey in swatches){
-      tt += " ꍯ Swap available"
-    } else if(Array.isArray(c[0])){
-      tt += " ꍯ Swap N/A or naming issue"
+  let tt = c[0]?(Array.isArray(c[0])?c[0].join(' ꍯ '):c[0]):"";
+  let lowkey = cs.toLowerCase();
+  if (lowkey in swatches) {
+    tt += "<br>" + swatches[lowkey]["description"] + "<br><img style='vertical-align:middle;' src='" + swatches[lowkey]["swatchImage"] + "'>";
+    if (lowkey + " mas" in swatches) {
+      tt += " ꍯ <img src='" + swatches[lowkey + " mas"]["swatchImage"] + "'>";
+    } else if ("cs " + lowkey in swatches) {
+      tt += " ꍯ Swap available";
+    } else if (Array.isArray(c[0])) {
+      tt += " ꍯ Swap N/A or naming issue";
     }
   }
   let s = document.createElement("span");
-  s.classList.add("colorset")
-  if(Array.isArray(c[0])){
-    s.setAttribute("data-colorTheme", c[0][0])
-    s.setAttribute("data-colorTheme2", c[0][1])
+  s.classList.add("colorset");
+  if (Array.isArray(c[0])) {
+    s.setAttribute("data-colorTheme", c[0][0]);
+    s.setAttribute("data-colorTheme2", c[0][1]);
   } else {
-    s.setAttribute("data-colorTheme", c[0])
+    s.setAttribute("data-colorTheme", c[0]);
   }
-  s.setAttribute("data-tooltip", tt)
+  s.setAttribute("data-tooltip", tt);
   s.innerHTML = cs;
   return s.outerHTML;
 }
@@ -508,14 +506,14 @@ function FFdown(e) {
     var a = t.parentNode;
     var d = document.createElement("div");
     a.appendChild(d);
-    t.addEventListener('touchmove', function(e) {e.preventDefault()});
+    t.addEventListener('touchmove', (e) => {e.preventDefault()});
+
     if (t.classList.contains("save")) {
       if (isTouch) {
         d.classList.add("right");
-        var X = e.pageX;
-        var Y = e.pageY;
-        let listener = (z) => {
-          if (-20 < (Y - z.pageY) && (Y - z.pageY) < 20 && (z.pageX - X) > 50) {
+        const [x, y] = [e.pageX, e.pageY];
+        const listener = (z) => {
+          if (-20 < (y - z.pageY) && (y - z.pageY) < 20 && (z.pageX - x) > 50) {
             d.classList.remove("right");
             echo(t.getAttribute("data-schande"));
             t.removeEventListener('touchend', listener);
@@ -523,15 +521,17 @@ function FFdown(e) {
             edit();
           }
         };
+
         if (!t.hasAttribute("busy")) {
           t.addEventListener('touchend', listener);
           t.setAttribute("busy", true);
         }
-        t.addEventListener('mouseleave', function() {
+
+        t.addEventListener('mouseleave', () => {
           d.classList.remove("right");
         });
       } else {
-        let listener = () => {
+        const listener = () => {
           echo(t.getAttribute("data-schande"));
           t.removeEventListener("mouseup", listener);
           edit();
@@ -541,10 +541,9 @@ function FFdown(e) {
     } else {
       if (isTouch) {
         d.classList.add("left");
-        var X = e.pageX;
-        var Y = e.pageY;
-        let listener = (z) => {
-          if (-20 < (Y - z.pageY) && (Y - z.pageY) < 20 && (X - z.pageX) > 50) {
+        const [x, y] = [e.pageX, e.pageY];
+        const listener = (z) => {
+          if (-20 < (y - z.pageY) && (y - z.pageY) < 20 && (x - z.pageX) > 50) {
             d.classList.remove("left");
             echo("SHAME " + t.getAttribute("data-schande"));
             t.removeEventListener('touchend', listener);
@@ -552,15 +551,17 @@ function FFdown(e) {
             edit();
           }
         };
+
         if (!t.hasAttribute("busy")) {
           t.addEventListener('touchend', listener);
           t.setAttribute("busy", true);
         }
-        t.addEventListener('mouseleave', function() {
+
+        t.addEventListener('mouseleave', () => {
           d.classList.remove("left");
         });
       } else {
-        let listener = () => {
+        const listener = () => {
           echo("SHAME " + t.getAttribute("data-schande"));
           t.removeEventListener("mouseup", listener);
           edit();
@@ -569,16 +570,14 @@ function FFdown(e) {
       }
     }
   } else if (e.target.getAttribute("id") == "exotic") {
-    colorlist.innerHTML = "<h3>Choose a color!</h3>";
-    colorsels = [];
-    var keys = Object.keys(colorsets);
-    for (const key of keys) {
-      var k = colorsets[key];
-      var featured = false;
+    const colorsels = [];
+    for (const key of Object.keys(colorsets)) {
+      const k = colorsets[key];
+      let featured = false;
       if (10 < k.length) {
        featured = true;
       } else {
-        var pos = 1;
+        let pos = 1;
         while (pos < k.length) {
           if (k[pos+2] > 1) {
             featured = true;
@@ -591,47 +590,39 @@ function FFdown(e) {
         colorsels.push(key);
       }
     }
-    var colortip = "";
+    let colortip = "";
     for (const cs of colorsels) {
-      colortip += "&gt; " + makelink(cs);
-      colortip += makedots(colorsets[cs], 1) + "<br>";
+      colortip += "&gt; " + makelink(cs) + makedots(colorsets[cs], 1) + "<br>";
     }
-    colorlist.innerHTML += colortip;
+    colorlist.innerHTML = "<h3>Choose a color!</h3>" + colortip;
   } else if (e.target.getAttribute("id") == "droponly" || e.target.hasAttribute("data-color") && e.target.getAttribute("data-color") == "droponly") {
     if (isTouch && e.target.hasAttribute("data-color") && e.target.hasAttribute("data-tooltip")) {
       return;
     }
-    colorlist.innerHTML = "<h3>Drop only color sets</h3>";
-    colorsels = Object.keys(colorsets);
-    var colortip = "";
-    for (const css of colorsels) {
+
+    let colortip = "";
+    for (const css of Object.keys(colorsets)) {
       if (colorsets[css] == true || colorsets[css].length != 1) {
         continue;
       }
-      colortip += "&gt; " + makelink(css);
-      colortip += makedots(colorsets[css], 1) + "<br>";
+      colortip += "&gt; " + makelink(css) + makedots(colorsets[css], 1) + "<br>";
     }
-    colorlist.innerHTML += colortip;
+    colorlist.innerHTML = "<h3>Drop only color sets</h3>" + colortip;
   } else if (e.target.getAttribute("id") == "viewall") {
-    colorlist.innerHTML = "<h3>Choose a color!</h3>";
-    colorsels = Object.keys(colorsets);
-    var colortip = "";
-    for (const css of colorsels) {
+    let colortip = "";
+    for (const css of Object.keys(colorsets)) {
       if (colorsets[css] == true) {
         colortip += css + "<br>";
         continue;
       }
-      colortip += "&gt; " + makelink(css);
-      colortip += makedots(colorsets[css], 1) + "<br>";
+      colortip += "&gt; " + makelink(css) + makedots(colorsets[css], 1) + "<br>";
     }
-    colorlist.innerHTML += colortip;
+    colorlist.innerHTML = "<h3>Choose a color!</h3>" + colortip;
   } else if (e.target.getAttribute("id") == "numbered") {
-    colorlist.innerHTML = "<h3>Choose a color!</h3>";
-    colorsels = Object.keys(colorsets);
-    var colortip = "";
+    let colortip = "";
     const presorted = {};
 
-    for (const css of colorsels) {
+    for (const css of Object.keys(colorsets)) {
       if (colorsets[css] == true) {
         continue;
       }
@@ -655,27 +646,29 @@ function FFdown(e) {
       index++;
 
       const css = presorted[id];
-      colortip += id.padStart(4, ' ') + " " + makelink(css);
-      colortip += makedots(colorsets[css], 1) + "<br>";
+      colortip += id.padStart(4, ' ') + " " + makelink(css) + makedots(colorsets[css], 1) + "<br>";
     }
-    colorlist.innerHTML += colortip;
+    colorlist.innerHTML = "<h3>Choose a color!</h3>" + colortip;
   } else if (e.target.hasAttribute("data-color")) {
     if (isTouch && e.target.hasAttribute("data-tooltip")) {
       return;
     }
-    var t = e.target.getAttribute("data-color");
+    const t = e.target.getAttribute("data-color");
+
     if (!t) {
       colorlist.innerHTML = "<h3>Choose a color!</h3>";
       return;
     }
+
     rainbow.push(t, 0, rainbowfade?2:0);
     rainbowfade = true;
+
     if (rainbow.length > 408*3) {
       rainbow = rainbow.slice(3);
       rainbow[2] = 0;
     }
-    pukefest.innerHTML = makedots(rainbow, 0);
 
+    pukefest.innerHTML = makedots(rainbow, 0);
     const b = document.createElement("button");
     b.innerHTML = "ꍯ";
     b.classList = "dark";
@@ -687,11 +680,9 @@ function FFdown(e) {
     b.setAttribute("data-tooltip", "Fade ends");
     pukefest.appendChild(b);
 
-    colorlist.innerHTML = "<h3>Color sets using " + t + "-like silicone</h3>";
-    colorsels = [];
-    var keys = Object.keys(colorsets);
-    for (const key of keys) {
-      var k = colorsets[key];
+    const colorsels = [];
+    for (const key of Object.keys(colorsets)) {
+      const k = colorsets[key];
       let featured = false;
       let pos = 1;
       while (pos < k.length) {
@@ -719,7 +710,7 @@ function FFdown(e) {
     for (const cs of colorsels) {
       colortip += "&gt; " + makelink(cs) + makedots(colorsets[cs], 1) + "<br>";
     }
-    colorlist.innerHTML += colortip;
+    colorlist.innerHTML = "<h3>Color sets using " + t + "-like silicone</h3>" + colortip;
   }
 }
 
@@ -900,7 +891,7 @@ var FFmove = function(e) {
   }
 }
 
-var link, isTouch, gallerylist, colorsels, creative;
+var link, isTouch, gallerylist, creative;
 var rainbow = [];
 var rainbowfade = false;
 var fadesample = makedots(["sky blue", 0, 0, "copper", 0, 2, "chestnut", 0, 2], 0);

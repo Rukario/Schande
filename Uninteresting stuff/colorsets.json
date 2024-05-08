@@ -978,6 +978,10 @@
   "Magnus' Sheath Natural":[[293, 1270], "???", 0, 1],
   "Magnus' Sheath Signature":[[292, 1269], "???", 0, 1],
 
+  "Lil' Squirt colors (exclusive to lil' squirts ?)":true,
+  "Valiant Blue":[156, "???", 0, 0],
+  "Seafoam Green":[158, "???", 0, 0],
+
   "Bright Blade (retired)":true,
   "Consular Green":[232],
   "Guardian Blue":[233],

@@ -484,14 +484,11 @@ function FFdown(e) {
       checkinv_mas.style.display = "none";
     }
     let listtoys = [];
-    if (toys[t]) {
-      listtoys.push(...toys[t]);
+    if (toys[ct]) {
+      listtoys.push(...toys[ct]);
     }
-    if (toys["cs " + t]) {
-      listtoys.push(...toys["cs " + t].map((x) => {return "ꍯ " + x}));
-    }
-    if (toys[t + " mas"]) {
-      listtoys.push(...toys[t + " mas"].map((x) => {return "ꍯ " + x}));
+    if (toys[ct2]) {
+      listtoys.push(...toys[ct2].map((x) => {return "ꍯ " + x}));
     }
     const UL = makeUL(listtoys);
     const rows = listtoys.length >= 20 ? 20 : listtoys.length;

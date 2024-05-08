@@ -295,7 +295,20 @@ function makegallery(colorset){
 
 function makelink(cs){
   let c = colorsets[cs];
-  let tt = c[0]?(Array.isArray(c[0])?c[0].join(' ꍯ '):c[0]):"";
+  let tt = "";
+  if (c[0]) {
+    if (Array.isArray(c[0])) {
+      tt += c[0][0];
+      if (c[0].length > 2) {
+        tt += "/" + c[0][2];
+      }
+      if (c[0][1]) {
+        tt += ' ꍯ ' + c[0][1];
+      }
+    } else {
+      tt += c[0];
+    }
+  }
   let lowkey = cs.toLowerCase();
   if (lowkey in swatches) {
     tt += "<br>" + swatches[lowkey]["description"] + "<br><img style='vertical-align:middle;' src='" + swatches[lowkey]["swatchImage"] + "'>";
@@ -303,7 +316,7 @@ function makelink(cs){
       tt += " ꍯ <img src='" + swatches[lowkey + " mas"]["swatchImage"] + "'>";
     } else if ("cs " + lowkey in swatches) {
       tt += " ꍯ Swap available";
-    } else if (Array.isArray(c[0])) {
+    } else if (Array.isArray(c[0]) && c[0][1]) {
       tt += " ꍯ Swap N/A or naming issue";
     }
   }
@@ -311,7 +324,12 @@ function makelink(cs){
   s.classList.add("colorset");
   if (Array.isArray(c[0])) {
     s.setAttribute("data-colorTheme", c[0][0]);
-    s.setAttribute("data-colorTheme2", c[0][1]);
+    if (c[0][1]) {
+      s.setAttribute("data-colorTheme2", c[0][1]);
+    }
+    if (c[0].length > 2) {
+      s.setAttribute("data-colorTheme3", c[0][2]);
+    }
   } else {
     s.setAttribute("data-colorTheme", c[0]);
   }
@@ -476,6 +494,13 @@ function FFdown(e) {
     } else {
       checkinv.style.display = "none";
     }
+    let ct3 = link.getAttribute("data-colorTheme3");
+    if (ct3) {
+      checkinv_2.style.display = "inline-block";
+      checkinv_2.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct3;
+    } else {
+      checkinv_2.style.display = "none";
+    }
     let ct2 = link.getAttribute("data-colorTheme2");
     if (ct2) {
       checkinv_mas.style.display = "inline-block";
@@ -486,6 +511,9 @@ function FFdown(e) {
     let listtoys = [];
     if (toys[ct]) {
       listtoys.push(...toys[ct]);
+    }
+    if (toys[ct3]) {
+      listtoys.push(...toys[ct3].map((x) => {return "2 " + x}));
     }
     if (toys[ct2]) {
       listtoys.push(...toys[ct2].map((x) => {return "ꍯ " + x}));
@@ -628,7 +656,12 @@ function FFdown(e) {
         if (id[0] && !presorted[id[0]]) {
           presorted[id[0]] = css;
         }
-        presorted[id[1]] = css;
+        if (id[1]) {
+          presorted[id[1]] = css;
+        }
+        if (id[2]) {
+          presorted[id[2]] = css;
+        }
       } else if (id) {
         presorted[id] = css;
       }
@@ -896,7 +929,7 @@ var dotsample = 'sky blue (' + makedots(["sky blue", 0, 0], 0) + ') copper (' + 
 window.onload = () => {
   document.body.innerHTML = `<div id="cursor_focus"></div><div class="cursor_tooltip" id="cursor_tooltip" style="transition: left .5s linear;"></div><div class="dark close_button cursor_tooltip" id="tooltip"></div>
 
-<div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><a class="next" href="" target="_blank" id="checkinv">🧺</a><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div><a class="next" href="" target="_blank" id="checkinv_mas">ꍯ🧺</a><span class="tangerine" id="checkcom" style="padding:4px;" data-tooltip="">🧸</span></div>
+<div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><a class="next" href="" target="_blank" id="checkinv">🧺</a><a class="next" href="" target="_blank" id="checkinv_2">2🧺</a><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div><a class="next" href="" target="_blank" id="checkinv_mas">ꍯ🧺</a><span class="tangerine" id="checkcom" style="padding:4px;" data-tooltip="">🧸</span></div>
 
 <div id="toolbar"></div>
 <div></div>

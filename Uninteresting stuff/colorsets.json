@@ -602,6 +602,7 @@
   "Baron's Natural":[[594, 685], "red", 0, 0, "crimson", 0, 2],
   "Bishop's Natural":[[1015, 1010], "white", 0, 0, "smoke", 0, 0, "orange", 2, 0],
   "Blaze's Natural":[[9, 708], "brass", 0, 0, "orange", 0, 0],
+  "Breeder's Natural":[551, "???", 0, 0],
   "Bruce's Natural":[[364, 989], "arctic", 0, 0, "galaxy", 0, 0],
   "Bruce's Portside's Natural":[466, "???", 0, 0],
   "Bruiser's Natural":[[92, 790], "sky blue", 0, 0, "rose", 0, 3, "electric indigo", 0, 3],
@@ -913,6 +914,8 @@
 
 
   "Light/Dark Natural (unavailable for custom ordering)":true,
+  "Breeder's Dark Natural":[549],
+  "Breeder's Light Natural":[550],
   "Bruce's Light Natural":[[null, 936]],
   "Bruce's Dark Natural":[1262],
   "Desi's Light Natural":[556],

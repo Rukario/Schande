@@ -520,7 +520,7 @@
   "Chocolate":[629, "chocolate", 0, 0],
   "Dark Chocolate":[200, "anubis", 0, 0],
   "Ash":[610, "smoke", 0, 0],
-  "Concrete":[607, "concrete", 0, 0],
+  "Concrete":[[447, null, 607], "concrete", 0, 0],
   "Onyx":[605, "black", 0, 0],
 
   "BD":true,
@@ -556,6 +556,7 @@
   "More colors (some may be retired ? )":true,
   "Giger Black":[231, "mold", 0, 0],
   "Black":[371, "???", 0, 0],
+  "Brick Red":[448, "???", 0, 0],
   "Raspberry Splash":[575, "???", 0, 0],
   "Midsummer Night Blue":[576, "???", 0, 0],
   "Solar Gold":[577, "???", 0, 0],

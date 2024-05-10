@@ -497,6 +497,7 @@ function FFdown(e) {
       mas.style.display = "inline-block";
       mas.setAttribute("data-colorset", t + " mas");
     }
+    let listtoys = [];
     let ct = link.getAttribute("data-colorTheme");
     if (ct && ct != "null") {
       checkinv.style.display = "inline-block";
@@ -504,10 +505,16 @@ function FFdown(e) {
     } else {
       checkinv.style.display = "none";
     }
+    if (toys[ct]) {
+      listtoys.push(...toys[ct]);
+    } else {listtoys.push("Unknown caller")}
     let ct3 = link.getAttribute("data-colorTheme3");
     if (ct3) {
       checkinv_2.style.display = "inline-block";
       checkinv_2.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct3;
+      if (toys[ct3]) {
+        listtoys.push(...toys[ct3].map((x) => {return "2 " + x}));
+      } else {listtoys.push("2 Unknown caller")}
     } else {
       checkinv_2.style.display = "none";
     }
@@ -515,28 +522,31 @@ function FFdown(e) {
     if (ct4) {
       checkinv_3.style.display = "inline-block";
       checkinv_3.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct4;
+      if (toys[ct4]) {
+        listtoys.push(...toys[ct4].map((x) => {return "3 " + x}));
+      } else {listtoys.push("3 Unknown caller")}
     } else {
       checkinv_3.style.display = "none";
+    }
+    let ct5 = link.getAttribute("data-colorTheme4");
+    if (ct5) {
+      checkinv_4.style.display = "inline-block";
+      checkinv_4.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct5;
+      if (toys[ct5]) {
+        listtoys.push(...toys[ct5].map((x) => {return "4 " + x}));
+      } else {listtoys.push("4 Unknown caller")}
+    } else {
+      checkinv_4.style.display = "none";
     }
     let ct2 = link.getAttribute("data-colorTheme2");
     if (ct2) {
       checkinv_mas.style.display = "inline-block";
       checkinv_mas.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct2;
+      if (toys[ct2]) {
+        listtoys.push(...toys[ct2].map((x) => {return "ꍯ " + x}));
+      } else {listtoys.push("ꍯ Unknown caller")}
     } else {
       checkinv_mas.style.display = "none";
-    }
-    let listtoys = [];
-    if (toys[ct]) {
-      listtoys.push(...toys[ct]);
-    }
-    if (toys[ct3]) {
-      listtoys.push(...toys[ct3].map((x) => {return "2 " + x}));
-    }
-    if (toys[ct4]) {
-      listtoys.push(...toys[ct4].map((x) => {return "3 " + x}));
-    }
-    if (toys[ct2]) {
-      listtoys.push(...toys[ct2].map((x) => {return "ꍯ " + x}));
     }
     const UL = makeUL(listtoys);
     const rows = listtoys.length >= 20 ? 20 : listtoys.length;
@@ -946,7 +956,7 @@ var dotsample = 'sky blue (' + makedots(["sky blue", 0, 0], 0) + ') copper (' + 
 window.onload = () => {
   document.body.innerHTML = `<div id="cursor_focus"></div><div class="cursor_tooltip" id="cursor_tooltip" style="transition: left .5s linear;"></div><div class="dark close_button cursor_tooltip" id="tooltip"></div>
 
-<div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><a class="next" href="" target="_blank" id="checkinv">🧺</a><a class="next" href="" target="_blank" id="checkinv_2">2🧺</a><a class="next" href="" target="_blank" id="checkinv_3">3🧺</a><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div><a class="next" href="" target="_blank" id="checkinv_mas">ꍯ🧺</a><span class="tangerine" id="checkcom" style="padding:4px;" data-tooltip="">🧸</span></div>
+<div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><a class="next" href="" target="_blank" id="checkinv">🧺</a><a class="next" href="" target="_blank" id="checkinv_2">2🧺</a><a class="next" href="" target="_blank" id="checkinv_3">3🧺</a><a class="next" href="" target="_blank" id="checkinv_4">4🧺</a><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div><a class="next" href="" target="_blank" id="checkinv_mas">ꍯ🧺</a><span class="tangerine" id="checkcom" style="padding:4px;" data-tooltip="">🧸</span></div>
 
 <div id="toolbar"></div>
 <div></div>

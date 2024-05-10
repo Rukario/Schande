@@ -302,13 +302,7 @@ function makelink(cs){
   let tt = "";
   if (c[0]) {
     if (Array.isArray(c[0])) {
-      tt += c[0][0];
-      if (c[0].length > 2) {
-        tt += "/" + c[0][2];
-      }
-      if (c[0].length > 3) {
-        tt += "/" + c[0][3];
-      }
+      tt += [c[0][0], ...c[0].slice(2)].join("/");
       if (c[0][1]) {
         tt += ' ꍯ ' + c[0][1];
       }

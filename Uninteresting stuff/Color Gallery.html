@@ -324,20 +324,23 @@ function makelink(cs){
   let s = document.createElement("span");
   s.classList.add("colorset");
   if (Array.isArray(c[0])) {
-    s.setAttribute("data-colorTheme", c[0][0]);
+    s.dataset.colorTheme = c[0][0];
     if (c[0][1]) {
-      s.setAttribute("data-colorTheme2", c[0][1]);
+      s.dataset.colorTheme2 = c[0][1];
     }
     if (c[0].length > 2) {
-      s.setAttribute("data-colorTheme3", c[0][2]);
+      s.dataset.colorTheme3 = c[0][2];
     }
     if (c[0].length > 3) {
-      s.setAttribute("data-colorTheme4", c[0][3]);
+      s.dataset.colorTheme4 = c[0][3];
+    }
+    if (c[0].length > 4) {
+      s.dataset.colorTheme5 = c[0][4];
     }
   } else {
-    s.setAttribute("data-colorTheme", c[0]);
+    s.dataset.colorTheme = c[0];
   }
-  s.setAttribute("data-tooltip", tt);
+  s.dataset.tooltip = tt;
   s.innerHTML = cs;
   return s.outerHTML;
 }
@@ -491,9 +494,9 @@ function FFdown(e) {
       mas.style.display = "inline-block";
       mas.setAttribute("data-colorset", t + " mas");
     }
-    let listtoys = [];
-    let ct = link.getAttribute("data-colorTheme");
-    if (ct && ct != "null") {
+    const listtoys = [];
+    const ct = link.dataset.colorTheme;
+    if (ct) {
       checkinv.style.display = "inline-block";
       checkinv.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct;
     } else {
@@ -502,7 +505,7 @@ function FFdown(e) {
     if (toys[ct]) {
       listtoys.push(...toys[ct]);
     } else {listtoys.push("Unknown caller")}
-    let ct3 = link.getAttribute("data-colorTheme3");
+    const ct3 = link.dataset.colorTheme3;
     if (ct3) {
       checkinv_2.style.display = "inline-block";
       checkinv_2.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct3;
@@ -512,7 +515,7 @@ function FFdown(e) {
     } else {
       checkinv_2.style.display = "none";
     }
-    let ct4 = link.getAttribute("data-colorTheme4");
+    const ct4 = link.dataset.colorTheme4;
     if (ct4) {
       checkinv_3.style.display = "inline-block";
       checkinv_3.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct4;
@@ -522,7 +525,7 @@ function FFdown(e) {
     } else {
       checkinv_3.style.display = "none";
     }
-    let ct5 = link.getAttribute("data-colorTheme4");
+    const ct5 = link.dataset.colorTheme5;
     if (ct5) {
       checkinv_4.style.display = "inline-block";
       checkinv_4.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct5;
@@ -532,7 +535,8 @@ function FFdown(e) {
     } else {
       checkinv_4.style.display = "none";
     }
-    let ct2 = link.getAttribute("data-colorTheme2");
+
+    const ct2 = link.dataset.colorTheme2;
     if (ct2) {
       checkinv_mas.style.display = "inline-block";
       checkinv_mas.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct2;

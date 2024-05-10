@@ -26,6 +26,9 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:column; grid-column-gap:10px; list-style:none; padding:0; margin:0;}
 ::placeholder {color:#3cb;}
 .cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:44px; cursor:pointer; line-height:1.1;}
+.mcell {background-color:#333; border:1px solid #000; position:relative; display:inline-block; width:18px; height:11px; cursor:pointer;}
+#colortable{line-height:0;}
+#minimap{line-height:0;}
 .previous, .reverse, .inverse, .next, .tangerine, .brown {white-space:nowrap; font-family:sans-serif; font-size:90%; position:relative; display:inline-block; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
 .next {color:#6fe; background-color:#066;}
 .previous {color:#6fe; background-color:#399;}
@@ -60,7 +63,7 @@ ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:colu
 
 </style>
 <script>
-var fc = {"black":"#000000", "anubis":"#292220", "mold":"#222922", "machine":"#202229", "concrete":"#666666", "smoke":"#999999", "cream":"#dcd6cc", "white":"#ffffff", "galaxy":"#111114", "wine":"#500040", "purple":"#992282", "magenta":"#ff33e2", "maroon":"#820045", "rose":"#d60159", "orchid":"#ff6c9b", "cherry blossom":"#ffc9e8", "raspberry":"#aa5c7b", "garnet":"#770017", "cherry":"#d9002b", "cerise":"#ff464e", "rouge":"#ffb9c0", "puce":"#aa7370", "crimson":"#771700", "red":"#c7291b", "scarlet":"#f35548", "chestnut":"#bd3f20", "coral":"#f1876a", "jovial":"#f7c3b3", "rosewood":"#9f400f", "copper":"#e86423", "peach":"#ffc397", "chocolate":"#61300b", "bronze":"#c26718", "orange":"#ff8a00", "honey":"#ffbe6a", "caramel":"#aa7e4a", "gold":"#ffc11d", "brass":"#ffd76b", "beeswax":"#c4af22", "lemon":"#ffe900", "beige":"#fff8a8", "olive":"#707916", "fern":"#b4cd20", "tennis ball":"#e5ff00", "pistachio":"#e5ff9f", "forest":"#234d00", "green":"#64c900", "lime":"#adff69", "xanadu":"#c2ffaf", "grass":"#337744", "teal":"#009677", "robin egg":"#2deacf", "mist":"#a3ffe1", "azure":"#1898cf", "sky blue":"#5ed5ff", "arctic":"#caf6ff", "ink":"#30228c", "blueberry":"#6666ff", "glaucous":"#aac6ff", "magic":"#eff6ff", "indigo":"#401187", "electric indigo":"#7f36df", "lavender indigo":"#b796ff", "glossy grape":"#7c6699", "grape":"#4b0078", "violet":"#8904d1", "psychic":"#bb6eff", "lavender":"#e0caff"};
+var fc = {"black":"#000000", "anubis":"#292220", "mold":"#222922", "machine":"#202229", "concrete":"#666666", "smoke":"#999999", "cream":"#dcd6cc", "white":"#ffffff", "galaxy":"#111114", "wine":"#500040", "purple":"#992282", "magenta":"#ff33e2", "maroon":"#820045", "rose":"#d60159", "orchid":"#ff6c9b", "cherry blossom":"#ffc9e8", "raspberry":"#aa5c7b", "garnet":"#770017", "cherry":"#d9002b", "cerise":"#ff464e", "rouge":"#ffb9c0", "puce":"#aa7370", "crimson":"#771700", "red":"#c7291b", "scarlet":"#f35548", "chestnut":"#bd3f20", "coral":"#f1876a", "jovial":"#f7c3b3", "rosewood":"#9f400f", "copper":"#e86423", "peach":"#ffc397", "chocolate":"#61300b", "bronze":"#c26718", "orange":"#ff8a00", "honey":"#ffbe6a", "caramel":"#aa7e4a", "gold":"#ffc11d", "brass":"#ffd76b", "beeswax":"#c4af22", "lemon":"#ffe900", "beige":"#fff8a8", "olive":"#707916", "fern":"#b4cd20", "tennis ball":"#e5ff00", "pistachio":"#e5ff9f", "forest":"#234d00", "green":"#64c900", "lime":"#adff69", "xanadu":"#c2ffaf", "grass":"#337744", "teal":"#009677", "robin egg":"#2deacf", "mist":"#a3ffe1", "ocean blue":"#1699bb", "cerulean":"#5bd5ff", "arctic":"#caf6ff", "lazuli":"#5050ff", "sky blue":"#80c0ff", "ghost white":"#f3f3ff", "ink":"#30228c", "blueberry":"#6660ff", "glaucous":"#aec2ff", "magic":"#f5edff", "indigo":"#401187", "electric indigo":"#7f36df", "lavender indigo":"#b796ff", "glossy grape":"#7c6699", "grape":"#4b0078", "violet":"#8904d1", "psychic":"#bb6eff", "lavender":"#e0caff"};
 
 var cn = [
   "black", "anubis", "mold", "machine",
@@ -78,9 +81,10 @@ var cn = [
   "olive", "fern", "tennis ball", "pistachio",
   "forest", "green", "lime", "xanadu",
   null, "teal", "robin egg", "mist",
-  null, "azure", "sky blue", "arctic",
-  "ink", "blueberry", "glaucous", "magic",
-  "indigo", "electric indigo", "lavender indigo", null,
+  null, "ocean blue", "cerulean", "arctic",
+  null, "lazuli", "sky blue", "ghost white",
+  "ink", "blueberry", "glaucous", null,
+  "indigo", "electric indigo", "lavender indigo", "magic",
   "grape", "violet", "psychic", "lavender"
 ];
 
@@ -89,10 +93,10 @@ var palette = [
   ["black", "galaxy", "anubis", "mold", "machine"],
   ["wine", "maroon", "garnet", "crimson", "chocolate", "olive", "forest", "ink", "indigo", "grape"],
   ["rosewood"],
-  ["purple", "rose", "cherry", "red", "chestnut", "bronze", "beeswax", "fern", "green", "teal", "azure", "blueberry", "electric indigo", "violet"],
-  ["cerise", "scarlet", "copper", "orange", "gold", "lemon", "tennis ball", "lime", "robin egg", "sky blue", "glaucous", "lavender indigo", "psychic"],
+  ["purple", "rose", "cherry", "red", "chestnut", "bronze", "beeswax", "fern", "green", "teal", "ocean blue", "lazuli", "blueberry", "electric indigo", "violet"],
+  ["cerise", "scarlet", "copper", "orange", "gold", "lemon", "tennis ball", "lime", "robin egg", "cerulean", "sky blue", "glaucous", "lavender indigo", "psychic"],
   ["magenta", "orchid", "coral"],
-  ["cherry blossom", "rouge", "jovial", "peach", "honey", "brass", "beige", "pistachio", "xanadu", "mist", "arctic", "magic", "lavender"],
+  ["cherry blossom", "rouge", "jovial", "peach", "honey", "brass", "beige", "pistachio", "xanadu", "mist", "arctic", "ghost white", "magic", "lavender"],
   ["raspberry", "puce", "caramel", "grass", "glossy grape"]
 ];
 
@@ -302,6 +306,9 @@ function makelink(cs){
       if (c[0].length > 2) {
         tt += "/" + c[0][2];
       }
+      if (c[0].length > 3) {
+        tt += "/" + c[0][3];
+      }
       if (c[0][1]) {
         tt += ' ꍯ ' + c[0][1];
       }
@@ -329,6 +336,9 @@ function makelink(cs){
     }
     if (c[0].length > 2) {
       s.setAttribute("data-colorTheme3", c[0][2]);
+    }
+    if (c[0].length > 3) {
+      s.setAttribute("data-colorTheme4", c[0][3]);
     }
   } else {
     s.setAttribute("data-colorTheme", c[0]);
@@ -501,6 +511,13 @@ function FFdown(e) {
     } else {
       checkinv_2.style.display = "none";
     }
+    let ct4 = link.getAttribute("data-colorTheme4");
+    if (ct4) {
+      checkinv_3.style.display = "inline-block";
+      checkinv_3.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct4;
+    } else {
+      checkinv_3.style.display = "none";
+    }
     let ct2 = link.getAttribute("data-colorTheme2");
     if (ct2) {
       checkinv_mas.style.display = "inline-block";
@@ -514,6 +531,9 @@ function FFdown(e) {
     }
     if (toys[ct3]) {
       listtoys.push(...toys[ct3].map((x) => {return "2 " + x}));
+    }
+    if (toys[ct4]) {
+      listtoys.push(...toys[ct4].map((x) => {return "3 " + x}));
     }
     if (toys[ct2]) {
       listtoys.push(...toys[ct2].map((x) => {return "ꍯ " + x}));
@@ -600,7 +620,7 @@ function FFdown(e) {
       const k = colorsets[key];
       let featured = false;
       if (10 < k.length) {
-       featured = true;
+        featured = true;
       } else {
         let pos = 1;
         while (pos < k.length) {
@@ -651,16 +671,13 @@ function FFdown(e) {
       if (colorsets[css] == true) {
         continue;
       }
+
       id = colorsets[css][0];
       if (Array.isArray(id)) {
-        if (id[0] && !presorted[id[0]]) {
-          presorted[id[0]] = css;
-        }
-        if (id[1]) {
-          presorted[id[1]] = css;
-        }
-        if (id[2]) {
-          presorted[id[2]] = css;
+        for (const idp of id) {
+          if (idp && !presorted[idp]) {
+            presorted[idp] = css;
+          }
         }
       } else if (id) {
         presorted[id] = css;
@@ -929,13 +946,14 @@ var dotsample = 'sky blue (' + makedots(["sky blue", 0, 0], 0) + ') copper (' + 
 window.onload = () => {
   document.body.innerHTML = `<div id="cursor_focus"></div><div class="cursor_tooltip" id="cursor_tooltip" style="transition: left .5s linear;"></div><div class="dark close_button cursor_tooltip" id="tooltip"></div>
 
-<div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><a class="next" href="" target="_blank" id="checkinv">🧺</a><a class="next" href="" target="_blank" id="checkinv_2">2🧺</a><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div><a class="next" href="" target="_blank" id="checkinv_mas">ꍯ🧺</a><span class="tangerine" id="checkcom" style="padding:4px;" data-tooltip="">🧸</span></div>
+<div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><a class="next" href="" target="_blank" id="checkinv">🧺</a><a class="next" href="" target="_blank" id="checkinv_2">2🧺</a><a class="next" href="" target="_blank" id="checkinv_3">3🧺</a><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div><a class="next" href="" target="_blank" id="checkinv_mas">ꍯ🧺</a><span class="tangerine" id="checkcom" style="padding:4px;" data-tooltip="">🧸</span></div>
 
 <div id="toolbar"></div>
 <div></div>
 
 <div style="display:inline-block; position:relative; vertical-align:top; display:flex;">
 <div id="colortable" style="vertical-align:top; display:inline-block; position:relative; color:#000; min-width:316px; max-width:316px;"></div>
+<div id="minimap" style="vertical-align:top; display:none; position:relative; color:#000; min-width:80px; max-width:80px;"></div>
 <div id="colorlist" style="display:inline-block; vertical-align:top; white-space:pre; margin-bottom:96px;"></div>
 <div style="vertical-align:top;">
 
@@ -963,7 +981,7 @@ window.onload = () => {
   d.style.cursor = "pointer";
   toolbar.appendChild(d);
 
-  toolbar.appendChild(makeDIV("viewall", "View all", "Can't find a color set? If it (of silicones, not the legacy toy) is not retired yet, try this &amp; use your browser's find in page function!", true));
+  toolbar.appendChild(makeDIV("viewall", "View all", "Can't find a color set? Try this &amp; use your browser's find in page function!", true));
 
   toolbar.appendChild(makeDIV("numbered", "Numbered", "View color sets in order of color theme ID", true));
 
@@ -990,8 +1008,14 @@ window.onload = () => {
   loadcolors("toys.json");
 
   for (const ccn of cn) {
+    const d = document.createElement("DIV");
+    d.classList = "cell";
+
+    const m = document.createElement("DIV");
+    m.classList = "mcell";
+
     if (ccn == null) {
-      colortable.innerHTML += "<div class='cell' data-color=''>&nbsp;</div>";
+      d.dataset.color = "";
     } else {
       const cc = fc[ccn];
       let cb = "#000000";
@@ -1000,15 +1024,17 @@ window.onload = () => {
       //   cb = "rgba(255, 255, 255, 0.5)";
       // }
 
-      const d = document.createElement("DIV");
-      d.classList = "cell";
       d.style.verticalAlign = "top";
       d.style.background = cc;
       d.style.color = cb;
       d.dataset.color = ccn;
       d.innerHTML = ccn;
-      colortable.appendChild(d);
+
+      m.style.background = cc;
     }
+
+    colortable.appendChild(d);
+    minimap.appendChild(m);
   }
 
   colorlist.innerHTML = "<h3>Choose a color!</h3>";

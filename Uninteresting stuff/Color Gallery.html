@@ -280,9 +280,10 @@ function makegallery(colorset){
 
   gallery.innerHTML = buffer;
 
-  var links = document.querySelectorAll(".colorset")
+  const links = document.querySelectorAll(".colorset");
+  const orig_colorset = colorset.replace(/(^cs\s|\smas$)/g, '');
   for (const link of links) {
-    if (link.innerHTML.toLowerCase().replace(/'/g, "") == colorset) {
+    if (link.innerHTML.toLowerCase().replace(/(^cs\s|'|\smas$)/g, '') == orig_colorset) {
       link.classList.add("colorsel");
     } else {
       link.classList.remove("colorsel");

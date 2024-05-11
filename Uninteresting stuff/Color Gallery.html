@@ -248,12 +248,12 @@ function makegallery(colorset){
     buffer += "<div class='frame'><a class='fileThumb' href='" + bookmark + "'><img class='lazy' data-src='" + bookmark + "'></a></div>";
   }
 
-  for (const rogue of pictures["rogue"]){
+  for (const custom_twins of pictures["custom twins"]){
     var featured = false;
-    var k = Object.keys(rogue)[0];
+    var k = Object.keys(custom_twins)[0];
     var colortip = "";
 
-    for (const cs of rogue[k]) {
+    for (const cs of custom_twins[k]) {
       if (cs[0].toLowerCase().replace(/'/g, "") == colorset) {
         featured = true;
       }

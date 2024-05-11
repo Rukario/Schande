@@ -313,9 +313,21 @@ function makelink(cs){
   }
   let lowkey = cs.toLowerCase();
   if (lowkey in swatches) {
-    tt += "<br>" + swatches[lowkey]["description"] + "<br><img style='vertical-align:middle;' src='" + swatches[lowkey]["swatchImage"] + "'>";
+    if (Array.isArray(swatches[lowkey])) {
+      for (const ent of swatches[lowkey]) {
+        tt += "<br>" + ent["description"] + "<br><img style='vertical-align:middle;' src='" + ent["swatchImage"] + "'>";
+      }
+    } else {
+      tt += "<br>" + swatches[lowkey]["description"] + "<br><img style='vertical-align:middle;' src='" + swatches[lowkey]["swatchImage"] + "'>";
+    }
     if (lowkey + " mas" in swatches) {
-      tt += " ꍯ <img src='" + swatches[lowkey + " mas"]["swatchImage"] + "'>";
+      const swatchmas = swatches[lowkey + " mas"]
+      if (swatchmas["description"].toLowerCase().replace(/\./g, "") != swatches[lowkey]["description"].toLowerCase().replace(/\./g, "")) {
+        tt += "<br> ꍯ " + swatchmas["description"] + "<br>";
+      } else {
+        tt += " ꍯ ";
+      }
+      tt += "<img src='" + swatchmas["swatchImage"] + "'>";
     } else if ("cs " + lowkey in swatches) {
       tt += " ꍯ Swap available";
     } else if (Array.isArray(c[0]) && c[0][1]) {

@@ -218,7 +218,7 @@ function makedots(cs, pos){
       fcc += ", " + o + " " + (6+18*n) + "px";
     }
     fcc += ", " + color[0][color[0].length-1];
-    gradientbg += "<div style='display:inline-block;'><div style='position:absolute;'>" + color[1] + "</div><div style='padding:0px 3px;'><div class='dot' style='pointer-events:none; height: 12px; width:" + (12 + long) + "px; border: none; background: linear-gradient(90deg" + fcc + ")';></div></div></div>";
+    gradientbg += "<div style='display:inline-block;'><div style='position:absolute;'>" + color[1] + "</div><div style='padding:0px 3px;'><div class='dot' style='pointer-events:none; height: 12px; width:" + (12 + long) + "px; border: none; background: linear-gradient(90deg" + fcc + ");'></div></div></div>";
   }
   return gradientbg;
 }

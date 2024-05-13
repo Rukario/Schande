@@ -26,9 +26,11 @@
   "Unicorn Cake":[439, "arctic", 0, 0, "wine", 0, 0, "orchid", 0, 0],
   "Raw Berry Cheesecake":[454, "cherry blossom", 0, 0, "rose", 3, 0, "grape", 0, 0],
   "Strawberry Shortcake":[194, "cerise", 2, 0, "white", 0, 0, "gold", 2, 0],
-  "Lemon Blueberry Cake":[191, "lemon", 0, 0, "ghost white", 2, 0, "grape", 2, 0],
+  "Lemon Blueberry Cake":[191, "lemon", 0, 0, "magic", 2, 0, "grape", 2, 0],
   "Salted Caramel Blondie":[195, "white", 0, 0, "brass", 2, 0, "bronze", 2, 0],
   "Cinnamon Roll":[438, "bronze", 0, 0, "gold", 2, 0],
+
+  "Pi Day à la mode":true,
   "a la mode Champagne Cake":[1356, "rouge", 0, 0, "brass", 0, 0, "brass", 3, 0],
   "a la mode Strawberry Frosted Squares":[1357, "chocolate", 0, 0, "cherry blossom", 0, 0, "red", 0, 0],
   "a la mode Mint Chocolate Chip Sandwich":[1358, "chocolate", 0, 0, "arctic", 0, 0, "honey", 0, 0],
@@ -36,7 +38,7 @@
   "a la mode Unicorn Cake":[1360, "arctic", 0, 0, "wine", 0, 0, "orchid", 0, 0],
   "a la mode Raw Berry Cheese Cake":[1361, "cherry blossom", 0, 0, "rose", 3, 0, "grape", 0, 0],
   "a la mode Strawberry Shortcake":[1362, "cerise", 2, 0, "white", 0, 0, "gold", 2, 0],
-  "a la mode Lemon Blueberry Cake":[1363, "lemon", 0, 0, "ghost white", 2, 0, "grape", 2, 0],
+  "a la mode Lemon Blueberry Cake":[1363, "lemon", 0, 0, "magic", 2, 0, "grape", 2, 0],
   "a la mode Salted Caramel Blondie":[1364, "white", 0, 0, "brass", 2, 0, "bronze", 2, 0],
   "a la mode Cinnamon Roll":[1365, "bronze", 0, 0, "gold", 2, 0],
 

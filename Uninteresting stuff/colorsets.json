@@ -945,6 +945,9 @@
   "Chill Pill":[1300],
   "Gnarly":[1301],
 
+  "Mas version may be orderable/customizable":true,
+  "Con Taboo":[[1152, 1153], "scarlet", 0, 0, "cream", 3, 0, "wine", 0, 0, "anubis", 0, 0],
+
   "Near Clear (unavailable for custom ordering)":true,
   "Rainbow Dipped Cinnamon":[1343],
   "Rainbow Dipped Glacial Mint":[1344],
@@ -1177,7 +1180,6 @@
   "special":[837, "???", 0, 0],
   "red practice":[1033, "???", 0, 0],
   "red velvet cake mas- do not use":[1136, "???", 0, 0],
-  "Con Taboo":[[1152, 1153], "???", 0, 0],
   "Rogue":[1187],
   "bruce's old natural":[1261, "???", 0, 0],
   "Constellation":[1298],

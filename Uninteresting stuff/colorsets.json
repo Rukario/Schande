@@ -125,7 +125,6 @@
   "Bifrost":[1172, "cherry", 0, 0, "orange", 0, 0, "lemon", 0, 0, "forest", 0, 0, "lazuli", 0, 0, "violet", 0, 0],
   "Rainbow Vanilla Yogurt Parfait":[441, "rose", 3, 0, "orange", 3, 0, "lemon", 3, 0, "lime", 3, 0, "lazuli", 3, 0, "white", 0, 0],
   "Rainbow Strawberry Yogurt Parfait":[192, "rose", 3, 0, "orange", 3, 0, "lemon", 3, 0, "lime", 3, 0, "lazuli", 3, 0, "cherry blossom", 0, 0],
-  "Rainbow Blueberry Yogurt Parfait":[1008, "???", 0, 0],
   "Pride Parfait":[1069, "cherry blossom", 0, 0, "cherry", 0, 0, "garnet", 0, 0, "chestnut", 0, 0, "orange", 0, 0, "caramel", 0, 0, "gold", 0, 0, "brass", 0, 0, "tennis ball", 0, 0, "forest", 0, 0, "lime", 0, 0, "mist", 0, 0, "lazuli", 0, 0, "lazuli", 2, 0, "arctic", 0, 0, "violet", 0, 0, "purple", 0, 0, "lavender", 0, 0],
 
   "Easter":true,
@@ -378,6 +377,7 @@
   "Performer 2021 (Flirtatious Luxury)":[[932, 933], "rose", 0, 0, "brass", 0, 0, "galaxy", 0, 0],
   "Fall":[1003],
   "Season of the Witch":[1006, "crimson", 2, 0, "chestnut", 0, 0, "orange", 0, 0],
+  "Rainbow Blueberry Yogurt Parfait":[1008],
   "After Midnight":[1012, "machine", 0, 0, "grape", 0, 2],
   "Black Magic":[1013, "grape", 0, 0, "galaxy", 0, 2],
   "Black Opal":[[1022, 1137], "olive", 0, 0, "mold", 0, 0, "machine", 0, 0, "anubis", 0, 0],

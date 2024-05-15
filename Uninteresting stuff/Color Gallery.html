@@ -669,7 +669,7 @@ function FFdown(e) {
     for (const cs of colorsels) {
       colortip += "&gt; " + makelink(cs) + makedots(colorsets[cs], 1) + "<br>";
     }
-    colorlist.innerHTML = "<h3>Choose a color!</h3>" + colortip;
+    colorlist.innerHTML = "<h3>Exotic color sets</h3>" + colortip;
     cssel();
   } else if (e.target.getAttribute("id") == "droponly" || e.target.hasAttribute("data-color") && e.target.getAttribute("data-color") == "droponly") {
     if (isTouch && e.target.hasAttribute("data-color") && e.target.hasAttribute("data-tooltip")) {
@@ -1006,16 +1006,6 @@ window.onload = () => {
 
   toolbar.appendChild(makeDIV("creative", "Creative mode", "Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway and bottom colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights"));
 
-  toolbar.appendChild(makeDIV("exotic", "Exotic sets", "View all color sets using fades or 4+ color marbles i.e. can't be altered", true));
-
-  let d = document.createElement("SPAN");
-  d.id = "droponly";
-  d.innerHTML = "✨";
-  d.dataset.tooltip = "View drop only color sets (unavailable for custom ordering)";
-  // d.dataset.color = "drop only";
-  d.style.cursor = "pointer";
-  toolbar.appendChild(d);
-
   toolbar.appendChild(makeDIV("viewall", "View all", "Can't find a color set? Try this &amp; use your browser's find in page function!", true));
 
   toolbar.appendChild(makeDIV("numbered", "Numbered", "View color sets in order of color theme ID", true));
@@ -1071,6 +1061,31 @@ window.onload = () => {
     colortable.appendChild(d);
     minimap.appendChild(m);
   }
+
+  d = document.createElement("DIV");
+  d.id = "droponly";
+  //d.dataset.color = "droponly";
+  d.dataset.tooltip = "View drop only color sets (unavailable for custom ordering)";
+  d.classList = "cell";
+  d.innerHTML = "✨";
+  colortable.appendChild(d);
+
+  d = document.createElement("DIV");
+  d.id = "exotic";
+  //d.dataset.color = "droponly";
+  d.dataset.tooltip = "View all color sets using fades or 4+ color marbles i.e. can't be altered"
+  d.classList = "cell";
+  d.style.color = "rgba(255, 255, 255, 0.5)";
+  d.innerHTML = "Exotic";
+  colortable.appendChild(d);
+
+  d = document.createElement("DIV");
+  d.dataset.color = "???";
+  d.dataset.tooltip = "View color sets with unassigned silicone colors";
+  d.classList = "cell";
+  d.style.color = "rgba(255, 255, 255, 0.5)";
+  d.innerHTML = "UNK";
+  colortable.appendChild(d);
 
   colorlist.innerHTML = "<h3>Choose a color!</h3>";
   document.addEventListener("click", FFclick);

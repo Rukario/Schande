@@ -16,7 +16,7 @@ a:visited {color:#efdfa8;}
 img {vertical-align:top;}
 h3 {margin:4px;}
 .colorset{color:#bfddc6; cursor:pointer;}
-.colorsel{opacity:75%}
+.colorsel{background-color:#c60; color:#fc3;}
 .hyperlink{color:#bfddc6; text-decoration:underline;}
 .blink{animation: bl 1000ms steps(1, end) infinite;}
 @keyframes bl{0%{opacity:75%;} 50%{opacity:100%;}}
@@ -233,8 +233,21 @@ function galleryset2(){
   more.style.display = "none"; 
 }
 
+function cssel(){
+  if (!colorset) return;
+  const links = document.querySelectorAll(".colorset");
+  const orig_colorset = colorset.replace(/(^cs\s|\smas$)/g, '');
+  for (const link of links) {
+    if (link.innerHTML.toLowerCase().replace(/(^cs\s|'|\smas$)/g, '') == orig_colorset) {
+      link.classList.add("colorsel");
+    } else {
+      link.classList.remove("colorsel");
+    }
+  }
+}
+
 var galleryset = [[], []];
-function makegallery(colorset){
+function makegallery(){
   if (!editor.innerHTML.startsWith("Connect to Bad Dragon")) {
     echo("Replace this text field with 'Connect to Bad Dragon' and release me from liability.\nThis might strain Bad Dragon server/your computer and I'll not be held responsible for that.\n")
     return;
@@ -280,17 +293,9 @@ function makegallery(colorset){
 
   gallery.innerHTML = buffer;
 
-  const links = document.querySelectorAll(".colorset");
-  const orig_colorset = colorset.replace(/(^cs\s|\smas$)/g, '');
-  for (const link of links) {
-    if (link.innerHTML.toLowerCase().replace(/(^cs\s|'|\smas$)/g, '') == orig_colorset) {
-      link.classList.add("colorsel");
-    } else {
-      link.classList.remove("colorsel");
-    }
-  }
+  cssel();
 
-  lazyload()
+  lazyload();
 
   if (pictures[colorset].length>11){
     more.innerHTML = "Load " + (pictures[colorset].length-12) + " more pictures";
@@ -401,7 +406,8 @@ function FFdown(e) {
       creative.classList = "next";
     }
   } else if (e.target.getAttribute("id") == "odnary") {
-    makegallery(odnary.getAttribute("data-colorset"));
+    colorset = odnary.getAttribute("data-colorset");
+    makegallery();
   } else if (e.target.getAttribute("id") == "replace") {
     more.style.display = "none"; 
     var buffer = "";
@@ -483,9 +489,11 @@ function FFdown(e) {
     gallerysave.classList = "previous";
     gallerysave.innerHTML = "Save completed";
   } else if (e.target.getAttribute("id") == "cs") {
-    makegallery(cs.getAttribute("data-colorset"));
+    colorset = cs.getAttribute("data-colorset");
+    makegallery();
   } else if (e.target.getAttribute("id") == "mas") {
-    makegallery(mas.getAttribute("data-colorset"));
+    colorset = mas.getAttribute("data-colorset");
+    makegallery();
   } else if (e.target.getAttribute("id") == "more") {
     galleryset2();
   } else if (e.target.classList.contains("colorset")) {
@@ -661,6 +669,7 @@ function FFdown(e) {
       colortip += "&gt; " + makelink(cs) + makedots(colorsets[cs], 1) + "<br>";
     }
     colorlist.innerHTML = "<h3>Choose a color!</h3>" + colortip;
+    cssel();
   } else if (e.target.getAttribute("id") == "droponly" || e.target.hasAttribute("data-color") && e.target.getAttribute("data-color") == "droponly") {
     if (isTouch && e.target.hasAttribute("data-color") && e.target.hasAttribute("data-tooltip")) {
       return;
@@ -674,6 +683,7 @@ function FFdown(e) {
       colortip += "&gt; " + makelink(css) + makedots(colorsets[css], 1) + "<br>";
     }
     colorlist.innerHTML = "<h3>Drop only color sets</h3>" + colortip;
+    cssel();
   } else if (e.target.getAttribute("id") == "viewall") {
     let colortip = "";
     for (const css of Object.keys(colorsets)) {
@@ -684,6 +694,7 @@ function FFdown(e) {
       colortip += "&gt; " + makelink(css) + makedots(colorsets[css], 1) + "<br>";
     }
     colorlist.innerHTML = "<h3>Choose a color!</h3>" + colortip;
+    cssel();
   } else if (e.target.getAttribute("id") == "numbered") {
     let colortip = "";
     const presorted = {};
@@ -717,6 +728,7 @@ function FFdown(e) {
       colortip += id.padStart(4, ' ') + " " + makelink(css) + makedots(colorsets[css], 1) + "<br>";
     }
     colorlist.innerHTML = "<h3>Choose a color!</h3>" + colortip;
+    cssel();
   } else if (e.target.hasAttribute("data-color")) {
     if (isTouch && e.target.hasAttribute("data-tooltip")) {
       return;
@@ -779,6 +791,7 @@ function FFdown(e) {
       colortip += "&gt; " + makelink(cs) + makedots(colorsets[cs], 1) + "<br>";
     }
     colorlist.innerHTML = "<h3>Color sets using " + t + "-like silicone</h3>" + colortip;
+    cssel();
   }
 }
 
@@ -959,7 +972,7 @@ var FFmove = function(e) {
   }
 }
 
-var link, isTouch, gallerylist, creative;
+var link, isTouch, gallerylist, creative, colorset;
 var rainbow = [];
 var rainbowfade = false;
 var fadesample = makedots(["sky blue", 0, 0, "copper", 0, 2, "chestnut", 0, 2], 0);

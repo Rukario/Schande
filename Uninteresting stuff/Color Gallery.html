@@ -378,6 +378,7 @@ function makeDIV(id, t, tooltip, pointer=false) {
 
 function makeUL(array) {
   const list = document.createElement('ul');
+  list.style.whiteSpace = "nowrap";
   for (const i of Array(array.length).keys()) {
     const item = document.createElement('li');
     item.appendChild(document.createTextNode(array[i]));

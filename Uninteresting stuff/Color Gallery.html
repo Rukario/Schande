@@ -234,11 +234,10 @@ function galleryset2(){
 }
 
 function cssel(){
-  if (!colorset) return;
   const links = document.querySelectorAll(".colorset");
-  const orig_colorset = colorset.replace(/(^cs\s|\smas$)/g, '');
+  const orig_colorset = colorset ? colorset.replace(/(^cs\s|\smas$)/g, '') : false;
   for (const link of links) {
-    if (link.innerHTML.toLowerCase().replace(/(^cs\s|'|\smas$)/g, '') == orig_colorset) {
+    if (colorset && link.innerHTML.toLowerCase().replace(/(^cs\s|'|\smas$)/g, '') == orig_colorset) {
       link.classList.add("colorsel");
     } else {
       link.classList.remove("colorsel");
@@ -476,6 +475,8 @@ function FFdown(e) {
     pukefest.appendChild(b);
 
     gallery.innerHTML = buffer;
+    colorset = undefined;
+    cssel();
     lazyload();
   } else if (e.target.getAttribute("id") == "gallerysave") {
     if (gallerysave.classList == "previous") {

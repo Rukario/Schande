@@ -247,9 +247,9 @@
   "Running Serpent":[855, "galaxy", 2, 0, "grass", 2, 0, "arctic", 2, 0],
   "Soaring Sai":[856, "purple", 3, 0, "cream", 0, 0, "anubis", 0, 0],
 
-  "Game Over":true,
+  "Game Over (✨ = retired)":true,
   "Mad Titan":[[534, 537], "ink", 2, 0, "purple", 0, 0, "glossy grape", 0, 0],
-  "Quantum":[[535, 538], "???", 0, 0],
+  "Quantum":[[535, 538]],
 
   "Ice Pop Drop (✨ = retired)":true,
   "Firework":[[662, 1128], "garnet", 0, 0, "white", 0, 0, "smoke", 0, 0, "cerulean", 0, 0, "ink", 0, 0, "lazuli", 0, 0, "scarlet", 0, 0],

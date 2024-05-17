@@ -481,6 +481,8 @@
   "Split Midnight Forest":[433, "teal", 0, 0, "forest", 0, 2, "indigo", 0, 0],
   "Crimson Drake":[341, "scarlet", 0, 0, "crimson", 0, 2],
   "Split Crimson Drake":[343, "scarlet", 0, 0, "crimson", 0, 2, "copper", 0, 0],
+
+  "Default colors: Inspired Infusions":true,
   "Pacific Hurricane":[[1104, 1141], "white", 3, 0, "gold", 0, 0, "scarlet", 0, 0],
   "Magic Butterfly":[[1105, 1142], "white", 3, 0, "magenta", 0, 0, "lazuli", 0, 0],
   "Tropical Storm":[[1106, 1140], "white", 3, 0, "tennis ball", 0, 0, "forest", 0, 0],
@@ -488,15 +490,19 @@
   "Default colors (equine)":true,
   "Everlasting Night":[305, "indigo", 0, 0, "lazuli", 0, 0],
 
-  "Default colors (anti-mas)":true,
+  "Default colors: GitD (anti-mas)":true,
   "Ectoplasm":[670, "robin egg", 0, 0],
   "Ultraviolet":[668, "lavender", 0, 0],
   "Duka-Cola Quantum":[667, "sky blue", 0, 0],
   "Starlight Glow":[669, "robin egg", 0, 0],
+
+  "Default colors: Polarizing Lights (anti-mas)":true,
   "Sky Spirit":[536, "glaucous", 0, 0, "psychic", 0, 0],
   "Green Dancer":[541, "green", 0, 0, "lime", 0, 0],
   "Blue Omen":[565, "electric indigo", 0, 0, "lazuli", 0, 0],
   "Frozen Fox":[566, "arctic", 0, 0, "lazuli", 0, 0],
+
+  "Default colors: Princess Fades (anti-mas)":true,
   "Proper Belle":[508, "beige", 0, 0, "peach", 0, 2, "fern", 0, 2],
   "Proper Yellow":[826, "beige", 0, 0],
   "Angelic Mist":[509, "mist", 0, 0, "lavender", 0, 2, "xanadu", 0, 2],

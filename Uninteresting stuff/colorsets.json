@@ -144,7 +144,6 @@
   "Halloween Black":[205, "machine", 0, 0],
   "Halloween Orange":[206, "copper", 0, 0],
   "Sinister Pumpkin":[207, "copper", 0, 0, "machine", 0, 0],
-  "Enchanted Apple":[208, "red", 0, 0],
   "Spooky Seconds":[210, "ghost white", 3, 0, "arctic", 3, 0],
   "Meat":[489, "peach", 0, 0, "coral", 2, 0],
   "Numbskull":[1147, "xanadu", 0, 0, "smoke", 0, 0, "galaxy", 0, 0],
@@ -156,11 +155,14 @@
   "Malicious":[[679, 1151], "orange", 0, 0, "garnet", 0, 0, "wine", 0, 0],
   "Wicked":[678, "copper", 0, 0, "forest", 0, 0, "wine", 0, 0],
 
-  "Holiday":true,
+  "Christmas Colors":true,
+  "Reindeer Games":[211, "red", 0, 0],
   "Mistletoe":[212, "grass", 0, 0],
   "Decked Halls":[213, "red", 0, 0, "grass", 0, 0],
   "Winter Wonderland":[214, "white", 3, 0, "lazuli", 3, 0],
   "Winter Mint":[215, "sky blue", 0, 0, "forest", 2, 0],
+  "Mint Condition":[[216, 476], "???", 0, 0],
+  "Coal Black":[217, "concrete", 0, 0],
   "Tannenbaum":[218, "fern", 2, 0],
   "Krampus' Touch":[219, "fern", 2, 0, "concrete", 0, 0],
   "Krampus' Present":[220, "fern", 2, 0, "bronze", 0, 0],
@@ -227,7 +229,17 @@
   "Andromeda":[[1405, 1411], "galaxy", 0, 0, "ocean blue", 0, 0, "magic", 0, 0],
   "Green Sunrise":[[1412, 1413], "galaxy", 0, 0, "teal", 0, 0, "lazuli", 0, 0],
 
-  "Kaiju Aftermath":true,
+  "Five Nights at Bad Dragon":true,
+  "Night Shift":[228, "crimson", 0, 0, "smoke", 3, 0, "black", 0, 0],
+
+  "BD Apples":true,
+  "Enchanted Apple":[208, "red", 0, 0],
+  "Caramel Apple":[209, "???", 0, 0],
+
+  "Friday 13th":true,
+  "Slasher Silver":[230, "rose", 0, 3, "glaucous", 0, 0],
+
+  "Atomic Kaiju Colors":true,
   "Kaiju Aftermath 2":[[436, 485], "mold", 0, 0, "robin egg", 2, 0],
   "Jagyr":[437, "???", 0, 0],
 
@@ -237,7 +249,7 @@
   "Royal Trident":[393, "orange", 2, 0, "grass", 0, 0],
   "Magic Scarab":[394, "lazuli", 0, 0, "galaxy", 2, 0],
 
-  "World Fractions":true,
+  "Fractions":true,
   "Impulse":[469, "???", 0, 0],
   "World Soul":[470, "sky blue", 2, 0, "lavender", 0, 2, "puce", 0, 2],
   "Fortitude":[471, "???", 0, 0],
@@ -259,6 +271,11 @@
   "Organism":[318, "mold", 2, 0],
   "Mad Titan":[[534, 537], "ink", 2, 0, "purple", 0, 0, "glossy grape", 0, 0],
   "Quantum":[[535, 538]],
+
+  "Summer 2012":true,
+  "Raspberry Splash":[575, "???", 0, 0],
+  "Midsummer Night Blue":[576, "???", 0, 0],
+  "Solar Gold":[577, "???", 0, 0],
 
   "Ice Pop Drop (✨ = retired)":true,
   "Firework":[[662, 1128], "garnet", 0, 0, "white", 0, 0, "smoke", 0, 0, "cerulean", 0, 0, "ink", 0, 0, "lazuli", 0, 0, "scarlet", 0, 0],
@@ -331,9 +348,6 @@
   "Trouble Maker":[1075, "scarlet", 0, 0, "cherry", 2, 0, "ghost white", 0, 0],
   "The Places This Will Go":[1076, "beige", 0, 0, "sky blue", 0, 0, "orchid", 0, 0],
 
-  "Friday 13th":true,
-  "Slasher Silver":[230, "???", 0, 0],
-
   "Cyber Monday":true,
   "Cyber Green":[1037, "grass", 0, 0, "galaxy", 2, 0],
   "Cyber Blue":[1038, "lazuli", 0, 0, "galaxy", 2, 0],
@@ -356,12 +370,7 @@
   "Uncategorized (✨ = never surfaced)":true,
   "Black & White Cookie":[197, "???", 0, 0],
   "Candy Corn":[204, "???", 0, 0],
-  "Caramel Apple":[209, "???", 0, 0],
-  "Reindeer Games":[211, "red", 0, 0],
-  "Mint Condition":[[216, 476], "???", 0, 0],
-  "Coal Black":[217, "???", 0, 0],
   "Furry Road":[221, "concrete", 2, 0, "chestnut", 0, 0],
-  "Night Shift":[228, "crimson", 0, 0, "smoke", 3, 0, "black", 0, 0],
   "End of Days":[239, "???", 0, 0],
   "Heavy Hitter":[240, "bronze", 0, 0, "black", 2, 0],
   "Hippie Vomit":[368, "???", 0, 0],
@@ -585,9 +594,6 @@
 
   "More colors (some may be retired ✨ = never surfaced)":true,
   "Black":[371, "???", 0, 0],
-  "Raspberry Splash":[575, "???", 0, 0],
-  "Midsummer Night Blue":[576, "???", 0, 0],
-  "Solar Gold":[577, "???", 0, 0],
   "Deep Purple":[579, "???", 0, 0],
   "Charcoal Gray":[580, "???", 0, 0],
   "Golden Yellow":[581, "???", 0, 0],

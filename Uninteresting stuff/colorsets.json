@@ -249,6 +249,9 @@
   "Soaring Sai":[856, "purple", 3, 0, "cream", 0, 0, "anubis", 0, 0],
 
   "Game Over (✨ = retired)":true,
+  "Giger Black":[231, "mold", 2, 0],
+  "Covenant":[317, "mold", 2, 0, "robin egg", 2, 0, "mist", 2, 0],
+  "Organism":[318, "mold", 2, 0],
   "Mad Titan":[[534, 537], "ink", 2, 0, "purple", 0, 0, "glossy grape", 0, 0],
   "Quantum":[[535, 538]],
 
@@ -301,6 +304,12 @@
   "Thunder Breathing":[870, "orange", 2, 0, "lemon", 0, 0, "machine", 2, 0],
   "Split Thunder Breathing":[893, "orange", 2, 0, "lemon", 0, 0, "machine", 2, 0],
 
+  "Psychedelic Color Drop":true,
+  "Tie Dye":[[1206, 1217], "orchid", 0, 0, "lemon", 0, 0, "orange", 0, 0, "xanadu", 0, 0],
+  "Psychedelic":[[1207, 1218], "grape", 0, 0, "beige", 0, 0, "cerulean", 0, 0, "cherry", 0, 0],
+  "Color Trail":[1408, "???", 0, 0],
+  "Euphoria":[1409, "???", 0, 0],
+
   "Star Wars":true,
   "Darkside Red V3":[1288, "red", 0, 0, "red", 0, 0, "galaxy", 0, 0],
   "Darkside Red sheath":[1293, "cerise", 0, 0],
@@ -346,12 +355,9 @@
   "Mint Condition":[[216, 476], "???", 0, 0],
   "Coal Black":[217, "???", 0, 0],
   "Furry Road":[221, "concrete", 2, 0, "chestnut", 0, 0],
-  "Hydrogenous Zone":[222, "???", 0, 0],
   "Night Shift":[228, "crimson", 0, 0, "smoke", 3, 0, "black", 0, 0],
   "End of Days":[239, "???", 0, 0],
   "Heavy Hitter":[240, "bronze", 0, 0, "black", 2, 0],
-  "Covenant":[317, "mold", 2, 0, "robin egg", 2, 0, "mist", 2, 0],
-  "Organism":[318, "mold", 2, 0],
   "Hippie Vomit":[368, "???", 0, 0],
   "Teamwork":[389, "???", 0, 0],
   "Tainted Firebird":[462, "???", 0, 0],
@@ -385,9 +391,6 @@
   "Tyrannosaurus Sex":[1129, "raspberry", 0, 0, "garnet", 0, 2, "white", 2, 0, "cream", 2, 0],
   "Hunter's Moon":[1134, "tennis ball", 3, 0, "sky blue", 3, 0],
   "Jubilee":[1135, "orchid", 0, 0, "lemon", 0, 0, "cerulean", 2, 0],
-  "Terracotta":[[1205, 1221], "bronze", 0, 0, "teal", 0, 0],
-  "Tie Dye":[[1206, 1217], "orchid", 0, 0, "lemon", 0, 0, "orange", 0, 0, "xanadu", 0, 0],
-  "Psychedelic":[[1207, 1218], "grape", 0, 0, "beige", 0, 0, "cerulean", 0, 0, "cherry", 0, 0],
   "Punk Rocker":[1230, "crimson", 0, 0, "purple", 0, 0],
   "Lunar Lupine":[1231, "black", 0, 0, "white", 0, 0],
   "Blood Moon":[1232, "galaxy", 0, 0, "garnet", 0, 0],
@@ -396,8 +399,6 @@
   "Jasmine Dragon":[[1235, 1256], "robin egg", 0, 0, "maroon", 2, 0, "bronze", 0, 0, "teal", 3, 0, "robin egg", 3, 0],
   "Beast Within":[1236, "???", 0, 0],
   "Gamma Party":[1237, "???", 0, 0],
-  "Color Trail":[1408, "???", 0, 0],
-  "Euphoria":[1409, "???", 0, 0],
   "Rivethead":[1410, "???", 0, 0],
   "Dark Wave":[1414, "???", 0, 0],
   "DS Ledo's Signature":[1417, "???", 0, 0],
@@ -578,9 +579,7 @@
   "Ultraviolet Legacy":[331, "ghost white", 0, 0],
 
   "More colors (some may be retired ✨ = never surfaced)":true,
-  "Giger Black":[231, "mold", 2, 0],
   "Black":[371, "???", 0, 0],
-  "Brick Red":[448, "???", 0, 0],
   "Raspberry Splash":[575, "???", 0, 0],
   "Midsummer Night Blue":[576, "???", 0, 0],
   "Solar Gold":[577, "???", 0, 0],
@@ -596,7 +595,6 @@
   "Cat's Eye":[1001],
   "Toxin":[1002, "grape", 0, 0],
   "Emerald Green":[1191, "teal", 0, 0],
-  "Duckie Yellow":[1092, "lemon", 0, 0],
   "Wind":[1196, "lime", 0, 0],
   "Void Purple":[1138, "lavender", 0, 0],
 
@@ -866,7 +864,10 @@
   "Zoie's Signature":[[431, 951], "white", 0, 0, "grape", 3, 0, "lemon", 0, 0],
 
   "Tertiary colors":true,
+  "Brick Red":[448, "???", 0, 0],
   "Blitz Blue":[548, "sky blue", 3, 0, "white", 2, 0, "lemon", 2, 0],
+  "Duckie Yellow":[1092, "lemon", 0, 0],
+  "Terracotta":[[1205, 1221], "bronze", 0, 0, "teal", 0, 0],
   "Feathered Serpent":[1382, "honey", 0, 0, "lemon", 0, 2, "green", 0, 2, "grass", 0, 2],
 
   "Legacies":true,
@@ -1143,6 +1144,9 @@
   "Saturn Begins":[184],
   "Saturn":[185],
   "Jupiter's Axis":[186],
+
+  "Planetary inspired (retired)":true,
+  "Hydrogenous Zone":[222],
 
   "Legacy Zodiacs (retired)":true,
   "Aries legacy":[390],

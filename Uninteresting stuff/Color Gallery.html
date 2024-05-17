@@ -6,11 +6,11 @@
 <meta name="viewport" content="user-scalable=0">
 <title>Color Gallery</title>
 <style>
-body {caret-color:#ffbbff; font-family:courier; font-size:14px; -webkit-user-select:none; user-select:none;}
+body {caret-color:#ffbbff; font-family:courier; font-size:14px; -webkit-user-select:none; user-select:none; -webkit-text-size-adjust:none;}
 /* :root {color-scheme: light dark; body {background-color: Canvas;}} */
 ::selection {background:rgba(255, 192, 255, 0.25);}
 [contenteditable]:focus, input:focus {outline:none;}
-.editor {padding:8px 12px; min-width:606px; min-height:12px; line-height:1.1; white-space:pre-wrap;}
+.editor {padding:8px 12px; width:calc(100% - 24px); min-height:12px; line-height:1.1; white-space:pre-wrap;}
 a {color:#ccbb77;}
 a:visited {color:#efdfa8;}
 img {vertical-align:top;}
@@ -993,7 +993,7 @@ window.onload = () => {
 <div id="colorlist" style="display:inline-block; vertical-align:top; white-space:pre; margin-bottom:96px;"></div>
 <div style="vertical-align:top;">
 
-<div class="stdout" id="stdout" style="padding:0;"><div style="padding:4px 4px 0px 4px;">🦦 -(Bookmarked pictures) <div class="next" id="replace" style="cursor:pointer;">Replace gallery</div><div class="previous" id="gallerysave" style="cursor:pointer;" data-tooltip="Save text field as cookie for next page visit">Save</div><input id="calc" class="next" style="width:100px;" type="text" placeholder="Calculator"></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false><br></div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
+<div class="stdout" id="stdout" style="padding:4px 0 0 0;"><div style="min-width:606px; white-space:nowrap;"><div style="padding:0 4px; display:inline-block;">🦦 -(Bookmarked pictures)</div><div class="next" id="replace" style="cursor:pointer;">Replace gallery</div><div class="previous" id="gallerysave" style="cursor:pointer;" data-tooltip="Save text field as cookie for next page visit">Save</div><input id="calc" class="next" style="width:100px;" type="text" placeholder="Calculator"></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false><br></div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
 <div></div>
 <div id="gallery" style="display:inline-block;"></div>
 <div></div>

@@ -50,7 +50,7 @@ notstray = ["mediocre.txt", "autosave.txt", "gallery.html", "keywords.json", "pa
 mute404 = ["favicon.ico", "apple-touch-icon-precomposed.png", "apple-touch-icon.png", "apple-touch-icon-152x152-precomposed.png", "apple-touch-icon-152x152.png", "apple-touch-icon-120x120-precomposed.png", "apple-touch-icon-120x120.png"]
 
 alerted = [False]
-busy = [False]*2
+busy = [False]*27
 dlslot = [8]
 echothreadn = []
 error = [[]]*4
@@ -823,6 +823,33 @@ h2 {margin:4px;}"""
         self.end_headers()
         return f
 
+    def send_ghost(self, ondisk):
+        enc = sys.getfilesystemencoding()
+
+        p = f"{ondisk.rsplit('gallery.html')[0]}savelink.URL"
+        if os.path.exists(p):
+            echo('success load pattern', 0, 1)
+            with open(p, 'r') as f:
+                page = f.read().splitlines()[1].replace("URL=", "")
+            get_pick = [x for x in navigator["pickers"].keys() if page.startswith(x)]
+            if not get_pick:
+                kill("Couldn't recognize this url, I must exit!")
+            pattern = navigator["pickers"][get_pick[0]]["pattern"]
+        else:
+            echo(f"{p} not found", 0, 1)
+            pattern = [[], []]
+
+        htmldata = new_html("test", "gallery.html", "", pattern).encode(enc, 'surrogateescape')
+        f = io.BytesIO()
+        f.write(htmldata)
+        f.seek(0)
+        size = str(len(htmldata))
+        self.send_response(200, size=size)
+        self.send_header('Content-Type', f"text/html; charset={enc}")
+        self.send_header('Content-Length', size)
+        self.end_headers()
+        return f
+
     extensions_map = {'.gz': 'application/gzip', '.z': 'application/octet-stream', '.bz2': 'application/x-bzip2', '.xz': 'application/x-xz',}
 
     def guess_type(self, ondisk):
@@ -845,6 +872,9 @@ h2 {margin:4px;}"""
             return
         if ondisk.endswith(".cd") and not self.AUTH(ondisk):
             return
+        for x in ["gallery.html"]:
+            if ondisk.endswith(x):
+                return self.send_ghost(ondisk)
         try:
             f = open(ondisk, 'rb')
         except OSError:
@@ -3019,12 +3049,13 @@ def pick_in_page():
                     l_fix = z[1][0]
                     x = carrots([[new, ""]], ['', peanutshell(z[0][1 if len(z[0]) > 1 else 0])])[0][1]
                     if (p := z[1][1]).isdigit() or p[1:].isdigit():
-                        if not x.isdigit():
+                        if x.isdigit():
+                            x = int(x) + int(p)
+                        else:
                             kill(f""" String captured: {x}
  Calculate with (+): {p}
 
 Paginate picker is broken, captured string must be digit for calculator +/- mode!""")
-                        x = int(x) + int(p)
                     elif z[1][1]:
                         p, a = peanut(z[1][1], [], False)
                         if a:
@@ -3455,7 +3486,7 @@ def ren(filename, append):
 
 
 
-def container(dir, ondisk, pattern, label=''):
+def container(dir, ondisk, label=''):
     link = ondisk.replace("#", "%23")
     if ondisk.lower().endswith(tuple(videofile)):
         return f"""<div class="frame"><video height="200" autoplay><source src="{link}"></video>{label}</div>"""
@@ -3476,16 +3507,17 @@ def container(dir, ondisk, pattern, label=''):
 
 
 
-def new_html(builder, htmlname, listurls, pattern=[], imgsize=200):
+def new_html(builder, htmlname, listurls="", pattern=[[], []], imgsize=200):
     if not listurls:
         listurls = "Maybe in another page."
     return """<!DOCTYPE html>
 <html>
 <meta charset="UTF-8"/>
 <meta name="format-detection" content="telephone=no">
+<meta name="viewport" content="user-scalable=0">
 """ + f"<title>{htmlname}</title>" + """
 <style>
-html,body{background-color:#10100c; color:#088 /*088 cb7*/; font-family:consolas, courier; font-size:14px;}
+body {background-color:#10100c; color:#088 /*088 cb7*/; font-family:consolas, courier; font-size:14px; -webkit-text-size-adjust:none;}
 a{color:#6cb /*efdfa8*/;}
 a:visited{color:#bfe;}
 .external{color:#db6;}
@@ -3494,7 +3526,7 @@ a:visited{color:#bfe;}
 img {vertical-align:top;}
 h2 {margin:4px;}
 button {padding:1px 4px;}
-[contenteditable]:focus {outline: none;}
+[contenteditable]:focus, input:focus {outline:none;}
 
 .aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
 .carbon, .files, .time{background-color:#10100c /*10100c 112230 07300f*/; border:3px solid #6a6a66 /*6a6a66 367 192*/; border-radius:12px;}
@@ -3512,7 +3544,7 @@ button {padding:1px 4px;}
 
 .sources{font-size:80%; width:200px;}
 .container{display:block; position:relative;}
-.frame{display:inline-block; vertical-align:top; position:relative;}
+.frame{display:inline-block; vertical-align:top; position:relative; min-width:64px; min-height:64px;}
 .aqua{display:inline-block; vertical-align:top; padding:12px; word-wrap:break-word;}
 .carbon, .time, .files, .edits{display:inline-block; vertical-align:top;}
 .carbon, .time, .cell, .mySlides, .files, .edits{padding:8px; margin:6px; word-wrap:break-word;}
@@ -3541,8 +3573,11 @@ button {padding:1px 4px;}
 }
 </style>
 <script>
-var xhr = new XMLHttpRequest();
-function send(b, e){
+var imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"];
+var videofile = [".mkv", ".mp4", ".webm"];
+
+function send(b, e) {
+  const xhr = new XMLHttpRequest();
   xhr.open("POST", '', true);
   xhr.setRequestHeader('Content-Type', 'application/octet-stream');
   xhr.send(b);
@@ -3561,6 +3596,7 @@ function send(b, e){
 }
 
 function lazykeys() {
+  const xhr = new XMLHttpRequest();
   var partObserver = new IntersectionObserver(function(parts, observer) {
     parts.forEach(function(e) {
       if (e.isIntersecting) {
@@ -3597,7 +3633,8 @@ function lazykeys() {
   });
 }
 
-function loadkeys(){
+function loadkeys() {
+  const xhr = new XMLHttpRequest();
   var isTainted = true
   xhr.overrideMimeType("application/json");
   xhr.open('GET', "keywords.json", true);
@@ -3621,8 +3658,31 @@ function loadkeys(){
   }
 }
 
+function loadpart() {
+  const xhr = new XMLHttpRequest();
+  var isTainted = true
+  xhr.overrideMimeType("application/json");
+  xhr.open('GET', "partition.json", true);
+  xhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
+  xhr.send();
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status !== 404 && xhr.responseText) {
+        readpart(JSON.parse(xhr.responseText));
+      } else if (xhr.responseText){
+        document.insertAdjacentHTML('beforeend', "test");
+      } else {
+        local_tooltip.style.display = "inline-block";
+        local_tooltip.innerHTML = "⚠";
+        local_tooltip.setAttribute("data-tooltip", "Not loaded on HTTP server: HTTP server is used for custom keywords and interacting with Schande/Save buttons.");
+      }
+    }
+    isTainted = false
+  }
+}
+
 var key_busy = false;
-function edit_key(e){
+function edit_key(e) {
   function submit_key(){
     var body = {[t.parentNode.id]:i.value}
     var b = JSON.stringify({"kind":"keywords", "ondisk":"keywords.json", body})
@@ -3871,42 +3931,42 @@ function Convolute(pixels, weights) {
 function quicklook(e) {
   if(e.target.classList.contains("lazy")) {
     e.preventDefault();
-    var t = e.target;
+    const t = e.target;
     var c = {};
-    var isTainted = false;
-    if(geistauge) {
-      var s = new Image();
+    let isTainted = false;
+    if (geistauge) {
+      const s = new Image();
       s.src = t.parentNode.getAttribute("href");
 
       c = document.createElement("canvas");
       c.style = cs;
-      c.setAttribute("id", "quicklook")
-      c.width = s.width
-      c.height = s.height
-      context = c.getContext("2d")
+      c.id = "quicklook";
+      c.width = s.width;
+      c.height = s.height;
+      context = c.getContext("2d");
 
       if (geistauge == "edge") {
         isTainted = true;
-        s.onload = function () {
+        s.onload = () => {
           edgediff(s, s.width, s.height, context);
           isTainted = false;
-          t.removeAttribute("data-tooltip");
+          delete t.dataset.tooltip;
         }
       } else {
-        let fp = new Image();
+        const fp = new Image();
         let p = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0];
         if (p == undefined || p.nodeName != "A") {
           fp.src = s.src;
         } else {
           fp.src = p.getAttribute("href");
         }
-        if(fp.src == s.src) {
+        if (fp.src == s.src) {
           context.fillRect(0, 0, s.width, s.height);
         } else {
           isTainted = true;
-          s.onload = function () {
-            var cgl = document.createElement("canvas");
-            gl = cgl.getContext("webgl2")
+          s.onload = () => {
+            const cgl = document.createElement("canvas");
+            const gl = cgl.getContext("webgl2");
             if (geistauge == "reverse") {
               fp.onload = difference(fp, s.width, s.height, s, context, gl, side=true);
             } else if (geistauge == "tangerine") {
@@ -3914,31 +3974,33 @@ function quicklook(e) {
             } else {
               fp.onload = difference(s, s.width, s.height, fp, context, gl);
             }
-          isTainted = false;
-          t.removeAttribute("data-tooltip");
+            isTainted = false;
+            delete t.dataset.tooltip;
           }
         }
       }
-      setTimeout(function(){
+
+      setTimeout(() => {
         if (isTainted) {
-          t.setAttribute("data-tooltip", `"Edge detect" and "Geistauge" are canvas features and they require Cross-Origin Resource Sharing (CORS)<br>(Google it but tl;dr: Try HTTP server)`)
-          FFmove(e)
+          t.dataset.tooltip = `"Edge detect" and "Geistauge" are canvas features and they require Cross-Origin Resource Sharing (CORS)<br>(Google it but tl;dr: Try HTTP server)`;
+          FFmove(e);
         }
-      }, 1)
+      }, 1);
+
       t.parentNode.appendChild(c);
     } else {
       c = document.createElement("img");
       c.style = cs;
-      c.setAttribute("id", "quicklook")
-      c.setAttribute("src", t.parentNode.getAttribute("href"));
+      c.id = "quicklook";
+      c.src = t.parentNode.getAttribute("href");
       t.parentNode.appendChild(c);
     }
-    let left = () => {
-      setTimeout(function(){
+    const left = () => {
+      setTimeout (() => {
         t.parentNode.removeChild(c);
       }, 40);
       t.removeEventListener("mouseleave", left);
-      t.removeAttribute("data-tooltip");
+      delete t.dataset.tooltip;
     }
     t.addEventListener("mouseleave", left);
   }
@@ -3957,42 +4019,42 @@ function edgediff(s, cw, ch, context) {
 
 function ghost(rgb) {
   for (var i = 0; i < rgb.length; i += 4) {
-    if(rgb[i] == 0 && rgb[i+1] == 0 && rgb[i+2] == 0){
+    if(rgb[i] == 0 && rgb[i+1] == 0 && rgb[i+2] == 0) {
       rgb[i] = 0;
       rgb[i+1] = 0;
       rgb[i+2] = 0;
       rgb[i+3] = 255;
-    } else if(rgb[i] > 12 || rgb[i+1] > 12 || rgb[i+2] > 12){
+    } else if (rgb[i] > 12 || rgb[i+1] > 12 || rgb[i+2] > 12) {
       rgb[i] = 255;
       rgb[i+1] = 255;
       rgb[i+2] = 255;
       rgb[i+3] = 255;
-    } else if(rgb[i] > 10 || rgb[i+1] > 10 || rgb[i+2] > 10){
+    } else if (rgb[i] > 10 || rgb[i+1] > 10 || rgb[i+2] > 10) {
       rgb[i] = 208;
       rgb[i+1] = 192;
       rgb[i+2] = 240;
       rgb[i+3] = 255;
-    } else if(rgb[i] > 8 || rgb[i+1] > 8 || rgb[i+2] > 8){
+    } else if (rgb[i] > 8 || rgb[i+1] > 8 || rgb[i+2] > 8) {
       rgb[i] = 176;
       rgb[i+1] = 128;
       rgb[i+2] = 224;
       rgb[i+3] = 255;
-    } else if(rgb[i] > 6 || rgb[i+1] > 6 || rgb[i+2] > 6){
+    } else if (rgb[i] > 6 || rgb[i+1] > 6 || rgb[i+2] > 6) {
       rgb[i] = 144;
       rgb[i+1] = 64;
       rgb[i+2] = 192;
       rgb[i+3] = 255;
-    } else if(rgb[i] > 4 || rgb[i+1] > 4 || rgb[i+2] > 4){
+    } else if (rgb[i] > 4 || rgb[i+1] > 4 || rgb[i+2] > 4) {
       rgb[i] = 112;
       rgb[i+1] = 32;
       rgb[i+2] = 160;
       rgb[i+3] = 255;
-    } else if(rgb[i] > 2 || rgb[i+1] > 2 || rgb[i+2] > 2){
+    } else if (rgb[i] > 2 || rgb[i+1] > 2 || rgb[i+2] > 2) {
       rgb[i] = 64;
       rgb[i+1] = 16;
       rgb[i+2] = 128;
       rgb[i+3] = 255;
-    } else if(rgb[i] > 0 || rgb[i+1] > 0 || rgb[i+2] > 0){
+    } else if (rgb[i] > 0 || rgb[i+1] > 0 || rgb[i+2] > 0) {
       rgb[i] = 32;
       rgb[i+1] = 8;
       rgb[i+2] = 96;
@@ -4004,7 +4066,7 @@ function ghost(rgb) {
 function diff(a, b) {
   for (var i = 0; i < b.length; i += 4) {
     if (a[i] == b[i] && a[i+1] == b[i+1] && a[i+2] == b[i+2]) {
-      b[i+3] = 0
+      b[i+3] = 0;
     }
   }
 }
@@ -4015,7 +4077,7 @@ function darkside(a, b) {
     b[i+1] -= a[i+1];
     b[i+2] -= a[i+2];
   }
-  ghost(b)
+  ghost(b);
 }
 
 function darkdiff(a, b) {
@@ -4024,7 +4086,7 @@ function darkdiff(a, b) {
     b[i+1] = Math.abs(b[i+1] - a[i+1]);
     b[i+2] = Math.abs(b[i+2] - a[i+2]);
   }
-  ghost(b)
+  ghost(b);
 }
 
 var rgb, rgb2;
@@ -4034,25 +4096,27 @@ function difference(s, cw, ch, fp, context, gl, side=false) {
   rgb = context.getImageData(0, 0, cw, ch);
   context.drawImage(fp, 0, 0, cw, ch);
   rgb2 = context.getImageData(0, 0, cw, ch);
-  if(side){
-    darkside(rgb.data, rgb2.data)
+
+  if (side) {
+    darkside(rgb.data, rgb2.data);
   } else {
-    darkdiff(rgb.data, rgb2.data)
+    darkdiff(rgb.data, rgb2.data);
   }
+
   context.putImageData(rgb2, 0, 0);
 }
 
 var geistauge = false;
 var co = "position:fixed; right:0; top:0; z-index:1; pointer-events:none;"
 var cf = co + "max-height: 100vh; max-width: 100vw;";
-var cs = co
+var cs = co;
 var shiftable = false;
 var slideIndex = 1;
 function swap(e) {
-  var t = e.target;
+  const t = e.target;
   let d = document.getElementById("ge");
-  let a = d.getAttribute("data-sel").split(", ");
-  if(e.which == 83 && !geistauge) {
+  let a = d.dataset.sel.split(", ");
+  if (e.which == 83 && !geistauge) {
     geistauge = true;
     d.classList = "previous";
     d.innerHTML = a[1];
@@ -4063,57 +4127,57 @@ function swap(e) {
         geistauge = false;
       }
     });
-  } else if(e.which == 65 && !geistauge) {
+  } else if (e.which == 65 && !geistauge) {
     geistauge = "reverse";
     d.classList = "reverse";
     d.innerHTML = a[2];
-    t.addEventListener("keyup", function(k) {
+    t.addEventListener("keyup", (k) => {
       if(k.which == 65) {
         d.classList = "next";
         d.innerHTML = a[0];
         geistauge = false;
       }
     });
-  } else if(e.which == 68 && !geistauge) {
+  } else if (e.which == 68 && !geistauge) {
     geistauge = "tangerine";
     d.classList = "tangerine";
     d.innerHTML = a[3];
-    t.addEventListener("keyup", function(k) {
+    t.addEventListener("keyup", (k) => {
       if(k.which == 68) {
         d.classList = "next";
         d.innerHTML = a[0];
         geistauge = false;
       }
     });
-  } else if(e.which == 87 && !geistauge) {
+  } else if (e.which == 87 && !geistauge) {
     geistauge = "edge";
     d.classList = "edge";
     d.innerHTML = a[4];
-    t.addEventListener("keyup", function(k) {
+    t.addEventListener("keyup", (k) => {
       if(k.which == 87) {
         d.classList = "next";
         d.innerHTML = a[0];
         geistauge = false;
       }
     });
-  } else if(e.which == 16 && shiftable) {
-    cs = cf
-    let tc = document.getElementById("quicklook")
-    if(tc) {
+  } else if (e.which == 16 && shiftable) {
+    cs = cf;
+    let tc = document.getElementById("quicklook");
+    if (tc) {
       tc.style = cs;
     }
     let d = document.getElementById("fi");
-    let a = d.getAttribute("data-sel").split(", ");
+    let a = d.dataset.sel.split(", ");
     d.classList = "previous";
     d.innerHTML = a[1];
     document.addEventListener("mouseover", quicklook);
-    t.addEventListener("keyup", function(k) {
-      if(k.which == 16 && shiftable) {
+    t.addEventListener("keyup", (k) => {
+      if (k.which == 16 && shiftable) {
         d.classList = "tangerine";
         d.innerHTML = a[2];
         cs = co
-        let tc = document.getElementById("quicklook")
-        if(tc) {
+        let tc = document.getElementById("quicklook");
+        if (tc) {
           tc.style = cs;
         }
       }
@@ -4124,20 +4188,20 @@ function swap(e) {
 document.addEventListener("keydown", swap);
 
 function previewg(e) {
-  let a = e.getAttribute("data-sel").split(", ");
+  let a = e.dataset.sel.split(", ");
   if (e.classList.contains("next")) {
     e.classList = "previous";
     e.innerHTML = a[1];
     geistauge = true;
-  } else if(e.classList.contains("previous")) {
+  } else if (e.classList.contains("previous")) {
     e.classList = "reverse";
     e.innerHTML = a[2];
     geistauge = "reverse";
-  } else if(e.classList.contains("reverse")) {
+  } else if (e.classList.contains("reverse")) {
     e.classList = "tangerine";
     e.innerHTML = a[3];
     geistauge = "tangerine";
-  } else if(e.classList.contains("tangerine")) {
+  } else if (e.classList.contains("tangerine")) {
     e.classList = "edge";
     e.innerHTML = a[4];
     geistauge = "edge";
@@ -4149,19 +4213,19 @@ function previewg(e) {
 }
 
 function preview(e) {
-  let a = e.getAttribute("data-sel").split(", ");
+  let a = e.dataset.sel.split(", ");
   if (e.classList.contains("next")) {
     e.classList = "previous";
     e.innerHTML = a[1];
     document.addEventListener("mouseover", quicklook);
     shiftable = false;
     cs = cf
-  } else if(e.classList.contains("previous")) {
+  } else if (e.classList.contains("previous")) {
     e.classList = "tangerine";
     e.innerHTML = a[2];
     cs = co
     shiftable = true;
-  } else if(e.classList.contains("tangerine")) {
+  } else if (e.classList.contains("tangerine")) {
     e.classList = "next";
     e.innerHTML = a[0];
     cs = co
@@ -4177,173 +4241,181 @@ function preview(e) {
 }
 
 function showDivs(n) {
-  var i;
-  var nodes = document.getElementsByClassName("mySlides");
-  if (n > nodes.length) {slideIndex = 1}
-  if (n < 1) {slideIndex = nodes.length} ;
-  for (i = 0; i < nodes.length; i++) {
-    nodes[i].style.display = "none";
+  const nodes = document.getElementsByClassName("mySlides");
+  if (n > nodes.length) {
+    slideIndex = 1;
   }
-  nodes[slideIndex-1].style.display = "block";
-  var expandImg = document.getElementById("expandedImg");
-  expandImg.parentElement.style.display = "inline-block";
+
+  if (n < 1) {
+    slideIndex = nodes.length;
+  }
+
+  for (const node of nodes) {
+    node.style.display = 'none';
+  }
+
+  nodes[slideIndex-1].style.display = 'block';
+  const expandImg = document.getElementById('expandedImg');
+  expandImg.parentElement.style.display = 'inline-block';
 }
 
 function resizeImg(n) {
-  var nodes = document.getElementsByClassName("lazy");
-  for (var i=0; i < nodes.length; i++) {
+  for (const node of document.getElementsByClassName("lazy")) {
     if (n === 'auto') {
-      nodes[i].style.maxWidth = '100%';
+      node.style.maxWidth = '100%';
     } else {
-      nodes[i].style.maxWidth = 'none';
-    };
-    nodes[i].style.height = n;
+      node.style.maxWidth = 'none';
+    }
+
+    node.style.height = n;
   }
 }
 
 function resizeCell(n) {
-  var nodes = document.getElementsByClassName("cell");
-  for (var i=0; i < nodes.length; i++) {
-    nodes[i].style.width = n;
+  for (const node of document.getElementsByClassName("cell")) {
+    node.style.width = n;
   }
 }
 
 function hideDetails(e) {
-  var nodes = document.getElementsByClassName("sources");
-  var hide = false;
-  if (e.classList.contains("next")){
+  const nodes = document.getElementsByClassName("sources");
+  let hide = false;
+
+  if (e.classList.contains("next")) {
     e.classList = "previous";
     hide = true;
   } else {
     e.classList = "next";
   }
-  for (var i=0; i < nodes.length; i++) {
+
+  for (const node of nodes) {
     if (hide) {
-      nodes[i].style.display = "none";
+      node.style.display = 'block';
     } else {
-      nodes[i].style.display = "";
+      node.style.display = 'none';
     }
   }
 }
 
 function hideParts(tagName, className, filterNode) {
-  var nodes = document.getElementsByClassName("cell");
-  var isClass = false;
+  const nodes = document.getElementsByClassName("cell");
 
-  //shamefur dispray
-  if (!tagName){
-    for (var i=0; i < nodes.length; i++) {
-      nodes[i].style.display = 'inline-block';
+  // shamefur dispray
+  if (!tagName) {
+    for (const node of nodes) {
+      node.style.display = 'inline-block';
     }
-    return
+    return;
   }
 
-  for (var i=0; i < nodes.length; i++) {
-    var hide = false;
+  for (const node of nodes) {
+    let hide = false;
+    let tagNode = node.getElementsByTagName(tagName);
+    let classNode = node.getElementsByClassName(className);
 
-
-
-    var tagNode = nodes[i].getElementsByTagName(tagName);
-    if (tagNode.length > 0){
+    if (tagNode.length > 0) {
       tagNode = tagNode[0].textContent;
       tagNode = tagNode.toLowerCase();
     } else {
-      //no content no dispray!
-      nodes[i].style.display = 'none';
-      continue
+      // no content no dispray!
+      node.style.display = 'none';
+      continue;
     }
 
     if (filterNode["ignored"].length) {
-      for (var p=0; p < filterNode["ignored"].length; p++) {
-        if (filterNode["ignored"][p] && tagNode.includes(filterNode["ignored"][p])){
+      for (const p of filterNode["ignored"]) {
+        if (p && tagNode.includes(p)) {
           hide = true;
           break;
         }
-      };
+      }
     }
+
     if (!hide && filterNode["searched"].length) {
       hide = true;
-      for (var p=0; p < filterNode["searched"].length; p++) {
-        if (filterNode["searched"][p] && tagNode.includes(filterNode["searched"][p])){
+      for (const p of filterNode["searched"]) {
+        if (p && tagNode.includes(p)) {
           hide = false;
           break;
         }
-      };
+      }
     }
 
-
-
-    var classNode = nodes[i].getElementsByClassName(className);
-    if (classNode.length > 0){
+    if (classNode.length > 0) {
       classNode = classNode[0].textContent;
       classNode = classNode.toLowerCase();
     } else {
-      //no content no dispray!
-      nodes[i].style.display = 'none';
-      continue
+      // no content no dispray!
+      node.style.display = 'none';
+      continue;
     }
 
     if (!hide && filterNode["excluding"].length) {
-      for (var p=0; p < filterNode["excluding"].length; p++) {
-        if (filterNode["excluding"][p] && classNode.includes(filterNode["excluding"][p])){
+      for (const p of filterNode["excluding"]) {
+        if (p && classNode.includes(p)) {
           hide = true;
           break;
         }
-      };
+      }
     }
+
     if (!hide && filterNode["contains"].length) {
       hide = true;
-      for (var p=0; p < filterNode["contains"].length; p++) {
-        if (filterNode["contains"][p] && classNode.includes(filterNode["contains"][p])){
+      for (const p of filterNode["contains"]) {
+        if (p && classNode.includes(p)) {
           hide = false;
           break;
         }
-      };
+      }
     }
 
-
-
-    if (hide){
-      nodes[i].style.display = 'none';
+    if (hide) {
+      node.style.display = 'none';
     } else {
-      nodes[i].style.display = 'inline-block';
+      node.style.display = 'inline-block';
     }
   }
 }
 
 var busytyping;
-function hidePattern(){
+function hidePattern() {
   if (ignore.value.length == 1 || search.value.length == 1 || searchb.value.length == 1 || ignoreb.value.length == 1) return;
   clearTimeout(busytyping);
 
-  var ignored = ignore.value.toLowerCase().split(" ");
-  var searched = search.value.toLowerCase().split(" ");
-  var contains = searchb.value.toLowerCase().split(" ");
-  var excluding = ignoreb.value.toLowerCase().split(" ");
+  const ignored = ignore.value.toLowerCase().split(" ");
+  const searched = search.value.toLowerCase().split(" ");
+  const contains = searchb.value.toLowerCase().split(" ");
+  const excluding = ignoreb.value.toLowerCase().split(" ");
 
-  var filterNode = {"ignored":[], "searched":[], "contains":[], "excluding":[]}
-  for (var i=0; i < ignored.length; i++) {
-    if(ignored[i].length > 1){
-      filterNode["ignored"].push(ignored[i])
-    }
-  }
-  for (var i=0; i < searched.length; i++) {
-    if(searched[i].length > 1){
-      filterNode["searched"].push(searched[i])
-    }
-  }
-  for (var i=0; i < contains.length; i++) {
-    if(contains[i].length > 1){
-      filterNode["contains"].push(contains[i])
-    }
-  }
-  for (var i=0; i < excluding.length; i++) {
-    if(excluding[i].length > 1){
-      filterNode["excluding"].push(excluding[i])
+  const filterNode = {"ignored":[], "searched":[], "contains":[], "excluding":[]};
+
+  for (const text of ignored) {
+    if (text.length > 1) {
+      filterNode["ignored"].push(text);
     }
   }
 
-  busytyping = setTimeout(function(){hideParts('h2', 'postMessage', filterNode)}, 250);
+  for (const text of searched) {
+    if (text.length > 1) {
+      filterNode["searched"].push(text);
+    }
+  }
+
+  for (const text of contains) {
+    if (text.length > 1) {
+      filterNode["contains"].push(text);
+    }
+  }
+
+  for (const text of excluding) {
+    if (text.length > 1) {
+      filterNode["excluding"].push(text);
+    }
+  }
+
+  busytyping = setTimeout(() => {
+    hideParts('h2', 'postMessage', filterNode);
+  }, 500);
 }
 
 var isTouch, keywords, stdout;
@@ -4355,21 +4427,18 @@ window.onload = () => {
   document.addEventListener("mousemove", FFmove);
   document.addEventListener("mouseover", FFover);
 
-  var links = document.getElementsByTagName('a');
-  for(var i=0; i<links.length; i++) {
-    if (!links[i].href.startsWith(dir)){
-      links[i].classList.add("external");
-      links[i].target = "_blank";
-    }
+  if ('ontouchstart' in window) {
+    isTouch = true;
   }
-  if('ontouchstart' in window){isTouch = true;};
+
   stdout = document.getElementById("stdout");
-  if(!stdout.isContentEditable){
+
+  if (!stdout.isContentEditable) {
     stdout.setAttribute("onpaste", "plaintext(this, event)");
     stdout.setAttribute("contenteditable", "true");
   }
-  lazyload();
-  loadkeys();
+
+  loadpart();
 }
 
 function lazyload() {
@@ -4386,11 +4455,194 @@ function lazyload() {
     });
   });
 
-  lazyloadImages.forEach(function(e) {
-    e.style.height =""" + f""" "{imgsize}""" + """px"
-    e.style.width = "auto"
+  lazyloadImages.forEach((e) => {
+    e.style.height =""" + f""" "{imgsize}""" + """px";
+    e.style.width = "auto";
     imageObserver.observe(e);
   });
+}
+
+function container(ondisk) {
+  const src = document.createElement("DIV");
+  src.classList = "sources";
+  src.style.display = "none";
+  src.innerHTML = ondisk;
+
+  const link = ondisk.replace(/#/g, "%23");
+  const d = document.createElement("DIV");
+  d.classList = "frame";
+  if (videofile.some((x) => {return ondisk.toLowerCase().endsWith(x)})) {
+    const v = document.createElement("VIDEO");
+    v.height = 200;
+    const s = document.createElement("SOURCE");
+    s.src = link;
+    v.appendChild(s);
+    d.appendChild(v);
+    d.appendChild(src);
+    return d;
+  } else if (imagefile.some((x) => {return ondisk.toLowerCase().endsWith(x)})) {
+    const a = document.createElement("A");
+    a.classList = "fileThumb";
+    a.href = link;
+    const img = document.createElement("IMG");
+    img.classList = "lazy";
+    img.dataset.src = link;
+    a.appendChild(img);
+    d.appendChild(a);
+    d.appendChild(src);
+    return d;
+  } else {
+    d.classList = "aqua";
+    d.style.height = "174px";
+    d.style.width = "126px";
+    d.innerHTML = ondisk;
+    const a = document.createElement("A");
+    a.href = link;
+    a.appendChild(d);
+    const b = document.createElement("A");
+    b.href = link;
+    b.innerHTML = "<div class='aqua' style='height:174px;'><i class='aqua' style='border-width:0 3px 3px 0; padding:3px; -webkit-transform: rotate(-45deg); margin-top:82px;'></i></div>";
+    a.insertAdjacentHTML('afterend', b);
+    return a;
+  }
+}
+
+function readpart(part) {
+  const ignored = ignore.value.toLowerCase().split(" ");
+  for (const key of Object.keys(part)) {
+    const cell = document.createElement("DIV");
+    cell.classList = "cell";
+
+    const keywords = part[key]["keywords"];
+    const partkeytitle = document.createElement("H2");
+
+    if (keywords && keywords[0]) {
+      partkeytitle.innerHTML = keywords[0];
+    } else {
+      partkeytitle.innerHTML = `ꍯ Part ${key} ꍯ`;
+      partkeytitle.style.color = "#666;"
+    }
+
+    if (key == "0") {
+      if (part[key]["stray_files"]) {
+        partkeytitle.innerHTML = "Unsorted";
+        cell.innerHTML = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really strays.";
+      } else if (!part[key]["html"]) {
+        continue;
+      }
+    }
+
+    if (ignored.some((x) => {return x && keywords[0].includes(x)})) {
+      cell.style.display = "none";
+    }
+
+    if (keywords.length > 1) {
+      let timestamp = "No timestamp";
+      let afterkeys = "None";
+      if (keywords[1]) {
+        timestamp = keywords[1];
+      }
+      if (keywords.length > 2) {
+        const fullkeys = [];
+        for (const x of keywords.slice(2)) {
+          if (x) {
+            fullkeys.push(x);
+          }
+        }
+        afterkeys = fullkeys.join(", ");
+      }
+      const tsx = document.createElement("DIV");
+      tsx.classList = "time";
+      tsx.id = key;
+      tsx.style.float = "right";
+      tsx.innerHTML = `Part ${key} ꍯ ${timestamp}
+Keywords: ${afterkeys}`;
+      cell.appendChild(tsx);
+    }
+    cell.appendChild(partkeytitle);
+
+    if (part[key]["files"].length) {
+      const fs = document.createElement("DIV");
+      fs.classList = "files";
+
+      for (const file of part[key]["files"]) {
+        fs.appendChild(container(file));
+      }
+
+      cell.appendChild(fs);
+    }
+
+    if (part[key]["stray_files"]) {
+      const edits = document.createElement("DIV");
+      edits.classList = "edits";
+
+      for (const file of part[key]["stray_files"]) {
+        edits.appendChild(container(file));
+      }
+
+      edits.insertAdjacentHTML('beforeend', "<br><br>File(s) not on server");
+      cell.appendChild(edits);
+    }
+
+    const html = part[key]["html"];
+    if (html.length) {
+      const pm = document.createElement("DIV");
+      pm.classList = "postMessage";
+
+      let new_container = [false, false];
+      let subcell;
+      for (const h of html) {
+        if (h.length == 2) {
+          if (new_container[0]) {
+            subcell = document.createElement('DIV');
+            subcell.classList = 'carbon';
+            new_container[0] = false;
+            new_container[1] = true;
+          }
+
+          pm.insertAdjacentHTML('beforeend', h[0]);
+
+          if (h[1]) {
+            pm.appendChild(container(h[1]));
+          }
+
+        } else if (new_container[1]) {
+          if (new_container[0]) {
+            subcell = document.createElement("DIV");
+            subcell.classList = 'carbon';
+            new_container[0] = false;
+          } else {
+            new_container[0] = true;
+          }
+
+          subcell.insertAdjacentHTML('beforeend', h[0]);
+          pm.appendChild(subcell);
+        } else {
+          pm.insertAdjacentHTML('beforeend', h[0]);
+          new_container[0] = true;
+        }
+      }
+
+      cell.appendChild(pm);
+    } else if (!part[key]["files"]) {
+      const edits = document.createElement("DIV");
+      edits.classList = "edits";
+      edits.innerHTML = "Rebuild HTML with a different login/tier may be required to view";
+      cell.appendChild(edits);
+    }
+
+    document.body.appendChild(cell);
+  }
+
+  for (const link of document.getElementsByTagName('a')) {
+    if (!link.href.startsWith(dir)) {
+      link.classList.add("external");
+      link.target = "_blank";
+    }
+  }
+
+  lazyload();
+  loadkeys();
 }
 </script>
 <body>
@@ -4420,7 +4672,7 @@ function lazyload() {
 <div class="dark local_tooltip" id="local_tooltip"></div>
 <div class="stdout" id="stdout" style="display:none;" onpaste="plaintext(this, event);" contenteditable="plaintext-only" spellcheck=false></div>
 </div>
-{builder}</body>
+</body>
 </html>"""
 
 
@@ -4544,7 +4796,7 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
         else:
             part["0"].update({"stray_files": unsorted_stray_files})
 
-    tohtml(subdir, htmlname, part, pattern)
+    # tohtml(subdir, htmlname, part, pattern)
 
     for file in unsorted_stray_files:
         if not file.endswith(tuple(notstray)) and isrej(file, pattern):
@@ -4603,13 +4855,13 @@ def tohtml(subdir, htmlname, part, pattern):
         if part[key]["files"]:
             builder += ["""<div class="files">"""]
             for file in part[key]["files"]:
-                builder += [container(subdir, file, pattern, f"""<div class="sources">{file}</div>""")]
+                builder += [container(subdir, file, f"""<div class="sources">{file}</div>""")]
             builder += ["</div>"]
         if "stray_files" in part[key]:
             builder += ["""<div class="edits">"""]
             for file in part[key]["stray_files"]:
                 # os.rename(subdir + file, subdir + "Stray files/" + file)
-                builder += [container(subdir, file, pattern, f"""<div class="sources">{file}</div>""")]
+                builder += [container(subdir, file, f"""<div class="sources">{file}</div>""")]
             builder += ["<br><br>File(s) not on server\n</div>"]
         if html := part[key]["html"]:
             for array in html:
@@ -4619,7 +4871,7 @@ def tohtml(subdir, htmlname, part, pattern):
                         end_container = True
                         new_container = False
                     if array[1]:
-                        buffer += f"""{array[0]}{container(subdir, array[1], pattern, f'<div class="sources">{array[1]}</div>')}"""
+                        buffer += f"""{array[0]}{container(subdir, array[1], f'<div class="sources">{array[1]}</div>')}"""
                     else:
                         buffer += array[0]
                 elif end_container:
@@ -4653,7 +4905,7 @@ def tohtml(subdir, htmlname, part, pattern):
 
 
 
-def label(m, s, html=False):
+def label_geistauge(m, s, html=False):
     if m[3] == s[3]:
         label = ("<span>" if html else "") + "Identical"
     elif m[0] > s[0] and m[1] > s[1]:
@@ -4676,7 +4928,6 @@ def label(m, s, html=False):
 
 
 def tohtml_geistauge(delete=False):
-    pattern = [[], [], False, False]
     start = time.time()
     print(f"\n Now compiling duplicates to {batchname} HTML . . . kill this CLI to cancel.\n")
     builder = ""
@@ -4744,19 +4995,19 @@ def tohtml_geistauge(delete=False):
                     continue
                 else:
                     break
-            builder2 += container(batchdir, file2.replace(batchdir, ""), pattern, "<br />" + label(fp, fp2, html=True))
+            builder2 += container(batchdir, file2.replace(batchdir, ""), "<br />" + label_geistauge(fp, fp2, html=True))
             if not (file2 := next(fplist, None)):
                 break
         if builder2:
             builder += f"""<div class="container">
-{container(batchdir, file.replace(batchdir, ""), pattern, f"<br />{fp[0]} x {fp[1]}")}{builder2}</div>
+{container(batchdir, file.replace(batchdir, ""), f"<br />{fp[0]} x {fp[1]}")}{builder2}</div>
 
 """
             counter += 1
         if counter % 512 == 0:
             morehtml = htmlfile.replace(".html", f" {int(counter/512)}.html")
             with open(morehtml, 'wb') as f:
-                f.write(bytes(new_html(builder, batchname, ""), 'utf-8'))
+                f.write(bytes(new_html(builder, batchname), 'utf-8'))
             with open(savx, 'wb') as f:
                 f.write(bytes("\n".join(new_savx), 'utf-8'))
             print("\"" + morehtml + "\" created!")
@@ -4764,7 +5015,7 @@ def tohtml_geistauge(delete=False):
             counter += 1
     morehtml = htmlfile.replace(".html", f" {int(counter/512) + 1}.html")
     with open(morehtml, 'wb') as f:
-        f.write(bytes(new_html(builder, batchname, ""), 'utf-8'))
+        f.write(bytes(new_html(builder, batchname), 'utf-8'))
     with open(savx, 'wb') as f:
         f.write(bytes("\n".join(new_savx), 'utf-8'))
     print("\"" + morehtml + "\" created!")

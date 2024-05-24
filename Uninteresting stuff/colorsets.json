@@ -864,10 +864,6 @@
   "Wish":[1448, "???", 0, 0],
   "Bedtime":[1449, "???", 0, 0],
   "Sweet Dreams":[1450, "???", 0, 0],
-  "Elderberry":[1452, "???", 0, 0],
-  "Poppin' Cherry":[1453, "???", 0, 0],
-  "Blue Raspberry":[1454, "???", 0, 0],
-  "Kiwi Berry":[1455, "???", 0, 0],
 
   "Con":true,
   "Con Trash Bandit":[492, "ocean blue", 0, 0, "cream", 2, 0],
@@ -1061,6 +1057,11 @@
   "Valiant Blue":[156],
   "Beige":[[157, null, 665]],
   "Seafoam Green":[158],
+  "Dragon Berry":[1451],
+  "Elderberry":[1452],
+  "Poppin' Cherry":[1453],
+  "Blue Raspberry":[1454],
+  "Kiwi Berry":[1455],
 
   "Bright Blade (retired)":true,
   "Consular Green":[232],

@@ -864,6 +864,8 @@
   "Wish":[1448, "???", 0, 0],
   "Bedtime":[1449, "???", 0, 0],
   "Sweet Dreams":[1450, "???", 0, 0],
+  "Sandy Claus":[1460, "???", 0, 0],
+  "Holly Berry":[1461, "???", 0, 0],
 
   "Con":true,
   "Con Trash Bandit":[492, "ocean blue", 0, 0, "cream", 2, 0],
@@ -1217,6 +1219,7 @@
   "Helius's Signature":[[1020, 1024], "???", 0, 0],
   "John Signature":[[682, 684], "???", 0, 0],
   "John's Natural":[[null, 683], "???", 0, 0],
+  "Crackers' Natural Legacy":[[null, 794], "???", 0, 0],
 
   "Retired/Mislabelled":true,
   "Morning Dew":[null],

@@ -16,10 +16,11 @@ a:visited {color:#efdfa8;}
 img {vertical-align:top;}
 h3 {margin:4px;}
 .colorset{color:#bfddc6; cursor:pointer;}
-.colorsel{background-color:#c60; color:#fc3;}
+.colorsel{background-color:#c60; color:#fc3; border:1px solid #842; margin:-1px;}
 .hyperlink{color:#bfddc6; text-decoration:underline;}
-.blink{animation: bl 1000ms steps(1, end) infinite;}
-@keyframes bl{0%{opacity:75%;} 50%{opacity:100%;}}
+.tang {background-color:#620; color:#efd; border:1px solid #842; margin:-1px;}
+.blink {animation: bl 1000ms linear infinite;}
+@keyframes bl{0%{opacity:100%;} 50%{opacity:50%;} 100%{opacity:100%;}}
 input[type="text"] {padding:3px 11px; width:86px;} /*Firefox: padding:3px 11px 4px;*/
 input[type="file"] {display: none;}
 input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0;}
@@ -389,7 +390,7 @@ function makeUL(array) {
 
 function FFdown(e) {
   if (link && e.target.tagName != "A") {
-    link.classList.remove("blink");
+    link.classList.remove("tang");
     gallery_tooltip.style.display = "none";
   }
 
@@ -500,7 +501,7 @@ function FFdown(e) {
     galleryset2();
   } else if (e.target.classList.contains("colorset")) {
     link = e.target;
-    link.classList.add("blink");
+    link.classList.add("tang");
     odnary.style.display = "none";
     cs.style.display = "none";
     mas.style.display = "none";
@@ -687,20 +688,21 @@ function FFdown(e) {
     colorlist.innerHTML = "<h3>Drop only color sets</h3>" + colortip;
     cssel();
   } else if (e.target.getAttribute("id") == "viewall") {
-    let colortip = "";
+    colorlist.innerHTML = "<h3>Choose a color!</h3>";
     for (const css of Object.keys(colorsets)) {
       if (colorsets[css] == true) {
-        colortip += css + "<br>";
+        colorlist.insertAdjacentHTML("beforeend", css);
         continue;
       }
-      colortip += "&gt; " + makelink(css) + makedots(colorsets[css], 1) + "<br>";
+      const colorline = document.createElement("DIV");
+      colorline.innerHTML = "&gt; " + makelink(css) + makedots(colorsets[css], 1);
+      colorlist.appendChild(colorline);
     }
-    colorlist.innerHTML = "<h3>Choose a color!</h3>" + colortip;
     cssel();
   } else if (e.target.getAttribute("id") == "numbered") {
-    let colortip = "";
-    const presorted = {};
+    colorlist.innerHTML = "<h3>Choose a color!</h3>";
 
+    const presorted = {};
     for (const css of Object.keys(colorsets)) {
       if (colorsets[css] == true) {
         continue;
@@ -721,15 +723,19 @@ function FFdown(e) {
     let index = 1;
     for (const id of Object.keys(presorted)) {
       while (id > index) {
-        colortip += index.toString().padStart(4, ' ') + "<br>";
+        const colorline = document.createElement("DIV");
+        colorline.innerHTML = index.toString().padStart(4, ' ');
+        colorlist.appendChild(colorline);
         index++;
       }
       index++;
 
+      const colorline = document.createElement("DIV");
       const css = presorted[id];
-      colortip += id.padStart(4, ' ') + " " + makelink(css) + makedots(colorsets[css], 1) + "<br>";
+      colorline.innerHTML = id.padStart(4, ' ') + " " + makelink(css) + makedots(colorsets[css], 1)
+      colorlist.appendChild(colorline);
     }
-    colorlist.innerHTML = "<h3>Choose a color!</h3>" + colortip;
+
     cssel();
   } else if (e.target.hasAttribute("data-color")) {
     if (isTouch && e.target.hasAttribute("data-tooltip")) {
@@ -808,13 +814,13 @@ function FFup() {
   let len = sel.toString().length;
   let pos = sel.getRangeAt(0);
   if(link && link.classList.contains("hyperlink")){
-    link.classList.remove("blink");
+    link.classList.remove("tang");
     cursor_tooltip.style.display = "none";
   }
   link = sel.anchorNode.parentNode;
   let ans = false;
   if(link.classList.contains("hyperlink")){
-    link.classList.add("blink");
+    link.classList.add("tang");
     where = link.getBoundingClientRect();
     cursor_tooltip.style.left = (window.scrollX + where.left + 6) + "px";
     cursor_tooltip.style.top = (window.scrollY + where.top + (where.top < 60?30:-30)) + "px";

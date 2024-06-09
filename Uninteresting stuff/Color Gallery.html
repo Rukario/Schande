@@ -893,7 +893,7 @@ function FFdown(e) {
       }
     }
 
-    colorlist.innerHTML = "<h3>Color sets using " + color + "-like silicone</h3>";
+    colorlist.innerHTML = "<h3>" + color[0].toUpperCase() + color.slice(1) + " (" + makedots([color, 0, 0], 0) + ") silicone</h3>";
     for (const [p, cs] of colorsels.reverse().entries()) {
       colorlist.insertAdjacentHTML("beforeend", ["Translucent<br>", "Semi-translucent<br>", "Solid<br>"][p]);
       for (const css of cs) {

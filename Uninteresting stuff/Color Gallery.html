@@ -483,13 +483,7 @@ function FFdown(e) {
     gallery_tooltip.style.display = "none";
   }
 
-  if (t.id == "translucents") {
-    if (translucents.classList == "next") {
-      translucents.classList = "previous";
-    } else {
-      translucents.classList = "next";
-    }
-  } else if (t.id == "creative") {
+  if (t.id == "creative") {
     if (creative.classList == "next") {
       creative.classList = "previous";
     } else {
@@ -875,7 +869,6 @@ function FFdown(e) {
     b.dataset.tooltip = "Fade ends";
     fadebar.appendChild(b);
 
-    const st = translucents.classList == "previous";
     const god = creative.classList == "previous";
     const colorsels = [[], [], []];
     for (const key of Object.keys(colorsets)) {
@@ -885,10 +878,9 @@ function FFdown(e) {
       let p = 0;
       while (pos < k.length) {
         if (k[pos] == color) {
-          if (st) {
-            const pow = k[pos+1];
-            p = pow ? pow-1 : 0;
-          }
+          const pow = k[pos+1];
+          p = pow ? pow-1 : 0;
+
           featured = true;
           if (god && k[pos+2] > 0) {
             featured = false;
@@ -903,9 +895,7 @@ function FFdown(e) {
 
     colorlist.innerHTML = "<h3>Color sets using " + color + "-like silicone</h3>";
     for (const [p, cs] of colorsels.reverse().entries()) {
-      if (st) {
-        colorlist.insertAdjacentHTML("beforeend", ["Translucent<br>", "Semi-translucent<br>", "Solid<br>"][p]);
-      }
+      colorlist.insertAdjacentHTML("beforeend", ["Translucent<br>", "Semi-translucent<br>", "Solid<br>"][p]);
       for (const css of cs) {
         colorline("&gt; ", css);
       }
@@ -1162,9 +1152,6 @@ window.onload = () => {
 
   document.body.appendChild(d);
 
-  //bd = "<div style='position:absolute; top:-2px; right:12px;'>Changelog: <a href='https://github.com/Rukario/Schande/commits/main/Uninteresting%20stuff/colorsets.json' target='_blank'>colorset</a> / <a href='https://github.com/Rukario/Schande/commits/main/Uninteresting%20stuff/swatches.json' target='_blank'>swatch</a></div>";
-  //document.body.insertAdjacentHTML("beforeend", bd);
-
   const toolbar = document.createElement("DIV");
   document.body.appendChild(toolbar);
 
@@ -1253,8 +1240,6 @@ window.onload = () => {
 
   d.appendChild(di);
   document.body.appendChild(d);
-
-  toolbar.appendChild(makeDIV("translucents", "Translucents", "Sort by translucent of selected color"));
 
   toolbar.appendChild(makeDIV("creative", "Creative mode", "Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway and bottom colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights"));
 

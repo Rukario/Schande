@@ -28,8 +28,14 @@ ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:colu
 ::placeholder {color:#3cb;}
 .cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:44px; cursor:pointer; line-height:1.1;}
 .mcell {background-color:#333; border:1px solid #000; position:relative; display:inline-block; width:18px; height:11px; cursor:pointer;}
-#colortable{line-height:0;}
-#minimap{line-height:0;}
+
+#colortable {vertical-align:top; display:inline-block; position:relative; color:#000; min-width:316px; max-width:316px; line-height:0;}
+#colorlist {display:inline-block; vertical-align:top; white-space:pre; margin-bottom:96px;}
+#minimap {vertical-align:top; display:none; position:relative; color:#000; min-width:80px; max-width:80px; line-height:0;}
+#gallery_tooltip {position:absolute; display:none; z-index:1;}
+#more {display:none; border:16px solid transparent; border-bottom:96px solid transparent; background-clip: padding-box;}
+#fadeends {line-height:0;}
+
 .previous, .reverse, .inverse, .next, .tangerine, .brown {white-space:nowrap; font-family:sans-serif; font-size:90%; position:relative; display:inline-block; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
 .next {color:#6fe; background-color:#066;}
 .previous {color:#6fe; background-color:#399;}
@@ -37,11 +43,15 @@ ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:colu
 .inverse {background-color:#d9f; color:#428; border:1px solid #214;}
 .tangerine {background-color:#c60; color:#fc3; border:1px solid #842;}
 .brown {background-color:#620; color:#620; border:1px solid #842;}
+.droponly {display:inline-block; padding:0px 3px; cursor:pointer; line-height:1.1;}
+
+#main {display:inline-block; position:relative; vertical-align:top; display:flex;}
 
 .dark {background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
 .close_button {position:absolute; top:15px; right:15px; cursor:pointer;}
 .cursor_tooltip {padding:0px 8px; font-family:sans-serif; font-size:90%; position:absolute; z-index:2; left:0px; top:0px; right:initial; display:none; pointer-events:none;}
-#cursor_focus{position:absolute; left:0px; top:0px; right:initial; pointer-events:none;}
+#cursor_tooltip {transition: left .5s linear;}
+#cursor_focus {position:absolute; left:0px; top:0px; right:initial; pointer-events:none;}
 .frame {display:inline-block; vertical-align:top; position:relative;}
 .dot {height:10px; width:10px; background-color:#333; border-radius:6px; display:inline-block;}
 .stdout {white-space:pre-wrap; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
@@ -104,7 +114,7 @@ var palette = [
 var colorsets = {};
 var pictures = {};
 var swatches = {};
-function loadcolors(file){
+function loadcolors(file) {
   var xhr = new XMLHttpRequest();
   var isTainted = true;
   xhr.overrideMimeType("application/json");
@@ -126,25 +136,25 @@ function loadcolors(file){
       } else if (xhr.responseText){
         local_tooltip.style.display = "inline-block";
         local_tooltip.innerHTML = "⚠";
-        local_tooltip.setAttribute("data-tooltip", file + " not found! (404 error)");
+        local_tooltip.dataset.tooltip = file + " not found! (404 error)";
       } else {
         local_tooltip.style.display = "inline-block";
         local_tooltip.innerHTML = "⚠";
-        local_tooltip.setAttribute("data-tooltip", "couldn't access " + file + "! (non-404 error)");
+        local_tooltip.dataset.tooltip = "couldn't access " + file + "! (non-404 error)";
       }
     }
     isTainted = false;
   }
 }
 
-var realwidth = function(t){
-  if(!t.naturalWidth) {
+var realwidth = (t) => {
+  if (!t.naturalWidth) {
     return setTimeout(realwidth, 10, t);
   }
   t.style.width = "initial";
 }
 
-function lazyload(){
+function lazyload() {
   var imageObserver = new IntersectionObserver(function(entries, observer) {
     entries.forEach(function(e) {
       if (e.isIntersecting) {
@@ -165,13 +175,23 @@ function lazyload(){
   });
 }
 
-function makedots(cs, pos){
-  var gradientbg = "";
+function makedots(cs, pos, pre=false) {
   var newbar = [];
 
   if (cs.length == 1) {
-    return "<div style='display:inline-block; padding:0px 3px; cursor:pointer; line-height:1.1;' data-color='droponly' data-tooltip='drop only'>✨</div>";
+    const d = document.createElement ("DIV");
+    d.classList = "droponly";
+    d.dataset.color = "droponly";
+    d.dataset.tooltip = "droponly";
+    d.innerHTML = "✨";
+    if (pre) {
+      return [d];
+    } else {
+      return d.outerHTML;
+    }
   }
+
+  const gradientbg = [];
 
   while (pos < cs.length) {
     var r1 = cs[pos];
@@ -213,18 +233,42 @@ function makedots(cs, pos){
   }
 
   for (const color of newbar) {
-    const long = color[0].length*18-18;
-    let fcc = ", " + color[0][0] + " 6px";
+    const width = 12 + color[0].length*18 - 18;
+    const fcc = [];
+
+    fcc.push(color[0][0] + " 6px");
     for (const [n, o] of color[0].entries()) {
-      fcc += ", " + o + " " + (6+18*n) + "px";
+      fcc.push(o + " " + (6+18*n) + "px");
     }
-    fcc += ", " + color[0][color[0].length-1];
-    gradientbg += "<div style='display:inline-block;'><div style='position:absolute;'>" + color[1] + "</div><div style='padding:0px 3px;'><div class='dot' style='pointer-events:none; height: 12px; width:" + (12 + long) + "px; border: none; background: linear-gradient(90deg" + fcc + ");'></div></div></div>";
+    fcc.push(color[0][color[0].length-1]);
+
+    const d1 = document.createElement("DIV");
+    d1.style.position = "absolute";
+    d1.innerHTML = color[1];
+
+    const d3 = document.createElement("DIV");
+    d3.classList = "dot";
+    d3.style = `pointer-events:none; height: 12px; width: ${width}px; border: none; background: linear-gradient(90deg, ${fcc.join(", ")});`;
+
+    const d2 = document.createElement("DIV");
+    d2.style.padding = "0 3px";
+    d2.appendChild(d3);
+
+    const di = document.createElement("DIV");
+    di.style.display = "inline-block";
+    di.appendChild(d1);
+    di.appendChild(d2);
+    gradientbg.push(di);
   }
-  return gradientbg;
+
+  if (pre) {
+    return gradientbg;
+  } else {
+    return gradientbg.map(x => x.outerHTML).join("");
+  }
 }
 
-function galleryset2(){
+function galleryset2() {
   var buffer = "";
   for (const gset of galleryset[1]) {
     buffer += "<div class='frame'><a class='fileThumb' href='" + gset + "'><img class='lazy' data-src='" + gset + "'></a></div>";
@@ -234,7 +278,7 @@ function galleryset2(){
   more.style.display = "none"; 
 }
 
-function cssel(){
+function cssel() {
   const links = document.querySelectorAll(".colorset");
   const orig_colorset = colorset ? colorset.replace(/(^cs\s|\smas$)/g, '') : false;
   for (const link of links) {
@@ -246,55 +290,89 @@ function cssel(){
   }
 }
 
+function addtogallery(k) {
+  const i = document.createElement("IMG");
+  i.classList = "lazy";
+  i.dataset.src = k;
+
+  const a = document.createElement("A");
+  a.classList = "fileThumb";
+  a.href = k;
+  a.appendChild(i);
+
+  const d = document.createElement("DIV");
+  d.classList = 'frame';
+  d.appendChild(a);
+
+  gallery.appendChild(d);
+}
+
 var galleryset = [[], []];
-function makegallery(){
+function makegallery() {
   if (!editor.innerHTML.startsWith("Connect to Bad Dragon")) {
     echo("Replace this text field with 'Connect to Bad Dragon' and release me from liability.\nThis might strain Bad Dragon server/your computer and I'll not be held responsible for that.\n")
     return;
   }
 
   more.style.display = "none";
-  var buffer = "";
-  var bookmarks = editor.innerHTML.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
+  gallery.innerHTML = "";
+
+  const bookmarks = editor.innerHTML.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
 
   for (const bookmark of bookmarks) {
-    buffer += "<div class='frame'><a class='fileThumb' href='" + bookmark + "'><img class='lazy' data-src='" + bookmark + "'></a></div>";
+    addtogallery(bookmark);
   }
 
-  for (const custom_twins of pictures["custom twins"]){
-    var featured = false;
-    var k = Object.keys(custom_twins)[0];
-    var colortip = "";
+  for (const custom_twins of pictures["custom twins"]) {
+    let featured = false;
+    const k = Object.keys(custom_twins)[0];
+    const ct = document.createElement("DIV");
 
     for (const cs of custom_twins[k]) {
       if (cs[0].toLowerCase().replace(/'/g, "") == colorset) {
         featured = true;
       }
-      colortip += "&gt; <span class='colorset'>" + cs[0] + "</span>" + makedots(cs, 1) + "<br>";
+
+      const d = document.createElement("DIV");
+      d.innerHTML = "&gt;";
+
+      const s = document.createElement("SPAN");
+      s.classList = 'colorset';
+      s.innerHTML = cs[0];
+
+      d.appendChild(s);
+      for (const dot of makedots(cs, 1, true)) {
+        d.appendChild(dot);
+      }
+      ct.appendChild(d);
     }
 
-    if(featured){
-      buffer += "<div class='frame'><a class='fileThumb' href='" + k + "'><img class='lazy' data-src='" + k + "'></a><div style='display:inline-block; vertical-align:top;'>" + colortip + "</div></div>"
+    if (featured) {
+      addtogallery(k);
+
+      const di = document.createElement("DIV");
+      di.style.display = "inline-block";
+      di.style.verticalAlign = "top";
+      di.appendChild(ct);
+
+      gallery.appendChild(di);
     }
   }
 
   galleryset = [[], []];
-  for (const [i, picture] of pictures[colorset].entries()){
-    if (i < 12){
+  for (const [i, picture] of pictures[colorset].entries()) {
+    if (i < 12) {
       galleryset[0].push(picture);
     } else {
       galleryset[1].push(picture);
     }
   }
 
-  for (const gset of galleryset[0]){
-    buffer += "<div class='frame'><a class='fileThumb' href='" + gset + "'><img class='lazy' data-src='" + gset + "'></a></div>"
+  for (const gset of galleryset[0]) {
+    addtogallery(gset);
   }
 
-  gallery.innerHTML = buffer;
-
   cssel();
-
   lazyload();
 
   if (pictures[colorset].length>11){
@@ -303,7 +381,7 @@ function makegallery(){
   }
 }
 
-function makelink(cs){
+function makelink(cs) {
   let c = colorsets[cs];
   let tt = "";
   if (c[0]) {
@@ -339,7 +417,7 @@ function makelink(cs){
       tt += " ꍯ Swap N/A or naming issue";
     }
   }
-  let s = document.createElement("span");
+  let s = document.createElement("SPAN");
   s.classList.add("colorset");
   if (Array.isArray(c[0])) {
     s.dataset.colorTheme = c[0][0];
@@ -360,7 +438,7 @@ function makelink(cs){
   }
   s.dataset.tooltip = tt;
   s.innerHTML = cs;
-  return s.outerHTML;
+  return s;
 }
 
 function makeDIV(id, t, tooltip, pointer=false) {
@@ -388,41 +466,53 @@ function makeUL(array) {
   return list;
 }
 
+function colorline(b, cs) {
+  const d = document.createElement("DIV");
+  d.innerHTML = b;
+  d.appendChild(makelink(cs));
+  for (const dot of makedots(colorsets[cs], 1, true)) {
+    d.appendChild(dot);
+  }
+  colorlist.appendChild(d);
+}
+
 function FFdown(e) {
-  if (link && e.target.tagName != "A") {
+  const t = e.target;
+  if (link && t.tagName != "A") {
     link.classList.remove("tang");
     gallery_tooltip.style.display = "none";
   }
 
-  if (e.target.getAttribute("id") == "translucents") {
+  if (t.id == "translucents") {
     if (translucents.classList == "next") {
       translucents.classList = "previous";
     } else {
       translucents.classList = "next";
     }
-  } else if (e.target.getAttribute("id") == "creative") {
+  } else if (t.id == "creative") {
     if (creative.classList == "next") {
       creative.classList = "previous";
     } else {
       creative.classList = "next";
     }
-  } else if (e.target.getAttribute("id") == "odnary") {
-    colorset = odnary.getAttribute("data-colorset");
+  } else if (t.id == "odnary") {
+    colorset = odnary.dataset.colorset;
     makegallery();
-  } else if (e.target.getAttribute("id") == "replace") {
+  } else if (t.id == "replace") {
     more.style.display = "none"; 
-    var buffer = "";
-
+    gallery.innerHTML = "";
     galleryset = [[], []];
-    var lines = editor.innerHTML.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n");
-    var bookmarks = lines.filter((e) => {return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
+
+    const lines = editor.innerHTML.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n");
+    const bookmarks = lines.filter((e) => {return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
     for (const bookmark of bookmarks) {
       galleryset[0].push(bookmark);
     }
 
     for (const gset of galleryset[0]) {
-      buffer += "<div class='frame'><a class='fileThumb' href='" + gset + "'><img class='lazy' data-src='" + gset + "'></a></div>";
+      addtogallery(gset);
     }
+
     rainbow = [];
     for (const line of lines) {
       if (line in colorsets && colorsets[line] != true){
@@ -461,9 +551,12 @@ function FFdown(e) {
         rainbowfade = false;
       }
     }
-    rainbowfade = false;
-    pukefest.innerHTML = makedots(rainbow, 0);
 
+    rainbowfade = false;
+    fadebar.innerHTML = "";
+    for (const dot of makedots(rainbow, 0, true)) {
+      fadebar.appendChild(dot);
+    }
     const b = document.createElement("button");
     b.innerHTML = "ꍯ";
     b.classList = "dark";
@@ -473,51 +566,53 @@ function FFdown(e) {
       rainbowfade = false;
       fadeends.display = 'none';
     });
-    b.setAttribute("data-tooltip", "Fade ends");
-    pukefest.appendChild(b);
+    b.dataset.tooltip = "Fade ends";
+    fadebar.appendChild(b);
 
-    gallery.innerHTML = buffer;
     colorset = undefined;
     cssel();
     lazyload();
-  } else if (e.target.getAttribute("id") == "gallerysave") {
+  } else if (t.id == "gallerysave") {
     if (gallerysave.classList == "previous") {
       return;
     }
 
-    let expires = new Date(Date.now() + 365 * 864e5).toUTCString();
-    var h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/");
-    document.cookie = "gallerysave=" + encodeURIComponent(h) + "; expires=" + expires + "; path=/; SameSite=Strict;";
+    const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
+    const h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/");
+    document.cookie = `gallerysave=${encodeURIComponent(h)}; expires=${expires}; path=/; SameSite=Strict;`;
     //no expiry would allow the cookie to be automatically deleted upon browser exit.
     gallerysave.classList = "previous";
     gallerysave.innerHTML = "Save completed";
-  } else if (e.target.getAttribute("id") == "cs") {
-    colorset = cs.getAttribute("data-colorset");
+  } else if (t.id == "cs") {
+    colorset = cs.dataset.colorset;
     makegallery();
-  } else if (e.target.getAttribute("id") == "mas") {
-    colorset = mas.getAttribute("data-colorset");
+  } else if (t.id == "mas") {
+    colorset = mas.dataset.colorset;
     makegallery();
-  } else if (e.target.getAttribute("id") == "more") {
+  } else if (t.id == "more") {
     galleryset2();
-  } else if (e.target.classList.contains("colorset")) {
-    link = e.target;
+  } else if (t.classList.contains("colorset")) {
+    link = t;
     link.classList.add("tang");
+
     odnary.style.display = "none";
     cs.style.display = "none";
     mas.style.display = "none";
-    var t = link.innerHTML.toLowerCase().replace(/'/g, "");
-    if (Object.keys(pictures).includes(t)) {
+
+    const color = link.innerHTML.toLowerCase().replace(/'/g, "");
+    if (Object.keys(pictures).includes(color)) {
       odnary.style.display = "inline-block";
-      odnary.setAttribute("data-colorset", t);
+      odnary.dataset.colorset = color;
     }
-    if (Object.keys(pictures).includes("cs " + t)) {
+    if (Object.keys(pictures).includes("cs " + color)) {
       cs.style.display = "inline-block";
-      cs.setAttribute("data-colorset", "cs " + t);
+      cs.dataset.colorset = "cs " + color;
     }
-    if (Object.keys(pictures).includes(t + " mas")) {
+    if (Object.keys(pictures).includes(color + " mas")) {
       mas.style.display = "inline-block";
-      mas.setAttribute("data-colorset", t + " mas");
+      mas.dataset.colorset = color + " mas";
     }
+
     const listtoys = [];
     const ct = link.dataset.colorTheme;
     if (ct) {
@@ -528,34 +623,45 @@ function FFdown(e) {
     }
     if (toys[ct]) {
       listtoys.push(...toys[ct]);
-    } else {listtoys.push("Unknown caller")}
+    } else {
+      listtoys.push("Unknown caller");
+    }
+
     const ct3 = link.dataset.colorTheme3;
     if (ct3) {
       checkinv_2.style.display = "inline-block";
       checkinv_2.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct3;
       if (toys[ct3]) {
         listtoys.push(...toys[ct3].map((x) => {return "2 " + x}));
-      } else {listtoys.push("2 Unknown caller")}
+      } else {
+        listtoys.push("2 Unknown caller");
+      }
     } else {
       checkinv_2.style.display = "none";
     }
+
     const ct4 = link.dataset.colorTheme4;
     if (ct4) {
       checkinv_3.style.display = "inline-block";
       checkinv_3.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct4;
       if (toys[ct4]) {
         listtoys.push(...toys[ct4].map((x) => {return "3 " + x}));
-      } else {listtoys.push("3 Unknown caller")}
+      } else {
+        listtoys.push("3 Unknown caller");
+      }
     } else {
       checkinv_3.style.display = "none";
     }
+
     const ct5 = link.dataset.colorTheme5;
     if (ct5) {
       checkinv_4.style.display = "inline-block";
       checkinv_4.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct5;
       if (toys[ct5]) {
         listtoys.push(...toys[ct5].map((x) => {return "4 " + x}));
-      } else {listtoys.push("4 Unknown caller")}
+      } else {
+        listtoys.push("4 Unknown caller");
+      }
     } else {
       checkinv_4.style.display = "none";
     }
@@ -566,20 +672,22 @@ function FFdown(e) {
       checkinv_mas.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct2;
       if (toys[ct2]) {
         listtoys.push(...toys[ct2].map((x) => {return "ꍯ " + x}));
-      } else {listtoys.push("ꍯ Unknown caller")}
+      } else {
+        listtoys.push("ꍯ Unknown caller")
+      }
     } else {
       checkinv_mas.style.display = "none";
     }
+
     const UL = makeUL(listtoys);
     const rows = listtoys.length >= 20 ? 20 : listtoys.length;
     UL.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-    checkcom.setAttribute("data-tooltip", UL.outerHTML);
+    checkcom.dataset.tooltip = UL.outerHTML;
     where = link.getBoundingClientRect();
     gallery_tooltip.style.left = (window.scrollX + where.left -2) + "px";
     gallery_tooltip.style.top = (window.scrollY + where.top -28) + "px";
     gallery_tooltip.style.display = "inline-block";
-  } else if (e.target.hasAttribute("data-schande")) {
-    var t = e.target;
+  } else if (t.dataset.schande) {
     var a = t.parentNode;
     var d = document.createElement("div");
     a.appendChild(d);
@@ -592,16 +700,16 @@ function FFdown(e) {
         const listener = (z) => {
           if (-20 < (y - z.pageY) && (y - z.pageY) < 20 && (z.pageX - x) > 50) {
             d.classList.remove("right");
-            echo(t.getAttribute("data-schande"));
+            echo(t.dataset.schande);
             t.removeEventListener('touchend', listener);
-            t.removeAttribute("busy");
+            delete t.dataset.busy;
             edit();
           }
         };
 
-        if (!t.hasAttribute("busy")) {
+        if (!t.dataset.busy) {
           t.addEventListener('touchend', listener);
-          t.setAttribute("busy", true);
+          t.dataset.busy = true;
         }
 
         t.addEventListener('mouseleave', () => {
@@ -609,7 +717,7 @@ function FFdown(e) {
         });
       } else {
         const listener = () => {
-          echo(t.getAttribute("data-schande"));
+          echo(t.dataset.schande);
           t.removeEventListener("mouseup", listener);
           edit();
         }
@@ -622,16 +730,16 @@ function FFdown(e) {
         const listener = (z) => {
           if (-20 < (y - z.pageY) && (y - z.pageY) < 20 && (x - z.pageX) > 50) {
             d.classList.remove("left");
-            echo("SHAME " + t.getAttribute("data-schande"));
+            echo("SHAME " + t.dataset.schande);
             t.removeEventListener('touchend', listener);
-            t.removeAttribute("busy");
+            delete t.dataset.busy;
             edit();
           }
         };
 
-        if (!t.hasAttribute("busy")) {
+        if (!t.dataset.busy) {
           t.addEventListener('touchend', listener);
-          t.setAttribute("busy", true);
+          t.dataset.busy = true;
         }
 
         t.addEventListener('mouseleave', () => {
@@ -639,14 +747,14 @@ function FFdown(e) {
         });
       } else {
         const listener = () => {
-          echo("SHAME " + t.getAttribute("data-schande"));
+          echo("SHAME " + t.dataset.schande);
           t.removeEventListener("mouseup", listener);
           edit();
         }
         t.addEventListener("mouseup", listener);
       }
     }
-  } else if (e.target.getAttribute("id") == "exotic") {
+  } else if (t.id == "exotic") {
     const colorsels = [];
     for (const key of Object.keys(colorsets)) {
       const k = colorsets[key];
@@ -667,39 +775,38 @@ function FFdown(e) {
         colorsels.push(key);
       }
     }
-    let colortip = "";
+
+    colorlist.innerHTML = "<h3>Exotic color sets</h3>";
     for (const cs of colorsels) {
-      colortip += "&gt; " + makelink(cs) + makedots(colorsets[cs], 1) + "<br>";
+      colorline("&gt; ", cs);
     }
-    colorlist.innerHTML = "<h3>Exotic color sets</h3>" + colortip;
     cssel();
-  } else if (e.target.getAttribute("id") == "droponly" || e.target.hasAttribute("data-color") && e.target.getAttribute("data-color") == "droponly") {
-    if (isTouch && e.target.hasAttribute("data-color") && e.target.hasAttribute("data-tooltip")) {
+  } else if (t.id == "droponly" || t.dataset.color == "droponly") {
+    if (isTouch && t.hasAttribute("data-color") && t.hasAttribute("data-tooltip")) {
       return;
     }
 
-    let colortip = "";
+    colorlist.innerHTML = "<h3>Drop only color sets</h3>";
     for (const css of Object.keys(colorsets)) {
       if (colorsets[css] == true || colorsets[css].length != 1) {
         continue;
       }
-      colortip += "&gt; " + makelink(css) + makedots(colorsets[css], 1) + "<br>";
+
+      colorline("&gt; ", css);
     }
-    colorlist.innerHTML = "<h3>Drop only color sets</h3>" + colortip;
     cssel();
-  } else if (e.target.getAttribute("id") == "viewall") {
+  } else if (t.id == "viewall") {
     colorlist.innerHTML = "<h3>Choose a color!</h3>";
     for (const css of Object.keys(colorsets)) {
       if (colorsets[css] == true) {
         colorlist.insertAdjacentHTML("beforeend", css);
         continue;
       }
-      const colorline = document.createElement("DIV");
-      colorline.innerHTML = "&gt; " + makelink(css) + makedots(colorsets[css], 1);
-      colorlist.appendChild(colorline);
+
+      colorline("&gt; ", css);
     }
     cssel();
-  } else if (e.target.getAttribute("id") == "numbered") {
+  } else if (t.id == "numbered") {
     colorlist.innerHTML = "<h3>Choose a color!</h3>";
 
     const presorted = {};
@@ -723,32 +830,29 @@ function FFdown(e) {
     let index = 1;
     for (const id of Object.keys(presorted)) {
       while (id > index) {
-        const colorline = document.createElement("DIV");
-        colorline.innerHTML = index.toString().padStart(4, ' ');
-        colorlist.appendChild(colorline);
+        const d = document.createElement("DIV");
+        d.innerHTML = index.toString().padStart(4, ' ');
+        colorlist.appendChild(d);
         index++;
       }
       index++;
 
-      const colorline = document.createElement("DIV");
-      const css = presorted[id];
-      colorline.innerHTML = id.padStart(4, ' ') + " " + makelink(css) + makedots(colorsets[css], 1)
-      colorlist.appendChild(colorline);
+      colorline(id.padStart(4, ' ') + " ", presorted[id]);
     }
 
     cssel();
-  } else if (e.target.hasAttribute("data-color")) {
-    if (isTouch && e.target.hasAttribute("data-tooltip")) {
+  } else if (t.hasAttribute("data-color")) {
+    if (isTouch && t.dataset.tooltip) {
       return;
     }
-    const t = e.target.getAttribute("data-color");
 
-    if (!t) {
+    const color = t.dataset.color;
+    if (!color) {
       colorlist.innerHTML = "<h3>Choose a color!</h3>";
       return;
     }
 
-    rainbow.push(t, 0, rainbowfade?2:0);
+    rainbow.push(color, 0, rainbowfade?2:0);
     rainbowfade = true;
 
     if (rainbow.length > 408*3) {
@@ -756,7 +860,10 @@ function FFdown(e) {
       rainbow[2] = 0;
     }
 
-    pukefest.innerHTML = makedots(rainbow, 0);
+    fadebar.innerHTML = "";
+    for (const dot of makedots(rainbow, 0, true)) {
+      fadebar.appendChild(dot);
+    }
     const b = document.createElement("button");
     b.innerHTML = "ꍯ";
     b.classList = "dark";
@@ -765,40 +872,44 @@ function FFdown(e) {
       rainbowfade = false;
       fadeends.style.display = 'none';
     });
-    b.setAttribute("data-tooltip", "Fade ends");
-    pukefest.appendChild(b);
+    b.dataset.tooltip = "Fade ends";
+    fadebar.appendChild(b);
 
-    const colorsels = [];
+    const st = translucents.classList == "previous";
+    const god = creative.classList == "previous";
+    const colorsels = [[], [], []];
     for (const key of Object.keys(colorsets)) {
       const k = colorsets[key];
       let featured = false;
       let pos = 1;
+      let p = 0;
       while (pos < k.length) {
-        if (k[pos] == t) {
-          if (translucents.classList == "previous"){
-            if (k[pos+1] > 1) {
-              featured = true;
-            }
-          } else {
-            featured = true;
+        if (k[pos] == color) {
+          if (st) {
+            const pow = k[pos+1];
+            p = pow ? pow-1 : 0;
           }
-          if (featured && creative.classList == "previous") {
-            if (k[pos+2] > 0) {
-              featured = false;
-            }
+          featured = true;
+          if (god && k[pos+2] > 0) {
+            featured = false;
           }
         }
         pos += 3;
       }
       if (featured) {
-        colorsels.push(key);
+        colorsels[p].push(key);
       }
     }
-    let colortip = "";
-    for (const cs of colorsels) {
-      colortip += "&gt; " + makelink(cs) + makedots(colorsets[cs], 1) + "<br>";
+
+    colorlist.innerHTML = "<h3>Color sets using " + color + "-like silicone</h3>";
+    for (const [p, cs] of colorsels.reverse().entries()) {
+      if (st) {
+        colorlist.insertAdjacentHTML("beforeend", ["Translucent<br>", "Semi-translucent<br>", "Solid<br>"][p]);
+      }
+      for (const css of cs) {
+        colorline("&gt; ", css);
+      }
     }
-    colorlist.innerHTML = "<h3>Color sets using " + t + "-like silicone</h3>" + colortip;
     cssel();
   }
 }
@@ -813,13 +924,13 @@ function FFup() {
   let sel = editor.ownerDocument.defaultView.getSelection();
   let len = sel.toString().length;
   let pos = sel.getRangeAt(0);
-  if(link && link.classList.contains("hyperlink")){
+  if (link && link.classList.contains("hyperlink")) {
     link.classList.remove("tang");
     cursor_tooltip.style.display = "none";
   }
   link = sel.anchorNode.parentNode;
   let ans = false;
-  if(link.classList.contains("hyperlink")){
+  if (link.classList.contains("hyperlink")) {
     link.classList.add("tang");
     where = link.getBoundingClientRect();
     cursor_tooltip.style.left = (window.scrollX + where.left + 6) + "px";
@@ -861,7 +972,7 @@ function FFup() {
   calc.placeholder = "Ln:" + editor.textContent.substr(0, cur).split("\n").length + " Pos:" + cur;
 }
 
-function plaintext(elem, e) {
+function plaintext(e) {
   e.preventDefault();
   var text = e.clipboardData.getData('text/plain').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   document.execCommand('insertHTML', false, text);
@@ -873,21 +984,21 @@ function echo(B, b) {
   editor.innerHTML += B;
 }
 
-function edit(){
-  let sel = editor.ownerDocument.defaultView.getSelection();
-  if(sel.rangeCount){
-    let pos = sel.getRangeAt(0);
-    let preCaretRange = pos.cloneRange();
-    let where = preCaretRange.getBoundingClientRect()
+function edit() {
+  const sel = editor.ownerDocument.defaultView.getSelection();
+  if (sel.rangeCount) {
+    const pos = sel.getRangeAt(0);
+    const preCaretRange = pos.cloneRange();
+    const where = preCaretRange.getBoundingClientRect()
     cursor_focus.style.left = (window.scrollX + where.left - 100) + "px";
     cursor_focus.style.top = (window.scrollY + where.top - 200) + "px";
-    if(cursor_focus.offsetTop+200 < window.pageYOffset || cursor_focus.offsetTop+200 > window.pageYOffset+window.innerHeight || cursor_focus.offsetLeft+100 < window.pageXOffset || cursor_focus.offsetLeft+100 > window.pageXOffset+window.innerWidth){
+    if (cursor_focus.offsetTop + 200 < window.pageYOffset || cursor_focus.offsetTop + 200 > window.pageYOffset+window.innerHeight || cursor_focus.offsetLeft + 100 < window.pageXOffset || cursor_focus.offsetLeft + 100 > window.pageXOffset+window.innerWidth) {
       cursor_focus.scrollIntoView({top: 0, behavior: "smooth", inline:"start"})
     }
   }
 
-  let h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/")
-  let n = encodeURIComponent(h).length;
+  const h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/")
+  const n = encodeURIComponent(h).length;
   gallerysave.innerHTML = "Save " + n + "/4085"
   if (4085 < n){
     gallerysave.classList = "previous";
@@ -896,7 +1007,7 @@ function edit(){
   }
 }
 
-var Expand = function(c, t) {
+var Expand = (c, t) => {
   if(!c.naturalWidth) {
     return setTimeout(Expand, 10, c, t);
   }
@@ -906,14 +1017,14 @@ var Expand = function(c, t) {
   t.style.opacity = "";
 };
 
-var FFclick = function(e) {
+var FFclick = (e) => {
   var t = e.target;
   var a = t.parentNode;
   if (a.classList != undefined && a.classList.contains("fileThumb")) {
     e.preventDefault();
-    if(t.hasAttribute("data-src")) {
+    if (t.dataset.src) {
       var c = document.createElement("img");
-      c.setAttribute("src", a.getAttribute("href"));
+      c.src = a.href;
       c.style.display = "none";
       a.appendChild(c);
       t.style.opacity = "0.75";
@@ -928,10 +1039,10 @@ var FFclick = function(e) {
 };
 
 var outbound;
-var FFover = function(e) {
+var FFover = (e) => {
   var t = e.target;
   var a = t.parentNode;
-  if (a.classList != undefined && a.classList.contains("fileThumb") && !a.parentNode.hasAttribute("busy")) {
+  if (a.classList != undefined && a.classList.contains("fileThumb") && !a.parentNode.dataset.busy) {
     a = a.parentNode;
     var d = document.createElement("div");
     d.innerHTML = "<div class='schande save'>Save</div><div class='schande' style='left:48px;'>Schande!</div>";
@@ -939,7 +1050,7 @@ var FFover = function(e) {
     listener = (z) => {
       z.target.style.opacity = 1;
       if (z.target.classList.contains("schande")) {
-        z.target.setAttribute("data-schande", (t.getAttribute("data-src")?t.getAttribute("data-src"):t.getAttribute("src")).replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/"))
+        z.target.dataset.schande = (t.dataset.src ? t.dataset.src : t.src).replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/");
       }
       z.target.removeEventListener("mouseover", listener);
       let left = () => {
@@ -950,66 +1061,200 @@ var FFover = function(e) {
     }
     d.addEventListener("mouseover", listener);
     outbound = () => {
-      setTimeout(function(){
+      setTimeout(() => {
         a.removeChild(d);
       }, 1)
-      a.removeAttribute("busy")
+      delete a.dataset.busy;
       a.removeEventListener("mouseleave", outbound);
     }
-    a.setAttribute("busy", true)
+    a.dataset.busy = true;
     a.addEventListener("mouseleave", outbound);
   }
 }
 
-var FFmove = function(e) {
-  var t = e.target;
-  if (t.hasAttribute("data-tooltip")) {
+var FFmove = (e) => {
+  const t = e.target;
+  if (t.dataset.tooltip) {
     tooltip.style.left = (e.pageX + 10) + "px";
     tooltip.style.top = (e.pageY + 10) + "px";
     tooltip.style.display = "inline-block";
-    tooltip.innerHTML = t.getAttribute("data-tooltip");
-    if (t.classList == "tangerine"){
+    tooltip.innerHTML = t.dataset.tooltip;
+    if (t.classList == "tangerine") {
       let left = () => {
-        t.classList = "tangerine"
+        t.classList = "tangerine";
       }
-      t.classList = "brown"
-      t.addEventListener("mouseleave", left)
+      t.classList = "brown";
+      t.addEventListener("mouseleave", left);
     }
   } else {
     tooltip.style.display = "none";
   }
 }
 
-var link, isTouch, gallerylist, creative, colorset;
+var link, isTouch, gallerylist, creative, colorset, stdout, editor, editdiff, fadebar;
 var rainbow = [];
 var rainbowfade = false;
 var fadesample = makedots(["sky blue", 0, 0, "copper", 0, 2, "chestnut", 0, 2], 0);
 var dotsample = 'sky blue (' + makedots(["sky blue", 0, 0], 0) + ') copper (' + makedots(["copper", 0, 0], 0) + ') then chestnut (' + makedots(["chestnut", 0, 0], 0) + ')';
 window.onload = () => {
-  document.body.innerHTML = `<div id="cursor_focus"></div><div class="cursor_tooltip" id="cursor_tooltip" style="transition: left .5s linear;"></div><div class="dark close_button cursor_tooltip" id="tooltip"></div>
+  document.body.innerHTML = "";
 
-<div style="position:absolute; display:none; z-index:1;" id="gallery_tooltip"><div class="next" id="odnary" style="cursor:pointer;">Gallery</div><a class="next" href="" target="_blank" id="checkinv">🧺</a><a class="next" href="" target="_blank" id="checkinv_2">2🧺</a><a class="next" href="" target="_blank" id="checkinv_3">3🧺</a><a class="next" href="" target="_blank" id="checkinv_4">4🧺</a><div class="next" id="mas" style="cursor:pointer;">Mas</div><div class="next" id="cs" style="cursor:pointer;">Swaps</div><a class="next" href="" target="_blank" id="checkinv_mas">ꍯ🧺</a><span class="tangerine" id="checkcom" style="padding:4px;" data-tooltip="">🧸</span></div>
+  let d = document.createElement("DIV");
+  d.id = "cursor_focus";
+  document.body.appendChild(d);
 
-<div id="toolbar"></div>
-<div></div>
+  d = document.createElement("DIV");
+  d.classList = "cursor_tooltip";
+  d.id = "cursor_tooltip";
+  document.body.appendChild(d);
 
-<div style="display:inline-block; position:relative; vertical-align:top; display:flex;">
-<div id="colortable" style="vertical-align:top; display:inline-block; position:relative; color:#000; min-width:316px; max-width:316px;"></div>
-<div id="minimap" style="vertical-align:top; display:none; position:relative; color:#000; min-width:80px; max-width:80px;"></div>
-<div id="colorlist" style="display:inline-block; vertical-align:top; white-space:pre; margin-bottom:96px;"></div>
-<div style="vertical-align:top;">
+  d = document.createElement("DIV");
+  d.id = "tooltip";
+  d.classList = "dark close_button cursor_tooltip";
+  document.body.appendChild(d);
 
-<div class="stdout" id="stdout" style="padding:4px 0 0 0;"><div style="min-width:606px; white-space:nowrap;"><div style="padding:0 4px; display:inline-block;">🦦 -(Bookmarked pictures)</div><div class="next" id="replace" style="cursor:pointer;">Replace gallery</div><div class="previous" id="gallerysave" style="cursor:pointer;" data-tooltip="Save text field as cookie for next page visit">Save</div><input id="calc" class="next" style="width:100px;" type="text" placeholder="Calculator"></div><div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false><br></div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
-<div></div>
-<div id="gallery" style="display:inline-block;"></div>
-<div></div>
-<div class="next" id="more" style="display:none; border:16px solid transparent; border-bottom:96px solid transparent; background-clip: padding-box;"></div>
-</div>
-</div>`;
+  d = document.createElement("DIV");
+  d.id = "gallery_tooltip";
 
-  const toolbar = document.getElementById("toolbar");
+  let di = document.createElement("DIV");
+  di.classList = "next";
+  di.id = "odnary";
+  di.style.cursor = "pointer";
+  di.innerHTML = "Gallery";
+  d.appendChild(di);
 
-  toolbar.appendChild(makeDIV("translucents", "Translucents", "Fetch color sets using semi-translucent or translucent of selected color"));
+  for (const [n, c] of ["checkinv", "checkinv_2", "checkinv_3", "checkinv_4"].entries()) {
+    const a = document.createElement("A");
+    a.classList = "next";
+    a.target = "_blank";
+    a.id = c;
+    a.innerHTML = n ? n + 1 + "🧺" : "🧺";
+    d.appendChild(a);
+  }
+
+  di = document.createElement("DIV");
+  di.classList = "next";
+  di.id = "mas";
+  di.style.cursor = "pointer";
+  di.innerHTML = "Mas";
+  d.appendChild(di);
+
+  di = document.createElement("DIV");
+  di.classList = "next";
+  di.id = "cs";
+  di.style.cursor = "pointer";
+  di.innerHTML = "Swaps";
+  d.appendChild(di);
+
+  const a = document.createElement("A");
+  a.classList = "next";
+  a.target = "_blank";
+  a.id = "checkinv_mas";
+  a.innerHTML = "ꍯ🧺";
+  d.appendChild(a);
+
+  di = document.createElement("DIV");
+  di.classList = "tangerine";
+  di.id = "checkcom";
+  di.style.padding = "4px";
+  di.innerHTML = "🧸";
+  d.appendChild(di);
+
+  document.body.appendChild(d);
+
+  //bd = "<div style='position:absolute; top:-2px; right:12px;'>Changelog: <a href='https://github.com/Rukario/Schande/commits/main/Uninteresting%20stuff/colorsets.json' target='_blank'>colorset</a> / <a href='https://github.com/Rukario/Schande/commits/main/Uninteresting%20stuff/swatches.json' target='_blank'>swatch</a></div>";
+  //document.body.insertAdjacentHTML("beforeend", bd);
+
+  const toolbar = document.createElement("DIV");
+  document.body.appendChild(toolbar);
+
+  d = document.createElement("DIV");
+  d.id = "main";
+
+  di = document.createElement("DIV");
+  di.id = "colortable";
+  d.appendChild(di);
+
+  di = document.createElement("DIV");
+  di.id = "minimap";
+  d.appendChild(di);
+
+  di = document.createElement("DIV");
+  di.id = "colorlist";
+  d.appendChild(di);
+
+  di = document.createElement("DIV");
+  di.style.verticalAlign = "top";
+
+  stdout = document.createElement("DIV");
+  stdout.classList = "stdout";
+  stdout.style.padding = "4px 0 0 0";
+
+  let hz = document.createElement("DIV");
+  hz.style = "min-width:606px; white-space:nowrap;";
+
+  let bp = document.createElement("DIV");
+  bp.style = "padding:0 4px; display:inline-block;";
+  bp.innerHTML = "🦦 -(Bookmarked pictures)";
+  hz.appendChild(bp);
+
+  bp = document.createElement("DIV");
+  bp.classList = "next";
+  bp.id = "replace";
+  bp.style.cursor = "pointer";
+  bp.innerHTML = "Replace gallery";
+  hz.appendChild(bp);
+
+  bp = document.createElement("DIV");
+  bp.classList = "previous";
+  bp.id = "gallerysave";
+  bp.style.cursor = "pointer";
+  bp.dataset.tooltip = "Save text field as cookie for next page visit";
+  bp.innerHTML = "Save";
+  hz.appendChild(bp);
+
+  calc = document.createElement("INPUT");
+  calc.classList = "next";
+  calc.id = "calc";
+  calc.style.width = "100px";
+  calc.type = "text";
+  calc.placeholder = "Calculator";
+  hz.appendChild(calc);
+
+  stdout.appendChild(hz);
+
+  editor = document.createElement("DIV");
+  editor.classList = "editor";
+  editor.style.display = "inline-block";
+  editor.setAttribute("contenteditable", "plaintext-only");
+  editor.spellcheck = false;
+  editor.innerHTML = "<br>";
+  stdout.appendChild(editor);
+
+  editdiff = document.createElement("DIV");
+  editdiff.classList = "editor";
+  editdiff.style.display = "none";
+  editdiff.setAttribute("contenteditable", "plaintext-only");
+  editdiff.spellcheck = false;
+  editdiff.innerHTML = "<br>";
+  stdout.appendChild(editdiff);
+
+  di.appendChild(stdout);
+
+  hz = document.createElement("DIV");
+  hz.id = "gallery";
+  hz.style.display = "inline-block";
+  di.appendChild(hz);
+
+  hz = document.createElement("DIV");
+  hz.classList = "next";
+  hz.id = "more";
+  di.appendChild(hz);
+
+  d.appendChild(di);
+  document.body.appendChild(d);
+
+  toolbar.appendChild(makeDIV("translucents", "Translucents", "Sort by translucent of selected color"));
 
   toolbar.appendChild(makeDIV("creative", "Creative mode", "Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway and bottom colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights"));
 
@@ -1024,10 +1269,9 @@ window.onload = () => {
   d.innerHTML = ":?:";
   toolbar.appendChild(d);
 
-  d = document.createElement("DIV");
-  d.style.display = "inline-block";
-  d.id = "pukefest";
-  toolbar.appendChild(d);
+  fadebar = document.createElement("DIV");
+  fadebar.style.display = "inline-block";
+  toolbar.appendChild(fadebar);
 
   d = document.createElement("DIV");
   d.classList = "dark local_tooltip";
@@ -1100,39 +1344,57 @@ window.onload = () => {
   document.addEventListener("mouseover", FFover);
   //document.addEventListener("touchstart", FFdown);
   document.addEventListener("mousedown", FFdown);
+
   creative = document.getElementById("creative");
-  editor = document.getElementById("editable");
-  editdiff = document.getElementById("editable2");
+
   editor.addEventListener("mouseup", FFup);
-  editor.onmousedown = () => {downmove = true};
-  editor.onmouseup = () => {downmove = false};
+
+  editor.onmousedown = () => {
+    downmove = true;
+  };
+
+  editor.onmouseup = () => {
+    downmove = false;
+  };
+
   editor.onmousemove = () => {
     if(downmove == true){
       clearTimeout(busymoving)
       busymoving = setTimeout(FFup, 100)
     }
   };
-  editor.setAttribute("oninput", "edit()");
-  if(!editor.isContentEditable){
-    editor.setAttribute("onpaste", "plaintext(this, event)");
-    editor.setAttribute("contenteditable", "true");
-    editdiff.setAttribute("onpaste", "plaintext(this, event)");
-    editdiff.setAttribute("contenteditable", "true");
+
+  editor.oninput = () => {
+    edit();
+  };
+
+  if (!editor.isContentEditable) {
+    editor.setAttribute("contenteditable", true);
+    editor.onpaste = (e) => {
+      plaintext(e);
+    };
+
+    editdiff.setAttribute("contenteditable", true);
+    editdiff.onpaste = (e) => {
+      plaintext(e);
+    };
   }
 
-  if('ontouchstart' in window){isTouch = true;};
+  if ('ontouchstart' in window) {
+    isTouch = true;
+  }
 
   var fileThumb;
-  document.addEventListener("dragstart", function(e) {
+  document.addEventListener("dragstart", (e) => {
     if (e.target.className == 'fileThumb'){
       fileThumb = e.target;
     }
   }, false);
 
-  editor.addEventListener("drop", function(e) {
-    if(fileThumb){
+  editor.addEventListener("drop", (e) => {
+    if (fileThumb) {
       e.preventDefault();
-      echo(fileThumb.childNodes[0].getAttribute("src").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/"));
+      echo(fileThumb.childNodes[0].src.replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/"));
       edit();
       fileThumb = null;
     }
@@ -1146,7 +1408,7 @@ window.onload = () => {
       c = c.substring(1, c.length);
     };
 
-    if (c.indexOf("gallerysave=") == 0){
+    if (c.indexOf("gallerysave=") == 0) {
       editor.innerHTML = decodeURIComponent(c.substring("gallerysave=".length, c.length));
     }
   }

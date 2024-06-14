@@ -6,7 +6,7 @@
   "Tangerine":[654, "chestnut", 0, 0],
   "Sunset":[658, "gold", 0, 0],
   "Peach":[[86, null, 116, 273, 653], "peach", 0, 0],
-  "Bone":[617, "cream", 0, 0],
+  "Bone":[617, "beige", 0, 0],
   "Butterfly":[651, "beige", 0, 0],
   "Forest":[631, "mold", 0, 0],
   "Aspen":[633, "ocean blue", 0, 0],
@@ -553,7 +553,6 @@
   "Bifrost":[1172, "cherry", 0, 0, "orange", 0, 0, "lemon", 0, 0, "forest", 0, 0, "lazuli", 0, 0, "violet", 0, 0],
   "Rainbow Vanilla Yogurt Parfait":[441, "rose", 3, 0, "orange", 3, 0, "lemon", 3, 0, "lime", 3, 0, "lazuli", 3, 0, "white", 0, 0],
   "Rainbow Strawberry Yogurt Parfait":[192, "rose", 3, 0, "orange", 3, 0, "lemon", 3, 0, "lime", 3, 0, "lazuli", 3, 0, "cherry blossom", 0, 0],
-  "Pride Parfait":[1069, "cherry blossom", 0, 0, "cherry", 0, 0, "garnet", 0, 0, "chestnut", 0, 0, "orange", 0, 0, "caramel", 0, 0, "gold", 0, 0, "brass", 0, 0, "tennis ball", 0, 0, "forest", 0, 0, "lime", 0, 0, "mist", 0, 0, "lazuli", 0, 0, "lazuli", 2, 0, "arctic", 0, 0, "violet", 0, 0, "purple", 0, 0, "lavender", 0, 0],
 
   "Easter":true,
   "Easter Marble":[229, "arctic", 0, 0, "mist", 0, 0, "rouge", 0, 0, "pistachio", 0, 0],
@@ -855,14 +854,7 @@
   "Dark Wave":[1414, "smoke", 0, 0, "concrete", 3, 0, "galaxy", 0, 0],
   "DS Ledo's Signature":[1417, "lime", 3, 3, "black", 0, 0, "white", 0, 0],
   "Rainbow Blackberry Yogurt Parfait":[1428, "???", 0, 0],
-  "Ambrosia":[1429, "???", 0, 0],
   "Spirit of '76":[1443, "???", 0, 0],
-  "Love a Lot":[1445, "???", 0, 0],
-  "Friendship":[1446, "???", 0, 0],
-  "Funshine":[1447, "???", 0, 0],
-  "Wish":[1448, "???", 0, 0],
-  "Bedtime":[1449, "???", 0, 0],
-  "Sweet Dreams":[1450, "???", 0, 0],
   "Sandy Claus":[1460, "???", 0, 0],
   "Holly Berry":[1461, "???", 0, 0],
   "Butterfly Kissed":[1464, "???", 0, 0],
@@ -926,9 +918,7 @@
   "Con Peach Bellini":[[1342, 1350], "robin egg", 0, 0, "orange", 0, 0, "lemon", 3, 0, "rose", 2, 0],
   "Split Con Peach Bellini":[1352, "magenta", 0, 0, "robin egg", 0, 0, "orange", 0, 0, "lemon", 3, 0],
 
-
-
-  "Rhinestone Cowpoke Drop (✨ = orderable unaltered & no swap)":true,
+  "Rhinestone Cowpoke (✨ = orderable unaltered & no swap)":true,
   "Rhinestone Seraphina's Natural":[1418],
   "Rhinestone Seraphina's Signature":[1419],
   "Rhinestone Chance's Natural":[1420],
@@ -970,6 +960,12 @@
   "Mas version may be orderable/customizable":true,
   "Con Taboo":[[1152, 1153], "scarlet", 0, 0, "cream", 3, 0, "wine", 0, 0, "anubis", 0, 0],
 
+  "Non-Cascade (✨ = orderable unaltered)":true,
+  "Ambrosia":[1429],
+
+  "Non-Cascade (unavailable for custom ordering ?)":true,
+  "Pride Parfait":[1069],
+
   "Near Clear (unavailable for custom ordering)":true,
   "Rainbow Dipped Cinnamon":[1343],
   "Rainbow Dipped Glacial Mint":[1344],
@@ -980,6 +976,14 @@
   "Gummy Fantasy":[1437],
   "Cotton Candy Dream":[1438],
   "Rainbow Mirage":[1439],
+
+  "Love is Love (unavailable for custom ordering)":true,
+  "Love a Lot":[1445],
+  "Friendship":[1446],
+  "Funshine":[1447],
+  "Wish":[1448],
+  "Bedtime":[1449],
+  "Sweet Dreams":[1450],
 
   "Year of the Dragon (unavailable for custom ordering)":true,
   "YOTD Duke":[1337],

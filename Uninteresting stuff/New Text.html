@@ -11,11 +11,11 @@ html,body {caret-color:#ff8228; font-family:courier; font-size:14px; margin:0; p
 a {color:#ff9449;}
 a:visited {color:#ffc66d;}
 img {vertical-align:top;}
-h1,h2,h3,h4,h5,h6{margin:4px;}
-.colorset{color:#bfddc6; cursor:pointer;}
-.colorsel{opacity:75%}
-.hyperlink{color:#bfddc6; text-decoration:underline;}
-.blink{animation: bl 1000ms linear infinite;}
+h1,h2,h3,h4,h5,h6 {margin:4px;}
+.colorset {color:#bfddc6; cursor:pointer;}
+.colorsel {opacity:75%}
+.hyperlink {color:#bfddc6; text-decoration:underline;}
+.blink {animation: bl 1000ms linear infinite;}
 @keyframes bl{50%{opacity:50%;}}
 input[type="text"] {padding:3px 11px; width:86px;} /*Firefox: padding:3px 11px 4px;*/
 input[type="text"]:focus {outline:none;}
@@ -23,13 +23,21 @@ input[type="file"] {display: none;}
 input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0;}
 ::placeholder {color:#3cb;}
 
+#drag {margin:0px 12px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;}
+#downwithme {border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); left:-16px;}
+
+.destructive {padding:3px 10px 4px; max-width:100px;}
+
+#cursor_tooltip {z-index:2; position:absolute; left:0px; top:0px; right:initial; display:none; transition: left .5s linear;}
+#cursor_focus {position:absolute; left:0px; top:0px; right:initial; pointer-events:none;}
+
 .cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:48px; cursor:pointer; line-height:1.1;}
 .previous, .reverse, .inverse, .next, .tangerine{white-space:nowrap; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
-.next{color:#6fe; background-color:#066;}
-.previous{color:#6fe; background-color:#399;}
-.reverse{background-color:#428; color:#d9f; border:1px solid #214;}
-.inverse{background-color:#d9f; color:#428; border:1px solid #214;}
-.tangerine{background-color:#c60; color:#fc3; border:1px solid #842;}
+.next {color:#6fe; background-color:#066;}
+.previous {color:#6fe; background-color:#399;}
+.reverse {background-color:#428; color:#d9f; border:1px solid #214;}
+.inverse {background-color:#d9f; color:#428; border:1px solid #214;}
+.tangerine {background-color:#c60; color:#fc3; border:1px solid #842;}
 
 .picker {font-family:arial; font-size:11px; padding:4px 11px 3px; position:relative;} /*Firefox: font-size:12px; padding:5px 11px 4px;*/
 .aczo {font-family:courier; font-size:12px; border:none; border-top:1px solid #033; border-bottom:1px solid #033; margin:-4px 2px; bottom:4px; padding:8px 5px 9px; text-align:center; width:34px; display:inline-block;
@@ -45,9 +53,8 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 }
 .aczo28 {bottom:5px; padding:10px 7px 11px; width:44px;}
 .bloom {background-color:rgba(255, 130, 40, 0.25); border:1px solid #ff8228;}
-#cursor_tooltip{z-index:2; position:absolute; left:0px; top:0px; right:initial; display:none; transition: left .5s linear;}
-#cursor_focus{position:absolute; left:0px; top:0px; right:initial; pointer-events:none;}
-.cursed{pointer-events:none;}
+
+.cursed {pointer-events:none;}
 .backtip {display:none; position:relative; line-height:1.1; font-size:11px;}
 .backtip::before {content:''; position:absolute; left:0; top:0; z-index:1; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none;}
 .local_tooltip {z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
@@ -239,8 +246,8 @@ var FFdown = (e) => {
   var a = t.parentNode;
   if (t.hasAttribute("data-tooltip")) {
     tooltip.style.display = "inline-block";
-    tooltip.innerHTML = t.getAttribute("data-tooltip");
-    let left = () => {
+    tooltip.innerHTML = t.dataset.tooltip;
+    const left = () => {
       setTimeout(() => {
         tooltip.style.display = "none";
       }, 1250);
@@ -255,13 +262,13 @@ document.addEventListener("click", FFdown);
 var FFup = () => {
   const sel = editor.ownerDocument.defaultView.getSelection();
   const len = sel.toString().length;
-  if(link && link.classList.contains("hyperlink")){
+  if (link && link.classList.contains("hyperlink")) {
     link.classList.remove("blink");
     cursor_tooltip.style.display = "none";
   }
   link = sel.anchorNode.parentNode;
   let ans = false;
-  if(link.classList.contains("hyperlink")){
+  if (link.classList.contains("hyperlink")) {
     link.classList.add("blink");
     where = link.getBoundingClientRect();
     cursor_tooltip.style.left = (window.scrollX + where.left + 6) + "px";
@@ -290,9 +297,9 @@ var FFup = () => {
     cursor_tooltip.style.display = "none";
   }
   if (sel.rangeCount) {
-    let pos = sel.getRangeAt(0);
-    let preCaretRange = pos.cloneRange();
-    if(ans !== false){
+    const pos = sel.getRangeAt(0);
+    const preCaretRange = pos.cloneRange();
+    if (ans !== false) {
       where = preCaretRange.getBoundingClientRect()
       cursor_tooltip.style.left = (window.scrollX + where.left) + "px";
       cursor_tooltip.style.top = (window.scrollY + where.top + 36) + "px";
@@ -307,89 +314,81 @@ var FFup = () => {
   }
 }
 
-function plaintext(elem, e) {
+function plaintext(e) {
   e.preventDefault();
-  var text = e.clipboardData.getData('text/plain').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const text = e.clipboardData.getData('text/plain').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   document.execCommand('insertHTML', false, text);
 }
 
 function get_ext(f) {
-  var fp = f.name.split('.');
+  const fp = f.name.split('.');
   return fp[fp.length - 1];
 }
 
 function isUTF8(ext) {
-  switch (ext.toLowerCase()) {
-    case 'txt':
-    case 'bat':
-    case 'json':
-    case 'js':
-    case 'css':
-    case 'html':
-      return true;
+  if (['txt', 'bat', 'json', 'js', 'css', 'html'].includes(ext.toLowerCase())) {
+    return true;
   }
-  return false;
 }
 
 function echo(B, b) {
-  if (!b) B = "<br>" + B
-  if (b) B = " " + B
+  if (!b) {
+    B = "<br>" + B;
+  } else {
+    B = " " + B;
+  }
   stdout.insertAdjacentHTML("beforeend", B);
   stdout.style.display = "inline-block";
 }
 
 function edit() {
-  let sel = editor.ownerDocument.defaultView.getSelection();
-  let len = sel.toString().length;
-  let pos = sel.getRangeAt(0);
-  let preCaretRange = pos.cloneRange();
-  where = preCaretRange.getBoundingClientRect()
+  const sel = editor.ownerDocument.defaultView.getSelection();
+  const pos = sel.getRangeAt(0);
+  const preCaretRange = pos.cloneRange();
+  where = preCaretRange.getBoundingClientRect();
   cursor_focus.style.left = (window.scrollX + where.left - 100) + "px";
   cursor_focus.style.top = (window.scrollY + where.top - 200) + "px";
-  if(cursor_focus.offsetTop+200 < window.pageYOffset || cursor_focus.offsetTop+200 > window.pageYOffset+window.innerHeight || cursor_focus.offsetLeft+100 < window.pageXOffset || cursor_focus.offsetLeft+100 > window.pageXOffset+window.innerWidth){
+
+  if (cursor_focus.offsetTop+200 < window.pageYOffset || cursor_focus.offsetTop+200 > window.pageYOffset+window.innerHeight || cursor_focus.offsetLeft+100 < window.pageXOffset || cursor_focus.offsetLeft+100 > window.pageXOffset+window.innerWidth) {
     cursor_focus.scrollIntoView({top: 0, behavior: "smooth", inline:"start"})
   }
 
-  if (!(document.title.includes(' *'))){
+  if (!(document.title.includes(' *'))) {
     document.title = document.title + ' *';
     local_backtip.style.display = "none";
   }
 }
 
-function menu(){
-  document.body.className = "menu"
-  var x = document.getElementById("dimm");
-  x.style.display = "block";
-  var x = document.getElementById("dim");
-  x.style.display = "none";
+function menu() {
+  document.body.className = "menu";
+  dimm.style.display = "block";
+  dim.style.display = "none";
 }
 
-function exitmenu(){
-  document.body.className = "exitmenu hljs"
-  var x = document.getElementById("dimm");
-  x.style.display = "none";
-  var x = document.getElementById("dim");
-  x.style.display = "block";
+function exitmenu() {
+  document.body.className = "exitmenu hljs";
+  dimm.style.display = "none";
+  dim.style.display = "block";
 }
 
-function rename(){
+function rename() {
   var newtitle = prompt("Use Save Text shortcut or Save button to save the document with this file name.", document.title.replace(" *", ""));
   if (newtitle){
     document.title = newtitle;
   }
 }
 
-function linksonly(){
+function linksonly() {
   canihljs = false;
   new_editor(editor.textContent.replace(/[\s\S]*?((https:\/\/.*?)(\"|\'|\n|<|\)| )|($))/g, '$2\n'));
 }
 
-function dehljs(){
+function dehljs() {
   canihljs = false;
   new_editor(editor.textContent);
 }
 
-function dedup(){
+function dedup() {
   var dirty = editor.textContent.split("\n");
   clean = []
   for(var i=0;i<dirty.length;i++){
@@ -402,7 +401,7 @@ function dedup(){
   new_editor(clean.join("\n"));
 };
 
-function denew(){
+function denew() {
   var dirty = editor.textContent.split("\n");
   clean = [];
   for(var i=0;i<dirty.length;i++){
@@ -413,11 +412,11 @@ function denew(){
   new_editor(clean.join("\n"));
 }
 
-function detab(){
+function detab() {
   new_editor(editor.textContent.replace(/	/g, "    "));
 }
 
-function decode(){
+function decode() {
   try {
     new_editor(decodeURIComponent(editor.textContent));
   } catch {
@@ -425,7 +424,7 @@ function decode(){
   }
 }
 
-function del(c){
+function del(c) {
   new_editor(editor.textContent.slice(...c));
 }
 
@@ -473,31 +472,28 @@ function unraw(str) {
   });
 }
 
-function replace(){
-  let x = document.getElementById("replace");
-  if(!x.value){
+function replace() {
+  if (!rep.value) {
     canihljs = true;
     new_editor(editor.textContent);
   } else {
-    let y = document.getElementById("with");
-    let r = new RegExp(x.value, 'g');
-    new_editor(editor.textContent.replace(r, unraw(y.value)));
+    const r = new RegExp(rep.value, 'g');
+    new_editor(editor.textContent.replace(r, unraw(torep.value)));
   }
 }
 
-function fraktur(){
-  let x = document.getElementById("replace");
-  if (x.value){
-    let r = new RegExp(`(${x.value})`, 'g');
+function fraktur() {
+  if (rep.value) {
+    const r = new RegExp('(' + rep.value + ')', 'g');
     editor.innerHTML = editor.innerHTML.replace(r, "<span class='bloom'>$1</span>")
-    return
+    return;
   }
-  var e = editor.textContent
-  var str = '';
-  var c = '';
 
-  for (var ch of e) {
-    ch = '0x' + ch.codePointAt(0).toString(16)
+  let str = '';
+  let c = '';
+
+  for (const tc of editor.textContent) {
+    const ch = '0x' + tc.codePointAt(0).toString(16);
     if (ch >= 0x41 && ch <= 0x5a) {
       c = ch - 0x41 + 0x1d56c;
     } else if (ch >= 0x61 && ch <= 0x7a) {
@@ -507,10 +503,11 @@ function fraktur(){
     }
     str += String.fromCodePoint(c);
   }
+
   new_editor(str);
 }
 
-function save(){
+function save() {
   var sav = new Blob([editor.textContent], {type: "application/octet-stream"});
   var a = document.createElement("a");
   a.href = URL.createObjectURL(sav);
@@ -518,13 +515,12 @@ function save(){
   a.click();
 }
 
-function render(){
-  let w = document.getElementById("pickerdiff");
-  let e = document.getElementById("editable").textContent;
-  let a = document.getElementById("saver");
-  var t = document.title.replace(" *", "");
-  var d = {"stderr1":false, "stderr2":false, "ask":a.classList.contains("previous"), "dir":"", "name":t, "body":""}
-  if (w.classList.contains("previous")){
+function render() {
+  const e = document.getElementById("editable").textContent;
+  const a = document.getElementById("saver");
+  const t = document.title.replace(" *", "");
+  const d = {"stderr1":false, "stderr2":false, "ask":a.classList.contains("previous"), "dir":"", "name":t, "body":""};
+  if (pickerdiff.classList.contains("previous")) {
     d["stderr1"] = "Cannot save while File 2 is active!";
     d["stderr2"] = "Please switch to File 1 before saving.";
   } else {
@@ -533,7 +529,7 @@ function render(){
       n = dirs[i].split(" for ");
       nn = n[1].split(" ");
       var rx = new RegExp(nn[0], 'g');
-      if(t.match(rx)){
+      if (t.match(rx)) {
         rx = new RegExp(nn[1], 'g')
         if(b.match(rx)){
           d["dir"] = n[0]
@@ -546,27 +542,28 @@ function render(){
   document.body.textContent = JSON.stringify(d);
 }
 
-function locatoon(e, a){
-  if (e.classList.contains("previous")){
+function locatoon(e, a) {
+  if (e.classList.contains("previous")) {
     e.classList.remove("previous");
-    e.innerHTML = e.getAttribute("data-html-original");
+    e.innerHTML = e.dataset.htmlOriginal;
   } else {
     e.classList.add("previous");
-    e.setAttribute("data-html-original", e.innerHTML);
+    e.dataset.htmlOriginal = e.innerHTML;
     e.innerHTML = a;
   }
 }
 
-function relbar(e, a) {
-  if(e.classList.contains("previous")){
+function relbar(a) {
+  const e = document.getElementById("downwithme");
+  if (e.classList.contains("previous")) {
     e.classList.remove("previous");
-    e.innerHTML = e.getAttribute("data-html-original");
-    drag.style.top = "0px"
+    e.innerHTML = e.dataset.htmlOriginal;
+    drag.style.top = "0px";
     window.onscroll = () => {};
     window.onresize = () => {};
   } else {
     e.classList.add("previous");
-    e.setAttribute("data-html-original", e.innerHTML);
+    e.dataset.htmlOriginal = e.innerHTML;
     e.innerHTML = a;
     position();
     window.onscroll = () => {position()};
@@ -574,76 +571,78 @@ function relbar(e, a) {
   }
 }
 
-function diff(){
-  let e = document.getElementById("pickerdiff")
-  if (e.classList.contains("previous")){
-    e.classList.remove("previous");
-    e.innerHTML = filel[2];
+function diff() {
+  if (pickerdiff.classList.contains("previous")){
+    pickerdiff.classList.remove("previous");
+    pickerdiff.innerHTML = filel[2];
     editdiff.style.display = "none";
     editor.style.display = "inline-block";
   } else {
-    e.classList.add("previous");
-    e.innerHTML = filel[3];
-    let d = editdiff.textContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").split("\n");
-    let di = editor.textContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").split("\n");
-    for (var i=0;i<d.length;i++){
-      if(d[i] !== di[i]){
-        d[i] = "<span class='menu'>" + d[i]
-        break
+    pickerdiff.classList.add("previous");
+    pickerdiff.innerHTML = filel[3];
+
+    const d = editdiff.textContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").split("\n");
+    const di = editor.textContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").split("\n");
+
+    for (var i=0; i < d.length; i++) {
+      if (d[i] !== di[i]) {
+        d[i] = "<span class='menu'>" + d[i];
+        break;
       }
     }
+
     editdiff.innerHTML = d.join("\n") + "</span>";
     editor.style.display = "none";
     editdiff.style.display = "inline-block";
   }
 }
 
-var ti = [performance.now(), 0, 0]
-function position() {
-  ti[1] = window.visualViewport.offsetTop;
-  if(performance.now() > ti[0]+100){
-    ti[2] = ti[1]
-  } else {
-    setTimeout(() => {ti[2] = ti[1]}, 16.66);
-  }
-  ti[0] = performance.now()
-  drag.style.top = Math.trunc(((ti[1]*2) - ti[2])/10)*10 + "px";
-}
-
+var ti = [performance.now(), 0, 0];
 var filel = ["File", "Diff", "File 1", "File 2", "🦦"];
 var ut = 0;
 var easter = false;
 
+function position() {
+  ti[1] = window.visualViewport.offsetTop;
+  if (performance.now() > ti[0]+100) {
+    ti[2] = ti[1];
+  } else {
+    setTimeout(() => {ti[2] = ti[1]}, 16.66);
+  }
+  ti[0] = performance.now();
+  drag.style.top = Math.trunc(((ti[1]*2) - ti[2])/10)*10 + "px";
+}
+
 new URLSearchParams(window.location.search).forEach(function (val, key) {
-  if (!val){
-    if (Number(key)){
-      ut = key
-    } else if (key == "🦦"){
+  if (!val) {
+    if (Number(key)) {
+      ut = key;
+    } else if (key == "🦦") {
       easter = true;
-      filel = ["❨'▾'❩", "❨ ꊱ ❩", "❨ 1 ❩", "❨ 2 ❩", "🦦"]
+      filel = ["❨'▾'❩", "❨ ꊱ ❩", "❨ 1 ❩", "❨ 2 ❩", "🦦"];
     } else {
-      filel[4] = key
+      filel[4] = key;
     }
   }
 });
 
-function opendiff(file){
-  var fr = new FileReader();
+function opendiff(file) {
+  const fr = new FileReader();
   fr.readAsText(file);
   fr.onload = () => {
     editdiff.innerHTML = fr.result.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
-  let d = document.getElementById("pickerdiff")
-  d.innerHTML = filel[2];
-  d.addEventListener("click", diff)
+
+  pickerdiff.innerHTML = filel[2];
+  pickerdiff.addEventListener("click", diff);
 }
 
-function newtip(y, z){
-  let x = document.createElement("div");
-  x.innerHTML = y;
-  x.setAttribute("data-tooltip", z)
-  x.classList.add("local_tooltip");
-  local_backtip.appendChild(x);
+function newtip(y, z) {
+  const d = document.createElement("div");
+  d.innerHTML = y;
+  d.dataset.tooltip = z;
+  d.classList.add("local_tooltip");
+  local_backtip.appendChild(d);
   local_backtip.style.display = "inline-block";
 }
 
@@ -651,7 +650,8 @@ function hyperlink(utf8) {
   return utf8.replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| |$)/g, '<span class="hyperlink">$1</span>$2');
 }
 
-function new_editor(utf8, hex=false) {
+function new_editor(utf8="<br>", hex=false) {
+  document.body.innerHTML = "";
   document.body.className = "exitmenu hljs";
 
   if (hex) {
@@ -659,18 +659,44 @@ function new_editor(utf8, hex=false) {
     name = "1024 bytes.txt";
     document.title = name;
   } else {
-    if (utf8) {
+    if (utf8 != "<br>") {
       if (!bigdoc && canihljs) {
         utf8 = hyperlink(hljs.highlightAuto(utf8).value);
       } else {
         utf8 = hyperlink(utf8.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
       }
-    } else {
-      utf8 = "<br>";
     }
   }
 
-  document.body.innerHTML = '<div id="cursor_tooltip"></div><div id="cursor_focus"></div>' + toolbar() + '<div class="editor" id="editable" style="display:inline-block;" contenteditable="plaintext-only" spellcheck=false>' + utf8 + '</div><div class="editor" id="editable2" style="display:none;" contenteditable="plaintext-only" spellcheck=false><br></div><div class="stdout" id="stdout"></div>';
+  let d = document.createElement("DIV");
+  d.id = "cursor_tooltip";
+  document.body.appendChild(d);
+
+  d = document.createElement("DIV");
+  d.id = "cursor_focus";
+  document.body.appendChild(d);
+
+  document.body.appendChild(toolbar());
+
+  editor = document.createElement("DIV");
+  editor.classList = "editor";
+  editor.style.display = "inline-block";
+  editor.setAttribute("contenteditable", "plaintext-only");
+  editor.spellcheck = false;
+  editor.innerHTML = utf8;
+  document.body.appendChild(editor);
+
+  editdiff = document.createElement("DIV");
+  editdiff.classList = "editor";
+  editdiff.style.display = "none";
+  editdiff.setAttribute("contenteditable", "plaintext-only");
+  editdiff.spellcheck = false;
+  editdiff.innerHTML = "<br>";
+  document.body.appendChild(editdiff);
+
+  stdout = document.createElement("DIV");
+  stdout.classList = "stdout";
+  document.body.appendChild(stdout);
 
   for (const [n, o] of [
     "Remove...",
@@ -691,85 +717,105 @@ function new_editor(utf8, hex=false) {
     destructive.appendChild(option);
   };
 
-  editor = document.getElementById("editable");
-  editdiff = document.getElementById("editable2");
   let left = () => {
     setTimeout(() => {
       tooltip.style.display = "none";
     }, 40)
     editor.removeEventListener("click", left);
   }
+
   if (!utf8 && ut) {
     tooltip.style.display = "inline-block";
     tooltip.innerHTML = "The clipboard is updated with page source, paste to view!";
     editor.addEventListener("click", left);
   }
+
   editor.addEventListener("mouseup", FFup);
   editor.addEventListener("touchend", FFup);
   editor.onmousedown = () => {
     downmove = true;
   };
+
   editor.onmouseup = () => {
     downmove = false;
   };
+
   editor.onmousemove = () => {
     if (downmove == true) {
       clearTimeout(busymoving);
       busymoving = setTimeout(FFup, 100);
     }
   };
+
   editor.setAttribute("oninput", "edit()");
+
   if (!editor.isContentEditable) {
-    if (!utf8) {
+    if (utf8 == "<br>") {
       tooltip.style.display = "inline-block";
       tooltip.innerHTML = "Performance reduced: The JavaScript version is now used for compatibility of some features on this browser.";
       editor.addEventListener("click", left);
     }
-    editor.setAttribute("onpaste", "plaintext(this, event)");
+
+    editor.addEventListener("paste", (e) => {
+      plaintext(e);
+    });
+
+    editdiff.setAttribute("paste", (e) => {
+      plaintext(e);
+    });
+
     editor.setAttribute("contenteditable", "true");
-    editdiff.setAttribute("onpaste", "plaintext(this, event)");
     editdiff.setAttribute("contenteditable", "true");
   }
+
   if (canihljs && bigdoc) {
     tooltip.style.display = "inline-block";
     tooltip.innerHTML = "The document is more than 300 KB, prompting for not highlighting for performance.";
     editor.addEventListener("click", left);
   }
+
   bigdoc = false;
 
   colorpicker.addEventListener('click', () => {
-    var s = document.createElement("style");
     calc.placeholder = "#000000";
-    var a = document.createElement("a");
+
+    const s = document.createElement("style");
+    const a = document.createElement("a");
     a.href = "#000000";
-    a.click()
+    a.click();
+
     s.innerHTML = getfontcolor("#000000")
     document.getElementsByTagName("head")[0].appendChild(s)
   });
 
   let busypicker;
-  colorpicker.addEventListener('change', (event) => {
+  colorpicker.addEventListener('change', (e) => {
     clearTimeout(busypicker);
-    var s = document.createElement("style");
-    calc.placeholder = event.target.value;
-    var a = document.createElement("a");
-    a.href = event.target.value;
-    busypicker = setTimeout(() => {a.click()}, 3000)
-    s.innerHTML = getfontcolor(event.target.value)
-    document.getElementsByTagName("head")[0].appendChild(s)
+
+    calc.placeholder = e.target.value;
+
+    const s = document.createElement("style");
+    const a = document.createElement("a");
+    a.href = e.target.value;
+    busypicker = setTimeout(() => {
+      a.click();
+    }, 3000);
+
+    s.innerHTML = getfontcolor(e.target.value);
+    document.getElementsByTagName("head")[0].appendChild(s);
   });
 
   let filepicker = document.createElement("input");
   filepicker.type = "file";
-  filepicker.addEventListener('change', (event) => {
-    const f = event.target.files[0];
+  filepicker.addEventListener('change', (e) => {
+    const f = e.target.files[0];
     name = f.name;
     document.title = name;
     if (isUTF8(get_ext(f))) {
       if (hljs) {
         canihljs = true;
       }
-      var fr = new FileReader();
+      const fr = new FileReader();
       fr.readAsText(f);
       fr.onload = () => {
         utf8 = fr.result;
@@ -777,7 +823,7 @@ function new_editor(utf8, hex=false) {
         new_editor(utf8);
       }
     } else {
-      var fr = new FileReader();
+      const fr = new FileReader();
       fr.readAsArrayBuffer(f);
       fr.onload = () => {
         const arri = new Uint8Array(fr.result);
@@ -865,74 +911,211 @@ function new_editor(utf8, hex=false) {
     }
   });
 
-  let rep = document.getElementById("replace");
   rep.addEventListener("keyup", (e) => {
     if (e.keyCode === 13) {
       replace();
     }
   });
 
-  rep = document.getElementById("with");
-  rep.addEventListener("keyup", (e) => {
+  torep.addEventListener("keyup", (e) => {
     if (e.keyCode === 13) {
       replace();
     }
   });
 
-  if(easter){
+  if (easter) {
     picker.classList.add("aczo");
     pickerdiff.classList.add("aczo");
-    if(aczo28){
+    if (aczo28) {
       picker.classList.add("aczo28");
       pickerdiff.classList.add("aczo28");
     }
   }
 }
 
-var name;
-var editor, editdiff;
+var toolbar = () => {
+  const drag = document.createElement("DIV");
+  drag.id = "drag";
+
+  dimm = document.createElement("DIV");
+  dimm.style.display = "none";
+
+  let b = document.createElement("BUTTON");
+  b.classList = "previous";
+  b.addEventListener("click", () => {
+    exitmenu();
+  });
+  b.innerHTML = filel[4] + " -(Destructive tools)";
+
+  dimm.appendChild(b);
+
+  dimm.insertAdjacentHTML("beforeend", " " + filel[4] + " -(");
+
+  destructive = document.createElement("SELECT");
+  destructive.classList = "next destructive";
+  dimm.appendChild(destructive);
+
+  dimm.insertAdjacentHTML("beforeend", " or ");
+
+  rep = document.createElement("INPUT");
+  rep.classList = "next";
+  rep.type = "text";
+  rep.placeholder = "Replace...";
+  dimm.appendChild(rep);
+
+  dimm.insertAdjacentHTML("beforeend", "→");
+
+  torep = document.createElement("INPUT");
+  torep.classList = "next";
+  torep.type = "text";
+  torep.placeholder = "none";
+  dimm.appendChild(torep);
+
+  b = document.createElement("BUTTON");
+  b.classList = "next";
+  b.addEventListener("click", () => {
+    fraktur();
+  });
+  b.innerHTML = "where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗";
+  dimm.appendChild(b);
+
+  dimm.insertAdjacentHTML("beforeend", ") (can't be undone)");
+  drag.appendChild(dimm);
+
+  dim = document.createElement("DIV");
+
+  b = document.createElement("BUTTON");
+  b.classList = "next";
+  b.id = "downwithme";
+  b.addEventListener("click", () => {
+    relbar('🫦');
+  });
+  b.innerHTML = "👄";
+  dim.appendChild(b);
+
+  b = document.createElement("BUTTON");
+  b.classList = "next";
+  b.addEventListener("click", () => {
+    menu();
+  });
+  b.innerHTML = filel[4] + " -(Destructive tools)";
+  dim.appendChild(b);
+
+  calc = document.createElement("INPUT");
+  calc.classList = "next";
+  calc.style.width = "116px";
+  calc.type = "text";
+  calc.placeholder = "Calculator";
+  dim.appendChild(calc);
+
+  const label = document.createElement("LABEL");
+
+  colorpicker = document.createElement("INPUT");
+  colorpicker.type = "color";
+  colorpicker.value = "Calculator";
+  label.appendChild(colorpicker);
+
+  label.insertAdjacentHTML("beforeend", " " + filel[4] + " -(Open");
+
+  picker = document.createElement("LABEL");
+  picker.classList = "next picker";
+  picker.innerHTML = ". . .";
+  label.appendChild(picker);
+
+  pickerdiff = document.createElement("LABEL");
+  pickerdiff.classList = "next picker";
+  pickerdiff.innerHTML = ". . .";
+  label.appendChild(pickerdiff);
+
+  label.insertAdjacentHTML("beforeend", ") ");
+
+  b = document.createElement("BUTTON");
+  b.classList = "next";
+  b.addEventListener("click", () => {
+    rename();
+  });
+  b.innerHTML = filel[4] + " -(Save as)";
+  label.appendChild(b);
+
+  label.insertAdjacentHTML("beforeend", " " + filel[4] + " -(");
+
+  b = document.createElement("BUTTON");
+  b.classList = "next";
+  b.addEventListener("click", () => {
+    save();
+  });
+  b.innerHTML = "Save";
+  label.appendChild(b);
+
+  b = document.createElement("BUTTON");
+  b.classList = "next";
+  b.id = "saver";
+  b.addEventListener("click", (e) => {
+    locatoon(e, "Text: Ask");
+  });
+  b.innerHTML = "Text: iCloud";
+  label.appendChild(b);
+
+  label.insertAdjacentHTML("beforeend", ")");
+  dim.appendChild(label);
+
+  b = document.createElement("DIV");
+  b.classList = "backtip";
+  b.id = "local_backtip";
+  dim.appendChild(b);
+
+  tooltip = document.createElement("DIV");
+  tooltip.classList = "tooltip";
+  dim.appendChild(tooltip);
+  drag.appendChild(dim);
+
+  return drag;
+}
+
+var name, calc, colorpicker, destructive, dim, dimm, editor, editdiff, picker, pickerdiff, rep, torep, tooltip, stdout;
 var dirs = [];
 var hljs = false;
 var canihljs = false;
 var bigdoc = false;
 var aczo28 = true;
+
 window.onload = () => {
-  if (document.body.getAttribute("data-launch")){
+  if (document.body.dataset.launch) {
     render();
     return;
   } else {
-    document.body.setAttribute("data-launch", true);
+    document.body.dataset.launch = true;
   }
 
   let scale = "26px";
   let adju = "128%";
-  if (window.screen.width > 800){
+
+  if (window.screen.width > 800) {
     scale = "14px";
     adju = "none";
     aczo28 = false;
   }
+
   document.body.style.fontSize = scale;
   document.body.style.lineHeight = scale;
   document.body.style.webkitTextSizeAdjust = adju;
-  new_editor("");
+
+  new_editor();
 
   const s = document.createElement("script");
   s.src = "highlight.min.js"/* + Date.now()*/;
   document.body.appendChild(s);
   s.onload = () => {
     canihljs = true;
-  }
+  };
   s.onerror = () => {
-    newtip(filel[4] + " -(Highlight)", `Download and extract highlight.min.js from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> directly next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.`);
-  }
+    newtip(filel[4] + " -(Highlight)", "Download and extract highlight.min.js from <a href='https://highlightjs.org/download/' target='_blank'>highlight.js download page</a> directly next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.");
+  };
 
-  if(sharp[1]){
-    newtip(filel[4] + " -(Uninitiated CSS)", `Download and extract "` + sharp[0] + `" (if that's spelled correctly) from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> directly next to HTML then reload this page`);
+  if (sharp[1]) {
+    newtip(filel[4] + " -(Uninitiated CSS)", "Download and extract \"" + sharp[0] + "\" (if that's spelled correctly) from <a href='https://highlightjs.org/download/' target='_blank'>highlight.js download page</a> directly next to HTML then reload this page");
   }
 }
 
-var toolbar = () => {
-  return `<div id="drag" style="margin:0px 12px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;"><div id="dimm" style="display:none;"><button class="previous" onclick="exitmenu();">${filel[4]} -(Destructive tools)</button> ${filel[4]} -(<select id="destructive" class="next" style="padding:3px 10px 4px; max-width:100px;"></select> or <input id="replace" class="next" type="text" placeholder="Replace...">→<input id="with" class="next" type="text" placeholder="none"><button class="next" onclick="fraktur()">where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗</button>) (can't be undone)</div><div id="dim" style="display:block;"><button class="next" id="downwithme" style="border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); left:-16px;" onclick="relbar(this, '🫦')">👄</button><button class="next" onclick="menu()">${filel[4]} -(Destructive tools)</button><input id="calc" class="next" style="width:116px;" type="text" placeholder="Calculator"><label><input id="colorpicker" type="color" value=calc.placeholder></input> ${filel[4]} -(Open<label class="next picker" id="picker">. . .</label><label class="next picker" id="pickerdiff">. . .</label>) <button class="next" onclick="rename();">${filel[4]} -(Save as)</button> ${filel[4]} -(<button class="next" onclick="save()">Save</button><button class="next" id="saver" onclick="locatoon(this, \'Text: Ask\')">Text: iCloud</button>)</label><div id="local_backtip" class="backtip"></div><div id="tooltip" class="tooltip"></div></div></div>`;
-}
 </script></head><body class="exitmenu">1. Set up and run Schande.bat for its HTTP server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a>
 2. Take me to Schande.bat, then launch <a href="http://127.0.0.1:8886/New Text.html">http://127.0.0.1:8886/New Text.html</a></body></html>

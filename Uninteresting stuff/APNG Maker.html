@@ -6,7 +6,8 @@
 <meta name="viewport" content="user-scalable=0">
 <title>Make APNG</title>
 <style>
-body {caret-color:#ff8228; font-family:courier; font-size:14px; margin-bottom:-2px; padding-top:2px; padding:2px; -webkit-text-size-adjust:none;}
+body {caret-color:#ff8228; font-family:courier; font-size:14px; -webkit-text-size-adjust:none;}
+/* :root {color-scheme: light dark; body {background-color: Canvas;}} */
 [contenteditable]:focus {outline:none;}
 #getfps:focus {outline:none;}
 a {color:#ff9449;}
@@ -15,11 +16,25 @@ a:visited {color:#ffc66d;}
 input[type="file"] {display:none;}
 ::placeholder {color:#3cb;}
 
-.previous, .reverse, .inverse, .next {display:inline-block; border-radius:0px; cursor:pointer; font-size:12px; padding:4px 11px; font-family:sans-serif; margin:4px; line-height:1em;}
+.previous, .reverse, .inverse, .next, .butt {position:relative; display:inline-block; border-radius:0px; padding:4px 11px; margin:4px; line-height:1em; font-size:13px;}
+.previous, .reverse, .inverse, .next {cursor:pointer; font-family:sans-serif;}
 .next {background-color:#066; color:#6fe; border:1px solid #033;}
 .previous {background-color:#4bb; color:#133; border:1px solid #033;}
 .reverse {background-color:#428; color:#d9f; border:1px solid #214;}
 .inverse {background-color:#d9f; color:#428; border:1px solid #214;}
+
+.tooltip {display:none; position:absolute; margin-top:37px; white-space:initial; background-color:inherit; padding:2px 8px; font-family:sans-serif; font-size:13px; max-width:calc(100% - 36px); line-height:1.1; z-index:9999999; left:0px; top:0px; right:initial;}
+.menu {color:#9b859d; background-color:#110c13;}
+.exitmenu {color:#f45; background-color:#2d0710;}
+.cursor_tooltip {position:absolute; left:0px; top:0px; right:initial; display:none;}
+.backtip {cursor:default; position:relative; display:inline-block; font-size:12px; padding:4px 12px;}
+.backtip::before {content:''; position:absolute; left:0; top:0; z-index:1; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none;}
+.backtip {background:inherit; z-index:1;}
+.local_tooltip {z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
+.label {top:-11px; display:table;}
+.cell {width:352px; vertical-align:text-top; font-size:14px; margin:0 4px;}
+.cell::before {border:2px solid rgba(255, 255, 255, 0.75); width:calc(100% - 4px); height:calc(100% - 4px);}
+.stdout {white-space:pre; line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px;}
 
 .aczo {font-family:courier; font-size:12px; border:none; border-top:1px solid #033; border-bottom:1px solid #033; margin:-4px 2px; bottom:4px; padding:8px 5px 9px; text-align:center; width:34px; display:inline-block;
   clip-path: polygon(
@@ -34,18 +49,6 @@ input[type="file"] {display:none;}
 }
 
 .aczo28 {bottom:5px; padding:10px 7px 11px; width:44px;}
-.tooltip {display:none; position:absolute; margin-top:37px; white-space:initial; background-color:inherit; padding:2px 8px; font-family:sans-serif; font-size:90%; max-width:calc(100% - 36px); line-height:1.1; z-index:9999999; left:0px; top:0px; right:initial;}
-.menu {color:#9b859d; background-color:#110c13;}
-.exitmenu {color:#f45; background-color:#2d0710;}
-.cursor_tooltip {position:absolute; left:0px; top:0px; right:initial; display:none;}
-.backtip {cursor:default; position:relative; display:inline-block; line-height:1.1; font-size:12px; padding:5px 12px;}
-.backtip::before {content:''; position:absolute; left:0; top:0; z-index:1; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none;}
-.backtip {background:inherit; z-index:1;}
-.local_tooltip {z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
-.label {top:-11px; display:table;}
-.cell {width:352px; vertical-align:text-top; font-size:14px; margin:0 4px;}
-.cell::before {border:2px solid rgba(255, 255, 255, 0.75); width:calc(100% - 4px); height:calc(100% - 4px);}
-.stdout {white-space:pre; line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px;}
 
 input[type="range"] {
   position:relative;
@@ -2819,13 +2822,13 @@ window.onload = () => {
   div.append(label);
 
   b = document.createElement("DIV");
-  b.classList = "backtip";
+  b.classList = "backtip butt";
   b.dataset.tooltip = "APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes";
   b.innerHTML = "🦦 -(Production advices)";
   div.append(b);
 
   b = document.createElement("DIV");
-  b.classList = "backtip";
+  b.classList = "backtip butt";
   b.id = "lload";
   b.style.display = "none";
   b.dataset.tooltip = "Read HEIC files with <a href='https://github.com/alexcorvi/heic2any/raw/master/src' target='_blank'>libheif.js</a>, save next to HTML then reload this page";
@@ -2835,7 +2838,7 @@ window.onload = () => {
   b = document.createElement("DIV");
   b.classList = "next";
   b.id = "pload";
-  b.style = "display:none; margin:0px; padding:3px 11px 4px; line-height:1.1;";
+  b.style.display = "none";
   b.addEventListener("click", () => {
     getogvplayer();
   });

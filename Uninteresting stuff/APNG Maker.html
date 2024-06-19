@@ -1,21 +1,26 @@
 <!DOCTYPE html>
 <html>
+<head>
 <meta charset="UTF-8">
 <meta name="format-detection" content="telephone=no">
+<meta name="viewport" content="user-scalable=0">
 <title>Make APNG</title>
-<head><style>
-html,body {caret-color:#ff8228; font-family:courier; font-size:14px; margin-bottom:-2px; padding-top:2px; padding:2px;}
-[contenteditable]:focus {outline: none;}
+<style>
+body {caret-color:#ff8228; font-family:courier; font-size:14px; margin-bottom:-2px; padding-top:2px; padding:2px; -webkit-text-size-adjust:none;}
+[contenteditable]:focus {outline:none;}
 #getfps:focus {outline:none;}
 a {color:#ff9449;}
 a:visited {color:#ffc66d;}
-.frame{display:inline-block; vertical-align:top; position:relative;}
+.frame {display:inline-block; vertical-align:top; position:relative;}
 input[type="file"] {display:none;}
-::placeholder{color:#3cb;}
-.next{background-color:#066; color:#6fe; border:1px solid #033}
-.previous{background-color:#4bb; color:#133; border:1px solid #033}
-.reverse{background-color:#428; color:#d9f; border:1px solid #214}
-.inverse{background-color:#d9f; color:#428; border:1px solid #214}
+::placeholder {color:#3cb;}
+
+.previous, .reverse, .inverse, .next {display:inline-block; border-radius:0px; cursor:pointer; font-size:12px; padding:4px 11px; font-family:sans-serif; margin:4px; line-height:1em;}
+.next {background-color:#066; color:#6fe; border:1px solid #033;}
+.previous {background-color:#4bb; color:#133; border:1px solid #033;}
+.reverse {background-color:#428; color:#d9f; border:1px solid #214;}
+.inverse {background-color:#d9f; color:#428; border:1px solid #214;}
+
 .aczo {font-family:courier; font-size:12px; border:none; border-top:1px solid #033; border-bottom:1px solid #033; margin:-4px 2px; bottom:4px; padding:8px 5px 9px; text-align:center; width:34px; display:inline-block;
   clip-path: polygon(
 14% 12%,
@@ -27,17 +32,18 @@ input[type="file"] {display:none;}
 0% 68%
 );
 }
+
 .aczo28 {bottom:5px; padding:10px 7px 11px; width:44px;}
 .tooltip {display:none; position:absolute; margin-top:37px; white-space:initial; background-color:inherit; padding:2px 8px; font-family:sans-serif; font-size:90%; max-width:calc(100% - 36px); line-height:1.1; z-index:9999999; left:0px; top:0px; right:initial;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
-.cursor_tooltip{position:absolute; left:0px; top:0px; right:initial; display:none;}
+.cursor_tooltip {position:absolute; left:0px; top:0px; right:initial; display:none;}
 .backtip {cursor:default; position:relative; display:inline-block; line-height:1.1; font-size:12px; padding:5px 12px;}
 .backtip::before {content:''; position:absolute; left:0; top:0; z-index:1; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none;}
 .backtip {background:inherit; z-index:1;}
 .local_tooltip {z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
-.previous, .reverse, .inverse, .next {border-radius:0px; cursor:pointer; font-size:12px; padding:4px 11px; font-family:Arial; margin:6px 0px;}
-.cell {width:352px; vertical-align:text-top; font-size:14px;}
+.label {top:-11px; display:table;}
+.cell {width:352px; vertical-align:text-top; font-size:14px; margin:0 4px;}
 .cell::before {border:2px solid rgba(255, 255, 255, 0.75); width:calc(100% - 4px); height:calc(100% - 4px);}
 .stdout {white-space:pre; line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px;}
 
@@ -94,6 +100,11 @@ input[type="range"]::-moz-range-thumb {
 .ogv-seek{width:0;margin:0;flex-grow:1}
 </style>
 <script>
+var isTouch = 'ontouchstart' in window ? true : false;
+var busyclick = false;
+var mousepos = {'x':0, 'y':0};
+var rubbermouse = {'x':0, 'y':0};
+
 function getfontcolor(c, v){
   if(c[0] >= "cc" && c[1] >= "cc" && c[2] >= "cc"){
     return ".exitmenu{background-color:#" + v + "; color:#586e75;}"
@@ -107,10 +118,12 @@ function getfontcolor(c, v){
     return ".exitmenu{background-color:#" + v + "; color:#fff;}"
   }
 }
+
 var sharp = [false, false];
 if(window.location.href.includes("#")){
   sharp[0] = window.location.href.split('#')[1]
 }
+
 if (sharp[0]){
   if(sharp[0].endsWith(".css")){
     var link = document.createElement("link");
@@ -130,23 +143,53 @@ if (sharp[0]){
   a.href = "#2d0710";
   a.click()
 }
-var FFdown = function(e) {
-  var t = e.target;
+
+
+
+var FFdown = (e_) => {
+  if (e_) {
+    if (!isTouch || e_.touches.length === 1) {
+      mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft: e_.x;
+      mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop: e_.y;
+    }
+  }
+
+  var t = e_.target;
   var a = t.parentNode;
-  if (t.hasAttribute("data-tooltip")) {
+  const rect = t.getBoundingClientRect();
+  if (t.tagName == 'CANVAS') {
+    const ws = t.width/t.offsetWidth;
+    const hs = t.height/t.offsetHeight;
+
+    magic_wand([(mousepos.x - Math.ceil(rect.left)) * ws, (mousepos.y - Math.ceil(rect.top)) * hs]);
+  } else if (t.hasAttribute("data-tooltip")) {
     tooltip.style.display = "inline-block";
     tooltip.innerHTML = t.getAttribute("data-tooltip");
-    let left = () => {
-      setTimeout(function(){
+    const left = () => {
+      setTimeout(() => {
         tooltip.style.display = "none";
-      }, 1250)
+      }, 1250);
       a.removeEventListener("mouseleave", left);
     }
     a.addEventListener("mouseleave", left);
   }
 }
 
-document.addEventListener("click", FFdown);
+var FFup = (e_) => {
+
+}
+
+var FFmove = (e_) => {
+  if (e_) {
+    if (!isTouch || e_.touches.length === 1) {
+      e_.preventDefault();
+      mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft: e_.x;
+      mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop: e_.y;
+    }
+  }
+}
+
+
 
 function plaintext(elem, e) {
   e.preventDefault();
@@ -301,11 +344,11 @@ function isUTF8(ext) {
 }
 
 function setfps(text) {
-  if(isNaN(text)){
+  if (isNaN(text)) {
     getfps.style.backgroundColor = "#399"
     fps = 0;
   } else {
-    if(0<text && text<=120){
+    if (0 < text && text <= 120) {
       getfps.style.backgroundColor = "#066"
       fps = Number(text);
     } else {
@@ -313,7 +356,8 @@ function setfps(text) {
       fps = 0;
     }
   }
-  if(!text){
+
+  if (!text) {
     getfps.style.backgroundColor = "#066"
     fps = 0;
   }
@@ -384,7 +428,7 @@ function echoHEIC(image, B) {
   });
 };
 
-function echoPalette(h=8, s=1){
+function echoPalette(h=8, s=1) {
   palette.sort();
   var c2 = document.createElement("canvas");
   var context2 = c2.getContext("2d");
@@ -437,7 +481,7 @@ function reconstPNG(IHDR, arri) {
   return arri;
 }
 
-function canvasToAB(c, ext="png", apngprod=false){
+function canvasToAB(c, ext="png", apngprod=false) {
   return function(resolve) {
     c.toBlob((blob0) => {
       var fr = new FileReader();
@@ -491,13 +535,23 @@ function fullres(i) {
 
 function bigres(i) {
   //sets max dimension, divide by 2 when exceeded, increment division times when 2 isn't enough
-  var len = Math.ceil(dim[i][2] / 4000)
-  var leny = Math.ceil(dim[i][3] / 4000)
-  if (leny > len) len = leny;
-  dim[1] = [0, 0, Math.floor(dim[i][2] / len), Math.floor(dim[i][3] / len)]
+  let len = Math.ceil(dim[i][2] / 4000);
+  const leny = Math.ceil(dim[i][3] / 4000);
+
+  if (leny > len) {
+    len = leny;
+  }
+
+  dim[1] = [0, 0, Math.floor(dim[i][2] / len), Math.floor(dim[i][3] / len)];
   dimension.innerHTML = dim[1][2] + " &times; " + dim[1][3];
-  if (len > 1){
-    dimension.innerHTML += " <div class='backtip' onclick='fullres(" + i + ")'>use original</div>"
+
+  if (len > 1) {
+    const d = document.createElement("DIV");
+    d.addEventListener("click", () => {
+      fullres(i);
+    });
+    d.innerHTML = "use original";
+    dimension.append(d);
   }
 }
 
@@ -505,35 +559,35 @@ function get_dim(image, i) {
   dim[i] = [0, 0, image.width, image.height];
 }
 
-function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=false){
-  Fi[1] = performance.now()
+function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=false) {
+  Fi[1] = performance.now();
   arri = Array.from(arri);
   newframe.arri = arri;
-  Fi[2] = performance.now()
+  Fi[2] = performance.now();
   //echo((Fi[2] - Fi[1])/1000 + "s ArrayBuffer")
-  if(callback == undefined){
-    Fi[3] = performance.now()
-    echo("Frame " + (interFrameN+1) + " in " + (Fi[3] - Fi[0])/1000 + "s")
+  if (callback == undefined) {
+    Fi[3] = performance.now();
+    echo("Frame " + (interFrameN+1) + " in " + (Fi[3] - Fi[0])/1000 + "s");
     document.title = "Frame " + (interFrameN+1);
-    echoIMG(ABtoIMG(ABtoAB(arri)), name)
-    if (callback2){
-      callback2(interFrameN + nextFrame)
+    echoIMG(ABtoIMG(ABtoAB(arri)), name);
+    if (callback2) {
+      callback2(interFrameN + nextFrame);
     } else {
       document.title = "Make APNG";
       setfps(getfps.value);
     }
-  } else if(interFrameN == undefined){
+  } else if (interFrameN == undefined) {
     document.title = "Make APNG";
     //echoIMG(ABtoIMG(ABtoAB(arri)), "Resave as" + ".png");
     toFrame([1000, 1000]);
     callback(0, callback2);
   } else {
-    if (filler){
+    if (filler) {
       echo("APNGified");
     } else {
       echo("Frame " + (interFrameN+1));
       document.title = "Frame " + (interFrameN+1);
-      if(interecho){
+      if (interecho) {
         echoIMG(ABtoIMG(ABtoAB(arri)), "Frame " + (interFrameN+1) + ".png");
       }
     }
@@ -542,40 +596,33 @@ function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=
   }
 }
 
-function canvasToFrame(callback, interFrameN, fpsm=1, callback2=false, filler=false){
-  Fi[1] = performance.now()
-  let promise = new Promise(canvasToAB(c, 'png', true))
-  promise.then(function(arri){
-    ABtoFrame(arri, callback, interFrameN, fpsm, callback2, filler)
+function canvasToFrame(callback, interFrameN, fpsm=1, callback2=false, filler=false) {
+  Fi[1] = performance.now();
+  const promise = new Promise(canvasToAB(c, 'png', true));
+  promise.then((arri) => {
+    ABtoFrame(arri, callback, interFrameN, fpsm, callback2, filler);
   })
 }
 
 function Convolute(pixels, weights) {
-  var side = Math.round(Math.sqrt(weights.length));
-  var halfSide = Math.floor(side/2);
+  const side = Math.round(Math.sqrt(weights.length));
+  const halfSide = Math.floor(side/2);
 
-  var src = pixels.data;
-  var sw = pixels.width;
-  var sh = pixels.height;
+  const [w, h] = [pixels.width, pixels.height];
+  const f = document.createElement('canvas').getContext('2d');
+  const output = f.createImageData(w, h);
+  const [src, dst] = [pixels.data, output.data];
 
-  var w = sw;
-  var h = sh;
-  var f = document.createElement('canvas').getContext('2d');
-  var output = f.createImageData(w, h);
-  var dst = output.data;
-
-  for (var y=0; y<h; y++) {
-    for (var x=0; x<w; x++) {
-      var sy = y;
-      var sx = x;
-      var dstOff = (y*w+x)*4;
-      var r=0, g=0, b=0, a=0;
-      for (var cy=0; cy<side; cy++) {
-        for (var cx=0; cx<side; cx++) {
-          var scy = Math.min(sh-1, Math.max(0, sy + cy - halfSide));
-          var scx = Math.min(sw-1, Math.max(0, sx + cx - halfSide));
-          var srcOff = (scy*sw+scx)*4;
-          var wt = weights[cy*side+cx];
+  for (const y of Array(h).keys()) {
+    for (const x of Array(w).keys()) {
+      const dstOff = (y*w+x)*4;
+      let [r, g, b, a] = [0, 0, 0, 0];
+      for (const cy of Array(side).keys()) {
+        for (const cx of Array(side).keys()) {
+          const scy = Math.min(h-1, Math.max(0, y + cy - halfSide));
+          const scx = Math.min(w-1, Math.max(0, x + cx - halfSide));
+          const srcOff = (scy*w+scx)*4;
+          const wt = weights[cy*side+cx];
           r += src[srcOff] * wt;
           g += src[srcOff+1] * wt;
           b += src[srcOff+2] * wt;
@@ -588,6 +635,7 @@ function Convolute(pixels, weights) {
       dst[dstOff+3] = 255;
     }
   }
+
   return output;
 }
 
@@ -674,22 +722,75 @@ function frame_diff(a, b, i) {
   const d = {'x':[], 'y':[]};
   for (const y of Array(dim[i][3]).keys()) {
     const o = (y+1)*dim[i][2];
-    for (let x = (o-dim[i][2])*4; x<o*4; x+=4) {
+    for (let x=(o-dim[i][2])*4; x<o*4; x+=4) {
       if (b[x+3] !== 0 && a[x+3] == 255 && a[x] == b[x] && a[x+1] == b[x+1] && a[x+2] == b[x+2]) {
         b[x+3] = 0;
       } else {
         d.x.push((x/4)+dim[i][2]-o);
         d.y.push(y);
         //var rgba = (00 + b[x].toString(16)).slice(-2) + (00 + b[x+1].toString(16)).slice(-2) + (00 + b[x+2].toString(16)).slice(-2);
-        //if(palette.indexOf(rgba)<0){palette.push(rgba);}
-        //evil: indexOf, toString(16), pad zeros
-        //reverse with parseInt(hexString, 16)
+        //if (palette.indexOf(rgba) < 0) {
+        //  palette.push(rgba);
+        //}
+        // evil: indexOf, toString(16), pad zeros
+        // reverse with parseInt(hexString, 16);
       }
     }
   }
   d.x.sort((a,b) => a-b);
   d.y.sort((a,b) => a-b);
   dim[3] = [d.x[0], d.y[0], d.x[d.x.length-1]-d.x[0]+1, d.y[d.y.length-1]-d.y[0]+1];
+}
+
+var qixmask = document.createElement("canvas");
+var qixmaskc = qixmask.getContext("2d");
+
+function magic_wand(satellite) {
+  qixmask.width = c.width;
+  qixmask.height = c.height;
+  const qixmap = qixmaskc.createImageData(c.width, c.height);
+  const color = context.getImageData(0, 0, c.width, c.height);
+
+  const n = satellite[0]+satellite[1]*qixmask.width;
+  const rgba = color.data.slice(n*4, n*4+4);
+
+  const monstermap = new Uint8Array(c.width * c.height);
+  let pixels = 0;
+
+  for (const n of Array(c.width * c.height).keys()) {
+    if (color.data.slice(n*4, n*4+4).every((r, i) => {return r === rgba[i];})) {
+    //if (qixmap.data[n*4+3] === 255) {
+      monstermap[n] = 1;
+    } else {
+      pixels++;
+      monstermap[n] = 0;
+    }
+  }
+
+  // while (satellite.length > 0) {
+  //   const y = satellite.pop();
+  //   const x = satellite.pop();
+  //   if (x >= 0 && y >= 0 && x < c.width && y < c.height && monstermap[y*c.width + x]) {
+  //     monstermap[y * c.width + x] = 0;
+  //     satellite.push(x + 1, y);
+  //     satellite.push(x - 1, y);
+  //     satellite.push(x, y + 1);
+  //     satellite.push(x, y - 1);
+  //   }
+  // }
+
+  for (const [n, pixel] of monstermap.entries()) {
+    if (pixel) {
+      pixels++;
+      qixmap.data[n*4] = 128;
+      qixmap.data[n*4+1] = 0;
+      qixmap.data[n*4+2] = 255;
+      qixmap.data[n*4+3] = 255;
+    }
+  }
+
+  qixmaskc.putImageData(qixmap, 0, 0);
+  echoCanvas(qixmask);
 }
 
 function draw(x, i) {
@@ -728,76 +829,75 @@ function subtract(a, b) {
   context.putImageData(frameBuffer[b], 0, 0);
 }
 
-function cropdiff(a, b, end){
-  frame_diff(frameBuffer[a].data, frameBuffer[b].data, 1)
-  if(!end){
+function cropdiff(a, b, end) {
+  frame_diff(frameBuffer[a].data, frameBuffer[b].data, 1);
+  if (!end) {
     frameBuffer[0] = context.getImageData(...dim[1]);
   }
   context.putImageData(frameBuffer[b], 0, 0);
-  crop()
+  crop();
 }
 
 function apngdiff(m, s, s2=false) {
   draw(m, 1);
-  canvasToFrame(f2, 0);
   let reuse = [false, false, false, false];
 
-  function f1(){
-    if(s2){
-      reuse[1] = newframe.arri
-      reuse[3] = dim[3]
+  const f1 = () => {
+    if (s2) {
+      reuse[1] = newframe.arri;
+      reuse[3] = dim[3];
     } else {
-      reuse[0] = newframe.arri
-      reuse[2] = dim[3]
+      reuse[0] = newframe.arri;
+      reuse[2] = dim[3];
     }
     draw(m, 2);
     cropdiff(0, 2, true);
     canvasToFrame(r2, 0);
   }
 
-  function f2(){
+  const f2 = () => {
     draw(s, 2);
     cropdiff(1, 2);
     canvasToFrame((s2?f3:f1), 1);
   }
 
-  function f3(){
-    reuse[0] = newframe.arri
-    reuse[2] = dim[3]
+  const f3 = () => {
+    reuse[0] = newframe.arri;
+    reuse[2] = dim[3];
     draw(s2, 2);
     cropdiff(0, 2);
     canvasToFrame(f1, 2);
   }
 
-  function r2(){
-    Fi[0] = performance.now()
-    Fi[1] = performance.now()
-    dim[3] = reuse[2]
-    ABtoFrame(reuse[0], (s2?r3:d1), 1)
+  const r2 = () => {
+    Fi[0] = performance.now();
+    Fi[1] = performance.now();
+    dim[3] = reuse[2];
+    ABtoFrame(reuse[0], (s2?r3:d1), 1);
   }
 
-  function r3(){
-    Fi[0] = performance.now()
-    Fi[1] = performance.now()
-    dim[3] = reuse[3]
-    ABtoFrame(reuse[1], d1, 2)
+  const r3 = () => {
+    Fi[0] = performance.now();
+    Fi[1] = performance.now();
+    dim[3] = reuse[3];
+    ABtoFrame(reuse[1], d1, 2);
   }
 
-  function d1(){
+  const d1 = () => {
     draw(s, 2);
     subtract(1, 2);
     cropdiff(0, 2);
     canvasToFrame(d2, -2);
   }
   
-  function d2(){
+  const d2 = () => {
     draw(s, 2);
     difference(1, 2);
     cropdiff(0, 2);
     canvasToFrame((s2?d3:d6), -2.5);
   }
 
-  function d3(){
+  const d3 = () => {
     draw(s, 2);
     draw(s2, 3);
     subtract(2, 3);
@@ -805,31 +905,33 @@ function apngdiff(m, s, s2=false) {
     canvasToFrame(d4, -3);
   }
 
-  function d4(){
+  const d4 = () => {
     draw(s2, 3);
     difference(2, 3);
     cropdiff(0, 3);
     canvasToFrame(d5, -3.5);
   }
 
-  function d5(){
+  const d5 = () => {
     draw(s2, 3);
     subtract(1, 3);
     cropdiff(0, 3);
     canvasToFrame(d6, -4);
   }
 
-  function d6(){
-    if(s2){
+  const d6 = () => {
+    if (s2) {
       draw(s2, 3);
       difference(3, 1);
     } else {
       draw(s, 2);
       subtract(2, 1);
     }
-    cropdiff(0, 1, true)
+    cropdiff(0, 1, true);
     canvasToFrame(makeAPNG, (s2?-4.5:-3));
   }
+
+  canvasToFrame(f2, 0);
 }
 
 function canvasdiff(m, s) {
@@ -1065,9 +1167,11 @@ function readMDP(arri) {
   layerlist.innerHTML = "";
   function readLayer(LayerN) {
     if (LayerN >= layers.length) {
-      let e = document.getElementById("echolayers");
-      e.setAttribute("onclick", "echoMDP();")
-      e.classList = "next";
+      echolayers.classList = "next";
+      echolayers.removeEventListener("click", echolayers.listeners[0]);
+      echolayers.addEventListener("click", () => {
+        echoMDP();
+      });
       return;
     }
 
@@ -1197,7 +1301,7 @@ function echoMDP() {
   let visibleformask = false;
   let usemode = "source-over";
   let usealpha = 1;
-  for (const next of layerlist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter(function(e){return e;})) {
+  for (const next of layerlist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter((e) => {return e;})) {
     const seq = next.split(" ");
     if (!parseInt(seq[1]) || seq[3] == 'folder') {
       visibleformask = false;
@@ -1249,13 +1353,12 @@ function echoMDP() {
   context.globalAlpha = usealpha;
   context.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
 
-  const e = document.getElementById("makepng");
-  if (e.hasAttribute("onclick")) {
-    echoCanvas(c);
-    e.removeAttribute("onclick");
-    e.addEventListener("click", () => {echoIMGfromCanvas(c, name.split('.').slice(0, -1).join('.') + ".png")});
-    e.classList = "next";
-  }
+  echoCanvas(c);
+  makepng.removeEventListener("click", makepng.listeners[0]);
+  makepng.classList = "next";
+  makepng.addEventListener("click", () => {
+    echoIMGfromCanvas(c, name.split('.').slice(0, -1).join('.') + ".png");
+  });
 }
 
 
@@ -1408,10 +1511,9 @@ function fromGIF(arri) {
         } else if (nextByte === 0xFF) { // Application Extension
           const size = arri[pos++];
           const s = readString(arri.slice(pos, pos + size));
+          pos += size;
           if (s === NETSCAPE_sig) {
-            pos += size;
-            const subsize = arri[pos++] + 1; // length of sub-block & terminator
-            pos += subsize;
+            skipBytes();
           } else {
             skipBytes();
           }
@@ -2067,40 +2169,54 @@ function echoAPNG() {
 
 function editframelist(){
   framelist.innerHTML = "";
+
   for (const i of Array(framearray.length).keys()) {
     framelist.innerHTML += i+1 + "\n";
   }
 
-  let e = document.getElementById("makeapng");
-  e.setAttribute("onclick", "compileframes();");
-  e.classList = "next";
+  makeapng.removeEventListener("click", makeapng.listeners[0]);
+  makeapng.classList = "next";
+  makeapng.addEventListener("click", () => {
+    compileframes();
+  });
 
-  e = document.getElementById("detect");
-  e.setAttribute("onclick", "detect();");
-  e.classList = "reverse";
+  emphdiff.removeEventListener("click", emphdiff.listeners[0]);
+  emphdiff.classList = "reverse";
+  emphdiff.addEventListener("click", () => {
+    detect();
+  });
 
-  e = document.getElementById("resave");
-  e.classList = "next";
-  e.setAttribute("onclick", "compileframes(false);");
+  resave.removeEventListener("click", resave.listeners[0]);
+  resave.classList = "next";
+  resave.addEventListener("click", () => {
+    compileframes(false);
+  });
 
-  e = document.getElementById("deapng");
-  e.classList = "next";
-  e.setAttribute("onclick", "compileframes(false, true);");
+  deapng.removeEventListener("click", deapng.listeners[0]);
+  deapng.classList = "next";
+  deapng.addEventListener("click", () => {
+    compileframes(false, true);
+  });
 }
 
 function editapnglist() {
   apnglist.innerHTML = "";
+
   for (const i of Array(apngarray.length).keys()) {
     apnglist.innerHTML += i+1 + "\n";
   }
 
-  let e = document.getElementById("mergeapng");
-  e.setAttribute("onclick", "compileapngs();");
-  e.classList = "next";
+  mergeapng.removeEventListener("click", mergeapng.listeners[0]);
+  mergeapng.classList = "next";
+  mergeapng.addEventListener("click", () => {
+    compileapngs();
+  });
 
-  e = document.getElementById("echoapng");
-  e.setAttribute("onclick", "echoAPNG();");
-  e.classList = "next";
+  echoapng.removeEventListener("click", echoapng.listeners[0]);
+  echoapng.classList = "next";
+  echoapng.addEventListener("click", () => {
+    echoAPNG();
+  });
 }
 
 function readframes(filelist) {
@@ -2175,6 +2291,7 @@ function readapng(filelist) {
   readFile(0);
 }
 
+var addbg, rbg, removebg;
 function changebg(f){
   bg = new Image();
   bg.src = window.URL.createObjectURL(f);
@@ -2485,26 +2602,6 @@ function loaded() {
     changebg(e.target.files[0]);
   });
 
-  removebg.addEventListener('click', () => {
-    bg = false;
-    bigres(0);
-    echo("Unloaded background");
-    removebg.style.display = "none";
-    addbg.style.display = "block";
-  });
-
-  rbg.addEventListener('click', (e) => {
-    if (rbg.classList.contains("reverse")){
-      rbg.classList = "inverse";
-      rbg.innerHTML = "Alpha background";
-      createbg = true;
-    } else {
-      rbg.classList = "reverse";
-      rbg.innerHTML = "Random background";
-      createbg = false;
-    }
-  });
-
   recompress.addEventListener('click', (e) => {
     if (recompress.classList.contains("reverse")){
       if (!optipng) {
@@ -2600,88 +2697,309 @@ var decompress = false;
 var decoder = false;
 var Fi = [0, 0, 0, 0];
 var c = document.createElement("canvas");
-var context = c.getContext("2d");
+var context = c.getContext("2d"); // { willReadFrequently: true }
 var frameBuffer = [false, false, false, false];
 var dim = [false, false, false, false, false]; // framearray[0]'s dim, main_dim, bg_dim, make_dim, compileapngs()
 var maxres = [0, 0, 1, 1];
 var bg = false;
 var createbg = false;
 var interecho = false;
-var arri, seqFrameN, seqAPNG, seqLayerN, img, Module, name;
+var arri, seqFrameN, seqAPNG, seqLayerN, img, Module, name, dimension, framelist, loadframes, moreframes, echolayers, makepng;
 
 window.onload = () => {
-  document.body.innerHTML = `<div style="margin-bottom:12px; background:inherit;">
-<label class="next"><input id="viewer" type="file"></input>🦦 -(Echo file)</label>
-<div class="backtip" style="display:inline-block;" data-tooltip='APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes<br>')">🦦 -(Production advices)</div>
-<div class="backtip" id="lload" style="display:none;" data-tooltip='Read HEIC files with <a href="https://github.com/alexcorvi/heic2any/raw/master/src" target="_blank">libheif.js</a>, save next to HTML then reload this page'>🦦 -(HEICide)</div>
-<button class="next" id="pload" style="display:none; margin:0px; padding:3px 11px 4px; line-height:1.1;" onclick="getogvplayer()">🦦 -(Launch WEBM player for iPad/iPhone)</button>
-<button class="reverse" id="recompress">No optimization</button>
-</div>
-<div id="tooltip" class="tooltip"></div>
-</div>
+  if (isTouch) {
+    c.addEventListener('touchstart', (e_) => {
+      FFdown(e_);
+      if (busyclick) {
+        clearTimeout(busyclick);
+        busyclick = false;
+      } else {
+        busyclick = setTimeout(() => {rightc(e_)}, 500);
+      }
+    });
+    c.addEventListener('touchend', (e_) => {
+      FFup(e_);
+      clearTimeout(busyclick);
+      busyclick = false;
+    });
+    c.addEventListener('touchmove', (e_) => {
+      FFmove(e_);
+      clearTimeout(busyclick);
+      busyclick = false;
+      mousepos.x = e_.touches[0].clientX;
+      mousepos.y = e_.touches[0].clientY;
+    });
+    c.addEventListener('contextmenu', (e_) => {
+      e_.preventDefault();
+    });
+  } else {
+    document.addEventListener('mousedown', FFdown);
+    document.addEventListener('mouseup', FFup);
+    document.addEventListener('mousemove', FFmove);
+    document.addEventListener('contextmenu', (e_) => {
+      rightc(e_);
+    });
+  }
+
+  let maincell;
+
+  const fileup = (B) => {
+    const l = document.createElement("LABEL");
+    l.classList = "next";
+
+    const b = document.createElement("INPUT");
+    b.type = "file";
+    b.setAttribute("multiple", true);
+    l.append(b);
+    l.insertAdjacentHTML("beforeend", B);
+    maincell.append(l);
+    return b;
+  };
+
+  const editcell = (B, w="260px") => {
+    const div = document.createElement("DIV");
+    div.style.display = "flex";
+    div.style.verticalAlign = "top";
+    div.style.width = w;
+
+    let b = document.createElement("DIV");
+
+    const e = document.createElement("DIV");
+    e.classList = "stdout";
+    e.style = "color:#fd6; cursor:text;";
+    e.setAttribute("contenteditable", "plaintext-only");
+    e.spellcheck = false;
+    e.innerHTML = "<br>";
+
+    b.append(e);
+    div.append(b);
+  
+    b = document.createElement("DIV");
+    b.style.margin = "12px";
+    b.innerHTML = B;
+    div.append(b);  
+
+    maincell.append(div);
+    return e;
+  };
+
+  const button = (c, B, e='Filelist is empty!') => {
+    const b = document.createElement("DIV");
+    b.classList = c;
+    b.innerHTML = B;
+    const left = () => {
+      echo(e);
+    }
+    b.addEventListener("click", left);
+
+    if (!b.listeners) {
+      b.listeners = [];
+    }
+
+    b.listeners.push(left);
+    maincell.append(b);
+    return b;
+  };
+
+  document.body.innerHTML = "";
+
+  let div = document.createElement("DIV");
+  div.style.marginBottom = "12px";
+  div.style.background = "inherit";
+
+  let label = document.createElement("LABEL");
+  label.classList = "next";
+
+  let b = document.createElement("INPUT");
+  b.id = "viewer";
+  b.type = "file";
+  label.append(b);
+
+  label.insertAdjacentHTML("beforeend", "🦦 -(Echo file)");
+  div.append(label);
+
+  b = document.createElement("DIV");
+  b.classList = "backtip";
+  b.dataset.tooltip = "APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes";
+  b.innerHTML = "🦦 -(Production advices)";
+  div.append(b);
+
+  b = document.createElement("DIV");
+  b.classList = "backtip";
+  b.id = "lload";
+  b.style.display = "none";
+  b.dataset.tooltip = "Read HEIC files with <a href='https://github.com/alexcorvi/heic2any/raw/master/src' target='_blank'>libheif.js</a>, save next to HTML then reload this page";
+  b.innerTHML = "🦦 -(HEICide)";
+  div.append(b);
+
+  b = document.createElement("DIV");
+  b.classList = "next";
+  b.id = "pload";
+  b.style = "display:none; margin:0px; padding:3px 11px 4px; line-height:1.1;";
+  b.addEventListener("click", () => {
+    getogvplayer();
+  });
+  b.innerHTML = "🦦 -(Launch WEBM player for iPad/iPhone)";
+  div.append(b);
+
+  b = document.createElement("DIV");
+  b.classList = "reverse";
+  b.id = "recompress";
+  b.innerHTML = "No optimization";
+
+  div.append(b);
+  document.body.append(div);
+
+  div = document.createElement("DIV");
+  div.classList = "tooltip";
+  div.id = "tooltip";
+  document.body.append(div);
+
+  maincell = document.createElement("DIV");
+  maincell.classList = "backtip cell";
+
+  div = document.createElement("DIV");
+  div.classList = "backtip label";
+  div.innerHTML = "🦦 -(Make)";
+  maincell.append(div);
+
+  loadframes = fileup("Load Frames");
+
+  moreframes = fileup("Load more");
+
+  addbg = document.createElement("LABEL");
+  addbg.classList = "next";
+  addbg.style = "position:absolute; right:10px; top:10px;";
+  b = document.createElement("INPUT");
+  b.id = "background";
+  b.type = "file";
+  b.setAttribute("multiple", true);
+  addbg.append(b);
+  addbg.insertAdjacentHTML("beforeend", "Load background");
+  maincell.append(addbg);
+
+  rbg = document.createElement("DIV");
+  rbg.classList = "reverse";
+  rbg.innerHTML = "Random background";
+  rbg.addEventListener('click', (e) => {
+    if (rbg.classList.contains("reverse")){
+      rbg.classList = "inverse";
+      rbg.innerHTML = "Alpha background";
+      createbg = true;
+    } else {
+      rbg.classList = "reverse";
+      rbg.innerHTML = "Random background";
+      createbg = false;
+    }
+  });
+  maincell.append(rbg);
+
+  removebg = document.createElement("DIV");
+  removebg.classList = "reverse";
+  removebg.style = "display:none; position:absolute; right:10px; top:10px;";
+  removebg.innerHTML = "Remove background";
+  removebg.addEventListener('click', () => {
+    bg = false;
+    bigres(0);
+    echo("Unloaded background");
+    removebg.style.display = "none";
+    addbg.style.display = "block";
+  });
+  maincell.append(removebg);
+
+  framelist = editcell("Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.", "350px");
+
+  maincell.insertAdjacentHTML("beforeend", "Make:");
+
+  makeapng = button("previous", "APNG");
+
+  emphdiff = button("inverse", "emphasizing diffs");
+
+  maincell.insertAdjacentHTML("beforeend", "at");
+
+  b = document.createElement("INPUT");
+  b.classList = "next";
+  b.type = "text";
+  b.id = "getfps";
+  b.style = "padding:3px 11px; width:22px; cursor:text;";
+  b.placeholder = "Bad";
+  maincell.append(b);
+
+  maincell.insertAdjacentHTML("beforeend", "fps in dimension: ");
+
+  dimension = document.createElement("SPAN");
+  dimension.style.background = "inherit";
+  dimension.innerHTML = "0 &times; 0";
+  maincell.append(dimension);
+
+  maincell.insertAdjacentHTML("beforeend", "<br>Resave:");
+
+  resave = button("previous", "Single-frame APNG");
+
+  deapng = button("previous", "Non-APNG");
+
+  document.body.append(maincell);
 
 
 
-<div class="backtip cell">
-<div class="backtip" style="top:-11px; display:table;">🦦 -(Make)</div>
-<label class="next"><input id="loadframes" type="file" multiple></input>Load Frames</label>
-<label class="next"><input id="moreframes" type="file" multiple></input>Load more</label>
-<label class="next" id="addbg" style="position:absolute; right:10px; top:10px;"><input id="background" type="file"></input>Load background</label>
-<button class="reverse" id="rbg">Random background</button>
-<button class="reverse" id="removebg" style="display:none; position:absolute; right:10px; top:10px;">Remove background</button>
-<div></div>
+  maincell = document.createElement("DIV");
+  maincell.classList = "backtip cell";
+  maincell.style.width = "250px";
 
-<div style="width:350px; vertical-align:top; display:flex;">
-<div><div id="framelist" class="stdout" style="color:#fd6; cursor:text;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
-<div style="margin:12px;">Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.</div>
-</div>
-<div></div>
+  div = document.createElement("DIV");
+  div.classList = "backtip label";
+  div.innerHTML = "🦦 -(Merge)";
+  maincell.append(div);
 
-Make: <button class="previous" onclick="echo('Filelist is empty!')" id="makeapng">APNG</button> <button class="inverse" onclick="echo('Filelist is empty!')" id="detect">emphasizing diffs</button> at <input id="getfps" class="next" type="text" style="padding: 3px 11px; width:22px; cursor:text;" placeholder="Bad"> fps in dimension: <span id="dimension" style="background:inherit;">0 &times; 0</span><br>
-Resave: <button class="previous" onclick="echo('Filelist is empty!')" id="resave">Single-frame APNG</button> <button class="previous" onclick="echo('Filelist is empty!')" id="deapng">Non-APNG</button>
-</div>
+  loadapng = fileup("Load APNG or GIF");
 
+  moreapng = fileup("Load more");
 
+  apnglist = editcell("Edit list to rearrange, repeat, or skip APNG series.");
 
-<div class="backtip cell" style="width:242px;">
-<div class="backtip" style="top:-11px; display:table;">🦦 -(Merge)</div>
-<label class="next"><input id="loadapng" type="file" multiple></input>Load APNG or GIF</label>
-<label class="next"><input id="moreapng" type="file" multiple></input>Load more</label>
-<div></div>
+  mergeapng = button("previous", "Merge APNG", "APNG list is empty!");
 
-<div style="display:flex; width:260px; vertical-align:top;">
-<div><div id="apnglist" class="stdout" style="color:#fd6; cursor:text;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
-<div style="margin:12px;">Edit list to rearrange, repeat, or skip APNG series.</div>
-</div>
-<div></div>
+  echoapng = button("previous", "APNG to Canvas", "APNG list is empty!");
 
-<button class="previous" onclick="echo('APNG list is empty!')" id="mergeapng">Merge APNG</button>
-<button class="previous" onclick="echo('APNG list is empty!')" id="echoapng">APNG to Canvas</button>
-</div>
+  document.body.append(maincell);
 
+  maincell = document.createElement("DIV");
+  maincell.classList = "backtip cell";
+  maincell.style.width = "250px";
 
+  div = document.createElement("DIV");
+  div.classList = "backtip label";
+  div.innerHTML = "🦦 -(Layers)";
+  maincell.append(div);
 
-<div class="backtip cell" style="width:242px;">
-<div class="backtip" style="top:-11px; display:table;">🦦 -(Layers)</div>
+  layerlist = editcell("Edit list to rearrange, repeat, or skip layers.");
 
-<div style="display:flex; width:260px; vertical-align:top;">
-<div><div id="layerlist" class="stdout" style="color:#fd6; cursor:text;" contenteditable="plaintext-only" spellcheck=false><br></div></div>
-<div style="margin:12px;">Edit list to rearrange, repeat, or skip layers.</div>
-</div>
-<div></div>
+  echolayers = button("previous", "Layers to Canvas", "Layer list is empty!");
 
-<button class="previous" onclick="echo('Layer list is empty!')" id="echolayers">Layers to Canvas</button>
-<button class="previous" onclick="echo('No suitable canvas found!')" id="makepng">Make PNG</button>
-</div>
-<div></div>
+  makepng = button("previous", "Make PNG", "No suitable canvas found!");
 
+  document.body.append(maincell);
 
+  div = document.createElement("DIV");
+  document.body.append(div);
 
-<div class="stdout" id="stdout" style="white-space:initial;">🦦 -(Output) <button class="reverse" id="debug" style="margin:0px; padding:3px 11px 4px;">Production</button></div>`;
+  stdout = document.createElement("DIV");
+  stdout.classList = "stdout";
+  stdout.style.whiteSpace = "initial";
+  stdout.innerHTML = "🦦 -(Output)";
+
+  debug = document.createElement("DIV");
+  debug.classList = "reverse";
+  debug.innerHTML = "Production";
+
+  stdout.append(debug);
+
+  document.body.append(stdout);
+
   loaded();
   lazyload();
   //document.addEventListener("click", Expander);
-  if(sharp[1]){
+  if (sharp[1]) {
     newtip(filel[4] + " -(Uninitiated CSS)", `Download and extract "` + sharp[0] + `" (if that's spelled correctly) from <a href="https://highlightjs.org/download/" target="_blank">highlight.js download page</a> directly next to HTML then reload this page`);
   }
 }

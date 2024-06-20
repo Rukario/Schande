@@ -1,45 +1,53 @@
 <!DOCTYPE html>
 <html>
+<head>
 <meta charset="UTF-8">
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="user-scalable=0">
 <title>New Text.txt</title>
-<head><style>
-html,body {caret-color:#ff8228; font-family:courier; font-size:14px; margin:0; padding:0; white-space:pre-wrap;}
-[contenteditable]:focus {outline:none;}
-.editor {padding:12px; padding-top:52px; min-width:calc(100% - 24px); min-height:81vh; line-height:1.1;}
+<style>
+body {caret-color:#ff8228; font-family:courier; font-size:14px; -webkit-text-size-adjust:none; margin:0; padding:0; white-space:pre-wrap;}
+/* :root {color-scheme: light dark; body {background-color: Canvas;}} */
+::selection {background:rgba(255, 130, 40, 0.25);}
+[contenteditable]:focus, input:focus {outline:none;}
+.editor {padding:12px; padding-top:46px; min-width:calc(100% - 24px); min-height:81vh; line-height:1.1;}
 a {color:#ff9449;}
 a:visited {color:#ffc66d;}
 img {vertical-align:top;}
 h1,h2,h3,h4,h5,h6 {margin:4px;}
 .colorset {color:#bfddc6; cursor:pointer;}
-.colorsel {opacity:75%}
+.colorsel {background-color:#c60; color:#fc3; border:1px solid #842; margin:-1px;}
 .hyperlink {color:#bfddc6; text-decoration:underline;}
+.tang {background-color:#620; color:#efd; border:1px solid #842; margin:-1px;}
+
 .blink {animation: bl 1000ms linear infinite;}
 @keyframes bl{50%{opacity:50%;}}
+
 input[type="text"] {padding:3px 11px; width:86px;} /*Firefox: padding:3px 11px 4px;*/
-input[type="text"]:focus {outline:none;}
-input[type="file"] {display: none;}
+input[type="file"] {display:none;}
 input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0;}
+ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:column; grid-column-gap:10px; list-style:none; padding:0; margin:0;}
 ::placeholder {color:#3cb;}
 
-#drag {margin:0px 12px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:12px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;}
-#downwithme {border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg); left:-16px;}
-
-.destructive {padding:3px 10px 4px; max-width:100px;}
+#drag {margin:0px 5px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:7px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;}
 
 #cursor_tooltip {z-index:2; position:absolute; left:0px; top:0px; right:initial; display:none; transition: left .5s linear;}
 #cursor_focus {position:absolute; left:0px; top:0px; right:initial; pointer-events:none;}
 
-.cell {background-color:#333; border:2px solid #000; position:relative; display:inline-block; width:75px; height:48px; cursor:pointer; line-height:1.1;}
-.previous, .reverse, .inverse, .next, .tangerine{white-space:nowrap; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
+
+
+.previous, .reverse, .inverse, .next, .tangerine, .brown {white-space:nowrap; font-family:sans-serif; font-size:13px; position:relative; display:inline-block; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1.1;}
+
 .next {color:#6fe; background-color:#066;}
 .previous {color:#6fe; background-color:#399;}
 .reverse {background-color:#428; color:#d9f; border:1px solid #214;}
 .inverse {background-color:#d9f; color:#428; border:1px solid #214;}
 .tangerine {background-color:#c60; color:#fc3; border:1px solid #842;}
+.brown {background-color:#620; color:#620; border:1px solid #842;}
 
-.picker {font-family:arial; font-size:11px; padding:4px 11px 3px; position:relative;} /*Firefox: font-size:12px; padding:5px 11px 4px;*/
+.downwithme {border:none; background-color:transparent; padding:6px 0px; transform:rotate(45deg);}
+.destructive {max-width:100px;}
+.picker {font-size:11px; padding:4px 11px 3px;} /*Firefox: font-size:12px; padding:5px 11px 4px;*/
 .aczo {font-family:courier; font-size:12px; border:none; border-top:1px solid #033; border-bottom:1px solid #033; margin:-4px 2px; bottom:4px; padding:8px 5px 9px; text-align:center; width:34px; display:inline-block;
   clip-path: polygon(
 14% 12%,
@@ -61,7 +69,6 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 .tooltip {display:inline-block; white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; max-width:calc(100% - 36px); line-height:1.1; z-index:2; left:0px; top:0px; right:initial;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
-::selection {background:rgba(255, 130, 40, 0.25);}
 .stdout {display:none; white-space:pre; line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; padding:6px; margin-top:12px;}
 
 /*
@@ -515,56 +522,56 @@ function save() {
   a.click();
 }
 
-function render() {
-  const e = document.getElementById("editable").textContent;
-  const a = document.getElementById("saver");
-  const t = document.title.replace(" *", "");
-  const d = {"stderr1":false, "stderr2":false, "ask":a.classList.contains("previous"), "dir":"", "name":t, "body":""};
-  if (pickerdiff.classList.contains("previous")) {
+function toRelic() {
+  const tc = document.getElementById("editor_relic").textContent;
+  const isAsked = document.getElementById("locatoon_relic").classList.contains("previous");
+  const isFile2 = document.getElementById("pickerdiff_relic").classList.contains("previous")
+  const name = document.title.replace(" *", "");
+  const d = {"stderr1":false, "stderr2":false, "ask":isAsked, "dir":"", "name":name, "body":""};
+  if (isFile2) {
     d["stderr1"] = "Cannot save while File 2 is active!";
     d["stderr2"] = "Please switch to File 1 before saving.";
   } else {
-    var b = e.split('\n', 4).join("\n");
-    for (var i=0;i<dirs.length;i++){
-      n = dirs[i].split(" for ");
+    var b = tc.split('\n', 4).join("\n");
+    for (const dir of dirs) {
+      n = dir.split(" for ");
       nn = n[1].split(" ");
       var rx = new RegExp(nn[0], 'g');
-      if (t.match(rx)) {
+      if (name.match(rx)) {
         rx = new RegExp(nn[1], 'g')
-        if(b.match(rx)){
-          d["dir"] = n[0]
+        if (b.match(rx)) {
+          d["dir"] = n[0];
           break;
         };
       };
     };
-    d["body"] = e;
+    d["body"] = tc;
   }
   document.body.textContent = JSON.stringify(d);
 }
 
-function locatoon(e, a) {
-  if (e.classList.contains("previous")) {
-    e.classList.remove("previous");
-    e.innerHTML = e.dataset.htmlOriginal;
+function locatoon(a) {
+  if (saver.classList.contains("previous")) {
+    saver.classList.remove("previous");
+    saver.innerHTML = saver.dataset.htmlOriginal;
   } else {
-    e.classList.add("previous");
-    e.dataset.htmlOriginal = e.innerHTML;
-    e.innerHTML = a;
+    saver.classList.add("previous");
+    saver.dataset.htmlOriginal = saver.innerHTML;
+    saver.innerHTML = a;
   }
 }
 
 function relbar(a) {
-  const e = document.getElementById("downwithme");
-  if (e.classList.contains("previous")) {
-    e.classList.remove("previous");
-    e.innerHTML = e.dataset.htmlOriginal;
+  if (downwithme.classList.contains("previous")) {
+    downwithme.classList.remove("previous");
+    downwithme.innerHTML = downwithme.dataset.htmlOriginal;
     drag.style.top = "0px";
     window.onscroll = () => {};
     window.onresize = () => {};
   } else {
-    e.classList.add("previous");
-    e.dataset.htmlOriginal = e.innerHTML;
-    e.innerHTML = a;
+    downwithme.classList.add("previous");
+    downwithme.dataset.htmlOriginal = downwithme.innerHTML;
+    downwithme.innerHTML = a;
     position();
     window.onscroll = () => {position()};
     window.onresize = () => {position()};
@@ -638,7 +645,7 @@ function opendiff(file) {
 }
 
 function newtip(y, z) {
-  const d = document.createElement("div");
+  const d = document.createElement("DIV");
   d.innerHTML = y;
   d.dataset.tooltip = z;
   d.classList.add("local_tooltip");
@@ -668,18 +675,17 @@ function new_editor(utf8="<br>", hex=false) {
     }
   }
 
-  let d = document.createElement("DIV");
-  d.id = "cursor_tooltip";
-  document.body.appendChild(d);
+  cursor_tooltip = document.createElement("DIV");
+  document.body.appendChild(cursor_tooltip);
 
-  d = document.createElement("DIV");
-  d.id = "cursor_focus";
-  document.body.appendChild(d);
+  cursor_focus = document.createElement("DIV");
+  document.body.appendChild(cursor_focus);
 
   document.body.appendChild(toolbar());
 
   editor = document.createElement("DIV");
   editor.classList = "editor";
+  editor.id = "editor_relic";
   editor.style.display = "inline-block";
   editor.setAttribute("contenteditable", "plaintext-only");
   editor.spellcheck = false;
@@ -736,18 +742,18 @@ function new_editor(utf8="<br>", hex=false) {
     downmove = true;
   };
 
-  editor.onmouseup = () => {
+  editor.addEventListener("mouseup", () => {
     downmove = false;
-  };
+  });
 
-  editor.onmousemove = () => {
+  editor.addEventListener("mousemove", () => {
     if (downmove == true) {
       clearTimeout(busymoving);
       busymoving = setTimeout(FFup, 100);
     }
-  };
+  });
 
-  editor.setAttribute("oninput", "edit()");
+  editor.addEventListener("input", edit);
 
   if (!editor.isContentEditable) {
     if (utf8 == "<br>") {
@@ -764,8 +770,8 @@ function new_editor(utf8="<br>", hex=false) {
       plaintext(e);
     });
 
-    editor.setAttribute("contenteditable", "true");
-    editdiff.setAttribute("contenteditable", "true");
+    editor.setAttribute("contenteditable", true);
+    editdiff.setAttribute("contenteditable", true);
   }
 
   if (canihljs && bigdoc) {
@@ -847,7 +853,7 @@ function new_editor(utf8="<br>", hex=false) {
   calc.addEventListener("keyup", (e) => {
     let c = calc.value;
     if (!c) {
-      calc.style.backgroundColor = "#066"
+      calc.style.backgroundColor = "#066";
     } else if (e.keyCode === 13) {
       try {
         calc.value = new Function('return ' + c)().toFixed(10)*1;
@@ -934,19 +940,30 @@ function new_editor(utf8="<br>", hex=false) {
 }
 
 var toolbar = () => {
+  const button = (c, B, callback=echo, args=['Filelist is empty!']) => {
+    const d = document.createElement("DIV");
+    d.classList = c;
+    d.innerHTML = B;
+    const left = () => {
+      callback(...args);
+    }
+    d.addEventListener("click", left);
+
+    if (!d.listeners) {
+      d.listeners = [];
+    }
+
+    d.listeners.push(left);
+    return d;
+  };
+
   const drag = document.createElement("DIV");
   drag.id = "drag";
 
   dimm = document.createElement("DIV");
   dimm.style.display = "none";
 
-  let b = document.createElement("BUTTON");
-  b.classList = "previous";
-  b.addEventListener("click", () => {
-    exitmenu();
-  });
-  b.innerHTML = filel[4] + " -(Destructive tools)";
-
+  let b = button("previous", filel[4] + " -(Destructive tools)", exitmenu);
   dimm.appendChild(b);
 
   dimm.insertAdjacentHTML("beforeend", " " + filel[4] + " -(");
@@ -971,12 +988,7 @@ var toolbar = () => {
   torep.placeholder = "none";
   dimm.appendChild(torep);
 
-  b = document.createElement("BUTTON");
-  b.classList = "next";
-  b.addEventListener("click", () => {
-    fraktur();
-  });
-  b.innerHTML = "where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗";
+  b = button("next", "where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗", fraktur);
   dimm.appendChild(b);
 
   dimm.insertAdjacentHTML("beforeend", ") (can't be undone)");
@@ -984,21 +996,10 @@ var toolbar = () => {
 
   dim = document.createElement("DIV");
 
-  b = document.createElement("BUTTON");
-  b.classList = "next";
-  b.id = "downwithme";
-  b.addEventListener("click", () => {
-    relbar('🫦');
-  });
-  b.innerHTML = "👄";
-  dim.appendChild(b);
+  downwithme = button("next downwithme", "👄", relbar, ['🫦']);
+  dim.appendChild(downwithme);
 
-  b = document.createElement("BUTTON");
-  b.classList = "next";
-  b.addEventListener("click", () => {
-    menu();
-  });
-  b.innerHTML = filel[4] + " -(Destructive tools)";
+  b = button("next", filel[4] + " -(Destructive tools)", menu);
   dim.appendChild(b);
 
   calc = document.createElement("INPUT");
@@ -1016,53 +1017,38 @@ var toolbar = () => {
   label.appendChild(colorpicker);
 
   label.insertAdjacentHTML("beforeend", " " + filel[4] + " -(Open");
+  dim.appendChild(label);
 
   picker = document.createElement("LABEL");
   picker.classList = "next picker";
   picker.innerHTML = ". . .";
-  label.appendChild(picker);
+  dim.appendChild(picker);
 
   pickerdiff = document.createElement("LABEL");
   pickerdiff.classList = "next picker";
+  pickerdiff.id = "pickerdiff_relic";
   pickerdiff.innerHTML = ". . .";
-  label.appendChild(pickerdiff);
+  dim.appendChild(pickerdiff);
 
-  label.insertAdjacentHTML("beforeend", ") ");
+  dim.insertAdjacentHTML("beforeend", ") ");
 
-  b = document.createElement("BUTTON");
-  b.classList = "next";
-  b.addEventListener("click", () => {
-    rename();
-  });
-  b.innerHTML = filel[4] + " -(Save as)";
-  label.appendChild(b);
-
-  label.insertAdjacentHTML("beforeend", " " + filel[4] + " -(");
-
-  b = document.createElement("BUTTON");
-  b.classList = "next";
-  b.addEventListener("click", () => {
-    save();
-  });
-  b.innerHTML = "Save";
-  label.appendChild(b);
-
-  b = document.createElement("BUTTON");
-  b.classList = "next";
-  b.id = "saver";
-  b.addEventListener("click", (e) => {
-    locatoon(e, "Text: Ask");
-  });
-  b.innerHTML = "Text: iCloud";
-  label.appendChild(b);
-
-  label.insertAdjacentHTML("beforeend", ")");
-  dim.appendChild(label);
-
-  b = document.createElement("DIV");
-  b.classList = "backtip";
-  b.id = "local_backtip";
+  b = button("next", filel[4] + " -(Save as)", rename);
   dim.appendChild(b);
+
+  dim.insertAdjacentHTML("beforeend", " " + filel[4] + " -(");
+
+  b = button("next", "Save", save);
+  dim.appendChild(b);
+
+  saver = button("next", "Text: iCloud", locatoon, ["Text: Ask"]);
+  saver.id = "locatoon_relic";
+  dim.appendChild(saver);
+
+  dim.insertAdjacentHTML("beforeend", ")");
+
+  local_backtip = document.createElement("DIV");
+  local_backtip.classList = "backtip";
+  dim.appendChild(local_backtip);
 
   tooltip = document.createElement("DIV");
   tooltip.classList = "tooltip";
@@ -1072,7 +1058,7 @@ var toolbar = () => {
   return drag;
 }
 
-var name, calc, colorpicker, destructive, dim, dimm, editor, editdiff, picker, pickerdiff, rep, torep, tooltip, stdout;
+var name, calc, colorpicker, cursor_tooltip, cursor_focus, destructive, dim, dimm, editor, editdiff, picker, pickerdiff, rep, torep, tooltip, stdout, downwithme, saver;
 var dirs = [];
 var hljs = false;
 var canihljs = false;
@@ -1080,11 +1066,11 @@ var bigdoc = false;
 var aczo28 = true;
 
 window.onload = () => {
-  if (document.body.dataset.launch) {
-    render();
+  if (document.body.dataset.launched) {
+    toRelic();
     return;
   } else {
-    document.body.dataset.launch = true;
+    document.body.dataset.launched = true;
   }
 
   let scale = "26px";

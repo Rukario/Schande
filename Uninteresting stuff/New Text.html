@@ -23,7 +23,7 @@ h1,h2,h3,h4,h5,h6 {margin:4px;}
 .blink {animation: bl 1000ms linear infinite;}
 @keyframes bl{50%{opacity:50%;}}
 
-input[type="text"] {width:86px; cursor:text; height:1em;}
+input[type="text"] {cursor:text; height:1em;}
 input[type="file"] {display:none;}
 input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0;}
 ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:column; grid-column-gap:10px; list-style:none; padding:0; margin:0;}
@@ -33,7 +33,7 @@ ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:colu
 #cursor_tooltip {z-index:2; position:absolute; left:0px; top:0px; right:initial; display:none; transition: left .5s linear;}
 #cursor_focus {position:absolute; left:0px; top:0px; right:initial; pointer-events:none;}
 
-.previous, .reverse, .inverse, .next, .tangerine, .brown {white-space:nowrap; font-family:sans-serif; font-size:13px; position:relative; display:inline-block; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1em;}
+.previous, .reverse, .inverse, .next, .tangerine, .brown {white-space:nowrap; font-family:sans-serif; font-size:12px; position:relative; display:inline-block; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1;}
 
 .next {color:#6fe; background-color:#066;}
 .previous {color:#6fe; background-color:#399;}
@@ -59,10 +59,10 @@ ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:colu
 .bloom {background-color:rgba(255, 130, 40, 0.25); border:1px solid #ff8228;}
 
 .cursed {pointer-events:none;}
-.backtip {display:none; position:relative; line-height:1em; font-size:11px;}
+.backtip {display:none; position:relative; line-height:1; font-size:12px;}
 .backtip::before {content:''; position:absolute; left:0; top:0; z-index:1; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none;}
 .local_tooltip {z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
-.tooltip {display:inline-block; white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:90%; max-width:calc(100% - 36px); line-height:1em; z-index:2; left:0px; top:0px; right:initial;}
+.tooltip {display:inline-block; white-space:initial; padding:0px 8px; font-family:sans-serif; font-size:12px; max-width:calc(100% - 36px); line-height:1; z-index:2; left:0px; top:0px; right:initial;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 .stdout {display:none; white-space:pre; line-height:calc(1em + 2px); color:#9b859d; background-color:#110c13; border:2px solid #221926; padding:6px; margin-top:12px;}
@@ -935,37 +935,35 @@ function new_editor(utf8="<br>", hex=false) {
   }
 }
 
-var toolbar = () => {
-  let DOMwriter;
+const button = (c, B, callback=echo, args=['Filelist is empty!']) => {
+  const d = document.createElement("DIV");
+  d.classList = c;
+  d.innerHTML = B;
+  const left = () => {
+    callback(...args);
+  }
+  d.addEventListener("click", left);
 
-  const button = (c, B, callback=echo, args=['Filelist is empty!']) => {
-    const d = document.createElement("DIV");
-    d.classList = c;
-    d.innerHTML = B;
-    const left = () => {
-      callback(...args);
-    }
-    d.addEventListener("click", left);
-
-    if (!d.listeners) {
-      d.listeners = [];
-    }
-
-    d.listeners.push(left);
-    DOMwriter.append(d);
-    return d;
-  };
-
-  const inputcell = (B, w="86px") => {
-    const d = document.createElement("INPUT");
-    d.classList = "next";
-    d.type = "text";
-    d.style.width = w;
-    d.placeholder = B;
-    DOMwriter.append(d);
-    return d;
+  if (!d.listeners) {
+    d.listeners = [];
   }
 
+  d.listeners.push(left);
+  DOMwriter.append(d);
+  return d;
+};
+
+const inputcell = (B, w="86px") => {
+  const d = document.createElement("INPUT");
+  d.classList = "next";
+  d.type = "text";
+  d.style.width = w;
+  d.placeholder = B;
+  DOMwriter.append(d);
+  return d;
+}
+
+var toolbar = () => {
   drag = document.createElement("DIV");
   drag.classList = "cell";
 
@@ -1045,7 +1043,7 @@ var toolbar = () => {
   document.body.appendChild(drag);
 }
 
-var name, calc, colorpicker, cursor_tooltip, cursor_focus, destructive, drag, editor, editdiff, picker, pickerdiff, rep, torep, tooltip, stdout, downwithme, saver;
+var DOMwriter, name, calc, colorpicker, cursor_tooltip, cursor_focus, destructive, drag, editor, editdiff, picker, pickerdiff, rep, torep, tooltip, stdout, downwithme, saver;
 var dirs = [];
 var hljs = false;
 var canihljs = false;

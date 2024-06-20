@@ -8,12 +8,16 @@
 <style>
 body {caret-color:#ff8228; font-family:courier; font-size:14px; -webkit-text-size-adjust:none;}
 /* :root {color-scheme: light dark; body {background-color: Canvas;}} */
-[contenteditable]:focus {outline:none;}
+[contenteditable]:focus, input:focus {outline:none;}
 #getfps:focus {outline:none;}
 a {color:#ff9449;}
 a:visited {color:#ffc66d;}
-.frame {display:inline-block; vertical-align:top; position:relative;}
+.frame {display:inline-block; vertical-align:top;}
+
+input[type="text"] {cursor:text; height:1em;}
 input[type="file"] {display:none;}
+input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0;}
+ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:column; grid-column-gap:10px; list-style:none; padding:0; margin:0;}
 ::placeholder {color:#3cb;}
 
 .previous, .reverse, .inverse, .next, .butt {position:relative; display:inline-block; border-radius:0px; padding:4px 11px; margin:4px; line-height:1em; font-size:13px;}
@@ -23,7 +27,7 @@ input[type="file"] {display:none;}
 .reverse {background-color:#428; color:#d9f; border:1px solid #214;}
 .inverse {background-color:#d9f; color:#428; border:1px solid #214;}
 
-.tooltip {display:none; position:absolute; margin-top:37px; white-space:initial; background-color:inherit; padding:2px 8px; font-family:sans-serif; font-size:13px; max-width:calc(100% - 36px); line-height:1.1; z-index:9999999; left:0px; top:0px; right:initial;}
+.tooltip {display:none; position:absolute; margin-top:37px; white-space:initial; background-color:inherit; padding:2px 8px; font-family:sans-serif; font-size:13px; max-width:calc(100% - 36px); line-height:1em; z-index:9999999; left:0px; top:0px; right:initial;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 .cursor_tooltip {position:absolute; left:0px; top:0px; right:initial; display:none;}
@@ -33,10 +37,10 @@ input[type="file"] {display:none;}
 .backtip {background:inherit; z-index:1;}
 
 .local_tooltip {z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
-.label {top:-11px; display:table; line-height:1.1; font-size:12px;}
+.label {top:-11px; display:table; line-height:1em; font-size:12px;}
 .cell {width:352px; vertical-align:text-top; font-size:14px; margin:0 4px;}
 .cell::before {border:2px solid rgba(255, 255, 255, 0.75); width:calc(100% - 4px); height:calc(100% - 4px);}
-.stdout {white-space:pre; line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px;}
+.stdout {white-space:pre; line-height:calc(1em + 2px); color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px;}
 
 .aczo {font-family:courier; font-size:12px; border:none; border-top:1px solid #033; border-bottom:1px solid #033; margin:-4px 2px; bottom:4px; padding:8px 5px 9px; text-align:center; width:34px; display:inline-block;
   clip-path: polygon(
@@ -2721,7 +2725,7 @@ window.onload = () => {
     });
   }
 
-  let maincell;
+  let DOMwriter;
 
   const newcell = (B, w) => {
     const d = document.createElement("DIV");
@@ -2752,7 +2756,7 @@ window.onload = () => {
       return [l, b];
     }
 
-    maincell.append(l);
+    DOMwriter.append(l);
     return b;
   };
 
@@ -2779,9 +2783,19 @@ window.onload = () => {
     d.innerHTML = B;
     div.append(d);  
 
-    maincell.append(div);
+    DOMwriter.append(div);
     return e;
   };
+
+  const inputcell = (B, w="86px") => {
+    const d = document.createElement("INPUT");
+    d.classList = "next";
+    d.type = "text";
+    d.style.width = w;
+    d.placeholder = B;
+    DOMwriter.append(d);
+    return d;
+  }
 
   const button = (c, B, callback=echo, args=['Filelist is empty!']) => {
     const d = document.createElement("DIV");
@@ -2797,7 +2811,7 @@ window.onload = () => {
     }
 
     d.listeners.push(left);
-    maincell.append(d);
+    DOMwriter.append(d);
     return d;
   };
 
@@ -2842,14 +2856,14 @@ window.onload = () => {
 
 
 
-  maincell = newcell("🦦 -(Make)");
+  DOMwriter = newcell("🦦 -(Make)");
   loadframes = fileup("Load Frames");
   moreframes = fileup("Load more");
   [addbg, background] = fileup("Load background", true);
   addbg.style.position = "absolute";
   addbg.style.right = "10px";
   addbg.style.top = "10px";
-  maincell.append(addbg);
+  DOMwriter.append(addbg);
   rbg = document.createElement("DIV");
   rbg.classList = "reverse";
   rbg.innerHTML = "Random background";
@@ -2864,7 +2878,7 @@ window.onload = () => {
       createbg = false;
     }
   });
-  maincell.append(rbg);
+  DOMwriter.append(rbg);
   removebg = document.createElement("DIV");
   removebg.classList = "reverse";
   removebg.style.position = "absolute";
@@ -2879,30 +2893,25 @@ window.onload = () => {
     removebg.style.display = "none";
     addbg.style.display = "block";
   });
-  maincell.append(removebg);
+  DOMwriter.append(removebg);
   framelist = editcell("Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.", "350px");
-  maincell.insertAdjacentHTML("beforeend", "Make:");
+  DOMwriter.insertAdjacentHTML("beforeend", "Make:");
   makeapng = button("previous", "APNG", echo);
   emphdiff = button("inverse", "emphasizing diffs", echo);
-  maincell.insertAdjacentHTML("beforeend", "at");
-  getfps = document.createElement("INPUT");
-  getfps.classList = "next";
-  getfps.type = "text";
-  getfps.style = "padding:3px 11px; width:22px; cursor:text;";
-  getfps.placeholder = "Bad";
-  maincell.append(getfps);
-  maincell.insertAdjacentHTML("beforeend", "fps in dimension: ");
+  DOMwriter.insertAdjacentHTML("beforeend", "at");
+  getfps = inputcell("Bad", "22px");
+  DOMwriter.insertAdjacentHTML("beforeend", "fps in dimension: ");
   dimension = document.createElement("SPAN");
   dimension.style.background = "inherit";
   dimension.innerHTML = "0 &times; 0";
-  maincell.append(dimension);
-  maincell.insertAdjacentHTML("beforeend", "<br>Resave:");
+  DOMwriter.append(dimension);
+  DOMwriter.insertAdjacentHTML("beforeend", "<br>Resave:");
   resave = button("previous", "Single-frame APNG", echo);
   deapng = button("previous", "Non-APNG", echo);
 
 
 
-  maincell = newcell("🦦 -(Merge)", "250px");
+  DOMwriter = newcell("🦦 -(Merge)", "250px");
   loadapng = fileup("Load APNG or GIF");
   moreapng = fileup("Load more");
   apnglist = editcell("Edit list to rearrange, repeat, or skip APNG series.");
@@ -2911,7 +2920,7 @@ window.onload = () => {
 
 
 
-  maincell = newcell("🦦 -(Layers)", "250px");
+  DOMwriter = newcell("🦦 -(Layers)", "250px");
   layerlist = editcell("Edit list to rearrange, repeat, or skip layers.");
   echolayers = button("previous", "Layers to Canvas", echo, ["Layer list is empty!"]);
   makepng = button("previous", "Make PNG", echo, ["No suitable canvas found!"]);

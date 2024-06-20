@@ -27,11 +27,13 @@ input[type="file"] {display:none;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 .cursor_tooltip {position:absolute; left:0px; top:0px; right:initial; display:none;}
-.backtip {cursor:default; position:relative; display:inline-block; font-size:12px; padding:5px 12px;}
-.backtip::before {content:''; position:absolute; left:0; top:0; z-index:1; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none;}
+
+.backtip {cursor:default; position:relative; display:inline-block; font-size:12px; padding:5px 12px; top:-1px;}
+.backtip::before {content:''; position:absolute; left:0; top:0; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none;}
 .backtip {background:inherit; z-index:1;}
+
 .local_tooltip {z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
-.label {top:-11px; display:table;}
+.label {top:-11px; display:table; line-height:1.1; font-size:12px;}
 .cell {width:352px; vertical-align:text-top; font-size:14px; margin:0 4px;}
 .cell::before {border:2px solid rgba(255, 255, 255, 0.75); width:calc(100% - 4px); height:calc(100% - 4px);}
 .stdout {white-space:pre; line-height:1.1; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px;}
@@ -123,28 +125,28 @@ function getfontcolor(c, v){
 }
 
 var sharp = [false, false];
-if(window.location.href.includes("#")){
-  sharp[0] = window.location.href.split('#')[1]
+if (window.location.href.includes("#")) {
+  sharp[0] = window.location.href.split('#')[1];
 }
 
-if (sharp[0]){
-  if(sharp[0].endsWith(".css")){
-    var link = document.createElement("link");
+if (sharp[0]) {
+  if (sharp[0].endsWith(".css")) {
+    const link = document.createElement("link");
     link.href = sharp[0];
-    link.rel = "stylesheet"
+    link.rel = "stylesheet";
     document.getElementsByTagName("head")[0].appendChild(link);
     link.onerror = () => {
       sharp[1] = true;
     }
   } else {
-    var s = document.createElement("style")
+    const s = document.createElement("style");
     s.innerHTML = getfontcolor(sharp[0].match(/.{1,2}/g), sharp[0]);
-    document.getElementsByTagName("head")[0].appendChild(s)
+    document.getElementsByTagName("head")[0].appendChild(s);
   }
 } else {
-  var a = document.createElement("a");
+  const a = document.createElement("a");
   a.href = "#2d0710";
-  a.click()
+  a.click();
 }
 
 
@@ -157,8 +159,8 @@ var FFdown = (e_) => {
     }
   }
 
-  var t = e_.target;
-  var a = t.parentNode;
+  const t = e_.target;
+  const a = t.parentNode;
   const rect = t.getBoundingClientRect();
   if (t.tagName == 'CANVAS') {
     const ws = t.width/t.offsetWidth;
@@ -192,16 +194,14 @@ var FFmove = (e_) => {
   }
 }
 
-
-
-function plaintext(elem, e) {
+function plaintext(e) {
   e.preventDefault();
-  var text = e.clipboardData.getData('text/plain').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const text = e.clipboardData.getData('text/plain').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   document.execCommand('insertHTML', false, text);
 }
 
 function quicklook(e) {
-  if(e.target.classList.contains("lazy")) {
+  if (e.target.classList.contains("lazy")) {
     e.preventDefault();
     var t = e.target;
     var c = {};
@@ -220,7 +220,7 @@ function quicklook(e) {
     if (s.src == m.src) {
       context.fillRect(...dim[3]);
     } else {
-      m.onload = function () {
+      m.onload = () => {
         fps = 1;
         //s.onload = apngdiff(m, s);
         s.onload = canvasdiff(m, s);
@@ -234,8 +234,10 @@ function quicklook(e) {
     c.setAttribute("id", "quicklook");
     t.parentNode.appendChild(c);
 
-    let listener = () => {
-      setTimeout(function(){t.parentNode.removeChild(c);}, 40);
+    const listener = () => {
+      setTimeout(() => {
+        t.parentNode.removeChild(c);
+      }, 40);
       t.removeEventListener("mouseleave", listener);
     }
     t.addEventListener("mouseleave", listener);
@@ -244,34 +246,33 @@ function quicklook(e) {
 
 document.addEventListener("mouseover", quicklook);
 
-var co = "position:fixed; right:0; top:0; z-index:1; pointer-events:none;"
+var co = "position:fixed; right:0; top:0; z-index:1; pointer-events:none;";
 var cf = co + "max-height: 100vh; max-width: 100vw;";
-var cs = cf
+var cs = cf;
 
 function lazyload() {
   var lazyloadImages;
 
   lazyloadImages = document.querySelectorAll(".lazy");
-  var imageObserver = new IntersectionObserver(function(entries, observer) {
-    entries.forEach(function(entry) {
-      if (entry.isIntersecting) {
-        var image = entry.target;
+  var imageObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        const image = e.target;
         image.src = image.dataset.src;
         imageObserver.unobserve(image);
       }
     });
   });
 
-  lazyloadImages.forEach(function(image) {
-    image.style.height = "200px"
-    image.style.width = "auto"
+  lazyloadImages.forEach((image) => {
+    image.style.height = "200px";
+    image.style.width = "auto";
     imageObserver.observe(image);
   });
 }
 
-var Expand = function(c, t) {
-  if(!c.naturalWidth)
-  {
+var Expand = (c, t) => {
+  if (!c.naturalWidth) {
     return setTimeout(Expand, 10, c, t);
   }
   c.style.maxWidth = "100%";
@@ -280,19 +281,19 @@ var Expand = function(c, t) {
   t.style.opacity = "";
 };
 
-var Expander = function(e) {
-  var t = e.target;
+var Expander = (e) => {
+  const t = e.target;
   if (t.parentNode.classList.contains("fileThumb")) {
     e.preventDefault();
     if (t.hasAttribute("data-src")) {
-      var c = document.createElement("img");
+      const c = document.createElement("img");
       c.setAttribute("src", t.parentNode.getAttribute("href"));
       c.style.display = "none";
       t.parentNode.appendChild(c);
       t.style.opacity = "0.75";
       setTimeout(Expand, 10, c, t);
     } else {
-      var a = t.parentNode;
+      const a = t.parentNode;
       a.firstChild.style.display = "";
       a.removeChild(t);
       a.offsetTop < window.pageYOffset && a.scrollIntoView({top: 0, behavior: "smooth"});
@@ -301,49 +302,35 @@ var Expander = function(e) {
 };
 
 function get_ext(f) {
-  var fp = f.name.split('.');
-  return fp[fp.length - 1];
+  f = f.name.split('.');
+  return f[f.length - 1];
 }
 
 function isImage(ext) {
-  switch (ext.toLowerCase()) {
-    case 'jpg':
-    case 'jpeg':
-    case 'bmp':
-    case 'png':
-      return true;
-    case 'heic':
-      return 'heic';
-    case 'gif':
-      return 'gif';
+  ext = ext.toLowerCase()
+  if (['jpg', 'jpeg', 'bmp', 'png'].contains(ext)) {
+    return true;
+  } else if (ext == 'heic') {
+    return 'heic';
+  } else if (ext == 'gif') {
+    return 'gif';
   }
-  return false;
 }
 
 function isVideo(ext) {
-  switch (ext.toLowerCase()) {
-    case 'm4v':
-    case 'avi':
-    case 'mpg':
-    case 'mp4':
-      return true;
-    case 'webm':
-      return 'webm';
+  ext = ext.toLowerCase();
+  if (['m4v', 'avi', 'mpg', 'mp4'].contains(ext)) {
+    return true;
+  } else if (ext == 'webm') {
+    return 'webm';
   }
-  return false;
 }
 
 function isUTF8(ext) {
-  switch (ext.toLowerCase()) {
-    case 'txt':
-    case 'bat':
-    case 'json':
-    case 'js':
-    case 'css':
-    case 'html':
-      return true;
+  ext = ext.toLowerCase();
+  if (['txt', 'bat', 'json', 'js', 'css', 'html'].contains(ext)) {
+    return true;
   }
-  return false;
 }
 
 function setfps(text) {
@@ -386,11 +373,11 @@ function ABtoIMG(ab) {
 }
 
 function ABtoAB(ab) {
-  return [new Uint8Array(ab)]
+  return [new Uint8Array(ab)];
 }
 
 function echoIMG(img, B) {
-  img.style = "max-height:400px;"
+  img.style = "max-height:400px;";
   const dl = document.createElement("a");
   dl.download = B;
   dl.href = img.src;
@@ -400,7 +387,7 @@ function echoIMG(img, B) {
 }
 
 function echoCanvas(c) {
-  c.style = "max-height:400px;";
+  c.style.maxHeight = "400px";
   echo('');
   stdout.appendChild(c);
 }
@@ -414,9 +401,9 @@ function echoABtoDL(ab, B) {
 }
 
 function echoIMGfromCanvas(c, B=undefined, ext='png') {
-  var promise = new Promise(canvasToAB(c, ext))
-  promise.then(function(arri){
-    echoIMG(ABtoIMG(ABtoAB(arri)), B)
+  const promise = new Promise(canvasToAB(c, ext));
+  promise.then((arri) => {
+    echoIMG(ABtoIMG(ABtoAB(arri)), B);
   })
 }
 
@@ -425,7 +412,7 @@ function echoHEIC(image, B) {
   c.width = image.get_width();
   c.height = image.get_height();
   context = c.getContext("2d");
-  image.display(context.createImageData(c.width, c.height), function(display_image_data) {
+  image.display(context.createImageData(c.width, c.height), (display_image_data) => {
     context.putImageData(display_image_data, 0, 0);
     echoIMGfromCanvas(c, B, 'jpeg');
   });
@@ -433,29 +420,29 @@ function echoHEIC(image, B) {
 
 function echoPalette(h=8, s=1) {
   palette.sort();
-  var c2 = document.createElement("canvas");
-  var context2 = c2.getContext("2d");
-  var w = Math.ceil(palette.length/h)
+  const c2 = document.createElement("canvas");
+  const context2 = c2.getContext("2d");
+  const w = Math.ceil(palette.length/h);
   c2.width = w*s;
   c2.height = h*s;
 
-  img = context2.createImageData(w, h);
-  var d = img.data;
-  for(var i=0;i<palette.length;i++){
-    d[i*4] = parseInt(palette[i].slice(0, 2), 16);
-    d[i*4+1] = parseInt(palette[i].slice(2, 4), 16);
-    d[i*4+2] = parseInt(palette[i].slice(4, 6), 16);
+  const img = context2.createImageData(w, h);
+  const d = img.data;
+  for (const [i, p] of palette.entries()) {
+    d[i*4] = parseInt(p.slice(0, 2), 16);
+    d[i*4+1] = parseInt(p.slice(2, 4), 16);
+    d[i*4+2] = parseInt(p.slice(4, 6), 16);
     d[i*4+3] = 255;
   }
   context2.putImageData(img, 0, 0);
 
-  var c3 = document.createElement("canvas");
-  var context3 = c3.getContext("2d");
+  const c3 = document.createElement("canvas");
+  const context3 = c3.getContext("2d");
   c3.width = c2.width;
   c3.height = c2.height;
 
   context3.imageSmoothingEnabled = false;
-  context3.scale(s, s)
+  context3.scale(s, s);
   context3.drawImage(c2, 0, 0, c3.width, c3.height, 0, 0, c2.width, c2.height);
   echoIMGfromCanvas(c3);
   palette = [];
@@ -485,16 +472,16 @@ function reconstPNG(IHDR, arri) {
 }
 
 function canvasToAB(c, ext="png", apngprod=false) {
-  return function(resolve) {
+  return (resolve) => {
     c.toBlob((blob0) => {
       var fr = new FileReader();
       fr.readAsArrayBuffer(blob0);
       fr.onload = () => {
         arri = new Uint8Array(fr.result);
         Module = {};
-        Fi[2] = performance.now()
+        Fi[2] = performance.now();
         //echo((Fi[2] - Fi[1])/1000 + "s canvasToAB(c)")
-        Fi[1] = performance.now()
+        Fi[1] = performance.now();
         if (ext == "png") {
           if (decompress) {
             //https://manpages.debian.org/stretch/optipng/optipng.1.en.html
@@ -571,9 +558,12 @@ function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=
   //echo((Fi[2] - Fi[1])/1000 + "s ArrayBuffer")
   if (callback == undefined) {
     Fi[3] = performance.now();
-    echo("Frame " + (interFrameN+1) + " in " + (Fi[3] - Fi[0])/1000 + "s");
-    document.title = "Frame " + (interFrameN+1);
+
+    const B = "Frame " + (interFrameN+1);
+    echo(B + " in " + (Fi[3] - Fi[0])/1000 + "s");
+    document.title = B;
     echoIMG(ABtoIMG(ABtoAB(arri)), name);
+
     if (callback2) {
       callback2(interFrameN + nextFrame);
     } else {
@@ -589,10 +579,11 @@ function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=
     if (filler) {
       echo("APNGified");
     } else {
-      echo("Frame " + (interFrameN+1));
-      document.title = "Frame " + (interFrameN+1);
+      const B = "Frame " + (interFrameN+1);
+      echo(B);
+      document.title = B;
       if (interecho) {
-        echoIMG(ABtoIMG(ABtoAB(arri)), "Frame " + (interFrameN+1) + ".png");
+        echoIMG(ABtoIMG(ABtoAB(arri)), B + ".png");
       }
     }
     toFrame([1000/(fps/fpsm), 1000]);
@@ -941,23 +932,23 @@ function apngdiff(m, s, s2=false) {
 function canvasdiff(m, s) {
   context.drawImage(m, ...dim[1])
   frameBuffer[0] = context.getImageData(...dim[1]);
-  setTimeout(function() {
+  setTimeout(() => {
     context.drawImage(s, ...dim[1])
     frameBuffer[1] = context.getImageData(...dim[1]);
     subtract(frameBuffer[0].data, frameBuffer[1]);
-    setTimeout(function() {
+    setTimeout(() => {
       context.putImageData(frameBuffer[1], 0, 0);
-      setTimeout(function() {
+      setTimeout(() => {
         context.drawImage(s, ...dim[1]);
         frameBuffer[1] = context.getImageData(...dim[1]);
         difference(frameBuffer[0].data, frameBuffer[1]);
         context.putImageData(frameBuffer[1], 0, 0);
-        setTimeout(function() {
+        setTimeout(() => {
           context.drawImage(s, ...dim[1]);
           frameBuffer[1] = context.getImageData(...dim[1]);
           subtract(frameBuffer[1].data, frameBuffer[0]);
           context.putImageData(frameBuffer[0], 0, 0);
-          setTimeout(function() {
+          setTimeout(() => {
             requestAnimationFrame(canvasdiff(m, s));
           }, 1000/fps);
         }, 1000/fps);
@@ -1169,13 +1160,9 @@ function readMDP(arri) {
   }
 
   layerlist.innerHTML = "";
-  function readLayer(LayerN) {
+  const readLayer = (LayerN) => {
     if (LayerN >= layers.length) {
-      echolayers.classList = "next";
-      echolayers.removeEventListener("click", echolayers.listeners[0]);
-      echolayers.addEventListener("click", () => {
-        echoMDP();
-      });
+      updatebutton(echolayers, echoMDP);
       return;
     }
 
@@ -1214,7 +1201,7 @@ function readMDP(arri) {
     const ctx = canvas.getContext("2d");
 
     //Fi[1] = performance.now();
-    function readTile(TileN) {
+    const readTile = (TileN) => {
       if (TileN >= tileNum) {
         // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
         layer.canvas = canvas;
@@ -1358,11 +1345,8 @@ function echoMDP() {
   context.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
 
   echoCanvas(c);
-  makepng.removeEventListener("click", makepng.listeners[0]);
-  makepng.classList = "next";
-  makepng.addEventListener("click", () => {
-    echoIMGfromCanvas(c, name.split('.').slice(0, -1).join('.') + ".png");
-  });
+
+  updatebutton(makepng, echoIMGfromCanvas [c, name.split('.').slice(0, -1).join('.') + ".png"]);
 }
 
 
@@ -1405,7 +1389,7 @@ function fromGIF(arri) {
     }
   }
 
-  function ingif() {
+  const ingif = () => {
     const firstByte = arri[pos++];
     switch (firstByte) {
       case 0x2C: // ',' image separator
@@ -1492,7 +1476,7 @@ function fromGIF(arri) {
       case 0x3B: // ';' end of file
         return;
       case 0x21: // Extension Introducer
-        function skipBytes() {
+        const skipBytes = () => {
           let size = true;
           while (size) {
             size = arri[pos++];
@@ -1542,7 +1526,7 @@ function fromAPNG(arri) {
   let frameNumber = 0;
   const apng = new APNG();
 
-  function inapng(type, arri, offset, length) {
+  const inapng = (type, arri, offset, length) => {
     const dv = new DataView(arri.buffer);
     switch (type) {
       case 'IHDR':
@@ -1901,7 +1885,7 @@ function compileframes(multi=true, dea=false) {
 
   firstFrame = true;
   fpsm = 1;
-  function updateFrame(interFrameN, fpsm) {
+  const updateFrame = (interFrameN, fpsm) => {
     if (interFrameN+1 == seqFrameN.length) {
       if (1 == seqFrameN.length) {
         name = framearray[seqFrameN[interFrameN]-1][1];
@@ -1921,7 +1905,7 @@ function compileframes(multi=true, dea=false) {
     //echo((Fi[2] - Fi[1])/1000 + "s canvasing")
   }
 
-  function readFrame(interFrameN, fpsm) {
+  const readFrame = (interFrameN, fpsm) => {
     Fi[0] = performance.now();
     Fi[1] = performance.now();
 
@@ -1961,7 +1945,7 @@ function compileframes(multi=true, dea=false) {
     }
   }
 
-  function delayFrame(interFrameN) {
+  const delayFrame = (interFrameN) => {
     if (interFrameN == seqFrameN.length) {
       readFrame(interFrameN-1, fpsm);
     } else {
@@ -1984,6 +1968,7 @@ function compileframes(multi=true, dea=false) {
       }
     }
   }
+
   delayFrame(0);
   nextFrame = 2;
 }
@@ -1992,7 +1977,7 @@ function compileapngs() {
   newAPNG = [];
   seqAPNG = apnglist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter((e) => {return e;});
   const reuse = [false, false, false]; // pos, dim, arri
-  function readFile(interAPNG) {
+  const readFile = (interAPNG) => {
     Fi[0] = performance.now();
     Fi[1] = performance.now();
     if(interAPNG == seqAPNG.length){
@@ -2000,7 +1985,7 @@ function compileapngs() {
       return;
     }
     let frames = apngarray[seqAPNG[interAPNG]-1].frames;
-    function readFrame(interFrameN) {
+    const readFrame = (interFrameN) => {
       if (interFrameN == frames.length) {
         return;
       }
@@ -2009,7 +1994,7 @@ function compileapngs() {
       //echo((frame.denominator/frame.numerator) + "fps")
       dim[3] = [frame.left, frame.top, frame.width, frame.height];
 
-      function toAPNG(arri) {
+      const toAPNG = (arri) => {
         newframe.arri = arri;
         reuse[0] = seqAPNG[interAPNG];
         document.title = next;
@@ -2084,13 +2069,13 @@ function compileapngs() {
 function echoAPNG() {
   const frames = [];
   seqAPNG = apnglist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter((e) => {return e;});
-  function readFile(interAPNG, resolve) {
+  const readFile = (interAPNG, resolve) => {
     if (interAPNG == seqAPNG.length) {
       return resolve(true);
     }
 
     let raw_frames = apngarray[seqAPNG[interAPNG]-1].frames
-    function readFrame(interFrameN) {
+    const readFrame = (interFrameN) => {
       let frame = raw_frames[interFrameN];
       dim[3] = [frame.left, frame.top, frame.width, frame.height];
       img = ABtoIMG(ABtoAB(frame.arri))
@@ -2171,36 +2156,25 @@ function echoAPNG() {
   })
 }
 
-function editframelist(){
+function updatebutton(e, callback, args=[]) {
+  e.removeEventListener("click", e.listeners[0]);
+  e.classList = "next";
+  e.addEventListener("click", () => {
+    callback(...args);
+  });
+};
+
+function editframelist() {
   framelist.innerHTML = "";
 
   for (const i of Array(framearray.length).keys()) {
     framelist.innerHTML += i+1 + "\n";
   }
 
-  makeapng.removeEventListener("click", makeapng.listeners[0]);
-  makeapng.classList = "next";
-  makeapng.addEventListener("click", () => {
-    compileframes();
-  });
-
-  emphdiff.removeEventListener("click", emphdiff.listeners[0]);
-  emphdiff.classList = "reverse";
-  emphdiff.addEventListener("click", () => {
-    detect();
-  });
-
-  resave.removeEventListener("click", resave.listeners[0]);
-  resave.classList = "next";
-  resave.addEventListener("click", () => {
-    compileframes(false);
-  });
-
-  deapng.removeEventListener("click", deapng.listeners[0]);
-  deapng.classList = "next";
-  deapng.addEventListener("click", () => {
-    compileframes(false, true);
-  });
+  updatebutton(makeapng, compileframes);
+  updatebutton(emphdiff, detect);
+  updatebutton(resave, compileframes, [false]);
+  updatebutton(deapng, compileframes, [false, true]);
 }
 
 function editapnglist() {
@@ -2210,38 +2184,33 @@ function editapnglist() {
     apnglist.innerHTML += i+1 + "\n";
   }
 
-  mergeapng.removeEventListener("click", mergeapng.listeners[0]);
-  mergeapng.classList = "next";
-  mergeapng.addEventListener("click", () => {
-    compileapngs();
-  });
-
-  echoapng.removeEventListener("click", echoapng.listeners[0]);
-  echoapng.classList = "next";
-  echoapng.addEventListener("click", () => {
-    echoAPNG();
-  });
+  updatebutton(mergeapng, compileapngs);
+  updatebutton(echoapng, echoAPNG);
 }
 
 function readframes(filelist) {
   filelist = Array.from(filelist).sort((a,b) => a.name > b.name);
-  function readFile(i){
-    if(i == filelist.length) return;
-    var fr = new FileReader();
+
+  const readFile = (i) => {
+    if (i == filelist.length) {
+      return;
+    }
+
+    const fr = new FileReader();
     fr.readAsArrayBuffer(filelist[i]);
     fr.onload = () => {
       arri = new Uint8Array(fr.result);
-      img = ABtoIMG([arri])
+      img = ABtoIMG([arri]);
       img.onload = () => {
         if (i == 0 && !framearray.length){
           get_dim(img, 0);
-          if(!bg){
+          if (!bg) {
             bigres(0);
           }
           name = filelist[0].name;
         }
         framearray.push([img, filelist[i].name]);
-        if(i+1 == filelist.length){
+        if (i+1 == filelist.length) {
           editframelist();
         } else {
           readFile(i+1);
@@ -2249,21 +2218,23 @@ function readframes(filelist) {
       }
     }
   }
+
   readFile(0);
 }
 
 function readapng(filelist) {
   filelist = Array.from(filelist).sort((a,b) => a.name > b.name);
   name = filelist[0].name;
-  function readFile(i){
-    let fr = new FileReader();
+
+  const readFile = (i) => {
+    const fr = new FileReader();
     fr.readAsArrayBuffer(filelist[i]);
     fr.onload = () => {
       arri = new Uint8Array(fr.result);
       img = ABtoIMG([arri])
       img.onload = () => {
-        let isAPNG = false;
-        let isGIF = false;
+        const isAPNG = false;
+        const isGIF = false;
         if (Array.prototype.some.call(PNG_signature, (b, i) => {
           return b !== arri[i];
         })) {
@@ -2278,13 +2249,15 @@ function readapng(filelist) {
           eachChunk(arri, (type) => {
             return !(isAPNG = type === 'acTL');
           });
+
           if (!isAPNG) {
             echo(" &gt; File excluded: " + filelist[i].name + " is not an APNG");
           } else {
             apngarray.push(fromAPNG(arri));
           }
         }
-        if(i+1 == filelist.length){
+
+        if (i+1 == filelist.length) {
           editapnglist();
         } else {
           readFile(i+1);
@@ -2296,6 +2269,7 @@ function readapng(filelist) {
 }
 
 var addbg, rbg, removebg;
+var bg = false;
 function changebg(f){
   bg = new Image();
   bg.src = window.URL.createObjectURL(f);
@@ -2321,7 +2295,7 @@ var OgvCtrl = {
   seeking:!1,
   visible:!1,
   tick:null,
-  init:function(){
+  init:() => {
 
 let e = document.createElement("div");
 e.className="ogv-ctrl";
@@ -2472,13 +2446,16 @@ function webmplayer() {
 }
 
 function loaded() {
-  if(!framelist.isContentEditable){
-    framelist.setAttribute("onpaste", "plaintext(this, event)");
-    framelist.setAttribute("contenteditable", "true");
-    apnglist.setAttribute("onpaste", "plaintext(this, event)");
-    apnglist.setAttribute("contenteditable", "true");
-    layerlist.setAttribute("onpaste", "plaintext(this, event)");
-    layerlist.setAttribute("contenteditable", "true");
+  if (!framelist.isContentEditable) {
+    const pasta = (e) => {
+      plaintext(e);
+    }
+    framelist.addEventListener("paste", pasta);
+    framelist.setAttribute("contenteditable", true);
+    apnglist.addEventListener("paste", pasta);
+    apnglist.setAttribute("contenteditable", true);
+    layerlist.addEventListener("paste", pasta);
+    layerlist.setAttribute("contenteditable", true);
   }
 
   viewer.addEventListener('change', (event) => {
@@ -2705,7 +2682,6 @@ var context = c.getContext("2d"); // { willReadFrequently: true }
 var frameBuffer = [false, false, false, false];
 var dim = [false, false, false, false, false]; // framearray[0]'s dim, main_dim, bg_dim, make_dim, compileapngs()
 var maxres = [0, 0, 1, 1];
-var bg = false;
 var createbg = false;
 var interecho = false;
 var arri, seqFrameN, seqAPNG, seqLayerN, img, Module, name, recompress, dimension, framelist, loadframes, moreframes, echolayers, makepng, background, viewer, lload, pload, getfps;
@@ -2807,12 +2783,12 @@ window.onload = () => {
     return e;
   };
 
-  const button = (c, B, e='Filelist is empty!') => {
+  const button = (c, B, callback=echo, args=['Filelist is empty!']) => {
     const d = document.createElement("DIV");
     d.classList = c;
     d.innerHTML = B;
     const left = () => {
-      echo(e);
+      callback(...args);
     }
     d.addEventListener("click", left);
 
@@ -2906,8 +2882,8 @@ window.onload = () => {
   maincell.append(removebg);
   framelist = editcell("Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.", "350px");
   maincell.insertAdjacentHTML("beforeend", "Make:");
-  makeapng = button("previous", "APNG");
-  emphdiff = button("inverse", "emphasizing diffs");
+  makeapng = button("previous", "APNG", echo);
+  emphdiff = button("inverse", "emphasizing diffs", echo);
   maincell.insertAdjacentHTML("beforeend", "at");
   getfps = document.createElement("INPUT");
   getfps.classList = "next";
@@ -2921,8 +2897,8 @@ window.onload = () => {
   dimension.innerHTML = "0 &times; 0";
   maincell.append(dimension);
   maincell.insertAdjacentHTML("beforeend", "<br>Resave:");
-  resave = button("previous", "Single-frame APNG");
-  deapng = button("previous", "Non-APNG");
+  resave = button("previous", "Single-frame APNG", echo);
+  deapng = button("previous", "Non-APNG", echo);
 
 
 
@@ -2930,15 +2906,15 @@ window.onload = () => {
   loadapng = fileup("Load APNG or GIF");
   moreapng = fileup("Load more");
   apnglist = editcell("Edit list to rearrange, repeat, or skip APNG series.");
-  mergeapng = button("previous", "Merge APNG", "APNG list is empty!");
-  echoapng = button("previous", "APNG to Canvas", "APNG list is empty!");
+  mergeapng = button("previous", "Merge APNG", echo, ["APNG list is empty!"]);
+  echoapng = button("previous", "APNG to Canvas", echo, ["APNG list is empty!"]);
 
 
 
   maincell = newcell("🦦 -(Layers)", "250px");
   layerlist = editcell("Edit list to rearrange, repeat, or skip layers.");
-  echolayers = button("previous", "Layers to Canvas", "Layer list is empty!");
-  makepng = button("previous", "Make PNG", "No suitable canvas found!");
+  echolayers = button("previous", "Layers to Canvas", echo, ["Layer list is empty!"]);
+  makepng = button("previous", "Make PNG", echo, ["No suitable canvas found!"]);
 
 
 

@@ -29,9 +29,9 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:column; grid-column-gap:10px; list-style:none; padding:0; margin:0;}
 ::placeholder {color:#3cb;}
 
-.cell {margin:0px 5px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:9px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;}
-#cursor_tooltip {z-index:2; position:absolute; left:0px; top:0px; right:initial; display:none; transition: left .5s linear;}
-#cursor_focus {position:absolute; left:0px; top:0px; right:initial; pointer-events:none;}
+.cursor_tooltip {z-index:2; position:absolute; left:0px; top:0px; right:initial; display:none; transition: left .5s linear;}
+.cursor_focus {position:absolute; left:0px; top:0px; right:initial; pointer-events:none;}
+.toolbar {margin:0px 5px; z-index:1; position:fixed; width:calc(100% + 10px); background-color:inherit; font-size:14px; border-top:9px solid transparent; background-clip:padding-box; cursor:default; -webkit-user-select:none;}
 
 .previous, .reverse, .inverse, .next, .tangerine, .brown {white-space:nowrap; font-family:sans-serif; font-size:12px; position:relative; display:inline-block; border:1px solid #033; border-radius:0px; padding:4px 11px; margin:2px; line-height:1;}
 
@@ -718,13 +718,15 @@ function new_editor(utf8="<br>", hex=false) {
   }
 
   cursor_tooltip = document.createElement("DIV");
+  cursor_tooltip.classList = "cursor_tooltip";
   document.body.appendChild(cursor_tooltip);
 
   cursor_focus = document.createElement("DIV");
+  cursor_focus.classList = "cursor_focus";
   document.body.appendChild(cursor_focus);
 
   toolbar = document.createElement("DIV");
-  toolbar.classList = "cell";
+  toolbar.classList = "toolbar";
   document.body.appendChild(toolbar);
 
 
@@ -809,7 +811,7 @@ function new_editor(utf8="<br>", hex=false) {
   let left = () => {
     setTimeout(() => {
       tooltip.style.display = "none";
-    }, 40)
+    }, 40);
     editor.removeEventListener("click", left);
   }
 

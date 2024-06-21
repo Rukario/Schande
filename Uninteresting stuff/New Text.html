@@ -601,11 +601,6 @@ function diff() {
   }
 }
 
-var ti = [performance.now(), 0, 0];
-var filel = ["File", "Diff", "File 1", "File 2", "🦦"];
-var ut = 0;
-var easter = "next";
-
 function position() {
   ti[1] = window.visualViewport.offsetTop;
   if (performance.now() > ti[0]+100) {
@@ -616,23 +611,6 @@ function position() {
   ti[0] = performance.now();
   toolbar.style.top = Math.trunc(((ti[1]*2) - ti[2])/10)*10 + "px";
 }
-
-new URLSearchParams(window.location.search).forEach(function (val, key) {
-  if (!val) {
-    if (Number(key)) {
-      ut = key;
-    } else if (key == "🦦") {
-      if (aczo28) {
-        easter = "next aczo aczo28";
-      } else {
-        easter = "next aczo";
-      }
-      filel = ["❨'▾'❩", "❨ ꊱ ❩", "❨ 1 ❩", "❨ 2 ❩", "🦦"];
-    } else {
-      filel[4] = key;
-    }
-  }
-});
 
 function opendiff(file) {
   const fr = new FileReader();
@@ -716,8 +694,14 @@ const inputcell = (B, w="86px") => {
 }
 
 function new_editor(utf8="<br>", hex=false) {
+  if (stdout.style.display == "inline-block") {
+    return;
+  }
+
   document.body.innerHTML = "";
   document.body.className = "exitmenu hljs";
+
+  new_stdout();
 
   if (hex) {
     utf8 = Array.from(utf8.slice(0, 1024), (a) => {return a.toString(16).toUpperCase().padStart(2, '0')}).join(' ').replace(/(.{48})/g, "$1\n");
@@ -802,9 +786,6 @@ function new_editor(utf8="<br>", hex=false) {
   editor = editcell(utf8);
   editor.id = "editor_relic";
   editdiff = editcell("<br>", "none");
-  stdout = document.createElement("DIV");
-  stdout.classList = "stdout";
-  document.body.appendChild(stdout);
 
   for (const [n, o] of [
     "Remove...",
@@ -1028,14 +1009,27 @@ var hljs = false;
 var canihljs = false;
 var bigdoc = false;
 var aczo28 = true;
+var Fi = [performance.now(), 0, 0];
+var filel = ["File", "Diff", "File 1", "File 2", "🦦"];
+var ut = 0;
+var easter = "next";
+
+const new_stdout = () => {
+  DOMwriter = document.createElement("DIV");
+  stdout = document.createElement("DIV");
+  stdout.classList = "stdout";
+  stdout.style.whiteSpace = "initial";
+  stdout.innerHTML = "🦦 -(Output)";
+  //debug = document.createElement("DIV");
+  //debug.classList = "reverse";
+  //debug.innerHTML = "Production";
+  //stdout.append(debug);
+  DOMwriter.append(stdout);
+  document.body.append(DOMwriter);
+}
 
 window.onload = () => {
-  if (document.body.dataset.launched) {
-    toRelic();
-    return;
-  } else {
-    document.body.dataset.launched = true;
-  }
+  new_stdout();
 
   let scale = "26px";
   let adju = "128%";
@@ -1049,6 +1043,30 @@ window.onload = () => {
   document.body.style.fontSize = scale;
   document.body.style.lineHeight = scale;
   document.body.style.webkitTextSizeAdjust = adju;
+
+  new URLSearchParams(window.location.search).forEach((val, key) => {
+    if (!val) {
+      if (Number(key)) {
+        ut = key;
+      } else if (key == "🦦") {
+        if (aczo28) {
+          easter = "next aczo aczo28";
+        } else {
+          easter = "next aczo";
+        }
+        filel = ["❨'▾'❩", "❨ ꊱ ❩", "❨ 1 ❩", "❨ 2 ❩", "🦦"];
+      } else {
+        filel[4] = key;
+      }
+    }
+  });
+
+  if (document.body.dataset.launched) {
+    toRelic();
+    return;
+  } else {
+    document.body.dataset.launched = true;
+  }
 
   new_editor();
 
@@ -1068,4 +1086,4 @@ window.onload = () => {
 }
 
 </script></head><body class="exitmenu">1. Set up and run Schande.bat for its HTTP server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a>
-2. Take me to Schande.bat, then launch <a href="http://127.0.0.1:8886/New Text.html">http://127.0.0.1:8886/New Text.html</a></body></html>
+2. Take me to Schande.bat, then launch <a href="http://127.0.0.1:8886/New Text.html">http://127.0.0.1:8886/New Text.html</a></html>

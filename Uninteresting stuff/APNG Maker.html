@@ -20,14 +20,14 @@ input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0
 ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:column; grid-column-gap:10px; list-style:none; padding:0; margin:0;}
 ::placeholder {color:#3cb;}
 
-.previous, .reverse, .inverse, .next, .butt {position:relative; display:inline-block; border-radius:0px; padding:4px 11px; margin:4px; line-height:1em; font-size:13px;}
+.previous, .reverse, .inverse, .next, .butt {position:relative; display:inline-block; border-radius:0px; padding:4px 11px; margin:4px; line-height:1; font-size:12px;}
 .previous, .reverse, .inverse, .next {cursor:pointer; font-family:sans-serif;}
 .next {background-color:#066; color:#6fe; border:1px solid #033;}
 .previous {background-color:#4bb; color:#133; border:1px solid #033;}
 .reverse {background-color:#428; color:#d9f; border:1px solid #214;}
 .inverse {background-color:#d9f; color:#428; border:1px solid #214;}
 
-.tooltip {display:none; position:absolute; margin-top:37px; white-space:initial; background-color:inherit; padding:2px 8px; font-family:sans-serif; font-size:13px; max-width:calc(100% - 36px); line-height:1em; z-index:9999999; left:0px; top:0px; right:initial;}
+.tooltip {display:none; position:absolute; margin-top:37px; white-space:initial; background-color:inherit; padding:2px 8px; font-family:sans-serif; font-size:12px; max-width:calc(100% - 36px); line-height:calc(1em + 2px); z-index:9999999; left:0px; top:0px; right:initial;}
 .menu {color:#9b859d; background-color:#110c13;}
 .exitmenu {color:#f45; background-color:#2d0710;}
 .cursor_tooltip {position:absolute; left:0px; top:0px; right:initial; display:none;}
@@ -37,7 +37,7 @@ ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:colu
 .backtip {background:inherit; z-index:1;}
 
 .local_tooltip {z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
-.label {top:-11px; display:table; line-height:1em; font-size:12px;}
+.label {top:-11px; display:table; line-height:1; font-size:12px;}
 .cell {width:352px; vertical-align:text-top; font-size:14px; margin:0 4px;}
 .cell::before {border:2px solid rgba(255, 255, 255, 0.75); width:calc(100% - 4px); height:calc(100% - 4px);}
 .stdout {white-space:pre; line-height:calc(1em + 2px); color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px;}
@@ -312,7 +312,7 @@ function get_ext(f) {
 
 function isImage(ext) {
   ext = ext.toLowerCase()
-  if (['jpg', 'jpeg', 'bmp', 'png'].contains(ext)) {
+  if (['jpg', 'jpeg', 'bmp', 'png'].includes(ext)) {
     return true;
   } else if (ext == 'heic') {
     return 'heic';
@@ -323,7 +323,7 @@ function isImage(ext) {
 
 function isVideo(ext) {
   ext = ext.toLowerCase();
-  if (['m4v', 'avi', 'mpg', 'mp4'].contains(ext)) {
+  if (['m4v', 'avi', 'mpg', 'mp4'].includes(ext)) {
     return true;
   } else if (ext == 'webm') {
     return 'webm';
@@ -332,7 +332,7 @@ function isVideo(ext) {
 
 function isUTF8(ext) {
   ext = ext.toLowerCase();
-  if (['txt', 'bat', 'json', 'js', 'css', 'html'].contains(ext)) {
+  if (['txt', 'bat', 'json', 'js', 'css', 'html'].includes(ext)) {
     return true;
   }
 }
@@ -2160,14 +2160,6 @@ function echoAPNG() {
   })
 }
 
-function updatebutton(e, callback, args=[]) {
-  e.removeEventListener("click", e.listeners[0]);
-  e.classList = "next";
-  e.addEventListener("click", () => {
-    callback(...args);
-  });
-};
-
 function editframelist() {
   framelist.innerHTML = "";
 
@@ -2688,7 +2680,107 @@ var dim = [false, false, false, false, false]; // framearray[0]'s dim, main_dim,
 var maxres = [0, 0, 1, 1];
 var createbg = false;
 var interecho = false;
-var arri, seqFrameN, seqAPNG, seqLayerN, img, Module, name, recompress, dimension, framelist, loadframes, moreframes, echolayers, makepng, background, viewer, lload, pload, getfps;
+var DOMwriter, arri, seqFrameN, seqAPNG, seqLayerN, img, Module, name, recompress, dimension, framelist, loadframes, moreframes, echolayers, makepng, background, viewer, lload, pload, getfps;
+
+
+
+const newcell = (B, w) => {
+  const d = document.createElement("DIV");
+  d.classList = "backtip cell";
+  if (w) {
+    d.style.width = w;
+  }
+
+  div = document.createElement("DIV");
+  div.classList = "backtip label";
+  div.innerHTML = B;
+  d.append(div);
+  document.body.append(d);
+  return d;
+}
+
+const fileup = (B, gimme=false) => {
+  const l = document.createElement("LABEL");
+  l.classList = "next";
+
+  const b = document.createElement("INPUT");
+  b.type = "file";
+  b.setAttribute("multiple", true);
+  l.append(b);
+  l.insertAdjacentHTML("beforeend", B);
+
+  if (gimme) {
+    return [l, b];
+  }
+
+  DOMwriter.append(l);
+  return b;
+};
+
+const editcell = (B, w="260px") => {
+  const div = document.createElement("DIV");
+  div.style.display = "flex";
+  div.style.verticalAlign = "top";
+  div.style.width = w;
+
+  let d = document.createElement("DIV");
+
+  const e = document.createElement("DIV");
+  e.classList = "stdout";
+  e.style = "color:#fd6; cursor:text;";
+  e.setAttribute("contenteditable", "plaintext-only");
+  e.spellcheck = false;
+  e.innerHTML = "<br>";
+
+  d.append(e);
+  div.append(d);
+
+  d = document.createElement("DIV");
+  d.style.margin = "12px";
+  d.innerHTML = B;
+  div.append(d);  
+
+  DOMwriter.append(div);
+  return e;
+};
+
+const inputcell = (B, w="86px") => {
+  const d = document.createElement("INPUT");
+  d.classList = "next";
+  d.type = "text";
+  d.style.width = w;
+  d.placeholder = B;
+  DOMwriter.append(d);
+  return d;
+}
+
+const button = (c, B, callback=echo, args=[]) => {
+  const d = document.createElement("DIV");
+  d.classList = c;
+  d.innerHTML = B;
+  const left = () => {
+    callback(...args);
+  }
+  d.addEventListener("click", left);
+
+  if (!d.listeners) {
+    d.listeners = [];
+  }
+
+  d.listeners.push(left);
+  DOMwriter.append(d);
+  return d;
+};
+
+const updatebutton = (e, callback, args=[]) => {
+  e.removeEventListener("click", e.listeners[0]);
+  e.classList = "next";
+  e.addEventListener("click", () => {
+    callback(...args);
+  });
+};
+
+
 
 window.onload = () => {
   if (isTouch) {
@@ -2725,117 +2817,27 @@ window.onload = () => {
     });
   }
 
-  let DOMwriter;
 
-  const newcell = (B, w) => {
-    const d = document.createElement("DIV");
-    d.classList = "backtip cell";
-    if (w) {
-      d.style.width = w;
-    }
-
-    div = document.createElement("DIV");
-    div.classList = "backtip label";
-    div.innerHTML = B;
-    d.append(div);
-    document.body.append(d);
-    return d;
-  }
-
-  const fileup = (B, gimme=false) => {
-    const l = document.createElement("LABEL");
-    l.classList = "next";
-
-    const b = document.createElement("INPUT");
-    b.type = "file";
-    b.setAttribute("multiple", true);
-    l.append(b);
-    l.insertAdjacentHTML("beforeend", B);
-
-    if (gimme) {
-      return [l, b];
-    }
-
-    DOMwriter.append(l);
-    return b;
-  };
-
-  const editcell = (B, w="260px") => {
-    const div = document.createElement("DIV");
-    div.style.display = "flex";
-    div.style.verticalAlign = "top";
-    div.style.width = w;
-
-    let d = document.createElement("DIV");
-
-    const e = document.createElement("DIV");
-    e.classList = "stdout";
-    e.style = "color:#fd6; cursor:text;";
-    e.setAttribute("contenteditable", "plaintext-only");
-    e.spellcheck = false;
-    e.innerHTML = "<br>";
-
-    d.append(e);
-    div.append(d);
-  
-    d = document.createElement("DIV");
-    d.style.margin = "12px";
-    d.innerHTML = B;
-    div.append(d);  
-
-    DOMwriter.append(div);
-    return e;
-  };
-
-  const inputcell = (B, w="86px") => {
-    const d = document.createElement("INPUT");
-    d.classList = "next";
-    d.type = "text";
-    d.style.width = w;
-    d.placeholder = B;
-    DOMwriter.append(d);
-    return d;
-  }
-
-  const button = (c, B, callback=echo, args=['Filelist is empty!']) => {
-    const d = document.createElement("DIV");
-    d.classList = c;
-    d.innerHTML = B;
-    const left = () => {
-      callback(...args);
-    }
-    d.addEventListener("click", left);
-
-    if (!d.listeners) {
-      d.listeners = [];
-    }
-
-    d.listeners.push(left);
-    DOMwriter.append(d);
-    return d;
-  };
 
   document.body.innerHTML = "";
 
 
 
-  let div = document.createElement("DIV");
-  div.style.marginBottom = "12px";
-  div.style.background = "inherit";
-  let label;
-  [label, viewer] = fileup("🦦 -(Echo file)", true);
-  div.append(label);
+  DOMwriter = document.createElement("DIV");
+  DOMwriter.style.marginBottom = "12px";
+  DOMwriter.style.background = "inherit";
+  viewer = fileup("🦦 -(Echo file)");
   const butte = document.createElement("DIV");
   butte.classList = "backtip butt";
   butte.dataset.tooltip = "APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes";
   butte.innerHTML = "🦦 -(Production advices)";
-  div.append(butte);
+  DOMwriter.append(butte);
   lload = document.createElement("DIV");
   lload.classList = "backtip butt";
   lload.style.display = "none";
   lload.dataset.tooltip = "Read HEIC files with <a href='https://github.com/alexcorvi/heic2any/raw/master/src' target='_blank'>libheif.js</a>, save next to HTML then reload this page";
   lload.innerHTML = "🦦 -(HEICide)";
-  div.append(lload);
+  DOMwriter.append(lload);
   pload = document.createElement("DIV");
   pload.classList = "next";
   pload.style.display = "none";
@@ -2843,19 +2845,23 @@ window.onload = () => {
     getogvplayer();
   });
   pload.innerHTML = "🦦 -(Launch WEBM player for iPad/iPhone)";
-  div.append(pload);
+  DOMwriter.append(pload);
   recompress = document.createElement("DIV");
   recompress.classList = "reverse";
   recompress.innerHTML = "No optimization";
-  div.append(recompress);
-  document.body.append(div);
-  div = document.createElement("DIV");
-  div.classList = "tooltip";
-  div.id = "tooltip";
-  document.body.append(div);
+  DOMwriter.append(recompress);
+  document.body.append(DOMwriter);
 
 
 
+  DOMwriter = document.createElement("DIV");
+  DOMwriter.classList = "tooltip";
+  DOMwriter.id = "tooltip";
+  document.body.append(DOMwriter);
+
+
+
+  let stderr = ['Filelist is empty!'];
   DOMwriter = newcell("🦦 -(Make)");
   loadframes = fileup("Load Frames");
   moreframes = fileup("Load more");
@@ -2896,8 +2902,8 @@ window.onload = () => {
   DOMwriter.append(removebg);
   framelist = editcell("Edit list to rearrange, repeat, or skip a frame by number associated to filelist order, please do not exceed current max number.", "350px");
   DOMwriter.insertAdjacentHTML("beforeend", "Make:");
-  makeapng = button("previous", "APNG", echo);
-  emphdiff = button("inverse", "emphasizing diffs", echo);
+  makeapng = button("previous", "APNG", echo, stderr);
+  emphdiff = button("inverse", "emphasizing diffs", echo, stderr);
   DOMwriter.insertAdjacentHTML("beforeend", "at");
   getfps = inputcell("Bad", "22px");
   DOMwriter.insertAdjacentHTML("beforeend", "fps in dimension: ");
@@ -2906,17 +2912,18 @@ window.onload = () => {
   dimension.innerHTML = "0 &times; 0";
   DOMwriter.append(dimension);
   DOMwriter.insertAdjacentHTML("beforeend", "<br>Resave:");
-  resave = button("previous", "Single-frame APNG", echo);
-  deapng = button("previous", "Non-APNG", echo);
+  resave = button("previous", "Single-frame APNG", echo, stderr);
+  deapng = button("previous", "Non-APNG", echo, stderr);
 
 
 
+  stderr = ["APNG list is empty!"];
   DOMwriter = newcell("🦦 -(Merge)", "250px");
   loadapng = fileup("Load APNG or GIF");
   moreapng = fileup("Load more");
   apnglist = editcell("Edit list to rearrange, repeat, or skip APNG series.");
-  mergeapng = button("previous", "Merge APNG", echo, ["APNG list is empty!"]);
-  echoapng = button("previous", "APNG to Canvas", echo, ["APNG list is empty!"]);
+  mergeapng = button("previous", "Merge APNG", echo, stderr);
+  echoapng = button("previous", "APNG to Canvas", echo, stderr);
 
 
 
@@ -2927,7 +2934,7 @@ window.onload = () => {
 
 
 
-  div = document.createElement("DIV");
+  DOMwriter = document.createElement("DIV");
   stdout = document.createElement("DIV");
   stdout.classList = "stdout";
   stdout.style.whiteSpace = "initial";
@@ -2936,8 +2943,8 @@ window.onload = () => {
   debug.classList = "reverse";
   debug.innerHTML = "Production";
   stdout.append(debug);
-  div.append(stdout);
-  document.body.append(div);
+  DOMwriter.append(stdout);
+  document.body.append(DOMwriter);
 
 
 

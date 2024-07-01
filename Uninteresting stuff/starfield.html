@@ -2913,8 +2913,6 @@ window.onload = () => {
       FFmove(e_);
       clearTimeout(busyclick);
       busyclick = false;
-      mousepos.x = e_.touches[0].clientX + window.visualViewport.offsetLeft;
-      mousepos.y = e_.touches[0].clientY + window.visualViewport.offsetTop;
     });
     c.addEventListener('contextmenu', (e_) => {
       e_.preventDefault();

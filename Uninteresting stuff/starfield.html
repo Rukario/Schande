@@ -352,7 +352,17 @@ var useimg = true;
 var ismask = true;
 
 
-function echo(B) {
+function echo(B, b) {
+  if (!b) {
+    B = "<br>" + B;
+  } else {
+    B = " " + B;
+  }
+  stdout.insertAdjacentHTML("beforeend", B);
+  stdout.style.display = "inline-block";
+}
+
+function speaker(B) {
   dialogbox.style.display = 'inline-block';
   dialog.innerHTML = B;
 }
@@ -426,8 +436,8 @@ function screensaver(resolve) {
 
     requestAnimationFrame(update);
 
-    now = Date.now();
-    elapsed = now - ti;
+    const now = Date.now();
+    const elapsed = now - ti;
 
     if (!throttlebyfps || elapsed > fpsInterval) {
       const sinceStart = now - startTime;
@@ -603,7 +613,7 @@ var won = false;
 var winid = false;
 var cardsize = [71*scale, 96*scale];
 var gap = {'x':11*scale, 'y':5*scale};
-var solsize = [((gap.x+1)*scale+cardsize[0])*(7+cheatslots), 400*scale];
+var solsize = [ ((gap.x + 1) * scale + cardsize[0]) * (7 + cheatslots), 400 * scale ];
 
 var snapshot = () => {
   dragcard = false;
@@ -979,7 +989,7 @@ function sol() {
   context.drawImage(cards['computer'], gap.x*8 + cardsize[0]*7, gap.y, ...cardsize);
   //context.drawImage(cards['deal'], gap.x*9 + cardsize[0]*8, gap.y, ...cardsize);
 
-  if(solcomputer) {
+  if (solcomputer) {
     //context.strokeStyle = "#00FF00";
     //context.lineWidth = 3;
     //context.beginPath();
@@ -1012,9 +1022,9 @@ function sol() {
     } else if (!won) {
       won = true;
       if (!winsoln) {
-        echo("So there's no more face-down cards, at this point the next card movement is unlosable and you also have earned the winning point.<br>You can restart the solitaire because you've won.");
+        speaker("So there's no more face-down cards, at this point the next card movement is unlosable and you also have earned the winning point.<br>You can restart the solitaire because you've won.");
       } else if (winsoln === 1) {
-        echo("No more face-down cards or cards to draw means you've won for Solitaire with draw 3 cards. You can restart the solitaire now that you have earned the winning point.")
+        speaker("No more face-down cards or cards to draw means you've won for Solitaire with draw 3 cards. You can restart the solitaire now that you have earned the winning point.")
       }
       winsoln += drawn === 1 ? 1 : drawn+1;
       winningcookie();
@@ -1166,7 +1176,7 @@ ${x}px ${y+2}px
     hint4.style.display = "none";
     givehint = false;
     if (!winsoln) {
-      echo("In case you need a hint, move cursor/fingertip across the magenta/lime striping ring to enable hint, cross again to disable hints.");
+      speaker("In case you need a hint, move cursor/fingertip across the magenta/lime striping ring to enable hint, cross again to disable hints.");
     }
     return;
   }
@@ -1657,11 +1667,11 @@ var FFdown = (e_) => {
 
 
 
-function rubberband(){
+function rubberband() {
   returncard = dragcard;
   let returncards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
-  const ribbersize = 4;
-  let rubberstep = ribbersize;
+  const rubbersize = 4;
+  let rubberstep = rubbersize;
   const update = () => {
     if (!returncard || rubberstep === 0) {
       returncard = false;
@@ -1673,9 +1683,11 @@ function rubberband(){
     sol();
     requestAnimationFrame(update);
     let des = 0;
-    for (const card of returncards){
-      context.drawImage(cards[card], rubberstep/ribbersize*(mousepos.x-returncard.dx) + returncard.x, rubberstep/ribbersize*(mousepos.y-returncard.dy) + returncard.y+des, ...cardsize);
-      des += 15*scale;
+    for (const card of returncards) {
+      const x = rubberstep / rubbersize * (mousepos.x - returncard.dx) + returncard.x;
+      const y = rubberstep / rubbersize * (mousepos.y - returncard.dy) + returncard.y + des;
+      context.drawImage(cards[card], x, y, ...cardsize);
+      des += 15 * scale;
     }
     rubberstep -= 1;
   }
@@ -1716,7 +1728,7 @@ var FFup = (e_) => {
 
       // Select pile from Foundation or an action for double click
       for (const pos of [...Array(4).keys()]) {
-        if(mousepos.x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*(pos+4) + cardsize[0]*(pos+3) && mousepos.x - dragcard.dx + dragcard.x < gap.x*(pos+4) + cardsize[0]*(pos+4) && mousepos.y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*1 + cardsize[1]*0 && mousepos.y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1) {
+        if (mousepos.x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*(pos+4) + cardsize[0]*(pos+3) && mousepos.x - dragcard.dx + dragcard.x < gap.x*(pos+4) + cardsize[0]*(pos+4) && mousepos.y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*1 + cardsize[1]*0 && mousepos.y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1) {
           slot.push(slots[pos+1]);
         }
         if (fastclick + 200 > Date.now()) {
@@ -2901,8 +2913,8 @@ window.onload = () => {
       FFmove(e_);
       clearTimeout(busyclick);
       busyclick = false;
-      mousepos.x = e_.touches[0].clientX;
-      mousepos.y = e_.touches[0].clientY;
+      mousepos.x = e_.touches[0].clientX + window.visualViewport.offsetLeft;
+      mousepos.y = e_.touches[0].clientY + window.visualViewport.offsetTop;
     });
     c.addEventListener('contextmenu', (e_) => {
       e_.preventDefault();

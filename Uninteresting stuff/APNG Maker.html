@@ -2620,27 +2620,30 @@ function loaded() {
     readframes(e.dataTransfer.files);
   });
 
-  var s = document.createElement("script");
-  s.src = "optipng.min.js?" + Date.now();
-  document.body.appendChild(s);
+  const addScript = (B) => {
+    const s = document.createElement("SCRIPT");
+    s.src = B + Date.now();
+    document.body.appendChild(s);
+    return s;
+  }
 
-  s = document.createElement("script");
-  s.src = "pako.min.js?" + Date.now();
-  document.body.appendChild(s);
+  let s = addScript("optipng.min.js?");
+  s.onerror = () => {
+    optipng = false;
+  }
+  s = addScript("pako.min.js?");
+  s.onerror = () => {
+    pako = false;
+  };
+  addScript("ruffle.js?");
 
-  s = document.createElement("script");
-  s.src = "libheif.js?" + Date.now();
-  document.body.appendChild(s);
+  s = addScript("libheif.js?");
   s.onload = () => {
     decoder = new libheif.HeifDecoder();
   }
   s.onerror = () => {
     lload.style.display = "inline-block";
   }
-
-  s = document.createElement("script");
-  s.src = "ruffle.js?" + Date.now();
-  document.body.appendChild(s);
 }
 
 var filel = ["File", "Diff", "File 1", "File 2", "🦊"];
@@ -2780,6 +2783,20 @@ const updatebutton = (e, callback, args=[]) => {
   });
 };
 
+const new_stdout = () => {
+  DOMwriter = document.createElement("DIV");
+  stdout = document.createElement("DIV");
+  stdout.classList = "stdout";
+  stdout.style.whiteSpace = "initial";
+  stdout.innerHTML = "🦦 -(Output)";
+  debug = document.createElement("DIV");
+  debug.classList = "reverse";
+  debug.innerHTML = "Production";
+  stdout.append(debug);
+  DOMwriter.append(stdout);
+  document.body.append(DOMwriter);
+}
+
 
 
 window.onload = () => {
@@ -2802,8 +2819,6 @@ window.onload = () => {
       FFmove(e_);
       clearTimeout(busyclick);
       busyclick = false;
-      mousepos.x = e_.touches[0].clientX;
-      mousepos.y = e_.touches[0].clientY;
     });
     c.addEventListener('contextmenu', (e_) => {
       e_.preventDefault();
@@ -2934,17 +2949,7 @@ window.onload = () => {
 
 
 
-  DOMwriter = document.createElement("DIV");
-  stdout = document.createElement("DIV");
-  stdout.classList = "stdout";
-  stdout.style.whiteSpace = "initial";
-  stdout.innerHTML = "🦦 -(Output)";
-  debug = document.createElement("DIV");
-  debug.classList = "reverse";
-  debug.innerHTML = "Production";
-  stdout.append(debug);
-  DOMwriter.append(stdout);
-  document.body.append(DOMwriter);
+  new_stdout();
 
 
 

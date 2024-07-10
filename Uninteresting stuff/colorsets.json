@@ -356,7 +356,7 @@
   "Signature mas":true,
   "Alice's Signature":[[120, 957], "red", 0, 0, "grape", 0, 0],
   "Anje's Signature":[[457, 949], "red", 0, 0, "orange", 0, 0, "gold", 0, 0],
-  "Candy's Signature":[1459, "???", 0, 0],
+  "Candy's Signature":[[1459, 1469], "???", 0, 0],
   "David's Muzzle Signature":[[6, 955, 288], "ghost white", 2, 0, "ink", 2, 0],
   "Duke's Butt Signature":[[138, 979], "crimson", 0, 0, "galaxy", 0, 0, "white", 0, 0],
   "Duke's Muzzle Signature":[[136, 972, 286], "crimson", 0, 0, "galaxy", 0, 0, "white", 0, 0],

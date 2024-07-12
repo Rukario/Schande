@@ -121,7 +121,7 @@
   "Amon's Natural":[[1315, 1389], "galaxy", 0, 0, "ink", 0, 2, "grape", 0, 2],
   "Andre's Natural":[[1330, 1387], "chestnut", 0, 0, "crimson", 0, 2],
   "Apollo's Natural":[[70, 773], "glossy grape", 0, 0, "beeswax", 0, 0],
-  "Aquadrax Natural":[1432, "ocean blue", 0, 0, "ink", 0, 2, "machine", 0, 2],
+  "Aquadrax Natural":[[1432, 1478], "ocean blue", 0, 0, "ink", 0, 2, "machine", 0, 2],
   "Audio Jack Natural":[850, "smoke", 0, 0, "black", 0, 0],
   "Austin's Natural":[[16, 718], "scarlet", 0, 0, "cream", 0, 0, "copper", 3, 0],
   "Axel's Natural":[[297, 706], "gold", 0, 0, "red", 0, 2],
@@ -168,6 +168,7 @@
   "Ika's Natural":[[11, 710], "ocean blue", 0, 0, "honey", 0, 0],
   "John Natural":[[681, 683], "honey", 0, 0, "grass", 0, 0, "raspberry", 0, 0],
   "Kage's Natural":[[27, 728], "xanadu", 0, 0],
+  "Kahn's Natural":[1456, "???", 0, 0],
   "Kelvin's Natural":[[821, 822], "robin egg", 0, 0, "smoke", 0, 0],
   "Kippy's Natural":[[74, 777], "gold", 0, 0],
   "Kona's Natural":[[319, 703], "jovial", 0, 0, "smoke", 0, 0],
@@ -260,7 +261,7 @@
   "Amon's Signature":[[1316, 1390], "beige", 3, 0, "copper", 2, 2, "galaxy", 0, 0],
   "Andre's Signature":[[1331, 1388], "galaxy", 0, 3, "brass", 2, 0, "concrete", 0, 2, "concrete", 0, 0],
   "Apollo's Signature":[[857, 772], "white", 0, 0, "ocean blue", 2, 0, "mold", 0, 0],
-  "Aquadrax Signature":[1433, "red", 0, 0, "crimson", 0, 2, "red", 0, 0, "brass", 0, 0, "anubis", 0, 0],
+  "Aquadrax Signature":[[1433, 1479], "red", 0, 0, "crimson", 0, 2, "red", 0, 0, "brass", 0, 0, "anubis", 0, 0],
   "Austin's Signature":[[490, 719], "white", 0, 0, "cerulean", 0, 2, "lazuli", 2, 0],
   "Axel's Signature":[[296, 707], "white", 0, 0, "sky blue", 0, 2, "machine", 0, 2],
   "Baron's Signature":[[595, 686], "red", 0, 3, "cream", 0, 3, "peach", 0, 3, "coral", 2, 3],
@@ -304,6 +305,7 @@
   "Ika's Signature":[[10, 711], "ocean blue", 0, 0, "lazuli", 0, 2],
   "John's Signature":[[682, 684], "white", 0, 0, "smoke", 0, 0, "mold", 0, 0],
   "Kage's Signature":[[26, 729], "lazuli", 0, 0, "indigo", 0, 2],
+  "Kahn's Signature":[1457, "???", 0, 0],
   "Kelvin's Signature":[[61, 763], "lavender", 2, 0, "lazuli", 0, 2, "electric indigo", 0, 0],
   "Kippy's Signature":[[73, 776], "red", 0, 0, "ink", 0, 0],
   "Kona's Signature":[[320, 704], "orchid", 0, 0, "ocean blue", 0, 0],
@@ -394,6 +396,7 @@
   "Duckie Yellow":[1092, "lemon", 0, 0],
   "Terracotta":[[1205, 1221], "bronze", 0, 0, "teal", 0, 0],
   "Feathered Serpent":[1382, "honey", 0, 0, "lemon", 0, 2, "green", 0, 2, "grass", 0, 2],
+  "Allstar":[1470, "???", 0, 0],
 
 
 
@@ -1232,6 +1235,8 @@
   "Helius's Signature":[[1020, 1024], "???", 0, 0],
   "John Signature":[[682, 684], "???", 0, 0],
   "John's Natural":[[null, 683], "???", 0, 0],
+  "Kahn Natural":[[null, 1476], "???", 0, 0],
+  "Kahn Signature":[[null, 1477], "???", 0, 0],
   "Crackers' Natural Legacy":[[null, 794], "???", 0, 0],
 
   "Retired/Mislabelled":true,

@@ -396,7 +396,6 @@
   "Duckie Yellow":[1092, "lemon", 0, 0],
   "Terracotta":[[1205, 1221], "bronze", 0, 0, "teal", 0, 0],
   "Feathered Serpent":[1382, "honey", 0, 0, "lemon", 0, 2, "green", 0, 2, "grass", 0, 2],
-  "Allstar":[1470, "???", 0, 0],
 
 
 
@@ -1008,6 +1007,7 @@
   "Tongue Twister":[1354],
   "Blue Babe":[1407],
   "Leviathan":[1442],
+  "Allstar":[1470],
 
   "Retired Natural/Signature (confirmed retired)":true,
   "Austin's Signature (Retired)":[17],

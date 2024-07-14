@@ -93,20 +93,6 @@ input[type="range"]::-moz-range-thumb {
   background: #4bb;
   border:none;
 }
-
-.ogv-current{position:relative;display:inline-block;text-align:center;min-height:16px}
-.ogv-current:not(.ogv-detached)::before{content:'Loading…';position:absolute;top:8px;left:0;font-weight:700}
-.ogv-current.ogv-loaded::before{display:none}
-.ogv-current>ogvjs{position:initial!important}
-.ogv-ctrl{position:absolute;bottom:0;z-index:2;background:rgba(0,0,0,.65);width:100%;height:32px;gap:0;display:none}
-.ogv-btn{cursor: pointer;width:32px;height:32px;line-height:32px;text-align:center;color:#fff}
-.ogv-btn div{vertical-align:middle}
-.ogv-btn div:last-child{display:none}
-.ogv-btn.ogv-toggled div:first-child{display:none}
-.ogv-btn.ogv-toggled div:last-child{display:inline}
-.ogv-ts{font-family:sans-serif;font-size:10px;text-align:center;line-height:32px;width:70px;color:#fff;overflow:hidden}
-.ogv-vol{width:50px;margin:0}
-.ogv-seek{width:0;margin:0;flex-grow:1}
 </style>
 <script>
 var isTouch = 'ontouchstart' in window ? true : false;
@@ -323,10 +309,8 @@ function isImage(ext) {
 
 function isVideo(ext) {
   ext = ext.toLowerCase();
-  if (['m4v', 'avi', 'mpg', 'mp4'].includes(ext)) {
+  if (['m4v', 'avi', 'mpg', 'mp4', 'webm'].includes(ext)) {
     return true;
-  } else if (ext == 'webm') {
-    return 'webm';
   }
 }
 
@@ -2284,163 +2268,6 @@ function changebg(f){
 
 
 
-var OgvCtrl = {
-  ogv:null,
-  current:null,
-  ctrl:{},
-  seeking:!1,
-  visible:!1,
-  tick:null,
-  init:() => {
-
-let e = document.createElement("div");
-e.className="ogv-ctrl";
-
-let t = document.createElement("div");
-t.className="ogv-btn"
-t.innerHTML='<div>▶</div><div>||</div>'
-t.addEventListener("click", this.togglePlay)
-this.ctrl.play = t
-e.appendChild(t)
-
-t = document.createElement("input")
-t.className="ogv-seek"
-t.type="range"
-t.min=0
-t.value=0
-t.max=100
-t.step=.1
-t.addEventListener("change", this.onSeek)
-t.addEventListener("mousedown", this.toggleSeek)
-t.addEventListener("mouseup", this.toggleSeek)
-this.ctrl.seek=t
-e.appendChild(t)
-
-t = document.createElement("div");
-t.className = "ogv-ts";
-t.textContent = "0:00 / 0:00";
-this.ctrl.ts = t;
-e.appendChild(t);
-
-t = document.createElement("div");
-t.className = "ogv-btn";
-t.innerHTML = '<div>A</div><div>M</div>';
-t.addEventListener("click", this.toggleMute);
-this.ctrl.mute = t;
-e.appendChild(t);
-
-t = document.createElement("div");
-t.className = "ogv-btn";
-t.innerHTML = '⛶';
-
-t.addEventListener("click", this.toggleFullscreen);
-this.ctrl.fs = t;
-e.appendChild(t);
-
-this.current = e;
-},
-  onPlayEnd:function(){
-OgvCtrl.ogv.seekable.length?OgvCtrl.ogv.currentTime=0:OgvCtrl.ogv.stop(),
-OgvCtrl.ogv.play()
-},
-  toggleCtrl:function(){
-OgvCtrl.visible?OgvCtrl.hideCtrl():(OgvCtrl.current.style.display="flex",
-OgvCtrl.setTickTimeout(),
-OgvCtrl.updateTimes(),
-OgvCtrl.visible=!0)
-},
-  hideCtrl:function(){
-OgvCtrl.current.style.display="none",
-OgvCtrl.clearTickTimeout(),
-OgvCtrl.visible=!1
-},
-  toggleSeek:function(){
-OgvCtrl.seeking=!OgvCtrl.seeking
-},
-  seekTick:function(){
-OgvCtrl.setTickTimeout(),
-OgvCtrl.updateTimes()
-},
-  setTickTimeout:function(){
-OgvCtrl.tick=setTimeout(OgvCtrl.seekTick,250)
-},
-  clearTickTimeout:function(){
-clearTimeout(OgvCtrl.tick),
-OgvCtrl.tick=null
-},
-  updateTimes:function(){
-if(!OgvCtrl.ogv.duration){
-  return;
-}
-OgvCtrl.seeking||(OgvCtrl.ctrl.seek.value=(OgvCtrl.ogv.currentTime/OgvCtrl.ogv.duration*100).toFixed(2));
-let e=Math.floor(OgvCtrl.ogv.duration/60);
-t=Math.floor(OgvCtrl.ogv.duration-60*e);
-a=Math.floor(OgvCtrl.ogv.currentTime/60);
-i=Math.floor(OgvCtrl.ogv.currentTime-60*a);
-OgvCtrl.ctrl.ts.textContent=`${a}:${i.toString().padStart(2,"0")} / ${e}:${t.toString().padStart(2,"0")}`
-},
-  togglePlay:function(){
-OgvCtrl.ogv.paused?OgvCtrl.ogv.play():OgvCtrl.ogv.pause(),
-OgvCtrl.ctrl.play.classList.toggle("ogv-toggled")
-},
-  onSeek:function(){
-OgvCtrl.ogv.currentTime=this.value/100*OgvCtrl.ogv.duration
-},
-  toggleMute:function(){
-OgvCtrl.ogv.muted=!OgvCtrl.ogv.muted,
-OgvCtrl.ctrl.mute.classList.toggle("ogv-toggled")
-},
-  toggleFullscreen:function(){
-document.fullscreenElement?document.exitFullscreen():OgvCtrl.ogv.parentNode.requestFullscreen()
-}}
-
-
-
-var currentvideo = null;
-function getogvplayer() {
-  echo('');
-  pload.style.display = "none";
-  OgvCtrl.init();
-  let t = document.createElement("script");
-  t.id = "js-ogv-scr";
-  t.src = "ogv.js";
-  document.body.appendChild(t);
-  t.onload = () => {
-    webmplayer();
-  }
-  t.onerror = () => {
-    echo("<br>Download and extract from <a href='https://github.com/brion/ogv.js/releases' target='_blank'>ogv.js release</a> directly next to HTML then reload this page:<br> &gt; ogv.js<br> &gt; ogv-decoder-video-vp8-wasm.js<br> &gt; ogv-decoder-video-vp8-wasm.wasm<br> &gt; ogv-decoder-video-vp9-wasm.js<br> &gt; ogv-decoder-video-vp9-wasm.wasm<br> &gt; ogv-demuxer-webm-wasm.js<br> &gt; ogv-demuxer-webm-wasm.wasm<br> &gt; ogv-worker-video.js");
-  }
-}
-
-function webmplayer() {
-  const v = stdout.getElementsByClassName("ogv-current");
-  while (v.length > 0) {
-    v[0].outerHTML = "Finished/interrupted WEBM playback";
-    //unless I find way to control older WEBMs
-  }
-  const d = document.createElement("div");
-  d.className = "ogv-current";
-  const t = new OGVPlayer({'wasm':!0, 'threading':!1, 'simd':!1});
-  d.appendChild(t);
-  t.onloadedmetadata = () => {
-    let h = t.videoHeight;
-    let a = t.videoWidth/h;
-    if (h>400){
-      h = 400;
-    }
-    t.width = h*a + "px";
-    t.height = h + "px";
-  }
-  stdout.appendChild(d);
-
-  t.src = currentvideo;
-  t.parentNode.appendChild(OgvCtrl.current);
-  t.addEventListener("mouseup", OgvCtrl.toggleCtrl);
-  OgvCtrl.ogv = t;
-  OgvCtrl.togglePlay();
-}
-
 function loaded() {
   if (!framelist.isContentEditable) {
     const pasta = (e) => {
@@ -2492,31 +2319,13 @@ function loaded() {
         }
       }
     } else if (isVideo(get_ext(f))) {
-      if (isVideo(get_ext(f)) == "webm" && window.OGVPlayer == undefined){
-        currentvideo = window.URL.createObjectURL(f);
-        if (/iPhone|iPad/.test(navigator.userAgent)){
-          getogvplayer()
-          return;
-        } else {
-          pload.style.display = "inline-block";
-          window.OGVPlayer = false;
-        }
-      }
-      if (isVideo(get_ext(f)) == "webm" && window.OGVPlayer) {
-        currentvideo = window.URL.createObjectURL(f);
-        webmplayer();
-      } else {
-        const v = document.createElement("video");
-        if (isVideo(get_ext(f)) == "webm") {
-          v.classList = "ogv-current";
-        }
-        v.style = "max-height:400px;"
-        v.setAttribute("controls", "");
-        v.setAttribute("playsinline", "");
-        v.src = window.URL.createObjectURL(f);
-        stdout.appendChild(v);
-        v.play();
-      }
+      const v = document.createElement("video");
+      v.style = "max-height:400px;"
+      v.setAttribute("controls", "");
+      v.setAttribute("playsinline", "");
+      v.src = window.URL.createObjectURL(f);
+      stdout.appendChild(v);
+      v.play();
     } else if (isImage(get_ext(f))) {
       img = document.createElement("img");
       if (isImage(get_ext(f)) == "heic") {
@@ -2853,14 +2662,6 @@ window.onload = () => {
   lload.dataset.tooltip = "Read HEIC files with <a href='https://github.com/alexcorvi/heic2any/raw/master/src' target='_blank'>libheif.js</a>, save next to HTML then reload this page";
   lload.innerHTML = "🦦 -(HEICide)";
   DOMwriter.append(lload);
-  pload = document.createElement("DIV");
-  pload.classList = "next";
-  pload.style.display = "none";
-  pload.addEventListener("click", () => {
-    getogvplayer();
-  });
-  pload.innerHTML = "🦦 -(Launch WEBM player for iPad/iPhone)";
-  DOMwriter.append(pload);
   recompress = document.createElement("DIV");
   recompress.classList = "reverse";
   recompress.innerHTML = "No optimization";

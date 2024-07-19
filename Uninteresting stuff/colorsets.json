@@ -250,7 +250,7 @@
   "Rowan's Natural":[[131, 967], "smoke", 0, 0],
   "Twitch's Natural":[[123, 958], "orange", 0, 0, "gold", 0, 0],
   "Sahleen's Natural":[[1113, 1115], "crimson", 2, 0, "gold", 2, 0, "concrete", 0, 0],
-  "Snowball's Natural":[[133, 968], "chestnut", 0, 0],
+  "Snowball's Natural":[[133, 968, 1463], "chestnut", 0, 0],
   "Sofia's Natural":[[119, 943], "cerulean", 0, 0],
   "Stryker's Natural":[[1238, 1252], "galaxy", 0, 0, "concrete", 0, 0, "ocean blue", 0, 0],
   "Sugar Star's Natural":[[125, 961], "mist", 0, 0],

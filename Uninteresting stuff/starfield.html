@@ -1925,21 +1925,25 @@ var FFmove = (e_) => {
 
   if (solitaire && !winanim) {
     if (mousepos.x > gap.x*8 + cardsize[0]*7 + cardsize[0]/2 - 16*scale && mousepos.x < gap.x*8 + cardsize[0]*7 + cardsize[0]/2 + 16*scale && mousepos.y > gap.y + cardsize[1]*0 + cardsize[1]/2 - 8*scale && mousepos.y < gap.y*1 +   cardsize[1]*0 + cardsize[1]/2 + 8*scale) {
-      if (!givehint) {
-        for (const o of [...Array(hints).keys()]) {
-          [hint, hint2, hint3, hint4][o].style.display = 'block';
+      if (!crosshint) {
+        givehint = !givehint;
+        if (givehint) {
+          for (const o of [...Array(hints).keys()]) {
+            [hint, hint2, hint3, hint4][o].style.display = 'block';
+          }
+          hintb.style.display = 'none';
+        } else {
+          hint.style.display = 'none';
+          hint2.style.display = 'none';
+          hint3.style.display = 'none';
+          hint4.style.display = 'none';
+          hintb.style.display = 'block';
         }
-        hintb.style.display = 'none';
-      } else {
-        hint.style.display = 'none';
-        hint2.style.display = 'none';
-        hint3.style.display = 'none';
-        hint4.style.display = 'none';
-        hintb.style.display = 'block';
+        sol();
       }
       clearTimeout(crosshint);
       crosshint = setTimeout(() => {
-        givehint = !givehint;
+        crosshint = false;
       }, 200);
     }
   }

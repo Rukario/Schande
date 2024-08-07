@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html><head>
+<html>
+<head>
 <meta charset="UTF-8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="white">
-<title>Starfield</title>
 <style>
 html, body {
   background-color: #000;
@@ -313,12 +313,16 @@ canvas {
 }
 </style>
 <script>
-var fps = 15;
+const fps = {
+  throttle: true,
+  vfps: 15,
+  display: false,
+  avg: [],
+};
+
 var speed = 60;
-var accelerate = 400; // supposedly; jumpscare if too low
-var throttlebyfps = true;
-var displayfps = false;
-var life = 1; // per second
+var accelerate = 800; // supposedly; jumpscare if too low
+var life = 2; // per second
 var pixel = {'x':95, 'y':95};
 var density = 75;
 var frustum = 0.8 + 0.4;
@@ -335,10 +339,10 @@ var scale = 1;
 var dim = {'x':0, 'y': 0};
 var mousepos = {'x':0, 'y':0};
 var rubbermouse = {'x':0, 'y':0};
-var fpsInterval = 1000 / fps;
+var fpsInterval = 1000 / fps.vfps;
 var ti = Date.now();
 
-var isTouch = 'ontouchstart' in window ? true : false;
+const isTouch = 'ontouchstart' in window;
 var busyclick = false;
 
 var alpha = new Image();
@@ -354,12 +358,12 @@ var ismask = true;
 
 function echo(B, b) {
   if (!b) {
-    B = "<br>" + B;
+    B = '<br />' + B;
   } else {
-    B = " " + B;
+    B = ' ' + B;
   }
-  stdout.insertAdjacentHTML("beforeend", B);
-  stdout.style.display = "inline-block";
+  stdout.insertAdjacentHTML('beforeend', B);
+  stdout.style.display = 'inline-block';
 }
 
 function speaker(B) {
@@ -367,21 +371,21 @@ function speaker(B) {
   dialog.innerHTML = B;
 }
 
-function ABtoURL(ab){
+function ABtoURL(ab) {
   return URL.createObjectURL(new Blob(ab, {type: 'application/octet-stream'}));
 }
 
-function ABtoIMG(ab){
-  img = document.createElement("img")
+function ABtoIMG(ab) {
+  const img = document.createElement('img');
   img.src = ABtoURL(ab);
   return img;
 }
 
-function ABtoAB(ab){
-  return [new Uint8Array(ab)]
+function ABtoAB(ab) {
+  return [new Uint8Array(ab)];
 }
 
-function canvasToAB(c, ext="png"){
+function canvasToAB(c, ext = 'png') {
   return function(resolve) {
     c.toBlob((blob0) => {
       var fr = new FileReader();
@@ -394,19 +398,19 @@ function canvasToAB(c, ext="png"){
   }
 }
 
-function canvasToFrame(mask, callback, interFrameN){
-  let promise = new Promise(canvasToAB(mask, 'png'))
-  promise.then(function(arri){
+function canvasToFrame(mask, callback, interFrameN) {
+  let promise = new Promise(canvasToAB(mask, 'png'));
+  promise.then(function(arri) {
     newstar(ABtoIMG(ABtoAB(arri)));
-    callback(interFrameN+1);
-  })
+    callback(interFrameN + 1);
+  });
 }
 
-var c = document.createElement('canvas');
-c.width = document.documentElement.clientWidth;
-c.height = document.documentElement.clientHeight;
+var canvas = document.createElement('canvas');
+canvas.width = document.documentElement.clientWidth;
+canvas.height = document.documentElement.clientHeight;
 
-var context = c.getContext('2d');
+var context = canvas.getContext('2d');
 context.imageSmoothingEnabled = false;
 
 var idlecursor = false;
@@ -420,9 +424,10 @@ var startTime;
 
 
 function newstar(star) {
-  const age = Math.random()*speed*life%(0.66*speed*life);
-  const x = ((Math.random()-0.5)*c.width*frustum/(speed*life))*(speed*life-age);
-  const y = ((Math.random()-0.5)*c.height*frustum/(speed*life))*(speed*life-age);
+  const speli = speed * life;
+  const age = Math.random() * speli % (0.66 * speli);
+  const x = ((Math.random() - 0.5) * canvas.width * frustum / speli) * (speli - age);
+  const y = ((Math.random() - 0.5) * canvas.height * frustum / speli) * (speli - age);
   stars.push([age, x, y, star]);
 }
 
@@ -439,60 +444,79 @@ function screensaver(resolve) {
     const now = Date.now();
     const elapsed = now - ti;
 
-    if (!throttlebyfps || elapsed > fpsInterval) {
+    if (!fps.throttle || elapsed > fpsInterval) {
       const sinceStart = now - startTime;
       const toodiff = sinceStart / ++frameCount;
-      if (toodiff > (1000/fps) + fpsInterval/20) {
+
+      if (toodiff > (1000 / fps.vfps) + fpsInterval/20) {
         startTime = Date.now();
         frameCount = 0;
-        fps = isFinite(fps) ? fps/(1+fpsInterval/(accelerate?accelerate:1)) : 57600/fpsInterval;
+        if (isFinite(fps.vfps)) {
+          fps.vfps = fps.vfps / (1 + fpsInterval / (accelerate ? accelerate : 1));
+        } else {
+          fps.vfps = 57600 / fpsInterval;
+        }
       } else {
-        fps = Math.round(1000 / toodiff * 100) / 100;
+        fps.vfps = Math.round(1000 / toodiff * 100) / 100;
       }
+
       const gx = (mousepos.x-dim.x)/gliden/(20/fpsInterval)/life-(mousepos.x-rubbermouse.x)/friction.x*glidef;
       const gy = (mousepos.y-dim.y)/gliden/(20/fpsInterval)/life-(mousepos.y-rubbermouse.y)/friction.y*glidef;
-      result.innerHTML = `Uninterrupted for ${(Math.round(sinceStart / 1000 * 100) / 100).toFixed(2).padStart(3, '0')} seconds @ ${fps.toFixed(2).padStart(3, '0')} fps`;
+      const sec = (Math.round(sinceStart / 1000 * 100) / 100).toFixed(2).padStart(3, '0');
+
+      const dfps = fps.vfps.toFixed(2).padStart(3, '0');
+      result.innerHTML = `Uninterrupted for ${sec} seconds @ ${dfps} fps`;
 
       ti = now - (elapsed % fpsInterval);
       context.fillStyle = ccolor;
-      context.fillRect(0, 0, c.width, c.height);
+      context.fillRect(0, 0, canvas.width, canvas.height);
 
       for (const star of stars) {
         if (star[0] === 0) {
-          star[1] = (Math.random()-0.5)*c.width*frustum + (glide?(mousepos.x-dim.x)/friction.x:0);
-          star[2] = (Math.random()-0.5)*c.height*frustum + (glide?(mousepos.y-dim.y)/friction.y:0);
-          //star[1] = Math.floor(c.width/6) + Math.floor(Math.random()*c.width/1.5);
-          //star[2] = Math.floor(c.height/6) + Math.floor(Math.random()*c.height/1.5);
+          star[1] = (Math.random()-0.5)*canvas.width*frustum + (glide?(mousepos.x-dim.x)/friction.x:0);
+          star[2] = (Math.random()-0.5)*canvas.height*frustum + (glide?(mousepos.y-dim.y)/friction.y:0);
+          //star[1] = Math.floor(canvas.width/6) + Math.floor(Math.random()*canvas.width/1.5);
+          //star[2] = Math.floor(canvas.height/6) + Math.floor(Math.random()*canvas.height/1.5);
           //star[3] = colorful ? `rgb(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)})` : '#fff';
         }
         if (glide) {
           star[1] -= gx;
           star[2] -= gy;
         }
-        const dot = {'x':Math.ceil(star[0]/(speed*life/pixel.x)), 'y':Math.ceil(star[0]/(speed*life/pixel.y))};
-        const sx = (star[1]+(fly?(mousepos.x-dim.x)/6:0))/(speed*life-star[0])*speed*life + (glide?star[0]*speed/life*(-(mousepos.x-dim.x)/(900*friction.x)):0);
-        const sy = (star[2]+(fly?(mousepos.y-dim.x)/6:0))/(speed*life-star[0])*speed*life + (glide?star[0]*speed/life*(-(mousepos.y-dim.y)/(900*friction.y)):0);
+        const speli = speed * life;
+        const dot = {
+          x: Math.ceil(star[0]/(speli/pixel.x)),
+          y: Math.ceil(star[0]/(speli/pixel.y)),
+        };
+        const sx = (star[1]+(fly?(mousepos.x-dim.x)/6:0))/(speli-star[0])*speli + (glide?star[0]*speed/life*(-(mousepos.x-dim.x)/(900*friction.x)):0);
+        const sy = (star[2]+(fly?(mousepos.y-dim.x)/6:0))/(speli-star[0])*speli + (glide?star[0]*speed/life*(-(mousepos.y-dim.y)/(900*friction.y)):0);
 
-        if ( sx < (glide?Math.min(mousepos.x-c.width,-dim.x):-dim.x)-pixel.x/2 || sy < (glide?Math.min(mousepos.y-c.height,-dim.y):-dim.y)-pixel.y/2 || sx > (glide?Math.max(mousepos.x,dim.x):dim.x)+pixel.x/2 || sy > (glide?Math.max(mousepos.y,dim.y):dim.y)+pixel.y/2 || star[0] > (speed*life)) {
+        if (
+          sx < (glide?Math.min(mousepos.x-canvas.width,-dim.x):-dim.x)-pixel.x/2 ||
+          sy < (glide?Math.min(mousepos.y-canvas.height,-dim.y):-dim.y)-pixel.y/2 ||
+          sx > (glide?Math.max(mousepos.x,dim.x):dim.x)+pixel.x/2 ||
+          sy > (glide?Math.max(mousepos.y,dim.y):dim.y)+pixel.y/2 ||
+          star[0] > speli
+        ) {
           star[0] = 0;
         } else {
-          star[0] += speed / fps;
+          star[0] += speed / fps.vfps;
 
           //if (star[1] < dim.x) {
           //  star[1] -= ((dim.x/star[1])-1)*(1+star[0]/5);
           //} else {
-          //  star[1] += ((dim.x/(c.width-star[1]))-1)*(1+star[0]/5);
+          //  star[1] += ((dim.x/(canvas.width-star[1]))-1)*(1+star[0]/5);
           //}
           //
           //if (star[2] < dim.y) {
           //  star[2] -= ((dim.y/star[2])-1)*(1+star[0]/5);
           //} else {
-          //  star[2] += ((dim.y/(c.height-star[2]))-1)*(1+star[0]/5);
+          //  star[2] += ((dim.y/(canvas.height-star[2]))-1)*(1+star[0]/5);
           //}
           //
           //context.fillRect(Math.ceil(star[1]), Math.ceil(star[2]), dot.x, dot.y);
           //
-          //if ( star[1] < 0 || star[2] < 0 || star[1] > c.width || star[2] > c.height || star[0] > speed*life) {
+          //if ( star[1] < 0 || star[2] < 0 || star[1] > canvas.width || star[2] > canvas.height || star[0] > speli) {
           //  star[0] = 0;
           //} else {
           //  star[0] += 1;
@@ -536,7 +560,7 @@ function new_screensaver() {
   Promise.all([promise]).then(() => {
     busyscreensaver = false;
     stopscreensaver = false;
-    result.style.display = displayfps ? 'block' : 'none';
+    result.style.display = fps.display ? 'block' : 'none';
   });
 }
 
@@ -558,18 +582,18 @@ function starcolor(colorful) {
 function new_stars() {
   stars = [];
   function variant(i) {
-    if (i == density) {
+    if (i === density) {
       new_screensaver();
       return;
     }
 
     if (ismask) {
-      let mask = document.createElement('canvas');
+      const mask = document.createElement('canvas');
       mask.width = 95;
       mask.height = 95;
 
-      let maskcontext = mask.getContext('2d');
-      if (colorful == 1 && Math.floor(Math.random()*4)) {
+      const maskcontext = mask.getContext('2d');
+      if (colorful === 1 && Math.floor(Math.random()*4)) {
         maskcontext.drawImage(foliage, 0, 0);
       } else {
         maskcontext.drawImage(alpha, 0, 0);
@@ -580,11 +604,11 @@ function new_stars() {
       };
       canvasToFrame(mask, variant, i);
     } else if (useimg) {
-      for (let n=0;n<density;n++) {
+      for (const n of Array(density).keys()) {
         readcard(new_screensaver, true);
       }
     } else {
-      for (let n=0;n<density;n++) {
+      for (const n of Array(density).keys()) {
         newstar(starcolor(colorful));
       }
       new_screensaver();
@@ -611,9 +635,15 @@ var computerspeed = 30;
 var winanim = false;
 var won = false;
 var winid = false;
-var cardsize = [71*scale, 96*scale];
-var gap = {'x':11*scale, 'y':5*scale};
-var solsize = [ ((gap.x + 1) * scale + cardsize[0]) * (7 + cheatslots), 400 * scale ];
+var cardsize = [71 * scale, 96 * scale];
+var gap = {
+  x: 11 * scale,
+  y: 5 * scale,
+};
+var solsize = [
+  ((gap.x + 1) * scale + cardsize[0]) * (7 + cheatslots),
+  400 * scale,
+];
 
 var snapshot = () => {
   dragcard = false;
@@ -859,7 +889,7 @@ function readcard(callback, is_star) {
     }))
   }
   Promise.all(promiseCards).then(() => {
-    result.style.display = displayfps && !solitaire ? 'block' : 'none';
+    result.style.display = fps.display && !solitaire ? 'block' : 'none';
 
     //optional hue
     for (const [pos, card] of Object.keys(cards).entries()) {
@@ -923,7 +953,7 @@ function winsol() {
       flycard.yvel += gravity.y;
       flycard.x += (flycard.xvel * flycard.xdir);
       flycard.y += (flycard.yvel * flycard.ydir);
-      if (flycard.x < -cardsize[0] || flycard.x > c.width) {
+      if (flycard.x < -cardsize[0] || flycard.x > canvas.width) {
         break;
         //flycard.xvel = -flycard.xvel;
       }
@@ -933,7 +963,7 @@ function winsol() {
       }
       context.drawImage(cards[flycard["card"]], flycard.x, flycard.y, ...cardsize);
     }
-    if (flycard.x < -cardsize[0] || flycard.x > c.width) {
+    if (flycard.x < -cardsize[0] || flycard.x > canvas.width) {
       clearTimeout(idlescreensaver);
       i++;
     }
@@ -971,15 +1001,17 @@ function drawcross(x, y) {
 
 function sol() {
   if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === ncard/4})) {
-    clearTimeout(winid);
-    winsol();
+    if (!winanim) {
+      clearTimeout(winid);
+      winsol();
+    }
   } else {
     winanim = false;
     imawake();
   }
 
   context.fillStyle = "#003D00"; // "#130733"
-  context.fillRect(0, 0, c.width, c.height);
+  context.fillRect(0, 0, canvas.width, canvas.height);
 
   context.fillStyle = "#007D00"; // "#260f66"
   context.fillRect(0, 0, ...solsize);
@@ -1255,7 +1287,7 @@ function computerplaysol(forhint) {
     const y = gap.y*2 + cardsize[1] + 3*scale*(slots[pos+5][0].length-1);
     drawhint(hint, x, y, x, y);
     if (!forhint) {
-      const card = slots[pos+5][0][slots[pos+5][0].length-1]; 
+      const card = slots[pos+5][0].at(-1); 
       slots[pos+5][0] = slots[pos+5][0].slice(0, -1);
       slots[pos+5][1].push(card);
       snapshot();
@@ -1269,7 +1301,7 @@ function computerplaysol(forhint) {
     const des = pos > 4 ? 1 : 0;
     const depth = slots[pos][1].length-1;
     const card = slots[pos][1][depth];
-    if (!moved && (parseInt(card[1], 16) === 1 || foundations.some((f) => {const fca = f[0][1][f[0][1].length-1]; return card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16)+1}))) {
+    if (!moved && (parseInt(card[1], 16) === 1 || foundations.some((f) => {const fca = f[0][1].at(-1); return card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16)+1}))) {
       const x = gap.x*(pos-(5*des)+1) + cardsize[0]*(pos-(5*des));
       const y = gap.y*2 + cardsize[1] + depth*15*scale + 3*scale*slots[pos][0].length;
       drawhint(hint, x, y, x, y);
@@ -1283,11 +1315,11 @@ function computerplaysol(forhint) {
 
   // Register Deck pile
   if (deck.length) {
-    stack[1].push([deck[deck.length-1], slots[0], 1, true]);
+    stack[1].push([deck.at(-1), slots[0], 1, true]);
 
     // Deck to Foundation
-    const card = deck[deck.length-1];
-    if(!moved && (parseInt(card[1], 16) === 1 || foundations.some((f) => {const fca = f[0][1][f[0][1].length-1]; return card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16)+1}))) {
+    const card = deck.at(-1);
+    if(!moved && (parseInt(card[1], 16) === 1 || foundations.some((f) => {const fca = f[0][1].at(-1); return card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16)+1}))) {
       const depth = Math.min(drawn, deck.length)-1;
       const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
       const x = gap.x*2 + cardsize[0]*1 + repeat*2 + depth*scale*14;
@@ -1306,7 +1338,7 @@ function computerplaysol(forhint) {
     const vectors = [];
     if (slots[pos+5][1].length) {
       // Standard card movement
-      const card = slots[pos+5][1][slots[pos+5][1].length-1];
+      const card = slots[pos+5][1].at(-1);
       for (const s of [...stack[1], ...stack[0]]) {
         if (s[0][0]%2 !== card[0]%2 && parseInt(s[0][1], 16) === parseInt(card[1], 16)-1) {
           vectors.push(s);
@@ -1372,7 +1404,7 @@ function computerplaysol(forhint) {
           continue;
         }
         for (const [n, card] of slo[1].entries()) {
-          const fca = fslo[1][fslo[1].length-1];
+          const fca = fslo[1].at(-1);
           if (fca[0] === card[0] && parseInt(fca[1], 16) === parseInt(card[1], 16)-1) {
             const ch = slo[1][n+1];
             if (!ch) {
@@ -1409,13 +1441,13 @@ function computerplaysol(forhint) {
         const card = slots[pos+5][1][0];
         let unsure = false;
         for (const [fslo, fpos] of foundations) {
-          const fca = fslo[1][fslo[1].length-1];
+          const fca = fslo[1].at(-1);
           if (card[0]%2 !== fca[0]%2 && parseInt(card[1], 16) < parseInt(fca[1], 16)) {
             if (parseInt(card[1], 16) < parseInt(fca[1], 16)-1) {
               console.log('Takes more than 1 card to do it! Trying...');
             }
             for (const [slo, place] of stackforpile) {
-              const ca = slo[1][slo[1].length-1];
+              const ca = slo[1].at(-1);
               if (parseInt(fca[1], 16) === 13 && !ca || ca && fca[0]%2 !== ca[0]%2 && parseInt(fca[1], 16) === parseInt(ca[1], 16)-1) {
                 const des = fpos > 4 ? 1 : 0;
                 const repeat = Math.floor(Math.abs(fslo[1].length-2)/4)*scale;
@@ -1507,7 +1539,13 @@ var FFdown = (e_) => {
     const dep = Math.min(drawn, deck.length)-1;
     if (sel(1, 0, 14*(drawn-1)*scale) && deck.length) {
       const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
-      dragcard = {'x':gap.x*2 + cardsize[0]*1 + repeat*2 + dep*scale*14, 'y':gap.y*1 + cardsize[1]*0 + repeat + dep*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[0]};
+      dragcard = {
+        x: gap.x*2 + cardsize[0]*1 + repeat*2 + dep*scale*14,
+        y: gap.y*1 + cardsize[1]*0 + repeat + dep*scale,
+        dx: mousepos.x,
+        dy: mousepos.y,
+        slot: slots[0],
+      };
     }
 
     // Undo draw
@@ -1627,7 +1665,14 @@ var FFdown = (e_) => {
       if(sel(pos+3, 0, 0)) {
         if (slots[pos+1][1].length) {
           const repeat = Math.ceil((slots[pos+1][1].length)/4)-1;
-          dragcard = {'x':gap.x*(pos+4) + cardsize[0]*(pos+3) + repeat*scale*2, 'y':gap.y*1 + cardsize[1]*0 + repeat*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[pos+1], 'draw':slots[pos+1][1].length-1};
+          dragcard = {
+            x: gap.x*(pos+4) + cardsize[0]*(pos+3) + repeat*scale*2,
+            y: gap.y*1 + cardsize[1]*0 + repeat*scale,
+            dx: mousepos.x,
+            dy: mousepos.y,
+            slot: slots[pos+1],
+            draw: slots[pos+1][1].length-1,
+          };
           winanim = false;
         }
         break;
@@ -1639,10 +1684,17 @@ var FFdown = (e_) => {
       if (mousepos.x > gap.x*(pos+1) + cardsize[0]*pos && mousepos.x < gap.x*(pos+1) + cardsize[0]*(pos+1) && mousepos.y > gap.y*2 + cardsize[1]*1 && mousepos.y < gap.y*2 + cardsize[1]*2 + 3*scale*slots[pos+5][0].length + 15*scale*slots[pos+5][1].length) {
         if (slots[pos+5][1].length) {
           const depth = Math.min(Math.floor(Math.max(mousepos.y-(gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length), 0)/15/scale), slots[pos+5][1].length-1);
-          dragcard = {'x':gap.x*(pos+1) + cardsize[0]*pos, 'y':gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length + depth*15*scale, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[pos+5], 'draw':depth};
+          dragcard = {
+            x: gap.x*(pos+1) + cardsize[0]*pos,
+            y: gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length + depth*15*scale,
+            dx: mousepos.x,
+            dy: mousepos.y,
+            slot: slots[pos+5],
+            draw: depth,
+          };
         } else if (slots[pos+5][0].length) {
           // Flip card
-          const card = slots[pos+5][0][slots[pos+5][0].length-1]; 
+          const card = slots[pos+5][0].at(-1); 
           slots[pos+5][0] = slots[pos+5][0].slice(0, -1);
           slots[pos+5][1].push(card);
           snapshot();
@@ -1732,9 +1784,9 @@ var FFup = (e_) => {
           slot.push(slots[pos+1]);
         }
         if (fastclick + 200 > Date.now()) {
-          let stack = slots[pos+1][1][slots[pos+1][1].length-1];
+          let stack = slots[pos+1][1].at(-1);
           let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
-          let card = dragcards[dragcards.length-1];
+          let card = dragcards.at(-1);
           if (!stack && parseInt(card[1], 16) === 1 || stack && dragcards.length === 1 && parseInt(card[0], 16) === parseInt(stack[0], 16) && parseInt(card[1], 16) === parseInt(stack[1], 16)+1){
             if ('draw' in dragcard) {
               slots[pos+1][1].push(...dragcard.slot[1].slice(dragcard.draw));
@@ -1753,9 +1805,9 @@ var FFup = (e_) => {
       // Drag card to this pile
       if (slot.length) {
         for (const s of slot){
-          let stack = s[1][s[1].length-1];
+          let stack = s[1].at(-1);
           let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
-          let card = dragcards[dragcards.length-1];
+          let card = dragcards.at(-1);
           if (!stack && parseInt(card[1], 16) === 1 || stack && dragcards.length === 1 && parseInt(card[0], 16) === parseInt(stack[0], 16) && parseInt(card[1], 16) === parseInt(stack[1], 16)+1){
             if ('draw' in dragcard) {
               s[1].push(...dragcard.slot[1].slice(dragcard.draw));
@@ -1802,7 +1854,7 @@ var FFup = (e_) => {
             } else {
               rubberband();
             };
-          } else if (card[0]%2 !== s[1][s[1].length-1][0]%2 && parseInt(card[1], 16) === parseInt(s[1][s[1].length-1][1][0], 16)-1) {
+          } else if (card[0]%2 !== s[1].at(-1)[0]%2 && parseInt(card[1], 16) === parseInt(s[1].at(-1)[1][0], 16)-1) {
             if ('draw' in dragcard) {
               s[1].push(...dragcard.slot[1].slice(dragcard.draw));
               dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
@@ -1855,9 +1907,9 @@ var hints = 1;
 var FFmove = (e_) => {
   clearTimeout(idlecursor);
   idlecursor = setTimeout(() => {
-    c.style.cursor = "none";
+    canvas.style.cursor = "none";
   }, 1500);
-  c.style.cursor = "default";
+  canvas.style.cursor = "default";
   imawake();
 
   if (e_) {
@@ -1940,13 +1992,13 @@ var graphdrawing = false;
 var leverdrawing = false;
 
 function winningcookie() {
-  const expires = new Date(Date.now() + 365 * 864e5).toUTCString()
+  const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
   document.cookie = "winsol=" + encodeURIComponent(winsoln) + "; expires=" + expires + "; path=/; SameSite=Strict;";
   //no expiry would allow the cookie to be automatically deleted upon browser exit.
 }
 
 function savestar() {
-  const expires = new Date(Date.now() + 365 * 864e5).toUTCString()
+  const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
   const cookiestring = "what could star options be"; //staroptions
   document.cookie = "star=" + encodeURIComponent(cookiestring) + "; expires=" + expires + "; path=/; SameSite=Strict;";
   //no expiry would allow the cookie to be automatically deleted upon browser exit.
@@ -1960,7 +2012,10 @@ function graphdraw(e) {
     graphdot.style.left = x - 2 + "px";
     graphdot.style.top = y - 2 + "px";
     life = parseFloat((10.75 - x/20).toFixed(2));
-    pixel = {'x':(200-y)*2+1, 'y':(200-y)*2+1};
+    pixel = {
+      x: (200-y)*2+1,
+      y: (200-y)*2+1,
+    };
     graphstat.innerHTML = `Pixel: ${pixel.x}px Life: ${life}s`;
   }
 }
@@ -1973,7 +2028,7 @@ function leverdraw(e) {
     x = Math.max(x, 0);
     leverdot.style.left = 4+x + "px";
     accelerate = (200-x)*8;
-    fps = 57600/fpsInterval;
+    fps.vfps = 57600/fpsInterval;
     leverstat.innerHTML = `Accelerate: ${accelerate/200}s`;
   }
 }
@@ -1990,7 +2045,10 @@ function change_screensaver(o) {
   colorful = o[2];
   useimg = o[3];
   ismask = o[4];
-  pixel = {'x':o[6], 'y':o[7]};
+  pixel = {
+    x: o[6],
+    y: o[7],
+  };
   life = o[8];
   density = o[9];
   accelerate = o[10]*200;
@@ -2115,7 +2173,7 @@ function qixscan() {
   qixmaskc.putImageData(qixmap, 0, 0);
 }
 
-function clearSq(x, y, w, h, co=0) {
+function clearSq(x, y, w, h, co = 0) {
   const ww = qixmask.width;
   const yh = h>0 ? [y,h+1] : [y+h,-h+1];
   const xw = w>0 ? [x,w+1] : [x+w,-w+1];
@@ -2140,7 +2198,7 @@ function stixpath(nx, ny) {
     qixline.d = nx ? 'y' : 'x';
     return;
   }
-  const stix = qixlines[qixlines.length-1];
+  const stix = qixlines.at(-1);
   if (qixline[qixline.d] === x) {
     stix[3] = y-stix[1];
   } else if (qixline[qixline.d] === y) {
@@ -2156,11 +2214,11 @@ function stixpath(nx, ny) {
 function qixstep() {
   const x = Math.floor(qixpos.x/qixsc);
   const y = Math.floor(qixpos.y/qixsc);
-  const nx = (Keypress[4]||Keypress[39]?1:0) + (Keypress[1]||Keypress[37]?-1:0);
-  const ny = (Keypress[19]||Keypress[40]?1:0) + (Keypress[23]||Keypress[38]?-1:0);
+  const nx = (Keypress[4] || Keypress[39] ? 1 : 0) + (Keypress[1] || Keypress[37] ? -1 : 0);
+  const ny = (Keypress[19] || Keypress[40] ? 1 : 0) + (Keypress[23] || Keypress[38] ? -1 : 0);
   if (x+nx >= 0 && y+ny >= 0 && x+nx < qixmask.width && y+ny < qixmask.height) {
     const o = x + nx + qixmask.width*(y + ny);
-    if (qixmap.data[o*4+3] !== 255){
+    if (qixmap.data[o*4+3] !== 255) {
       qixpos.x += nx;
       qixpos.y += ny;
       //stixpath();
@@ -2181,7 +2239,7 @@ function qixstep() {
   }
 }
 
-function qixstep2(k=false) {
+function qixstep2(k = false) {
   const x = Math.floor(qixpos2.x/qixsc);
   const y = Math.floor(qixpos2.y/qixsc);
   const nx = k ? (Keypress[8]?1:0) + (Keypress[6]?-1:0) : Math.round((Math.random()-0.5)*8);
@@ -2329,19 +2387,19 @@ function qixupdate() {
   //context.fillRect(0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
   //context.drawImage(anim,
   //  // Selection
-  //  (anim.width-c.width) * ((Math.floor(currentFrame) % 120)/120),
+  //  (anim.width-canvas.width) * ((Math.floor(currentFrame) % 120)/120),
   //  600, // sy
-  //  c.width, // sWidth
-  //  c.height, // sHeight
+  //  canvas.width, // sWidth
+  //  canvas.height, // sHeight
   //  // Drawing
   //  0, // dx
   //  0, // dy
-  //  c.width, // dWidth
-  //  c.height // dHeight
+  //  canvas.width, // dWidth
+  //  canvas.height // dHeight
   //);
 
-  for (let y=0; y < c.height; y += anim.height) {
-    for (let x=currentFrame; x < c.width; x += anim.width) {
+  for (let y=0; y < canvas.height; y += anim.height) {
+    for (let x=currentFrame; x < canvas.width; x += anim.width) {
       context.drawImage(anim, x, y);
     }
   }
@@ -2373,8 +2431,8 @@ function makemenu() {
     e.style.margin = "0 20px";
     if (options[1] === 'displayfps') {
       e.addEventListener(tc, () => {
-        displayfps = !displayfps;
-        result.style.display = displayfps && !solitaire ? 'block' : 'none';
+        fps.display = !fps.display;
+        result.style.display = fps.display && !solitaire ? 'block' : 'none';
       });
     } else if (options[1] === 'fly') {
       e.addEventListener(tc, () => {
@@ -2390,13 +2448,13 @@ function makemenu() {
     } else if (options[1] === 'fps') {
       e.addEventListener(tc, () => {
         if (options.length > 2) {
-          throttlebyfps = true;
+          fps.throttle = true;
           fpsInterval = 1000 / options[2];
-          fps = 57600/fpsInterval;
+          fps.vfps = 57600/fpsInterval;
         } else {
-          throttlebyfps = false;
+          fps.throttle = false;
           fpsInterval = 1000 / 120;
-          fps = 57600/fpsInterval;
+          fps.vfps = 57600/fpsInterval;
         }
 
         //startTime = Date.now();
@@ -2482,15 +2540,15 @@ function makemenu() {
     poppy.appendChild(e);
   };
 
-  const unlock = (m, d) => {
+  const unlock = (m, n, d) => {
     let e = document.createElement("DIV");
-    e.innerHTML = m;
+    e.textContent = m.join(n-winsoln);
     e.style.margin = "0 20px";
     e.style.color = "#848484";
     e.style.textShadow = "1px 1px #fff";
     poppy.appendChild(e);
 
-    if (d){
+    if (d) {
       e = document.createElement("DIV");
       e.classList = "poppyexp";
       poppy.appendChild(e);
@@ -2501,19 +2559,19 @@ function makemenu() {
   if (!winsoln || winsoln >= 5) {
     addmenu(['Solitaire (draw 1)', 'solitaire', 1]);
   } else {
-    unlock(`Solitaire (draw 1) (${5-winsoln} or reset)`);
+    unlock(['Solitaire (draw 1) (', ' or reset)'], 5);
   }
   if (winsoln >= 1) {
     addmenu(['Solitaire (draw 3)', 'solitaire', 3]);
   } else {
-    unlock('Solitaire (draw 3) (1)');
+    unlock(['Solitaire (draw 3) (', ')'], 1);
   }
 
   if (winsoln >= 5) {
     addmenu(['Qix', 'qix']);
     //addmenu(['Chess',  5, 3]);
   } else {
-    unlock(`Qix (${5-winsoln})`);
+    unlock(['Qix (', ')'], 5);
   }
 
   let e = document.createElement("DIV");
@@ -2578,27 +2636,27 @@ function makemenu() {
 
   addmenu();
 
-  addmenu(['Flying Windows',             'screensaver', 3, true,  true,  'win95.png', 95, 95, 1, 75, 2, false]);
+  addmenu(['Flying Windows',             'screensaver', 3, true,  true,  'win95.png', 95, 95, 1, 75, 4, false]);
   if (winsoln >= 1) {
-    addmenu(['Slow Windows',             'screensaver', 3, true,  true,  'win95.png', 95, 95, 10, 75, 2, false]);
+    addmenu(['Slow Windows',             'screensaver', 3, true,  true,  'win95.png', 95, 95, 10, 75, 4, false]);
   } else {
-    unlock(`Slow Windows (${1-winsoln})`);
+    unlock(['Slow Windows (', ')'], 1);
   }
   if (winsoln >= 5) {
-    addmenu(['Big Windows',              'screensaver', 3, true,  true,  'win95.png', 380, 380, 1, 75, 2, false]);
+    addmenu(['Big Windows',              'screensaver', 3, true,  true,  'win95.png', 380, 380, 1, 75, 4, false]);
   } else {
-    unlock(`Big Windows (${5-winsoln})`);
+    unlock(['Big Windows (', ')'], 5);
   }
   if (winsoln >= 10) {
     addmenu(['Starfield',                'screensaver', 0, false, false, false,       4, 4, 1.50, 200, 0, false]);
   } else {
-    unlock(`Starfield (${10-winsoln})`);
+    unlock(['Starfield (', ')'], 10);
   }
   if (winsoln >= 16) {
     addmenu(['8000 colorful stars',      'screensaver', 3, false, false, false,       4, 4, 1.25, 8000, 0, false]);
     addmenu(['8000 slow colorful stars', 'screensaver', 3, false, false, false,       4, 4, 10, 8000, 0, false]);
-    addmenu(['Surreal Xmas memory',      'screensaver', 1, true,  true,  'light.png', 190, 190, 1.25, 800, 2, "#072700"]);
-    addmenu(['2000 flying Windows',      'screensaver', 3, true,  true,  'win95.png', 95, 95, 1.25, 2000, 2, false]);
+    addmenu(['Surreal Xmas memory',      'screensaver', 1, true,  true,  'light.png', 190, 190, 1.25, 800, 4, "#072700"]);
+    addmenu(['2000 flying Windows',      'screensaver', 3, true,  true,  'win95.png', 95, 95, 1.25, 2000, 4, false]);
   }
   //addmenu(['Flying solitaire',         'screensaver', 0,  true,  false, false,       71*3, 96*3, 1.25, 1, "#007D00"]);
   //addmenu(['Clear',               4, 0]);
@@ -2608,7 +2666,7 @@ function makemenu() {
   if (winsoln >= 32) {
     addmenu(['Fly', 'fly', true]);
   } else {
-    unlock(`Fly (${32-winsoln})`);
+    unlock(['Fly (', ')'], 32);
   }
   staropt = document.createElement("DIV");
   if (winsoln >= 64) {
@@ -2697,8 +2755,8 @@ function makemenu() {
     });
 
   } else {
-    unlock(`Glide (${64-winsoln})`);
-    unlock(`Star speed (${64-winsoln})`, true);
+    unlock(['Glide (', ')'], 64);
+    unlock(['Star speed (', ')'], 64, true);
   }
 
   addmenu();
@@ -2707,7 +2765,7 @@ function makemenu() {
   if (winsoln >= 16) {
     addmenu(['Unrestricted FPS', 'fps']);
   } else {
-    unlock(`Unrestricted FPS (${16-winsoln})`);
+    unlock(['Unrestricted FPS (', ')'], 16);
   }
 }
 
@@ -2821,14 +2879,7 @@ function windo(win) {
 
 var Keypress = Array(37).fill(false);
 
-window.onload = () => {
-  glyph.appendChild(glyphscr);
-  let win = document.createElement("img");
-  win.src = 'win95.png';
-  win.onload = () => {
-    windo(win);
-  }
-
+function createkeyboard() {
   drawkeyboard([["Esc"]], esc);
   drawkeyboard([["F1", "F2", "F3", "F4"]], f1);
   drawkeyboard([["F5", "F6", "F7", "F8"]], f5);
@@ -2893,9 +2944,22 @@ window.onload = () => {
   homekeys.appendChild(br);
 
   drawkeyboard([["Del", "End", "PgDn"]], homekeys);
+}
+
+window.onload = () => {
+  result.style.display = fps.display ? 'block' : 'none';
+  document.title = 'Starfield';
+  glyph.appendChild(glyphscr);
+  let win = document.createElement("img");
+  win.src = 'win95.png';
+  win.onload = () => {
+    windo(win);
+  }
+
+  createkeyboard();
 
   if (isTouch) {
-    c.addEventListener('touchstart', (e_) => {
+    canvas.addEventListener('touchstart', (e_) => {
       FFdown(e_);
       if (busyclick) {
         clearTimeout(busyclick);
@@ -2904,17 +2968,17 @@ window.onload = () => {
         busyclick = setTimeout(() => {rightc(e_)}, 500);
       }
     });
-    c.addEventListener('touchend', (e_) => {
+    canvas.addEventListener('touchend', (e_) => {
       FFup(e_);
       clearTimeout(busyclick);
       busyclick = false;
     });
-    c.addEventListener('touchmove', (e_) => {
+    canvas.addEventListener('touchmove', (e_) => {
       FFmove(e_);
       clearTimeout(busyclick);
       busyclick = false;
     });
-    c.addEventListener('contextmenu', (e_) => {
+    canvas.addEventListener('contextmenu', (e_) => {
       e_.preventDefault();
     });
   } else {
@@ -2936,7 +3000,7 @@ window.onload = () => {
   //poppy.appendChild(e);
 
   const cookies = document.cookie.split(';');
-  for(const cookie of cookies) {
+  for (const cookie of cookies) {
     const ck = cookie.trimStart();
     if (ck.indexOf("winsol=") == 0) {
       winsoln = parseInt(decodeURIComponent(ck.substring("winsol=".length, ck.length)));
@@ -2946,22 +3010,23 @@ window.onload = () => {
   makemenu();
 
   document.addEventListener("keydown", (e) => {
-    if (65-1 < e.keyCode && e.keyCode < 90+1) {
-      pressed(e.keyCode-64, true);
-    } else if (48-1 < e.keyCode && e.keyCode < 57+1) {
-      pressed(e.keyCode-21, true);
-    } else if (37-1 < e.keyCode && e.keyCode < 40+1) {
-      pressed(e.keyCode, true);
+    const { keyCode, location } = e;
+    if (65 - 1 < keyCode && keyCode < 90 + 1) {
+      pressed(keyCode - 64, true);
+    } else if (48 - 1 < keyCode && keyCode < 57 + 1) {
+      pressed(keyCode - 21, true);
+    } else if (37 - 1 < keyCode && keyCode < 40 + 1) {
+      pressed(keyCode, true);
     } else {
-      if (e.keyCode === 8) {
+      if (keyCode === 8) {
         glyphcur -= glyphcur ? 1 : 0;
-        glyphc.clearRect(16*glyphcur, 16*glyphrn, 16, 16);
+        glyphc.clearRect(16 * glyphcur, 16 * glyphrn, 16, 16);
       }
-      if (e.keyCode === 16) {
+      if (keyCode === 16) {
         glyphdn = 2;
       }
-      if (e.keyCode === 32) {
-        glyphc.clearRect(16*glyphcur, 16*glyphrn, 16, 16);
+      if (keyCode === 32) {
+        glyphc.clearRect(16 * glyphcur, 16 * glyphrn, 16, 16);
         if (glyphcur > 57) {
           glyphrn = glyphrn > 2 ? 0 : glyphrn + 1;
           glyphcur = 0;
@@ -2969,36 +3034,37 @@ window.onload = () => {
           glyphcur += 1;
         }
       }
-      if (e.keyCode === 13) {
+      if (keyCode === 13) {
         glyphrn = glyphrn > 2 ? 0 : glyphrn + 1;
         glyphcur = 0;
       }
-      console.log(e.keyCode, e.location);
+      console.log(keyCode, location);
     };
   });
 
   document.addEventListener("keyup", (e) => {
-    if (65-1 < e.keyCode && e.keyCode < 90+1) {
-      pressed(e.keyCode-64, false);
-    } else if (48-1 < e.keyCode && e.keyCode < 57+1) {
-      pressed(e.keyCode-21, false);
-    } else if (37-1 < e.keyCode && e.keyCode < 40+1) {
-      pressed(e.keyCode, false);
+    const { keyCode } = e;
+    if (65 - 1 < keyCode && keyCode < 90 + 1) {
+      pressed(keyCode - 64, false);
+    } else if (48 - 1 < keyCode && keyCode < 57 + 1) {
+      pressed(keyCode - 21, false);
+    } else if (37 - 1 < keyCode && keyCode < 40 + 1) {
+      pressed(keyCode, false);
     };
-    if (e.keyCode === 16) {
+    if (keyCode === 16) {
       glyphdn = 1;
     }
   });
 
   addEventListener("resize", () => {
-    c.width = document.documentElement.clientWidth;
-    c.height = document.documentElement.clientHeight;
+    canvas.width = document.documentElement.clientWidth;
+    canvas.height = document.documentElement.clientHeight;
     context.imageSmoothingEnabled = false;
-    dim.x = Math.floor(c.width/2)
-    dim.y = Math.floor(c.height/2);
-    friction.x = Math.ceil(c.width/c.height);
-    friction.y = Math.ceil(c.height/c.width);
-    if (solitaire){
+    dim.x = Math.floor(canvas.width/2)
+    dim.y = Math.floor(canvas.height/2);
+    friction.x = Math.ceil(canvas.width/canvas.height);
+    friction.y = Math.ceil(canvas.height/canvas.width);
+    if (solitaire) {
       sol();
     }
   });
@@ -3008,15 +3074,15 @@ window.onload = () => {
     //frameCount = 0;
   });
 
-  c.style.cursor = 'pointer';
-  document.body.append(c);
+  canvas.style.cursor = 'pointer';
+  document.body.append(canvas);
 
-  dim.x = Math.floor(c.width/2)
-  dim.y = Math.floor(c.height/2);
+  dim.x = Math.floor(canvas.width/2)
+  dim.y = Math.floor(canvas.height/2);
   mousepos.x = dim.x;
   mousepos.y = dim.y;
-  friction.x = Math.ceil(c.width/c.height);
-  friction.y = Math.ceil(c.height/c.width);
+  friction.x = Math.ceil(canvas.width/canvas.height);
+  friction.y = Math.ceil(canvas.height/canvas.width);
 
   alpha.src = 'win95.png';
   alpha.onload = () => {
@@ -3028,7 +3094,8 @@ window.onload = () => {
     dialogbox.style.display = 'none';
   });
 }
-</script></head>
+</script>
+</head>
 <body>
 <div id="fgbg"></div>
 <div class="hintscreen"><div class="hint" id="hint"></div></div>

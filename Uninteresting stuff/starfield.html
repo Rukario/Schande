@@ -317,12 +317,13 @@ const fps = {
   throttle: true,
   vfps: 15,
   display: false,
+  avg_slots: 10,
   avg: [],
 };
 
 var speed = 60;
 var accelerate = 800; // supposedly; jumpscare if too low
-var life = 2; // per second
+var life = 1; // per second
 var pixel = {'x':95, 'y':95};
 var density = 75;
 var frustum = 0.8 + 0.4;
@@ -449,10 +450,12 @@ function screensaver(resolve) {
       const toodiff = sinceStart / ++frameCount;
 
       if (toodiff > (1000 / fps.vfps) + fpsInterval/20) {
-        startTime = Date.now();
-        frameCount = 0;
-        if (isFinite(fps.vfps)) {
-          fps.vfps = fps.vfps / (1 + fpsInterval / (accelerate ? accelerate : 1));
+        if (isFinite(fps.vfps) && accelerate) {
+          startTime = Date.now();
+          frameCount = 0;
+          fps.vfps = fps.vfps / (1 + fpsInterval / accelerate);
+        } else if (!accelerate) {
+          fps.vfps = 1000 / fpsInterval;
         } else {
           fps.vfps = 57600 / fpsInterval;
         }
@@ -545,6 +548,7 @@ function screensaver(resolve) {
   };
   startTime = Date.now();
   frameCount = 0;
+  result.style.display = fps.display ? 'block' : 'none';
   update();
 }
 
@@ -552,15 +556,14 @@ function new_screensaver() {
   winanim = false;
   hint.style.display = 'none';
   hintb.style.display = 'none';
-  let promise = new Promise((resolve) => {
-    busyscreensaver = true;
-    screensaver(resolve);
-  });
 
-  Promise.all([promise]).then(() => {
-    busyscreensaver = false;
+  Promise.all([busyscreensaver]).then(() => {
     stopscreensaver = false;
-    result.style.display = fps.display ? 'block' : 'none';
+    if (!solitaire) {
+      busyscreensaver = new Promise((resolve) => {
+        screensaver(resolve);
+      });
+    }
   });
 }
 
@@ -1000,7 +1003,9 @@ function drawcross(x, y) {
 }
 
 function sol() {
-  if ([...Array(4).keys()].every((pos) => {return slots[pos+1][1].length === ncard/4})) {
+  if ([...Array(4).keys()].every((pos) => {
+    return slots[pos + 1][1].length === ncard/4;
+  })) {
     if (!winanim) {
       clearTimeout(winid);
       winsol();
@@ -2029,7 +2034,7 @@ function leverdraw(e) {
     const rect = lever.getBoundingClientRect();
     let x = parseInt(((Math.floor((isTouch ? e.touches[0].clientX : e.clientX) - rect.left))/10))*10;
     x = Math.min(x, 200);
-    x = Math.max(x, 0);
+    // x = Math.max(x, 0);
     leverdot.style.left = 4+x + "px";
     accelerate = (200-x)*8;
     fps.vfps = 57600/fpsInterval;
@@ -2419,7 +2424,9 @@ function qixupdate() {
 
 
 function makemenu() {
-  poppy.innerHTML = "";
+  while (poppy.firstChild) {
+    poppy.lastChild.remove();
+  }
 
   const tc = 'click';
   const addmenu = (options) => {
@@ -2533,7 +2540,6 @@ function makemenu() {
           qixscr2.style.display = "none";
           solitaire = false;
           hintb.style.display = "none";
-          new_screensaver();
         }
         change_screensaver(options);
         savestar();

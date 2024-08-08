@@ -327,7 +327,7 @@ var life = 1; // per second
 var pixel = {'x':95, 'y':95};
 var density = 75;
 var frustum = 0.8 + 0.4;
-var colorful = 3;
+var colorful = 2;
 var fly = false;
 var glide = false;
 var gliden = 200;
@@ -525,6 +525,7 @@ function screensaver(resolve) {
           //  star[0] += 1;
           //}
 
+          const dot_pos = [Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y];
           if (useimg) {
             //maskcontext.fillStyle = star[3];
             //maskcontext.drawImage(alpha, 0, 0);
@@ -535,10 +536,10 @@ function screensaver(resolve) {
             //context.fillStyle = star[3];
             //context.fillRect(Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
             //context.drawImage(alpha, Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
-            context.drawImage(star[3], Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
+            context.drawImage(star[3], ...dot_pos);
           } else {
             context.fillStyle = star[3];
-            context.fillRect(Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
+            context.fillRect(...dot_pos);
           }
         }
       }
@@ -568,13 +569,27 @@ function new_screensaver() {
 }
 
 const xlight = ['#f00', '#f90', '#390', '#06f', '#90c'];
+const wincolor = ['#000000', '#00FF00', '#008080', '#808080', '#A6CAF0', '#C0DCC0', '#800000', '#F60000', '#800080', '#00007F', '#808000', '#FFFBF0', '#C0C0C0', '#710071'];
 
 function starcolor(colorful) {
+  let hex = null;
   switch (colorful) {
+    case 4:
+      hex = [
+        Math.floor(Math.random()*16).toString(16),
+        Math.floor(Math.random()*16).toString(16),
+        Math.floor(Math.random()*16).toString(16),
+      ];
+      return '#' + hex.join('');
     case 3:
-      return `#${Math.floor(Math.random()*16).toString(16)}${Math.floor(Math.random()*16).toString(16)}${Math.floor(Math.random()*16).toString(16)}`;
+      hex = [
+        Math.floor(4 + Math.random()*12).toString(16),
+        Math.floor(4 + Math.random()*12).toString(16),
+        Math.floor(4 + Math.random()*12).toString(16),
+      ];
+      return '#' + hex.join('');
     case 2:
-      return `#${Math.floor(4 + Math.random()*12).toString(16)}${Math.floor(4 + Math.random()*12).toString(16)}${Math.floor(4 + Math.random()*12).toString(16)}`;
+      return wincolor[Math.floor(Math.random() * wincolor.length)];
     case 1:
       return xlight[Math.floor(Math.random() * xlight.length)];
     default:
@@ -2646,14 +2661,14 @@ function makemenu() {
 
   addmenu();
 
-  addmenu(['Flying Windows',             'screensaver', 3, true,  true,  'win95.png', 95, 95, 1, 75, 4, false]);
+  addmenu(['Flying Windows',             'screensaver', 2, true,  true,  'win95.png', 95, 95, 1, 75, 4, false]);
   if (winsoln >= 1) {
-    addmenu(['Slow Windows',             'screensaver', 3, true,  true,  'win95.png', 95, 95, 10, 75, 4, false]);
+    addmenu(['Slow Windows',             'screensaver', 2, true,  true,  'win95.png', 95, 95, 10, 75, 4, false]);
   } else {
     unlock(['Slow Windows (', ')'], 1);
   }
   if (winsoln >= 5) {
-    addmenu(['Big Windows',              'screensaver', 3, true,  true,  'win95.png', 380, 380, 1, 75, 4, false]);
+    addmenu(['Big Windows',              'screensaver', 2, true,  true,  'win95.png', 380, 380, 1, 75, 4, false]);
   } else {
     unlock(['Big Windows (', ')'], 5);
   }
@@ -2662,11 +2677,14 @@ function makemenu() {
   } else {
     unlock(['Starfield (', ')'], 10);
   }
-  if (winsoln >= 16) {
-    addmenu(['8000 colorful stars',      'screensaver', 3, false, false, false,       4, 4, 1.25, 8000, 0, false]);
-    addmenu(['8000 slow colorful stars', 'screensaver', 3, false, false, false,       4, 4, 10, 8000, 0, false]);
+  if (winsoln >= 24) {
+    addmenu(['Flying Windows 24-bit',     'screensaver', 4, true,  true,  'win95.png', 95, 95, 1, 75, 4, false]);
+    addmenu(['8000 colorful stars',      'screensaver', 4, false, false, false,       4, 4, 1.25, 8000, 0, false]);
+    addmenu(['8000 slow colorful stars', 'screensaver', 4, false, false, false,       4, 4, 10, 8000, 0, false]);
     addmenu(['Surreal Xmas memory',      'screensaver', 1, true,  true,  'light.png', 190, 190, 1.25, 800, 4, "#072700"]);
-    addmenu(['2000 flying Windows',      'screensaver', 3, true,  true,  'win95.png', 95, 95, 1.25, 2000, 4, false]);
+    addmenu(['2000 flying Windows',      'screensaver', 4, true,  true,  'win95.png', 95, 95, 1.25, 2000, 4, false]);
+  } else {
+    unlock(['Flying Windows 24-bit (', ')'], 24);
   }
   //addmenu(['Flying solitaire',         'screensaver', 0,  true,  false, false,       71*3, 96*3, 1.25, 1, "#007D00"]);
   //addmenu(['Clear',               4, 0]);
@@ -2684,9 +2702,13 @@ function makemenu() {
 
     document.addEventListener("wheel", (event) => {
       const w = -event.wheelDelta/480;
-      if (life+w < 15.5 && life+w > 0.5) {
-        life += w;
+      if (life+w > 10.5) {
+        life = 10.5;
+      } else if (life+w >= 0.75) {
+        life = parseInt((life+w)*4)/4;
       }
+      graphdot.style.left = -life * 20 + 200 + 13 + "px";
+      graphstat.innerHTML = `Pixel: ${pixel.x}px Life: ${life}s`;
     });
 
     e = document.createElement("DIV");

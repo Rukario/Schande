@@ -568,6 +568,7 @@ function new_screensaver() {
 
 const xlight = ['#f00', '#f90', '#390', '#06f', '#90c'];
 const wincolor = ['#000000', '#00FF00', '#008080', '#808080', '#A6CAF0', '#C0DCC0', '#800000', '#F60000', '#800080', '#00007F', '#808000', '#FFFBF0', '#C0C0C0', '#710071', '#008000'];
+const winpride = ['#e00', '#f80', '#840', '#ff0', '#0b0', '#0bf', '#00f', '#80b', '#000', '#fff', '#f8b'];
 
 function starcolor(colorful) {
   let hex = null;
@@ -579,13 +580,15 @@ function starcolor(colorful) {
         Math.floor(Math.random()*16).toString(16),
       ];
       return '#' + hex.join('');
-    case 3:
+    case 4:
       hex = [
         Math.floor(4 + Math.random()*12).toString(16),
         Math.floor(4 + Math.random()*12).toString(16),
         Math.floor(4 + Math.random()*12).toString(16),
       ];
       return '#' + hex.join('');
+    case 3:
+      return winpride[Math.floor(Math.random() * winpride.length)];
     case 2:
       return wincolor[Math.floor(Math.random() * wincolor.length)];
     case 1:
@@ -2666,7 +2669,8 @@ function makemenu() {
     unlock(['Starfield (', ')'], 10);
   }
   if (winsoln >= 24) {
-    addmenu(['Flying Windows 24-bit',     'screensaver', 4, true,  true,  'win95.png', 95, 95, 1, 75, 4, false]);
+    addmenu(['Flying Windows 24-bit',    'screensaver', 4, true,  true,  'win95.png', 95, 95, 1, 75, 4, false]);
+    addmenu(['Flying Windows pride',     'screensaver', 3, true,  true,  'win95.png', 95, 95, 1, 75, 4, false]);
     addmenu(['8000 colorful stars',      'screensaver', 4, false, false, false,       4, 4, 1.25, 8000, 0, false]);
     addmenu(['8000 slow colorful stars', 'screensaver', 4, false, false, false,       4, 4, 10, 8000, 0, false]);
     addmenu(['Surreal Xmas memory',      'screensaver', 1, true,  true,  'light.png', 190, 190, 1.25, 800, 4, "#072700"]);

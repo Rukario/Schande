@@ -560,16 +560,14 @@ function new_screensaver() {
 
   Promise.all([busyscreensaver]).then(() => {
     stopscreensaver = false;
-    if (!solitaire) {
-      busyscreensaver = new Promise((resolve) => {
-        screensaver(resolve);
-      });
-    }
+    busyscreensaver = new Promise((resolve) => {
+      screensaver(resolve);
+    });
   });
 }
 
 const xlight = ['#f00', '#f90', '#390', '#06f', '#90c'];
-const wincolor = ['#000000', '#00FF00', '#008080', '#808080', '#A6CAF0', '#C0DCC0', '#800000', '#F60000', '#800080', '#00007F', '#808000', '#FFFBF0', '#C0C0C0', '#710071'];
+const wincolor = ['#000000', '#00FF00', '#008080', '#808080', '#A6CAF0', '#C0DCC0', '#800000', '#F60000', '#800080', '#00007F', '#808000', '#FFFBF0', '#C0C0C0', '#710071', '#008000'];
 
 function starcolor(colorful) {
   let hex = null;
@@ -965,6 +963,7 @@ function winsol() {
     const flycard = flycards[i];
     for (const nth of Array(2).keys()) {
       if (!winanim) {
+        resize();
         return;
       }
       flycard.xvel += gravity.x;
@@ -986,11 +985,9 @@ function winsol() {
       i++;
     }
     if (i === ncard) {
+      setTimeout(resize, 1000);
       idlescreensaver = setTimeout(() => {
-        if (stopscreensaver) {
-          stopscreensaver = false;
-          new_screensaver();
-        }
+        new_screensaver();
       }, 1000);
       return;
     }
@@ -1437,13 +1434,15 @@ function computerplaysol(forhint) {
                 if (ch[0]%2 !== ca[0]%2 && parseInt(ch[1], 16) === parseInt(ca[1], 16)-1) {
                   const x = gap.x*(pos+1) + cardsize[0]*pos;
                   const y = gap.y*2 + cardsize[1]*1 + de*15*scale + 3*scale*slots[pos+5][0].length;
-                  const des = place > 4 ? 1 : 0;
-                  drawhint(hint, x, y, gap.x*(place-(5*des)+1) + cardsize[0]*(place-(5*des)), gap.y*(des+1) + cardsize[1]*(des+1) + (n+1)*15*scale + 3*scale*(slo[0].length+2));
+                  const dx = gap.x*(place+1) + cardsize[0]*place;
+                  const dy = gap.y*1 + cardsize[1]*1 + (n+1)*15*scale + 3*scale*(slo[0].length+2);
+                  drawhint(hint, x, y, dx, dy);
+
                   if (!forhint) {
                     drawx();
                     dragcard = {'x':x, 'y':y, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slo};
                     dragcard['draw'] = n+1;
-                    console.log("That was a special move!");
+                    console.log('That was a special move!');
                     setTimeout(FFup, computerspeed*3);
                   }
                   return;
@@ -1504,7 +1503,7 @@ function computerplaysol(forhint) {
       }
     }
 
-    console.log("Ran into a dead end");
+    console.log('Ran into a dead end');
     const repeat = draw.draw < slots[0][1].length-1 ? Math.ceil((slots[0][1].length-draw.draw-1)/10)-1 : 0;
     const x = gap.x + repeat*2;
     const y = gap.y + repeat;
@@ -1906,10 +1905,7 @@ var imawake = () => {
   }
   clearTimeout(idlescreensaver);
   idlescreensaver = setTimeout(() => {
-    if (stopscreensaver) {
-      stopscreensaver = false;
-      new_screensaver();
-    }
+    new_screensaver();
   }, 60000);
 };
 
@@ -2970,6 +2966,16 @@ function createkeyboard() {
   drawkeyboard([["Del", "End", "PgDn"]], homekeys);
 }
 
+function resize() {
+  canvas.width = document.documentElement.clientWidth;
+  canvas.height = document.documentElement.clientHeight;
+  context.imageSmoothingEnabled = false;
+  dim.x = Math.floor(canvas.width/2)
+  dim.y = Math.floor(canvas.height/2);
+  friction.x = Math.ceil(canvas.width/canvas.height);
+  friction.y = Math.ceil(canvas.height/canvas.width);
+}
+
 window.onload = () => {
   result.style.display = fps.display ? 'block' : 'none';
   document.title = 'Starfield';
@@ -3079,16 +3085,13 @@ window.onload = () => {
       glyphdn = 1;
     }
   });
-
+  
   addEventListener("resize", () => {
-    canvas.width = document.documentElement.clientWidth;
-    canvas.height = document.documentElement.clientHeight;
-    context.imageSmoothingEnabled = false;
-    dim.x = Math.floor(canvas.width/2)
-    dim.y = Math.floor(canvas.height/2);
-    friction.x = Math.ceil(canvas.width/canvas.height);
-    friction.y = Math.ceil(canvas.height/canvas.width);
-    if (solitaire) {
+    if (!winanim) {
+      resize();
+    }
+
+    if (solitaire && !winanim) {
       sol();
     }
   });

@@ -137,7 +137,7 @@
   "Chance's Natural":[[811, 758, 814], "black", 0, 0, "jovial", 0, 0],
   "Clayton's Natural":[[88, 786], "red", 0, 0, "chocolate", 0, 2],
   "Cole's Natural":[[90, 788], "crimson", 0, 0, "white", 0, 0, "black", 2, 0],
-  "Crackers' Natural":[[96, 794], "gold", 0, 0, "cream", 0, 0],
+  "Crackers' Natural":[[96, 794, 1462], "gold", 0, 0, "cream", 0, 0],
   "Crash's Natural":[[33, 734], "psychic", 0, 0, "galaxy", 0, 0],
   "Cuttlefish Natural":[[1111, 1109], "red", 0, 3, "galaxy", 0, 0],
   "David's Natural":[[104, 801], "maroon", 0, 0, "black", 0, 0],
@@ -867,6 +867,8 @@
   "Sandy Claus":[1460, "???", 0, 0],
   "Holly Berry":[1461, "???", 0, 0],
   "Butterfly Kissed":[1464, "???", 0, 0],
+  "Amped Up":[1494, "???", 0, 0],
+  "Far Out":[1495, "???", 0, 0],
 
   "Con":true,
   "Con Trash Bandit":[492, "ocean blue", 0, 0, "cream", 2, 0],
@@ -1003,6 +1005,7 @@
   "YOTD Nox":[1415],
   "YOTD Nix":[1416],
   "YOTD Flint":[1474],
+  "YOTD Orochi":[1496],
 
   "Tertiary colors (unavailable for custom ordering)":true,
   "Ice Age":[1336],

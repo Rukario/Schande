@@ -1490,9 +1490,14 @@ function computerplaysol(forhint) {
         }
         if (unsure) {
           console.log("About to run into a dead end and I'm not sure, maybe wanna move card", cardsym[parseInt(card[0], 16)], cardname[parseInt(card[1], 16)], "somehow? I see a larger number from pile that might be able to help with that.");
-          solcomputer = false;
-          if (!forhint) {
+          if (debugcomputer) {
+            new_deck();
             sol();
+          } else {
+            solcomputer = false;
+            if (!forhint) {
+              sol();
+            }
           }
           return;
         }
@@ -1621,19 +1626,34 @@ var FFdown = (e_) => {
     }
 
     // Solitaire with computer
-    if (!winanim && mousepos.x > gap.x*8 + cardsize[0]*7 + 12*(drawn-1)*scale && mousepos.x < gap.x*8 + cardsize[0]*8 && mousepos.y > gap.y + cardsize[1]*0 && mousepos.y < gap.y*1 + cardsize[1]*1/2) {
-      solcomputer = debugcomputer ? true : !solcomputer;
-      debugcomputer = false;
-      computerspeed = 30;
+    if (!winanim &&
+      mousepos.x > gap.x*8 + cardsize[0]*7 &&
+      mousepos.x < gap.x*8 + cardsize[0]*8 &&
+      mousepos.y > gap.y*1 + cardsize[1]*0 &&
+      mousepos.y < gap.y*1 + cardsize[1]*1
+    ) {
+      let pos = 0;
+
+      if (mousepos.y < gap.y*1 + cardsize[1]*1/2) {
+        solcomputer = debugcomputer ? true : !solcomputer;
+        debugcomputer = false;
+        computerspeed = 30;
+      } else {
+        solcomputer = !debugcomputer ? true : !solcomputer;
+        debugcomputer = true;
+        computerspeed = 1;
+        pos = -cardsize[1]/2;
+      }
+
       if (ice.filter) {
         ice.filter = 'invert(1)';
         ice.globalCompositeOperation = 'source-over';
         ice.clearRect(0, 0, invert.width, invert.height);
-        ice.drawImage(cards['computer'], 0, 0, ...cardsize);
+        ice.drawImage(cards['computer'], 0, pos, ...cardsize);
       } else {
         ice.globalCompositeOperation = 'source-over';
         ice.clearRect(0, 0, invert.width, invert.height);
-        ice.drawImage(cards['computer'], 0, 0, ...cardsize);
+        ice.drawImage(cards['computer'], 0, pos, ...cardsize);
         ice.globalCompositeOperation = 'difference';
         ice.fillStyle = 'white';
         ice.fillRect(0, 0, invert.width, invert.height);
@@ -1641,42 +1661,14 @@ var FFdown = (e_) => {
         let ice2 = invert2.getContext('2d');
         invert2.width = invert.width;
         invert2.height = invert.height;
-        ice2.drawImage(cards['computer'], 0, 0, ...cardsize);
+        ice2.drawImage(cards['computer'], 0, pos, ...cardsize);
         ice2.globalCompositeOperation = 'source-in';
         ice2.fillStyle = 'black';
         ice2.fillRect(0, 0, invert.width, invert.height);
         ice.globalCompositeOperation = 'destination-in';
         ice.drawImage(invert2, 0, 0, invert.width, invert.height);
       }
-      sol();
-    }
-    if (!winanim && mousepos.x > gap.x*8 + cardsize[0]*7 + 12*(drawn-1)*scale && mousepos.x < gap.x*8 + cardsize[0]*8 && mousepos.y > gap.y + cardsize[1]*1/2 && mousepos.y < gap.y*1 + cardsize[1]*1) {
-      solcomputer = !debugcomputer ? true : !solcomputer;
-      debugcomputer = true;
-      computerspeed = 1;
-      if (ice.filter) {
-        ice.filter = 'invert(1)';
-        ice.globalCompositeOperation = 'source-over';
-        ice.clearRect(0, 0, invert.width, invert.height);
-        ice.drawImage(cards['computer'], 0, -cardsize[1]/2, ...cardsize);
-      } else {
-        ice.globalCompositeOperation = 'source-over';
-        ice.clearRect(0, 0, invert.width, invert.height);
-        ice.drawImage(cards['computer'], 0, -cardsize[1]/2, ...cardsize);
-        ice.globalCompositeOperation = 'difference';
-        ice.fillStyle = 'white';
-        ice.fillRect(0, 0, invert.width, invert.height);
-        let invert2 = document.createElement('canvas');
-        let ice2 = invert2.getContext('2d');
-        invert2.width = invert.width;
-        invert2.height = invert.height;
-        ice2.drawImage(cards['computer'], 0, -cardsize[1]/2, ...cardsize);
-        ice2.globalCompositeOperation = 'source-in';
-        ice2.fillStyle = 'black';
-        ice2.fillRect(0, 0, invert.width, invert.height);
-        ice.globalCompositeOperation = 'destination-in';
-        ice.drawImage(invert2, 0, 0, invert.width, invert.height);
-      }
+
       sol();
     }
 

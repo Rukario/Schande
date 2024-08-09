@@ -446,13 +446,10 @@ function starry(toodiff) {
     startTime = Date.now();
     frameCount = 0;
     if (!star.accelerate) {
-      console.log('new life');
       fps.vfps = 1000 / fps.msec;
     } else if (isFinite(fps.vfps)) {
-      console.log('decreasing life');
       fps.vfps = fps.vfps / (1 + fps.msec / (star.accelerate*200));
     } else {
-      console.log('reset life');
       fps.vfps = 57600 / fps.msec;
     }
   } else {

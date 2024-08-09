@@ -329,6 +329,7 @@ const star = {
   life: 1, // per second
   x: 95,
   y: 95,
+  r: 95/95,
 };
 
 const scr = {
@@ -2053,10 +2054,10 @@ function graphdraw(e) {
     const x = Math.min(Math.floor((isTouch ? e.touches[0].clientX : e.clientX) - rect.left)-1, 200);
     const y = Math.min(Math.floor((isTouch ? e.touches[0].clientY : e.clientY) - rect.top)-2, 200);
     graphdot.style.left = x - 2 + "px";
-    graphdot.style.top = y - 2 + "px";
+    graphdot.style.top = y - 3 + "px";
     star.life = parseFloat((10.75 - x/20).toFixed(2));
-    star.x = (200-y)*2+1;
-    star.y = (200-y)*2+1;
+    star.x = (200-y)+1;
+    star.y = Math.ceil(((200-y)+1)/star.r);
     graphstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
   }
 }
@@ -2076,8 +2077,8 @@ function leverdraw(e) {
 
 function updatestat() {
   graphdot.style.left = 200-star.life*20+13 + "px";
-  graphdot.style.top = 200-star.x/2-2 + "px";
-  graphstat.innerHTML = `Pixel: ${star.x}px Life:${star.life}s`;
+  graphdot.style.top = 200-star.x-2 + "px";
+  graphstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
   leverdot.style.left = 204 - star.accelerate * 25 + "px";
   leverstat.innerHTML = `Accelerate: ${star.accelerate}s`;
 }
@@ -2600,6 +2601,7 @@ function makemenu() {
       ismask = args[4];
       star.x = args[5];
       star.y = args[6];
+      star.r = star.x/star.y;
       star.life = args[7];
       star.accelerate = args[8];
       ccolor = args[9] || '#000';

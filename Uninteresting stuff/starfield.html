@@ -337,8 +337,8 @@ const scr = {
   color: 2,
   fly: false,
   glide: false,
-  gliden: 200,
-  glidef: 1, //0.66
+  levitate: 1,
+  drift: 1, //0.66
   friction: {x: 2, y: 2},
 }
 
@@ -446,12 +446,12 @@ function starry(now) {
   const toodiff = sinceStart / ++frameCount;
 
   if (toodiff > (1000 / fps.vfps) + fps.msec/20) {
-    if (isFinite(fps.vfps) && star.accelerate) {
-      startTime = Date.now();
-      frameCount = 0;
-      fps.vfps = fps.vfps / (1 + fps.msec / (star.accelerate*200));
-    } else if (!star.accelerate) {
+    startTime = Date.now();
+    frameCount = 0;
+    if (!star.accelerate) {
       fps.vfps = 1000 / fps.msec;
+    } else if (isFinite(fps.vfps)) {
+      fps.vfps = fps.vfps / (1 + fps.msec / (star.accelerate*200));
     } else {
       fps.vfps = 57600 / fps.msec;
     }
@@ -459,8 +459,8 @@ function starry(now) {
     fps.vfps = Math.round(1000 / toodiff * 100) / 100;
   }
 
-  const driftx = (mousepos.x-dim.x)/scr.gliden/(20/fps.msec)/star.life-(mousepos.x-rubbermouse.x)/scr.friction.x*scr.glidef;
-  const drifty = (mousepos.y-dim.y)/scr.gliden/(20/fps.msec)/star.life-(mousepos.y-rubbermouse.y)/scr.friction.y*scr.glidef;
+  const driftx = (mousepos.x-dim.x)/(200/scr.levitate)/(20/fps.msec)/star.life-(mousepos.x-rubbermouse.x)/scr.friction.x*scr.drift;
+  const drifty = (mousepos.y-dim.y)/(200/scr.levitate)/(20/fps.msec)/star.life-(mousepos.y-rubbermouse.y)/scr.friction.y*scr.drift;
 
   const sec = (Math.round(sinceStart / 1000 * 100) / 100).toFixed(2).padStart(3, '0');
   const simfps = fps.vfps.toFixed(2).padStart(3, '0');
@@ -471,8 +471,8 @@ function starry(now) {
 
   for (const ishtar of stars) {
     if (ishtar[0] === 0) {
-      ishtar[1] = (Math.random()-0.5)*canvas.width*scr.frustum + (scr.glide?(mousepos.x-dim.x)/scr.friction.x:0);
-      ishtar[2] = (Math.random()-0.5)*canvas.height*scr.frustum + (scr.glide?(mousepos.y-dim.y)/scr.friction.y:0);
+      ishtar[1] = (Math.random()-0.5)*canvas.width*scr.frustum + (scr.glide ? (mousepos.x-dim.x)/scr.friction.x : 0);
+      ishtar[2] = (Math.random()-0.5)*canvas.height*scr.frustum + (scr.glide ? (mousepos.y-dim.y)/scr.friction.y : 0);
       //ishtar[1] = Math.floor(canvas.width/6) + Math.floor(Math.random()*canvas.width/1.5);
       //ishtar[2] = Math.floor(canvas.height/6) + Math.floor(Math.random()*canvas.height/1.5);
       //ishtar[3] = scr.color ? `rgb(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)})` : '#fff';
@@ -2704,7 +2704,7 @@ function makemenu() {
       const w = -event.wheelDelta/480;
       if (star.life + w > 10.5) {
         star.life = 10.5;
-      } else if (life+w >= 0.75) {
+      } else if (star.life + w >= 0.75) {
         star.life = parseInt((star.life + w)*4)/4;
       }
       graphdot.style.left = -star.life * 20 + 200 + 13 + "px";

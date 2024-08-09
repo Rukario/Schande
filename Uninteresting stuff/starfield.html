@@ -316,32 +316,39 @@ canvas {
 const fps = {
   throttle: true,
   vfps: 15,
+  hz: 120,
+  msec: 1000 / 15,
   display: false,
   avg_slots: 10,
   avg: [],
 };
 
-var speed = 60;
-var accelerate = 800; // supposedly; jumpscare if too low
-var life = 1; // per second
-var pixel = {'x':95, 'y':95};
-var density = 75;
-var frustum = 0.8 + 0.4;
-var colorful = 2;
-var fly = false;
-var glide = false;
-var gliden = 200;
-var glidef = 1; //0.66
-var friction = {'x':2, 'y':2};
+const star = {
+  speed: 60,
+  accelerate: 4,
+  life: 1, // per second
+  x: 95,
+  y: 95,
+};
+
+const scr = {
+  density: 75,
+  frustum: 0.8 + 0.4,
+  color: 2,
+  fly: false,
+  glide: false,
+  gliden: 200,
+  glidef: 1, //0.66
+  friction: {x: 2, y: 2},
+}
+
 var solitaire = false;
 var qix = false;
 var scale = 1;
 
-var dim = {'x':0, 'y': 0};
-var mousepos = {'x':0, 'y':0};
-var rubbermouse = {'x':0, 'y':0};
-var fpsInterval = 1000 / fps.vfps;
-var ti = Date.now();
+var dim = {x:0, y: 0};
+var mousepos = {x:0, y:0};
+var rubbermouse = {x:0, y:0};
 
 const isTouch = 'ontouchstart' in window;
 var busyclick = false;
@@ -424,131 +431,140 @@ var startTime;
 
 
 
-function newstar(star) {
-  const speli = speed * life;
+function newstar(ishtar) {
+  const speli = star.speed * star.life;
   const age = Math.random() * speli % (0.66 * speli);
-  const x = ((Math.random() - 0.5) * canvas.width * frustum / speli) * (speli - age);
-  const y = ((Math.random() - 0.5) * canvas.height * frustum / speli) * (speli - age);
-  stars.push([age, x, y, star]);
+  const x = ((Math.random() - 0.5) * canvas.width * scr.frustum / speli) * (speli - age);
+  const y = ((Math.random() - 0.5) * canvas.height * scr.frustum / speli) * (speli - age);
+  stars.push([age, x, y, ishtar]);
 }
 
 
 
+function starry(now) {
+  const sinceStart = now - startTime;
+  const toodiff = sinceStart / ++frameCount;
+
+  if (toodiff > (1000 / fps.vfps) + fps.msec/20) {
+    if (isFinite(fps.vfps) && star.accelerate) {
+      startTime = Date.now();
+      frameCount = 0;
+      fps.vfps = fps.vfps / (1 + fps.msec / (star.accelerate*200));
+    } else if (!star.accelerate) {
+      fps.vfps = 1000 / fps.msec;
+    } else {
+      fps.vfps = 57600 / fps.msec;
+    }
+  } else {
+    fps.vfps = Math.round(1000 / toodiff * 100) / 100;
+  }
+
+  const driftx = (mousepos.x-dim.x)/scr.gliden/(20/fps.msec)/star.life-(mousepos.x-rubbermouse.x)/scr.friction.x*scr.glidef;
+  const drifty = (mousepos.y-dim.y)/scr.gliden/(20/fps.msec)/star.life-(mousepos.y-rubbermouse.y)/scr.friction.y*scr.glidef;
+
+  const sec = (Math.round(sinceStart / 1000 * 100) / 100).toFixed(2).padStart(3, '0');
+  const simfps = fps.vfps.toFixed(2).padStart(3, '0');
+  result.innerHTML = `Uninterrupted for ${sec} seconds @ ${simfps} fps ${fps.msec}`;
+
+  context.fillStyle = ccolor;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (const ishtar of stars) {
+    if (ishtar[0] === 0) {
+      ishtar[1] = (Math.random()-0.5)*canvas.width*scr.frustum + (scr.glide?(mousepos.x-dim.x)/scr.friction.x:0);
+      ishtar[2] = (Math.random()-0.5)*canvas.height*scr.frustum + (scr.glide?(mousepos.y-dim.y)/scr.friction.y:0);
+      //ishtar[1] = Math.floor(canvas.width/6) + Math.floor(Math.random()*canvas.width/1.5);
+      //ishtar[2] = Math.floor(canvas.height/6) + Math.floor(Math.random()*canvas.height/1.5);
+      //ishtar[3] = scr.color ? `rgb(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)})` : '#fff';
+    }
+    if (scr.glide) {
+      ishtar[1] -= driftx;
+      ishtar[2] -= drifty;
+    }
+    const speli = star.speed * star.life;
+    const dot = {
+      x: Math.ceil(ishtar[0]/(speli/star.x)),
+      y: Math.ceil(ishtar[0]/(speli/star.y)),
+    };
+    const sx = (ishtar[1]+(scr.fly?(mousepos.x-dim.x)/6:0))/(speli-ishtar[0])*speli + (scr.glide?ishtar[0]*star.speed/star.life*(-(mousepos.x-dim.x)/(900*scr.friction.x)):0);
+    const sy = (ishtar[2]+(scr.fly?(mousepos.y-dim.x)/6:0))/(speli-ishtar[0])*speli + (scr.glide?ishtar[0]*star.speed/star.life*(-(mousepos.y-dim.y)/(900*scr.friction.y)):0);
+
+    if (
+      sx < (scr.glide?Math.min(mousepos.x-canvas.width,-dim.x):-dim.x)-star.x/2 ||
+      sy < (scr.glide?Math.min(mousepos.y-canvas.height,-dim.y):-dim.y)-star.y/2 ||
+      sx > (scr.glide?Math.max(mousepos.x,dim.x):dim.x)+star.x/2 ||
+      sy > (scr.glide?Math.max(mousepos.y,dim.y):dim.y)+star.y/2 ||
+      ishtar[0] > speli
+    ) {
+      ishtar[0] = 0;
+    } else {
+      ishtar[0] += star.speed / fps.vfps;
+
+      //if (ishtar[1] < dim.x) {
+      //  ishtar[1] -= ((dim.x/ishtar[1])-1)*(1+ishtar[0]/5);
+      //} else {
+      //  ishtar[1] += ((dim.x/(canvas.width-ishtar[1]))-1)*(1+ishtar[0]/5);
+      //}
+      //
+      //if (ishtar[2] < dim.y) {
+      //  ishtar[2] -= ((dim.y/ishtar[2])-1)*(1+ishtar[0]/5);
+      //} else {
+      //  ishtar[2] += ((dim.y/(canvas.height-ishtar[2]))-1)*(1+ishtar[0]/5);
+      //}
+      //
+      //context.fillRect(Math.ceil(ishtar[1]), Math.ceil(ishtar[2]), dot.x, dot.y);
+      //
+      //if (
+      //  ishtar[1] < 0 ||
+      //  ishtar[2] < 0 ||
+      //  ishtar[1] > canvas.width ||
+      //  ishtar[2] > canvas.height ||
+      //  ishtar[0] > speli
+      //) {
+      //  ishtar[0] = 0;
+      //} else {
+      //  ishtar[0] += 1;
+      //}
+
+      const dot_pos = [Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y];
+      if (useimg) {
+        //maskcontext.fillStyle = ishtar[3];
+        //maskcontext.drawImage(alpha, 0, 0);
+        //maskcontext.globalCompositeOperation = "source-in";
+        //maskcontext.fillRect(0, 0, star.x, star.y);
+        //context.drawImage(mask, Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
+      
+        //context.fillStyle = ishtar[3];
+        //context.fillRect(Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
+        //context.drawImage(alpha, Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
+        context.drawImage(ishtar[3], ...dot_pos);
+      } else {
+        context.fillStyle = ishtar[3];
+        context.fillRect(...dot_pos);
+      }
+    }
+  }
+  rubbermouse.x = mousepos.x;
+  rubbermouse.y = mousepos.y;
+}
+
 function screensaver(resolve) {
+  let then = Date.now();
   const update = () => {
     if (stopscreensaver) {
       return resolve(true);
     }
-
     requestAnimationFrame(update);
-
     const now = Date.now();
-    const elapsed = now - ti;
-
-    if (!fps.throttle || elapsed > fpsInterval) {
-      const sinceStart = now - startTime;
-      const toodiff = sinceStart / ++frameCount;
-
-      if (toodiff > (1000 / fps.vfps) + fpsInterval/20) {
-        if (isFinite(fps.vfps) && accelerate) {
-          startTime = Date.now();
-          frameCount = 0;
-          fps.vfps = fps.vfps / (1 + fpsInterval / accelerate);
-        } else if (!accelerate) {
-          fps.vfps = 1000 / fpsInterval;
-        } else {
-          fps.vfps = 57600 / fpsInterval;
-        }
-      } else {
-        fps.vfps = Math.round(1000 / toodiff * 100) / 100;
-      }
-
-      const gx = (mousepos.x-dim.x)/gliden/(20/fpsInterval)/life-(mousepos.x-rubbermouse.x)/friction.x*glidef;
-      const gy = (mousepos.y-dim.y)/gliden/(20/fpsInterval)/life-(mousepos.y-rubbermouse.y)/friction.y*glidef;
-      const sec = (Math.round(sinceStart / 1000 * 100) / 100).toFixed(2).padStart(3, '0');
-
-      const dfps = fps.vfps.toFixed(2).padStart(3, '0');
-      result.innerHTML = `Uninterrupted for ${sec} seconds @ ${dfps} fps`;
-
-      ti = now - (elapsed % fpsInterval);
-      context.fillStyle = ccolor;
-      context.fillRect(0, 0, canvas.width, canvas.height);
-
-      for (const star of stars) {
-        if (star[0] === 0) {
-          star[1] = (Math.random()-0.5)*canvas.width*frustum + (glide?(mousepos.x-dim.x)/friction.x:0);
-          star[2] = (Math.random()-0.5)*canvas.height*frustum + (glide?(mousepos.y-dim.y)/friction.y:0);
-          //star[1] = Math.floor(canvas.width/6) + Math.floor(Math.random()*canvas.width/1.5);
-          //star[2] = Math.floor(canvas.height/6) + Math.floor(Math.random()*canvas.height/1.5);
-          //star[3] = colorful ? `rgb(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)})` : '#fff';
-        }
-        if (glide) {
-          star[1] -= gx;
-          star[2] -= gy;
-        }
-        const speli = speed * life;
-        const dot = {
-          x: Math.ceil(star[0]/(speli/pixel.x)),
-          y: Math.ceil(star[0]/(speli/pixel.y)),
-        };
-        const sx = (star[1]+(fly?(mousepos.x-dim.x)/6:0))/(speli-star[0])*speli + (glide?star[0]*speed/life*(-(mousepos.x-dim.x)/(900*friction.x)):0);
-        const sy = (star[2]+(fly?(mousepos.y-dim.x)/6:0))/(speli-star[0])*speli + (glide?star[0]*speed/life*(-(mousepos.y-dim.y)/(900*friction.y)):0);
-
-        if (
-          sx < (glide?Math.min(mousepos.x-canvas.width,-dim.x):-dim.x)-pixel.x/2 ||
-          sy < (glide?Math.min(mousepos.y-canvas.height,-dim.y):-dim.y)-pixel.y/2 ||
-          sx > (glide?Math.max(mousepos.x,dim.x):dim.x)+pixel.x/2 ||
-          sy > (glide?Math.max(mousepos.y,dim.y):dim.y)+pixel.y/2 ||
-          star[0] > speli
-        ) {
-          star[0] = 0;
-        } else {
-          star[0] += speed / fps.vfps;
-
-          //if (star[1] < dim.x) {
-          //  star[1] -= ((dim.x/star[1])-1)*(1+star[0]/5);
-          //} else {
-          //  star[1] += ((dim.x/(canvas.width-star[1]))-1)*(1+star[0]/5);
-          //}
-          //
-          //if (star[2] < dim.y) {
-          //  star[2] -= ((dim.y/star[2])-1)*(1+star[0]/5);
-          //} else {
-          //  star[2] += ((dim.y/(canvas.height-star[2]))-1)*(1+star[0]/5);
-          //}
-          //
-          //context.fillRect(Math.ceil(star[1]), Math.ceil(star[2]), dot.x, dot.y);
-          //
-          //if ( star[1] < 0 || star[2] < 0 || star[1] > canvas.width || star[2] > canvas.height || star[0] > speli) {
-          //  star[0] = 0;
-          //} else {
-          //  star[0] += 1;
-          //}
-
-          const dot_pos = [Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y];
-          if (useimg) {
-            //maskcontext.fillStyle = star[3];
-            //maskcontext.drawImage(alpha, 0, 0);
-            //maskcontext.globalCompositeOperation = "source-in";
-            //maskcontext.fillRect(0, 0, pixel.x, pixel.y);
-            //context.drawImage(mask, Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
-          
-            //context.fillStyle = star[3];
-            //context.fillRect(Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
-            //context.drawImage(alpha, Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
-            context.drawImage(star[3], ...dot_pos);
-          } else {
-            context.fillStyle = star[3];
-            context.fillRect(...dot_pos);
-          }
-        }
-      }
-      rubbermouse.x = mousepos.x;
-      rubbermouse.y = mousepos.y;
+    const elapsed = now - then;
+    if (!fps.throttle || elapsed > fps.msec) {
+      then = now - (elapsed % fps.msec);
+      starry(now);
     }
   };
   startTime = Date.now();
   frameCount = 0;
+  fps.vfps = 57600/fps.msec;
   result.style.display = fps.display ? 'block' : 'none';
   update();
 }
@@ -570,9 +586,9 @@ const xlight = ['#f00', '#f90', '#390', '#06f', '#90c'];
 const wincolor = ['#000000', '#00FF00', '#008080', '#808080', '#A6CAF0', '#C0DCC0', '#800000', '#F60000', '#800080', '#00007F', '#808000', '#FFFBF0', '#C0C0C0', '#710071', '#008000'];
 const winpride = ['#e00', '#f80', '#840', '#ff0', '#0b0', '#0bf', '#00f', '#80b', '#000', '#fff', '#f8b'];
 
-function starcolor(colorful) {
+function starcolor() {
   let hex = null;
-  switch (colorful) {
+  switch (scr.color) {
     case 4:
       hex = [
         Math.floor(Math.random()*16).toString(16),
@@ -601,7 +617,7 @@ function starcolor(colorful) {
 function new_stars() {
   stars = [];
   function variant(i) {
-    if (i === density) {
+    if (i === scr.density) {
       new_screensaver();
       return;
     }
@@ -612,23 +628,23 @@ function new_stars() {
       mask.height = 95;
 
       const maskcontext = mask.getContext('2d');
-      if (colorful === 1 && Math.floor(Math.random()*4)) {
+      if (scr.color === 1 && Math.floor(Math.random()*4)) {
         maskcontext.drawImage(foliage, 0, 0);
       } else {
         maskcontext.drawImage(alpha, 0, 0);
         maskcontext.globalCompositeOperation = "source-in";
 
-        maskcontext.fillStyle = starcolor(colorful);
+        maskcontext.fillStyle = starcolor();
         maskcontext.fillRect(0, 0, 95, 95);
       };
       canvasToFrame(mask, variant, i);
     } else if (useimg) {
-      for (const n of Array(density).keys()) {
+      for (const n of Array(scr.density).keys()) {
         readcard(new_screensaver, true);
       }
     } else {
-      for (const n of Array(density).keys()) {
-        newstar(starcolor(colorful));
+      for (const n of Array(scr.density).keys()) {
+        newstar(starcolor());
       }
       new_screensaver();
     }
@@ -2026,12 +2042,10 @@ function graphdraw(e) {
     const y = Math.min(Math.floor((isTouch ? e.touches[0].clientY : e.clientY) - rect.top)-2, 200);
     graphdot.style.left = x - 2 + "px";
     graphdot.style.top = y - 2 + "px";
-    life = parseFloat((10.75 - x/20).toFixed(2));
-    pixel = {
-      x: (200-y)*2+1,
-      y: (200-y)*2+1,
-    };
-    graphstat.innerHTML = `Pixel: ${pixel.x}px Life: ${life}s`;
+    star.life = parseFloat((10.75 - x/20).toFixed(2));
+    star.x = (200-y)*2+1;
+    star.y = (200-y)*2+1;
+    graphstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
   }
 }
 
@@ -2041,32 +2055,30 @@ function leverdraw(e) {
     let x = parseInt(((Math.floor((isTouch ? e.touches[0].clientX : e.clientX) - rect.left))/10))*10;
     x = Math.min(x, 200);
     // x = Math.max(x, 0);
-    leverdot.style.left = 4+x + "px";
-    accelerate = (200-x)*8;
-    fps.vfps = 57600/fpsInterval;
-    leverstat.innerHTML = `Accelerate: ${accelerate/200}s`;
+    leverdot.style.left = 4 + x + "px";
+    star.accelerate = (200-x) / 25;
+    fps.vfps = 57600/fps.msec;
+    leverstat.innerHTML = `Accelerate: ${star.accelerate}s`;
   }
 }
 
 function updatestat() {
-  graphdot.style.left = 200-life*20+13 + "px";
-  graphdot.style.top = 200-pixel.x/2-2 + "px";
-  graphstat.innerHTML = `Pixel: ${pixel.x}px Life:${life}s`;
-  leverdot.style.left = 204-accelerate/8 + "px";
-  leverstat.innerHTML = `Accelerate: ${accelerate/200}s`;
+  graphdot.style.left = 200-star.life*20+13 + "px";
+  graphdot.style.top = 200-star.x/2-2 + "px";
+  graphstat.innerHTML = `Pixel: ${star.x}px Life:${star.life}s`;
+  leverdot.style.left = 204 - star.accelerate * 25 + "px";
+  leverstat.innerHTML = `Accelerate: ${star.accelerate}s`;
 }
 
 function change_screensaver(o) {
-  colorful = o[2];
+  scr.color = o[2];
   useimg = o[3];
   ismask = o[4];
-  pixel = {
-    x: o[6],
-    y: o[7],
-  };
-  life = o[8];
-  density = o[9];
-  accelerate = o[10]*200;
+  star.x = o[6];
+  star.y = o[7];
+  star.life = o[8];
+  scr.density = o[9];
+  star.accelerate = o[10];
   if (o[11]) {
     ccolor = o[11];
   } else {
@@ -2454,11 +2466,11 @@ function makemenu() {
     } else if (options[1] === 'fly') {
       e.addEventListener(tc, () => {
         if (options[2]) {
-          fly = glide ? true : !fly;
-          glide = false;
+          scr.fly = scr.glide || !scr.fly;
+          scr.glide = false;
         } else {
-          glide = !glide;
-          fly = glide ? true : false;
+          scr.glide = !scr.glide;
+          scr.fly = !!scr.glide;
         }
         savestar();
       });
@@ -2466,16 +2478,12 @@ function makemenu() {
       e.addEventListener(tc, () => {
         if (options.length > 2) {
           fps.throttle = true;
-          fpsInterval = 1000 / options[2];
-          fps.vfps = 57600/fpsInterval;
+          fps.msec = 1000 / options[2];
         } else {
           fps.throttle = false;
-          fpsInterval = 1000 / 120;
-          fps.vfps = 57600/fpsInterval;
+          fps.msec = 1000 / fps.hz;
         }
-
-        //startTime = Date.now();
-        //frameCount = 0;
+        fps.vfps = 57600/fps.msec;
         savestar();
       });
     } else if (options[1] === 'solitaire') {
@@ -2694,13 +2702,13 @@ function makemenu() {
 
     document.addEventListener("wheel", (event) => {
       const w = -event.wheelDelta/480;
-      if (life+w > 10.5) {
-        life = 10.5;
+      if (star.life + w > 10.5) {
+        star.life = 10.5;
       } else if (life+w >= 0.75) {
-        life = parseInt((life+w)*4)/4;
+        star.life = parseInt((star.life + w)*4)/4;
       }
-      graphdot.style.left = -life * 20 + 200 + 13 + "px";
-      graphstat.innerHTML = `Pixel: ${pixel.x}px Life: ${life}s`;
+      graphdot.style.left = -star.life * 20 + 200 + 13 + "px";
+      graphstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
     });
 
     e = document.createElement("DIV");
@@ -2878,7 +2886,7 @@ function windo(win) {
   mask.height = 95;
  
   let maskcontext = mask.getContext('2d');
-  if (colorful == 1 && Math.floor(Math.random()*4)) {
+  if (scr.color === 1 && Math.floor(Math.random()*4)) {
     maskcontext.drawImage(foliage, 0, 0);
   } else {
     maskcontext.fillStyle = "#088";
@@ -2976,8 +2984,8 @@ function resize() {
   context.imageSmoothingEnabled = false;
   dim.x = Math.floor(canvas.width/2)
   dim.y = Math.floor(canvas.height/2);
-  friction.x = Math.ceil(canvas.width/canvas.height);
-  friction.y = Math.ceil(canvas.height/canvas.width);
+  scr.friction.x = Math.ceil(canvas.width/canvas.height);
+  scr.friction.y = Math.ceil(canvas.height/canvas.width);
 }
 
 window.onload = () => {
@@ -3112,8 +3120,8 @@ window.onload = () => {
   dim.y = Math.floor(canvas.height/2);
   mousepos.x = dim.x;
   mousepos.y = dim.y;
-  friction.x = Math.ceil(canvas.width/canvas.height);
-  friction.y = Math.ceil(canvas.height/canvas.width);
+  scr.friction.x = Math.ceil(canvas.width/canvas.height);
+  scr.friction.y = Math.ceil(canvas.height/canvas.width);
 
   alpha.src = 'win95.png';
   alpha.onload = () => {

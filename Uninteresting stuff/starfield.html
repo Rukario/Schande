@@ -571,6 +571,7 @@ function screensaver(resolve) {
 }
 
 function new_screensaver() {
+  keyboard.style.display = "none";
   winanim = false;
   hint.style.display = 'none';
   hintb.style.display = 'none';
@@ -1947,13 +1948,20 @@ var FFup = (e_) => {
 
 
 var imawake = () => {
-  if (solitaire && !stopscreensaver) {
+  if ((solitaire || qix) && !stopscreensaver) {
     stopscreensaver = true;
-    hintb.style.display = 'block';
-    if (!winanim) {
-      sol();
+    if (solitaire) {
+      hintb.style.display = 'block';
+      if (!winanim) {
+        sol();
+      }
+    }
+    if (qix) {
+      keyboard.style.display = 'inline-block';
+      qixupdate();
     }
   }
+
   clearTimeout(idlescreensaver);
   idlescreensaver = setTimeout(() => {
     new_screensaver();
@@ -2058,6 +2066,7 @@ function typeOf(obj) {
   return type.toLowerCase();
 }
 
+var DOMwriter = null;
 var winsoln = 0;
 var morescr, options, seed, seednow, staropt, graph, graphdot, graphstat, lever, leverdot, leverstat;
 var graphdrawing = false;
@@ -2409,6 +2418,7 @@ var currentFrame = 0;
 var stopqix = false;
 var anim = new Image();
 var mousec = {'down':0, 'hold':0};
+
 function qixupdate() {
   if (Keypress[4] || Keypress[23] || Keypress[1] || Keypress[19] || Keypress[37] || Keypress[38] || Keypress[39] || Keypress[40]) {
     qixstep();
@@ -2451,7 +2461,10 @@ function qixupdate() {
   if (currentFrame > 0) {
     currentFrame = currentFrame - anim.width;
   }
-  requestAnimationFrame(qixupdate);
+
+  if (stopscreensaver) {
+    requestAnimationFrame(qixupdate);
+  }
 };
 
 
@@ -2461,7 +2474,6 @@ function makemenu() {
     poppy.lastChild.remove();
   }
 
-  let DOMwriter = null;
   let listener = null;
   let dismissed = false;
 
@@ -3080,29 +3092,29 @@ function createkeyboard() {
   drawkeyboard([["` ~", "1 !", "2 @", "3 #", "4 $", "5 %", "6 ^", "7 &", "8 *", "9 (", "0 )", "- _", "= +"]], alphakeys);
   drawkeycap("Backspace", "88px");
 
-  let br = document.createElement("br");
-  alphakeys.appendChild(br);
+  DOMwriter = document.createElement("BR");
+  alphakeys.appendChild(DOMwriter);
 
   drawkeycap("Tab", "58px");
   drawkeyboard(["QWERTYUIOP", ["[ {", "] }"]], alphakeys);
   drawkeycap("\\ |", "59px", "keycapface", "keycap");
 
-  br = document.createElement("br");
-  alphakeys.appendChild(br);
+  DOMwriter = document.createElement("BR");
+  alphakeys.appendChild(DOMwriter);
 
   drawkeycap("Caps Lock", "68px");
   drawkeyboard(["ASDFGHJKL", ["; :", "' \""]], alphakeys);
   drawkeycap("Enter", "100px");
 
-  br = document.createElement("br");
-  alphakeys.appendChild(br);
+  DOMwriter = document.createElement("BR");
+  alphakeys.appendChild(DOMwriter);
 
   drawkeycap("Shift", "95px");
   drawkeyboard(["ZXCVBNM", [", <", ". >", "/ ?"]], alphakeys);
   drawkeycap("Shift", "124px");
 
-  br = document.createElement("br");
-  alphakeys.appendChild(br);
+  DOMwriter = document.createElement('BR');
+  alphakeys.appendChild(DOMwriter);
 
   drawkeycap("Ctrl", "43px");
   drawkeycap("&nbsp;", "43px", "keycapface2 windo");
@@ -3113,18 +3125,20 @@ function createkeyboard() {
   drawkeycap("Fn", "43px");
   drawkeycap("Ctrl", "43px");
 
-  let cap = document.createElement('div');
-  cap.innerHTML = "&nbsp;";
-  cap.classList = "plate right";
-  arrows.appendChild(cap);
-  drawkeyboard(["↑"], arrows);
-  cap = document.createElement('div');
-  cap.innerHTML = "&nbsp;";
-  cap.classList = "plate left";
-  arrows.appendChild(cap);
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.innerHTML = "&nbsp;";
+  DOMwriter.classList = "plate right";
+  arrows.appendChild(DOMwriter);
 
-  br = document.createElement("br");
-  arrows.appendChild(br);
+  drawkeyboard(["↑"], arrows);
+
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.innerHTML = "&nbsp;";
+  DOMwriter.classList = "plate left";
+  arrows.appendChild(DOMwriter);
+
+  DOMwriter = document.createElement('BR');
+  arrows.appendChild(DOMwriter);
 
   drawkeyboard(["←", "↓", "→"], arrows);
 
@@ -3132,8 +3146,8 @@ function createkeyboard() {
 
   drawkeyboard([["Ins", "Home", "PgUp"]], homekeys);
 
-  br = document.createElement("br");
-  homekeys.appendChild(br);
+  DOMwriter = document.createElement('BR');
+  homekeys.appendChild(DOMwriter);
 
   drawkeyboard([["Del", "End", "PgDn"]], homekeys);
 }

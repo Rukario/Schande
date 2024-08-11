@@ -2433,35 +2433,47 @@ function makemenu() {
     poppy.lastChild.remove();
   }
 
+  options = document.createElement('DIV');
+  options.classList = 'poppy poppy2';
+
+  staropt = document.createElement('DIV');
+  staropt.classList = 'poppy poppy2';
+
   const tc = 'click';
 
-  const addmenu = (name, listener, args) => {
+  const addmenu = (name, listener, args, arrow) => {
     const e = document.createElement("DIV");
     if (name) {
       e.innerHTML = name;
       e.style.margin = "0 20px";
-      listener(e, args);
-      poppy.appendChild(e);
+      listener(e, arrow ? e : args);
     } else {
       e.style.borderTop = "1px solid #848484";
       e.style.borderBottom = "1px solid #fff";
-      poppy.appendChild(e);
-      return;
+    }
+    poppy.append(e);
+
+    if (arrow) {
+      const a = document.createElement("DIV");
+      a.classList = "poppyexp";
+      a.append(arrow);
+      listener(a, e);
+      poppy.append(a);
     }
   };
 
-  const unlock = (m, n, d) => {
-    let e = document.createElement("DIV");
+  const unlock = (m, n, arrow) => {
+    const e = document.createElement("DIV");
     e.textContent = m.join(n-winsoln);
     e.style.margin = "0 20px";
     e.style.color = "#848484";
     e.style.textShadow = "1px 1px #fff";
-    poppy.appendChild(e);
+    poppy.append(e);
 
-    if (d) {
-      e = document.createElement("DIV");
-      e.classList = "poppyexp";
-      poppy.appendChild(e);
+    if (arrow) {
+      const a = document.createElement("DIV");
+      a.classList = "poppyexp";
+      poppy.append(a);
     }
   };
 
@@ -2479,6 +2491,7 @@ function makemenu() {
       readcard(sol);
     });
   };
+
   if (!winsoln || winsoln >= 5) {
     addmenu('Solitaire (draw 1)', listener, 1);
   } else {
@@ -2511,32 +2524,34 @@ function makemenu() {
       });
     };
     addmenu('Qix', listener);
-    //addmenu(['Chess',  5, 3]);
+    //addmenu('Chess', listener, [5, 3]);
   } else {
     unlock(['Qix (', ')'], 5);
   }
 
-  let e = document.createElement("DIV");
-  e.innerHTML = 'Options';
-  e.style.margin = "0 20px";
-  poppy.appendChild(e);
+  listener = (e, arrow) => {
+    e.addEventListener(tc, () => {
+      staropt.style.display = 'none';
+      options.style.display = "block";
 
-  const optiond = document.createElement("DIV");
-  optiond.classList = "poppyexp";
-  poppy.appendChild(optiond);
-
-  options = document.createElement("DIV");
-  options.classList = "poppy poppy2";
-  optiond.appendChild(options);
-  e.addEventListener(tc, () => {
-    staropt.style.display = 'none';
-    options.style.display = "block";
-  });
+      const where = arrow.getBoundingClientRect();
+      const y = Math.min(
+        0,
+        document.documentElement.clientHeight - where.top - options.clientHeight,
+      );
+      const x = Math.min(
+        0,
+        document.documentElement.clientWidth - where.right - options.clientWidth - 17,
+      );
+      options.style.left = x + 'px';
+      options.style.top = y - 12 + 'px';
+    });
+  }
+  addmenu('Options', listener, false, options);
 
   let d3 = document.createElement("DIV");
   d3.innerHTML = "Fullscreen";
   d3.style.margin = "0 20px";
-  options.appendChild(d3);
   d3.addEventListener(tc, () => {
     if (document.fullscreenElement) {
       document.exitFullscreen();
@@ -2544,6 +2559,7 @@ function makemenu() {
       document.body.requestFullscreen();
     }
   });
+  options.appendChild(d3);
 
   d3 = document.createElement("INPUT");
   d3.id = "seed";
@@ -2569,12 +2585,12 @@ function makemenu() {
   d3 = document.createElement("DIV");
   d3.innerHTML = "Reset";
   d3.style.margin = "0 20px";
-  options.appendChild(d3);
   d3.addEventListener(tc, () => {
     winsoln = 0;
     winningcookie();
     makemenu();
   });
+  options.appendChild(d3);
 
   addmenu();
 
@@ -2649,11 +2665,18 @@ function makemenu() {
   addmenu('Flying solitaire',           listener, [0, 2,    false,       true,  false, 71*2, 96*2, 1.25, 4, false]);
 
   // solcomputer
-  listener = () => {
+  listener = (e, arg) => {
     e.addEventListener(tc, () => {
-      solcomputer = !solcomputer;
-      debugcomputer = options[2];
-      computerspeed = debugcomputer ? 1 : 30; 
+      if (arg) {
+        solcomputer = debugcomputer ? true : !solcomputer;
+        debugcomputer = false;
+        computerspeed = 30;
+      } else {
+        solcomputer = !debugcomputer ? true : !solcomputer;
+        debugcomputer = true;
+        computerspeed = 1;
+      }
+
       if (solitaire) {
         sol();
       } else {
@@ -2668,6 +2691,8 @@ function makemenu() {
       }
     });
   };
+  //addmenu('Sol computer Solve!', listener, true);
+  //addmenu('Sol computer Debug', listener);
 
   // paint
   listener = (e, arg) => {
@@ -2704,7 +2729,7 @@ function makemenu() {
   } else {
     unlock(['Fly (', ')'], 32);
   }
-  staropt = document.createElement("DIV");
+
   if (winsoln >= 64) {
     addmenu('Glide', listener, true);
 
@@ -2719,27 +2744,25 @@ function makemenu() {
       graphstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
     });
 
-    e = document.createElement("DIV");
-    e.innerHTML = 'Star speed';
-    e.style.margin = "0 20px";
-    poppy.appendChild(e);
-    
-    const stard = document.createElement("DIV");
-    stard.classList = "poppyexp";
-    poppy.appendChild(stard);
-  
-    staropt.classList = "poppy poppy2";
-    stard.appendChild(staropt);
-    e.addEventListener(tc, (e_) => {
-      staropt.style.display = "block";
-      options.style.display = 'none';
-      const arrow = stard.getBoundingClientRect();
-      const y = Math.min(
-        -12,
-        document.documentElement.clientHeight - arrow.top - staropt.clientHeight -4,
-      );
-      staropt.style.top = y + "px";
-    });
+    listener = (e, arrow) => {
+      e.addEventListener(tc, () => {
+        staropt.style.display = 'block';
+        options.style.display = 'none';
+
+        const where = arrow.getBoundingClientRect();
+        const y = Math.min(
+          0,
+          document.documentElement.clientHeight - where.top - staropt.clientHeight,
+        );
+        const x = Math.min(
+          0,
+          document.documentElement.clientWidth - where.right - staropt.clientWidth - 17,
+        );
+        staropt.style.left = x + 'px';
+        staropt.style.top = y - 12 + 'px';
+      });
+    }
+    addmenu('Star speed', listener, false, staropt);
 
     graph = document.createElement("DIV");
     graph.classList = "graph";
@@ -2765,19 +2788,21 @@ function makemenu() {
       FFup(e);
     });
 
-    lever = document.createElement("DIV");
-    lever.style.padding = "10px 0";
+    lever = document.createElement('DIV');
+    lever.style.padding = '10px 0';
 
-    const leverbar = document.createElement("DIV");
-    leverbar.classList.add("leverbar");
+    const leverbar = document.createElement('DIV');
+    leverbar.classList = 'leverbar';
     lever.appendChild(leverbar);
-    staropt.appendChild(lever);
 
-    leverstat = document.createElement("DIV");
+    leverstat = document.createElement('DIV');
+    leverdot = document.createElement('DIV');
+    leverdot.classList = 'leverdot';
+
+    staropt.appendChild(lever);
     staropt.appendChild(leverstat);
-    leverdot = document.createElement("DIV");
-    leverdot.classList = "leverdot";
     staropt.appendChild(leverdot);
+
     updatestat();
 
     lever.addEventListener("mousedown", () => {

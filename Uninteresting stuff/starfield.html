@@ -212,13 +212,12 @@ canvas {
 }
 
 .poppyexp {
-  bottom: 0;
   border-top: 4px solid transparent;
   border-bottom: 4px solid transparent;
   border-left: 4px solid #000;
   position: relative;
-  right: 5px;
-  bottom: 16px;
+  left: 15px;
+  top: 8px;
   float: right;
 }
 
@@ -1571,8 +1570,9 @@ var FFdown = (e_) => {
 
   if ((!e_.target.classList.contains('poppy') && !e_.target.parentNode.classList.contains('poppy')) && poppy.style.display !== 'none') {
     poppy.style.display = 'none';
-    staropt.style.display = 'none';
+    morescr.style.display = 'none';
     options.style.display = 'none';
+    staropt.style.display = 'none';
   }
 
   if (dialogbox.style.display != 'none') {
@@ -2031,7 +2031,7 @@ function typeOf(obj) {
 }
 
 var winsoln = 0;
-var staropt, options, graph, graphdot, graphstat, lever, leverdot, leverstat;
+var morescr, options, seed, seednow, staropt, graph, graphdot, graphstat, lever, leverdot, leverstat;
 var graphdrawing = false;
 var leverdrawing = false;
 
@@ -2433,33 +2433,41 @@ function makemenu() {
     poppy.lastChild.remove();
   }
 
+  let DOMwriter = null;
+  let listener = null;
+
   options = document.createElement('DIV');
   options.classList = 'poppy poppy2';
+
+  morescr = document.createElement('DIV');
+  morescr.classList = 'poppy poppy2';
 
   staropt = document.createElement('DIV');
   staropt.classList = 'poppy poppy2';
 
   const tc = 'click';
 
-  const addmenu = (name, listener, args, arrow) => {
+  const newmenu = (name, listener, args, arrow) => {
     const e = document.createElement("DIV");
     if (name) {
       e.innerHTML = name;
       e.style.margin = "0 20px";
-      listener(e, arrow ? e : args);
+      listener(e, args);
+
+      if (arrow) {
+        const a = document.createElement("DIV");
+        a.classList = "poppyexp";
+        a.style.pointerEvents = 'none';
+        arrow.style.pointerEvents = 'auto';
+        a.append(arrow);
+        e.append(a);
+      }
     } else {
       e.style.borderTop = "1px solid #848484";
       e.style.borderBottom = "1px solid #fff";
     }
-    poppy.append(e);
 
-    if (arrow) {
-      const a = document.createElement("DIV");
-      a.classList = "poppyexp";
-      a.append(arrow);
-      listener(a, e);
-      poppy.append(a);
-    }
+    return e;
   };
 
   const unlock = (m, n, arrow) => {
@@ -2468,17 +2476,27 @@ function makemenu() {
     e.style.margin = "0 20px";
     e.style.color = "#848484";
     e.style.textShadow = "1px 1px #fff";
-    poppy.append(e);
 
     if (arrow) {
       const a = document.createElement("DIV");
       a.classList = "poppyexp";
-      poppy.append(a);
+      a.style.pointerEvents = 'none';
+      e.append(a);
     }
+
+    return e;
   };
 
-  let new_unlockables = 0;
-  let listener = (e, arg) => {
+  const inputcell = (B) => {
+    const d = document.createElement('INPUT');
+    d.type = 'text';
+    d.placeholder = B;
+    d.style.margin = "2px 20px";
+    d.style.display = "block";
+    return d;
+  }
+
+  listener = (e, arg) => {
     e.addEventListener(tc, () => {
       solitaire = true;
       qix = false;
@@ -2493,14 +2511,15 @@ function makemenu() {
   };
 
   if (!winsoln || winsoln >= 5) {
-    addmenu('Solitaire (draw 1)', listener, 1);
+    poppy.append(newmenu('Solitaire (draw 1)', listener, 1));
   } else {
-    unlock(['Solitaire (draw 1) (', ' or reset)'], 5);
+    poppy.append(unlock(['Solitaire (draw 1) (', ' or reset)'], 5));
   }
+
   if (winsoln >= 1) {
-    addmenu('Solitaire (draw 3)', listener, 3);
+    poppy.append(newmenu('Solitaire (draw 3)', listener, 3));
   } else {
-    unlock(['Solitaire (draw 3) (', ')'], 1);
+    poppy.append(unlock(['Solitaire (draw 3) (', ')'], 1));
   }
 
   if (winsoln >= 5) {
@@ -2523,18 +2542,19 @@ function makemenu() {
         };
       });
     };
-    addmenu('Qix', listener);
-    //addmenu('Chess', listener, [5, 3]);
+    poppy.append(newmenu('Qix', listener));
+    //newmenu('Chess', listener, [5, 3]);
   } else {
-    unlock(['Qix (', ')'], 5);
+    poppy.append(unlock(['Qix (', ')'], 5));
   }
 
-  listener = (e, arrow) => {
+  listener = (e) => {
     e.addEventListener(tc, () => {
+      morescr.style.display = 'none';
+      options.style.display = 'block';
       staropt.style.display = 'none';
-      options.style.display = "block";
 
-      const where = arrow.getBoundingClientRect();
+      const where = e.getBoundingClientRect();
       const y = Math.min(
         0,
         document.documentElement.clientHeight - where.top - options.clientHeight,
@@ -2546,53 +2566,43 @@ function makemenu() {
       options.style.left = x + 'px';
       options.style.top = y - 12 + 'px';
     });
-  }
-  addmenu('Options', listener, false, options);
+  };
+  poppy.append(newmenu('Options', listener, false, options));
 
-  let d3 = document.createElement("DIV");
-  d3.innerHTML = "Fullscreen";
-  d3.style.margin = "0 20px";
-  d3.addEventListener(tc, () => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      document.body.requestFullscreen();
-    }
-  });
-  options.appendChild(d3);
+  listener = (e) => {
+      e.addEventListener(tc, () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        document.body.requestFullscreen();
+      }
+    });
+  };
+  options.append(newmenu('Fullscreen', listener));
 
-  d3 = document.createElement("INPUT");
-  d3.id = "seed";
-  d3.type = "text";
-  d3.placeholder = "Load seed...";
-  d3.style.margin = "2px 20px";
-  d3.style.display = "block";
-  options.appendChild(d3);
+  seed = inputcell('Load seed...');
+  options.append(seed);
 
-  d3 = document.createElement("INPUT");
-  d3.id = "seednow";
-  d3.type = "text";
-  d3.placeholder = "Alphanumeric seed";
-  d3.style.margin = "2px 20px";
-  d3.style.display = "block";
-  options.appendChild(d3);
+  seednow = inputcell('Alphanumeric seed');
+  options.append(seednow);
 
-  d3 = document.createElement("DIV");
-  d3.innerHTML = "Dialog history";
-  d3.style.margin = "0 20px";
-  options.appendChild(d3);
+  listener = (e) => {
+    e.addEventListener(tc, () => {
+      speaker("I couldn't remember what I've said recently!");
+    });
+  };
+  options.append(newmenu('Dialog history', listener));
 
-  d3 = document.createElement("DIV");
-  d3.innerHTML = "Reset";
-  d3.style.margin = "0 20px";
-  d3.addEventListener(tc, () => {
-    winsoln = 0;
-    winningcookie();
-    makemenu();
-  });
-  options.appendChild(d3);
+  listener = (e) => {
+    e.addEventListener(tc, () => {
+      winsoln = 0;
+      winningcookie();
+      makemenu();
+    });
+  };
+  options.append(newmenu('Reset', listener));
 
-  addmenu();
+  poppy.append(newmenu());
 
   // screensaver
   listener = (e, args) => {
@@ -2632,37 +2642,67 @@ function makemenu() {
         new_stars();
       }
 
-      updatestat();
+      if (graphdot) {
+        updatestat();
+      }
       savestar();
     });
-  }
-  addmenu('Flying Windows',             listener, [2, 75,   'win95.png', true,  true,   95,  95, 1, 4, false]);
+  };
+  poppy.append(newmenu('Flying Windows',             listener, [2, 75,   'win95.png', true,  true,   95,  95, 1, 4, false]));
+
   if (winsoln >= 1) {
-    addmenu('Slow Windows',             listener, [2, 75,   'win95.png', true,  true,   95,  95, 10, 4, false]);
+    poppy.append(newmenu('Slow Windows',             listener, [2, 75,   'win95.png', true,  true,   95,  95, 10, 4, false]));
   } else {
-    unlock(['Slow Windows (', ')'], 1);
+    poppy.append(unlock(['Slow Windows (', ')'], 1));
   }
+
   if (winsoln >= 5) {
-    addmenu('Big Windows',              listener, [2, 75,   'win95.png', true,  true,  380, 380, 1, 4, false]);
+    poppy.append(newmenu('Big Windows',              listener, [2, 75,   'win95.png', true,  true,  380, 380, 1, 4, false]));
   } else {
-    unlock(['Big Windows (', ')'], 5);
+    poppy.append(unlock(['Big Windows (', ')'], 5));
   }
+
   if (winsoln >= 10) {
-    addmenu('Starfield',                listener, [0, 200,  false,       false, false,   4,   4, 1.50, 0, false]);
+    poppy.append(newmenu('Starfield',                listener, [0, 200,  false,       false, false,   4,   4, 1.50, 0, false]));
   } else {
-    unlock(['Starfield (', ')'], 10);
+    poppy.append(unlock(['Starfield (', ')'], 10));
   }
+
   if (winsoln >= 24) {
-    addmenu('Flying Windows 24-bit',    listener, [4, 75,   'win95.png', true,  true,   95,  95, 1, 4, false]);
-    addmenu('Flying Windows pride',     listener, [3, 75,   'win95.png', true,  true,   95,  95, 1, 4, false]);
-    addmenu('8000 colorful stars',      listener, [4, 8000, false,       false, false,   4,   4, 1.25, 0, false]);
-    addmenu('8000 slow colorful stars', listener, [4, 8000, false,       false, false,   4,   4, 10, 0, false]);
-    addmenu('Surreal Xmas memory',      listener, [1, 800,  'light.png', true,  true,  190, 190, 1.25, 4, "#072700"]);
-    addmenu('2000 flying Windows',      listener, [4, 2000, 'win95.png', true,  true,   95,  95, 1.25, 4, false]);
+    morescr.append(newmenu('Flying Windows 24-bit',    listener, [4, 75,   'win95.png', true,  true,   95,  95, 1, 4, false]));
+    morescr.append(newmenu('Flying Windows pride',     listener, [3, 75,   'win95.png', true,  true,   95,  95, 1, 4, false]));
+    morescr.append(newmenu('8000 colorful stars',      listener, [4, 8000, false,       false, false,   4,   4, 1.25, 0, false]));
+    morescr.append(newmenu('Surreal Xmas memory',      listener, [1, 800,  'light.png', true,  true,  190, 190, 1.25, 4, "#072700"]));
+    morescr.append(newmenu('2000 flying Windows',      listener, [4, 2000, 'win95.png', true,  true,   95,  95, 1.25, 4, false]));
+    if (winsoln >= 64) {
+      morescr.append(newmenu('Flying cards',           listener, [0, 2,    false,       true,  false, 71*2, 96*2, 1.25, 4, false]));
+    } else {
+      morescr.append(unlock(['Flying cards (', ')'], 64))
+    }
+
+    const listenerX = (e) => {
+      e.addEventListener(tc, () => {
+        morescr.style.display = 'block';
+        options.style.display = 'none';
+        staropt.style.display = 'none';
+
+        const where = e.getBoundingClientRect();
+        const y = Math.min(
+          0,
+          document.documentElement.clientHeight - where.top - morescr.clientHeight,
+        );
+        const x = Math.min(
+          0,
+          document.documentElement.clientWidth - where.right - morescr.clientWidth - 17,
+        );
+        morescr.style.left = x + 'px';
+        morescr.style.top = y - 12 + 'px';
+      });
+    };
+    poppy.append(newmenu('More stars', listenerX, false, morescr));
   } else {
-    unlock(['Flying Windows 24-bit (', ')'], 24);
+    poppy.append(unlock(['More stars (', ')'], 24, true));
   }
-  addmenu('Flying solitaire',           listener, [0, 2,    false,       true,  false, 71*2, 96*2, 1.25, 4, false]);
 
   // solcomputer
   listener = (e, arg) => {
@@ -2691,8 +2731,8 @@ function makemenu() {
       }
     });
   };
-  //addmenu('Sol computer Solve!', listener, true);
-  //addmenu('Sol computer Debug', listener);
+  //poppy.append(newmenu('Sol computer Solve!', listener, true));
+  //poppy.append(newmenu('Sol computer Debug', listener));
 
   // paint
   listener = (e, arg) => {
@@ -2706,11 +2746,11 @@ function makemenu() {
       }
     });
   };
-  //addmenu('Clear', listener, 0);
-  //addmenu('Ghost', listener, 1);
-  //addmenu('Paint', listener, 2);
+  //poppy.append(newmenu('Clear', listener, 0));
+  //poppy.append(newmenu('Ghost', listener, 1));
+  //poppy.append(newmenu('Paint', listener, 2));
 
-  addmenu();
+  poppy.append(newmenu());
 
   listener = (e, arg) => {
     e.addEventListener(tc, () => {
@@ -2725,13 +2765,13 @@ function makemenu() {
     });
   };
   if (winsoln >= 32) {
-    addmenu('Fly', listener);
+    poppy.append(newmenu('Fly', listener));
   } else {
-    unlock(['Fly (', ')'], 32);
+    poppy.append(unlock(['Fly (', ')'], 32));
   }
 
   if (winsoln >= 64) {
-    addmenu('Glide', listener, true);
+    poppy.append(newmenu('Glide', listener, true));
 
     document.addEventListener("wheel", (event) => {
       const w = -event.wheelDelta/480;
@@ -2744,12 +2784,13 @@ function makemenu() {
       graphstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
     });
 
-    listener = (e, arrow) => {
+    listener = (e) => {
       e.addEventListener(tc, () => {
-        staropt.style.display = 'block';
         options.style.display = 'none';
+        morescr.style.display = 'none';
+        staropt.style.display = 'block';
 
-        const where = arrow.getBoundingClientRect();
+        const where = e.getBoundingClientRect();
         const y = Math.min(
           0,
           document.documentElement.clientHeight - where.top - staropt.clientHeight,
@@ -2761,8 +2802,8 @@ function makemenu() {
         staropt.style.left = x + 'px';
         staropt.style.top = y - 12 + 'px';
       });
-    }
-    addmenu('Star speed', listener, false, staropt);
+    };
+    poppy.append(newmenu('Star speed', listener, false, staropt));
 
     graph = document.createElement("DIV");
     graph.classList = "graph";
@@ -2771,7 +2812,7 @@ function makemenu() {
     graphstat = document.createElement("DIV");
     staropt.appendChild(graphstat);
     graphdot = document.createElement("DIV");
-    graphdot.classList.add("graphdot");
+    graphdot.classList = "graphdot";
     graph.appendChild(graphdot);
 
     graph.addEventListener("mousedown", () => {
@@ -2791,9 +2832,9 @@ function makemenu() {
     lever = document.createElement('DIV');
     lever.style.padding = '10px 0';
 
-    const leverbar = document.createElement('DIV');
-    leverbar.classList = 'leverbar';
-    lever.appendChild(leverbar);
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.classList = 'leverbar';
+    lever.appendChild(DOMwriter);
 
     leverstat = document.createElement('DIV');
     leverdot = document.createElement('DIV');
@@ -2820,11 +2861,11 @@ function makemenu() {
     });
 
   } else {
-    unlock(['Glide (', ')'], 64);
-    unlock(['Star speed (', ')'], 64, true);
+    poppy.append(unlock(['Glide (', ')'], 64));
+    poppy.append(unlock(['Star speed (', ')'], 64, true));
   }
 
-  addmenu();
+  poppy.append(newmenu());
 
   listener = (e) => {
     e.addEventListener(tc, () => {
@@ -2832,7 +2873,7 @@ function makemenu() {
       result.style.display = fps.display && !solitaire ? 'block' : 'none';
     });
   };
-  addmenu('Display FPS', listener);
+  poppy.append(newmenu('Display FPS', listener));
 
   if (winsoln >= 16) {
     listener = (e, arg) => {
@@ -2848,10 +2889,10 @@ function makemenu() {
         savestar();
       });
     };
-    addmenu('Nostalgia FPS', listener, 15);
-    addmenu('Unrestricted FPS', listener);
+    poppy.append(newmenu('Nostalgia FPS', listener, 15));
+    poppy.append(newmenu('Unrestricted FPS', listener));
   } else {
-    unlock(['Unrestricted FPS (', ')'], 16);
+    poppy.append(unlock(['Unrestricted FPS (', ')'], 16));
   }
 }
 

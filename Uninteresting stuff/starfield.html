@@ -5,13 +5,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="white">
 <style>
-html, body {
+body {
   background-color: #000;
   margin: 0;
   font-family: Helvetica,Arial,Sans-Serif;
   -webkit-user-select: none;
   overflow: hidden;
 }
+
 canvas {
   position: absolute;
   image-rendering: pixelated;
@@ -641,9 +642,7 @@ function new_stars() {
       };
       canvasToFrame(mask, variant, i);
     } else if (useimg) {
-      for (const n of Array(scr.density).keys()) {
-        readcard(new_screensaver, true);
-      }
+      readcard(variant, i);
     } else {
       for (const n of Array(scr.density).keys()) {
         newstar(starcolor());
@@ -900,7 +899,8 @@ function new_deck() {
 }
 
 var factorysealed = [];
-function readcard(callback, is_star) {
+function readcard(callback, interFrameN) {
+  const is_star = !isNaN(interFrameN);
   if (factorysealed.length) {
     if (is_star) {
       for (const card of factorysealed) {
@@ -909,7 +909,7 @@ function readcard(callback, is_star) {
     } else {
       new_deck();
     }
-    callback();
+    callback(interFrameN + 1);
     return;
   };
 
@@ -969,7 +969,7 @@ function readcard(callback, is_star) {
       new_deck();
     }
 
-    callback();
+    callback(interFrameN + 1);
   }).catch((reason) => {
     console.log(reason);
   })
@@ -1895,17 +1895,15 @@ var releasecard = () => {
 var ZOOKd;
 var FFdown = (e_) => {
   mousec.down = 1;
-  if (e_) {
-    if (!isTouch || e_.touches.length === 1) {
-      mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft: e_.x;
-      mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop: e_.y;
-    }
+  if (!isTouch || e_.touches.length === 1) {
+    mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft: e_.x;
+    mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop: e_.y;
   }
 
   graphdraw(e_);
   leverdraw(e_);
 
-  if (e_.target.parentNode.classList.contains('poppy') || isTouch && e_.touches.length > 1) {
+  if (e_.target.classList.contains('poppy') || e_.target.parentNode.classList.contains('poppy') || isTouch && e_.touches.length > 1) {
     ZOOKd = true;
   } else {
     ZOOKd = false;
@@ -1920,7 +1918,7 @@ var FFdown = (e_) => {
 var FFup = (e_) => {
   mousec.down = 0;
 
-  if (!ZOOKd) {
+  if (e_ && !ZOOKd) {
     if(!e_.target.parentNode.classList.contains('poppy') && poppy.style.display !== 'none') {
       poppy.style.display = 'none';
       morescr.style.display = 'none';
@@ -2528,6 +2526,42 @@ function makemenu() {
     return e;
   };
 
+  const submenu = (e) => {
+    e.addEventListener('mousedown', (e_) => {
+      const t = e.lastChild.lastChild;
+      if (!e_.target.classList.contains('poppy2') && !e_.target.parentNode.classList.contains('poppy2') && t.style.display === 'block') {
+        dismissed = true;
+        t.style.display = 'none';
+      }
+    });
+
+    e.addEventListener(tc, () => {
+      if (dismissed) {
+        dismissed = false;
+        return;
+      }
+
+      options.style.display = 'none';
+      morescr.style.display = 'none';
+      staropt.style.display = 'none';
+
+      const t = e.lastChild.lastChild;
+      t.style.display = 'block';
+
+      const where = e.getBoundingClientRect();
+      const y = Math.min(
+        0,
+        document.documentElement.clientHeight - where.top - t.clientHeight,
+      );
+      const x = Math.min(
+        0,
+        document.documentElement.clientWidth - where.right - t.clientWidth - 17,
+      );
+      t.style.left = x + 'px';
+      t.style.top = y - 12 + 'px';
+    });
+  };
+
   const inputcell = (B) => {
     const d = document.createElement('INPUT');
     d.type = 'text';
@@ -2589,38 +2623,7 @@ function makemenu() {
     poppy.append(unlock(['Qix (', ')'], 5));
   }
 
-  listener = (e) => {
-    e.addEventListener('mousedown', (e_) => {
-      if (!e_.target.parentNode.classList.contains('poppy2') && options.style.display === 'block') {
-        dismissed = true;
-        options.style.display = 'none';
-      }
-    });
-
-    e.addEventListener(tc, () => {
-      if (dismissed) {
-        dismissed = false;
-        return;
-      }
-
-      morescr.style.display = 'none';
-      options.style.display = 'block';
-      staropt.style.display = 'none';
-
-      const where = e.getBoundingClientRect();
-      const y = Math.min(
-        0,
-        document.documentElement.clientHeight - where.top - options.clientHeight,
-      );
-      const x = Math.min(
-        0,
-        document.documentElement.clientWidth - where.right - options.clientWidth - 17,
-      );
-      options.style.left = x + 'px';
-      options.style.top = y - 12 + 'px';
-    });
-  };
-  poppy.append(newmenu('Options', listener, false, options));
+  poppy.append(newmenu('Options', submenu, false, options));
 
   listener = (e) => {
       e.addEventListener(tc, () => {
@@ -2733,38 +2736,7 @@ function makemenu() {
       morescr.append(unlock(['Flying cards (', ')'], 64))
     }
 
-    const listenerX = (e) => {
-      e.addEventListener('mousedown', (e_) => {
-        if (!e_.target.parentNode.classList.contains('poppy2') && morescr.style.display === 'block') {
-          dismissed = true;
-          morescr.style.display = 'none';
-        }
-      });
-
-      e.addEventListener(tc, () => {
-        if (dismissed) {
-          dismissed = false;
-          return;
-        }
-
-        morescr.style.display = 'block';
-        options.style.display = 'none';
-        staropt.style.display = 'none';
-
-        const where = e.getBoundingClientRect();
-        const y = Math.min(
-          0,
-          document.documentElement.clientHeight - where.top - morescr.clientHeight,
-        );
-        const x = Math.min(
-          0,
-          document.documentElement.clientWidth - where.right - morescr.clientWidth - 17,
-        );
-        morescr.style.left = x + 'px';
-        morescr.style.top = y - 12 + 'px';
-      });
-    };
-    poppy.append(newmenu('More stars', listenerX, false, morescr));
+    poppy.append(newmenu('More stars', submenu, false, morescr));
   } else {
     poppy.append(unlock(['More stars (', ')'], 24, true));
   }
@@ -2849,38 +2821,7 @@ function makemenu() {
       graphstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
     });
 
-    listener = (e) => {
-      e.addEventListener('mousedown', (e_) => {
-        if (!e_.target.parentNode.classList.contains('poppy2') && staropt.style.display === 'block') {
-          dismissed = true;
-          staropt.style.display = 'none';
-        }
-      });
-
-      e.addEventListener(tc, () => {
-        if (dismissed) {
-          dismissed = false;
-          return;
-        }
-
-        options.style.display = 'none';
-        morescr.style.display = 'none';
-        staropt.style.display = 'block';
-
-        const where = e.getBoundingClientRect();
-        const y = Math.min(
-          0,
-          document.documentElement.clientHeight - where.top - staropt.clientHeight,
-        );
-        const x = Math.min(
-          0,
-          document.documentElement.clientWidth - where.right - staropt.clientWidth - 17,
-        );
-        staropt.style.left = x + 'px';
-        staropt.style.top = y - 12 + 'px';
-      });
-    };
-    poppy.append(newmenu('Star speed', listener, false, staropt));
+    poppy.append(newmenu('Star speed', submenu, false, staropt));
 
     graph = document.createElement("DIV");
     graph.classList = "graph";

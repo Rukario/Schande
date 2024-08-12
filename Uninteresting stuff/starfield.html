@@ -355,9 +355,6 @@ const isTouch = 'ontouchstart' in window;
 var busyclick = false;
 
 var alpha = new Image();
-
-var foliage = new Image();
-foliage.src = 'spruce.png';
 var ccolor = '#000';
 var lastcolor = '#000';
 
@@ -641,10 +638,15 @@ function new_stars() {
         newstar(img);
       }
     }
+
+    const foliage = new Image();
+    foliage.src = 'spruce.png';
     canvasToFrame(starmask(false, foliage), variant, scr.density/xlight.length*(xlight.length-1));
+
     for (const color of xlight) {
       canvasToFrame(starmask(color), variant, scr.density/xlight.length/xlight.length);
     }
+
     new_screensaver();
   } else if (scr.color === 'card') {
     const variant = (i, img) => {
@@ -2316,7 +2318,12 @@ function qixstep() {
   const y = Math.floor(qixpos.y/qixsc);
   const nx = (Keypress[4] || Keypress[39] ? 1 : 0) + (Keypress[1] || Keypress[37] ? -1 : 0);
   const ny = (Keypress[19] || Keypress[40] ? 1 : 0) + (Keypress[23] || Keypress[38] ? -1 : 0);
-  if (x+nx >= 0 && y+ny >= 0 && x+nx < qixmask.width && y+ny < qixmask.height) {
+  if (
+    x+nx >= 0 &&
+    y+ny >= 0 &&
+    x+nx < qixmask.width &&
+    y+ny < qixmask.height
+  ) {
     const o = x + nx + qixmask.width*(y + ny);
     if (qixmap.data[o*4+3] !== 255) {
       qixpos.x += nx;
@@ -2344,7 +2351,12 @@ function qixstep2(k = false) {
   const y = Math.floor(qixpos2.y/qixsc);
   const nx = k ? (Keypress[8]?1:0) + (Keypress[6]?-1:0) : Math.round((Math.random()-0.5)*8);
   const ny = k ? (Keypress[7]?1:0) + (Keypress[20]?-1:0) : Math.round((Math.random()-0.5)*8);
-  if (x+nx >= 0 && y+ny >= 0 && x+nx < qixmask.width && y+ny < qixmask.height) {
+  if (
+    x+nx >= 0 &&
+    y+ny >= 0 &&
+    x+nx < qixmask.width &&
+    y+ny < qixmask.height
+  ) {
     const o = x + nx + qixmask.width*(y + ny);
     if (qixmap.data[o*4+3] === 255){
       qixpos2.x += nx;
@@ -2991,6 +3003,7 @@ function pressed(i, b) {
 var registerkeys = "?ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
 registerkeys.push("0 )", "1 !", "2 @", "3 #", "4 $", "5 %", "6 ^", "7 &", "8 *", "9 (");
 registerkeys.push(..."←↑→↓".split(''));
+registerkeys.push("Esc", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12");
 var KeypressT = Array(registerkeys.length).fill(null);
 function drawkeyboard(keycaps, socket) {
   for (const ks of keycaps) {
@@ -3004,6 +3017,7 @@ function drawkeyboard(keycaps, socket) {
       keycap.classList = "keycap";
       if (i) {
         KeypressT[i] = keycap;
+
         if (isTouch) {
           keycap.addEventListener("touchstart", (e) => {
             e.preventDefault();
@@ -3017,6 +3031,16 @@ function drawkeyboard(keycaps, socket) {
           keycap.addEventListener("mousedown", (e) => {
             e.preventDefault();
             pressed(i, true);
+          });
+          keycap.addEventListener("mouseenter", (e) => {
+            if (mousec.down) {
+              e.preventDefault();
+              pressed(i, true);
+            }
+          });
+          keycap.addEventListener("mouseleave", (e) => {
+            e.preventDefault();
+            pressed(i, false);
           });
           keycap.addEventListener("mouseup", (e) => {
             e.preventDefault();

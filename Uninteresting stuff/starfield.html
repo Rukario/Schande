@@ -210,12 +210,43 @@ canvas {
   white-space: nowrap;
   box-shadow: inset -1px -1px #000, inset 1px 1px #c0c0c0, inset -2px -2px #848484, inset 2px 2px #fff;
   cursor: default;
+
+  .left {
+    position: relative;
+    display: block;
+    animation: left 200ms linear 1;
+  }
+
+  .right {
+    position: relative;
+    display: block;
+    animation: right 200ms linear 1;
+  }
 }
 
-.poppyexp {
+@keyframes left {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+@keyframes right {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+.poppyarrow {
   border-top: 4px solid transparent;
   border-bottom: 4px solid transparent;
   border-left: 4px solid #000;
+  pointer-events: none;
   position: relative;
   left: 15px;
   top: 8px;
@@ -223,7 +254,9 @@ canvas {
 }
 
 .graph {
-  margin: 7px 4px;
+  position: relative;
+  top: 7px;
+  margin: 0 4px 14px;
   width: 201px;
   height: 201px;
   border-top: 2px solid #848484;
@@ -278,21 +311,15 @@ canvas {
   pointer-events: none;
 }
 
-.poppy2 {
+.poppywin {
+  pointer-events: auto;
   margin: 0 3px;
   top: -12px;
-  animation: bl 200ms linear 1;
-}
-
-@keyframes bl {
-  0% {transform:translateX(-100%); clip-path:polygon(100% 0,
-100% 0,
-100% 100%,
-100% 100%); }
-  100% {transform:translateX(0); clip-path:polygon(0 0,
-100% 0,
-100% 100%,
-0 100%); }
+  position: absolute;
+  display: none;
+  //border: 1px solid #f00;
+  //background: rgba(255, 0, 0, 0.2);
+  overflow: hidden;
 }
 
 #dialogbox {
@@ -1974,9 +2001,10 @@ var FFup = (e_) => {
   if (e_ && !ZOOKd) {
     if(!e_.target.parentNode.classList.contains('poppy') && poppy.style.display !== 'none') {
       poppy.style.display = 'none';
-      morescr.style.display = 'none';
-      options.style.display = 'none';
-      staropt.style.display = 'none';
+
+      for (const p of document.querySelectorAll('.poppywin')) {
+        p.style.display = 'none';
+      }
     }
 
     if (dialogbox.style.display != 'none') {
@@ -2539,13 +2567,13 @@ function makemenu() {
   let dismissed = false;
 
   options = document.createElement('DIV');
-  options.classList = 'poppy poppy2';
+  options.classList = 'poppy right';
 
   morescr = document.createElement('DIV');
-  morescr.classList = 'poppy poppy2';
+  morescr.classList = 'poppy right';
 
   staropt = document.createElement('DIV');
-  staropt.classList = 'poppy poppy2';
+  staropt.classList = 'poppy right';
 
   const tc = 'click';
 
@@ -2558,10 +2586,13 @@ function makemenu() {
 
       if (arrow) {
         const a = document.createElement("DIV");
-        a.classList = "poppyexp";
-        a.style.pointerEvents = 'none';
-        arrow.style.pointerEvents = 'auto';
-        a.append(arrow);
+        a.classList = "poppyarrow";
+
+        const p = document.createElement('DIV');
+        p.classList = 'poppywin';
+
+        p.append(arrow);
+        a.append(p);
         e.append(a);
       }
     } else {
@@ -2581,8 +2612,7 @@ function makemenu() {
 
     if (arrow) {
       const a = document.createElement("DIV");
-      a.classList = "poppyexp";
-      a.style.pointerEvents = 'none';
+      a.classList = "poppyarrow";
       e.append(a);
     }
 
@@ -2592,7 +2622,7 @@ function makemenu() {
   const submenu = (e) => {
     e.addEventListener('mousedown', (e_) => {
       const t = e.lastChild.lastChild;
-      if (!e_.target.classList.contains('poppy2') && !e_.target.parentNode.classList.contains('poppy2') && t.style.display === 'block') {
+      if (!e_.target.classList.contains('right') && !e_.target.parentNode.classList.contains('right') && !e_.target.classList.contains('left') && !e_.target.parentNode.classList.contains('left') && t.style.display === 'block') {
         dismissed = true;
         t.style.display = 'none';
       }
@@ -2604,14 +2634,14 @@ function makemenu() {
         return;
       }
 
-      options.style.display = 'none';
-      morescr.style.display = 'none';
-      staropt.style.display = 'none';
+      for (const p of document.querySelectorAll('.poppywin')) {
+        p.style.display = 'none';
+      }
 
       const t = e.lastChild.lastChild;
       t.style.display = 'block';
-
       const where = e.getBoundingClientRect();
+      const wheret = t.lastChild.getBoundingClientRect();
       const y = Math.min(
         0,
         document.documentElement.clientHeight - where.top - t.clientHeight,
@@ -2620,8 +2650,15 @@ function makemenu() {
         0,
         document.documentElement.clientWidth - where.right - t.clientWidth - 17,
       );
-      t.style.left = x + 'px';
+
       t.style.top = y - 12 + 'px';
+      if (x) {
+        t.lastChild.classList = 'poppy left';
+        t.style.left = -where.width - wheret.width - 36 + 'px';
+      } else {
+        t.lastChild.classList = 'poppy right';
+        t.style.left = x + 'px';
+      }
     });
   };
 

@@ -2644,11 +2644,11 @@ function makemenu() {
       const wheret = t.lastChild.getBoundingClientRect();
       const y = Math.min(
         0,
-        document.documentElement.clientHeight - where.top - t.clientHeight,
+        document.documentElement.clientHeight - window.visualViewport.offsetTop - where.top - t.clientHeight,
       );
       const x = Math.min(
         0,
-        document.documentElement.clientWidth - where.right - t.clientWidth - 17,
+        document.documentElement.clientWidth - window.visualViewport.offsetLeft - where.right - t.clientWidth - 17,
       );
 
       t.style.top = y - 12 + 'px';

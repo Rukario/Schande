@@ -2001,10 +2001,6 @@ var FFup = (e_) => {
   if (e_ && !ZOOKd) {
     if(!e_.target.parentNode.classList.contains('poppy') && poppy.style.display !== 'none') {
       poppy.style.display = 'none';
-
-      for (const p of document.querySelectorAll('.poppywin')) {
-        p.style.display = 'none';
-      }
     }
 
     if (dialogbox.style.display != 'none') {
@@ -2119,6 +2115,9 @@ var rightc = (e_) => {
     return;
   }
 
+  for (const p of document.querySelectorAll('.poppywin')) {
+    p.style.display = 'none';
+  }
   poppy.style.display = 'block';
   const x = Math.min(
     isTouch

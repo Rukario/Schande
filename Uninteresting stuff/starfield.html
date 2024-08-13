@@ -38,7 +38,6 @@ canvas {
   background-color: #fff;
   width: 51px;
   height: 50px;
-  border-radius: 4px;
   top: -8px;
 
   display: inline-block;
@@ -46,14 +45,55 @@ canvas {
   margin: -10px -1px;
   border-bottom: 2px solid #ccc;
 
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    background-color: #6c7074;
+    border-top: 2px solid #ccc;
+    width: 3px;
+    height: 3px;
+  }
+
   &.left {
+    border-radius: 0 0 0 4px;
     border-left: 2px solid #ccc;
     right: -2px;
+
+    &::before, &::after {
+      box-shadow: 2px -2px 0 0 #fff;
+      border-radius: 0 4px 0 0;
+      border-right: 2px solid #ccc;
+    }
+
+    &::before {
+      left: -5px;
+    }
+
+    &::after {
+      right: 0;
+      bottom: -5px;
+    }
   }
 
   &.right {
+    border-radius: 0 0 4px 0;
     border-right: 2px solid #ccc;
     left: -2px;
+
+    &::before, &::after {
+      box-shadow: -2px -2px 0 0 #fff;
+      border-radius: 4px 0 0 0;
+      border-left: 2px solid #ccc;
+    }
+
+    &::before {
+      right: -5px;
+    }
+
+    &::after {
+      left: 0;
+      bottom: -5px;
+    }
   }
 }
 
@@ -325,8 +365,10 @@ canvas {
 #dialogbox {
   display: none;
   position: absolute;
-  background-color: #fff;
-  color: #000;
+  background-color: #000;
+  color: #fff;
+  border-radius: 4px;
+  border: 1px solid #C07820;
   z-index: 1;
   top: 64px;
   left: 64px;
@@ -335,9 +377,17 @@ canvas {
 
 #close {
   cursor: pointer;
+  top: -6px;
+  left: -2px;
+  width: 20px;
+  height: 20px;
+  text-align: center;
+  position: relative;
   font-size: 20px;
+  color: #C07820;
   display: inline-block;
 }
+
 </style>
 <script>
 const fps = {

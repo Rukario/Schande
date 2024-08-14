@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="user-scalable=0">
-<title>Make APNG</title>
 <style>
 body {caret-color:#ff8228; font-family:courier; font-size:14px; -webkit-text-size-adjust:none;}
 /* :root {color-scheme: light dark; body {background-color: Canvas;}} */
@@ -298,10 +297,8 @@ function get_ext(f) {
 
 function isImage(ext) {
   ext = ext.toLowerCase()
-  if (['jpg', 'jpeg', 'bmp', 'png'].includes(ext)) {
+  if (['jpg', 'jpeg', 'bmp', 'png', 'heic'].includes(ext)) {
     return true;
-  } else if (ext == 'heic') {
-    return 'heic';
   } else if (ext == 'gif') {
     return 'gif';
   }
@@ -2328,26 +2325,14 @@ function loaded() {
       v.play();
     } else if (isImage(get_ext(f))) {
       img = document.createElement("img");
-      if (isImage(get_ext(f)) == "heic") {
-        if (decoder){
-          const fr = new FileReader();
-          fr.readAsArrayBuffer(f);
-          fr.onload = () => {
-            echoHEIC(decoder.decode(fr.result)[0], f.name.replace(/.HEIC/gi, ".jpg"));
-          }
-        } else {
-          echo("libheif.js is required to view.");
-        }
-      } else {
-        const src = window.URL.createObjectURL(f);
-        img.src = src;
-        img.style = "max-height:400px;"
-        const dl = document.createElement("a");
-        dl.download = f.name;
-        dl.href = src;
-        dl.appendChild(img);
-        stdout.appendChild(dl);
-      }
+      const src = window.URL.createObjectURL(f);
+      img.src = src;
+      img.style = "max-height:400px;"
+      const dl = document.createElement("a");
+      dl.download = f.name;
+      dl.href = src;
+      dl.appendChild(img);
+      stdout.appendChild(dl);
     } else if (get_ext(f).toLowerCase()=="swf") {
       try {
         const ruffle = window.RufflePlayer.newest();
@@ -2445,14 +2430,6 @@ function loaded() {
     pako = false;
   };
   addScript("ruffle.js?");
-
-  s = addScript("libheif.js?");
-  s.onload = () => {
-    decoder = new libheif.HeifDecoder();
-  }
-  s.onerror = () => {
-    lload.style.display = "inline-block";
-  }
 }
 
 var filel = ["File", "Diff", "File 1", "File 2", "🦊"];
@@ -2483,7 +2460,6 @@ var fps = 0;
 var framearray = [];
 var apngarray = [];
 var decompress = false;
-var decoder = false;
 var Fi = [0, 0, 0, 0];
 var c = document.createElement("canvas");
 var context = c.getContext("2d"); // { willReadFrequently: true }
@@ -2492,7 +2468,7 @@ var dim = [false, false, false, false, false]; // framearray[0]'s dim, main_dim,
 var maxres = [0, 0, 1, 1];
 var createbg = false;
 var interecho = false;
-var DOMwriter, arri, seqFrameN, seqAPNG, seqLayerN, img, Module, name, recompress, dimension, framelist, loadframes, moreframes, echolayers, makepng, background, viewer, lload, pload, getfps;
+var DOMwriter, arri, seqFrameN, seqAPNG, seqLayerN, img, Module, name, recompress, dimension, framelist, loadframes, moreframes, echolayers, makepng, background, viewer, pload, getfps;
 
 
 
@@ -2609,6 +2585,7 @@ const new_stdout = () => {
 
 
 window.onload = () => {
+  document.title = 'Make APNG';
   if (isTouch) {
     c.addEventListener('touchstart', (e_) => {
       FFdown(e_);
@@ -2656,12 +2633,6 @@ window.onload = () => {
   butte.dataset.tooltip = "APNG production:<br>&nbsp;&gt; Use same lossless image with updated changes to update frame with these changes, unchanges are easy task for the frame optimizations to dispose of.<br>&nbsp;&gt; Recommend saving APNG as short clips to merge later when making long APNG series.<br><br>Resaving as single-frame APNG may appear larger in file size due to:<br>&nbsp;&gt; Converted to PNG<br>&nbsp;&gt; 32-bit color (has alpha channel)<br>&nbsp;&gt; Full color profile<br>Image viewers behave differently for PNG resaved as single-frame APNG. You can always discard it and keep original.<br><br>Frame optimization standby:<br>&nbsp;&gt; 4000 max dimension, integer downscale when exceeded<br>&nbsp;&gt; Duplicated interframe pixels will become transparent<br>&nbsp;&gt; Crop frame to fit where pixel changes";
   butte.innerHTML = "🦦 -(Production advices)";
   DOMwriter.append(butte);
-  lload = document.createElement("DIV");
-  lload.classList = "backtip butt";
-  lload.style.display = "none";
-  lload.dataset.tooltip = "Read HEIC files with <a href='https://github.com/alexcorvi/heic2any/raw/master/src' target='_blank'>libheif.js</a>, save next to HTML then reload this page";
-  lload.innerHTML = "🦦 -(HEICide)";
-  DOMwriter.append(lload);
   recompress = document.createElement("DIV");
   recompress.classList = "reverse";
   recompress.innerHTML = "No optimization";

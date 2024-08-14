@@ -5,10 +5,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="white">
 <style>
+
+:root {
+  --color-keyboard: #fff;
+  --color-keysocket: #6c7074;
+  --color-keyboard-border: 2px solid rgb(from var(--color-keyboard) r g b / 0.5);
+}
+
 body {
   background-color: #000;
   margin: 0;
-  font-family: Helvetica,Arial,Sans-Serif;
+  font-family: Helvetica, Arial, Sans-Serif;
   -webkit-user-select: none;
   overflow: hidden;
 }
@@ -31,38 +38,46 @@ canvas {
 }
 
 #keyboard {
-  display:none;
+  display: none;
+  position: absolute;
+  bottom: 0px;
+  z-index: 2;
+  background: var(--color-keyboard);
+  border-radius: 4px;
+  padding: 10px;
+  vertical-align: text-top;
 }
 
 .plate {
-  background-color: #fff;
+  background-color: var(--color-keyboard);
   width: 51px;
   height: 50px;
   top: -8px;
 
+  background-clip: padding-box;
   display: inline-block;
   position: relative;
   margin: -10px -1px;
-  border-bottom: 2px solid #ccc;
+  border: var(--color-keyboard-border);
 
   &::before, &::after {
     content: '';
     position: absolute;
-    background-color: #6c7074;
-    border-top: 2px solid #ccc;
+    background-color: var(--color-keysocket);
+    border-top: var(--color-keyboard-border);
     width: 3px;
     height: 3px;
   }
 
   &.left {
     border-radius: 0 0 0 4px;
-    border-left: 2px solid #ccc;
+    border-right: 0;
     right: -2px;
 
     &::before, &::after {
-      box-shadow: 2px -2px 0 0 #fff;
+      box-shadow: 2px -2px 0 0 var(--color-keyboard);
       border-radius: 0 4px 0 0;
-      border-right: 2px solid #ccc;
+      border-right: var(--color-keyboard-border);
     }
 
     &::before {
@@ -77,13 +92,13 @@ canvas {
 
   &.right {
     border-radius: 0 0 4px 0;
-    border-right: 2px solid #ccc;
+    border-left: 0;
     left: -2px;
 
     &::before, &::after {
-      box-shadow: -2px -2px 0 0 #fff;
+      box-shadow: -2px -2px 0 0 var(--color-keyboard);
       border-radius: 4px 0 0 0;
-      border-left: 2px solid #ccc;
+      border-left: var(--color-keyboard-border);
     }
 
     &::before {
@@ -99,10 +114,10 @@ canvas {
 
 .keysocket {
   font-size: 11px;
-  background:#6c7074;
-  border:2px solid #ccc;
-  border-radius:4px;
-  padding:1px;
+  background: var(--color-keysocket);
+  border: var(--color-keyboard-border);
+  border-radius: 4px;
+  padding: 1px;
   display: inline-block;
   vertical-align: text-bottom;
 }
@@ -366,7 +381,7 @@ canvas {
   display: none;
   position: absolute;
   background-color: #000;
-  color: #fff;
+  color: #0f0;
   border-radius: 4px;
   border: 1px solid #C07820;
   z-index: 1;
@@ -3426,6 +3441,6 @@ window.onload = () => {
 <div id="stdout">Output:</div>
 <div class="poppy" id="poppy"></div>
 <div id="dialogbox"><div id="close">&times;</div><div id="dialog"></div></div>
-<div id="keyboard" style="position:absolute; bottom:0px; z-index:2; background:#fff; border-radius:4px; padding:10px; vertical-align:text-top;"><div style="display:inline-block;"><div class="keysocket" id="esc" style="margin-right:44px;"></div><div class="keysocket" id="f1" style="margin-right:24px;"></div><div class="keysocket" id="f5" style="margin-right:24px;"></div><div class="keysocket" id="f9"></div><div></div><div class="keysocket" id="alphakeys" style="margin-top:12px;"></div></div><div style="display:inline-block; margin-left:6px;"><div class="keysocket" id="homekeys2"></div><div style="height:12px;"></div><div class="keysocket" id="homekeys"></div><div style="height:44px;"></div><div class="keysocket" id="arrows"></div></div></div>
+<div id="keyboard"><div style="display:inline-block;"><div class="keysocket" id="esc" style="margin-right:44px;"></div><div class="keysocket" id="f1" style="margin-right:24px;"></div><div class="keysocket" id="f5" style="margin-right:24px;"></div><div class="keysocket" id="f9"></div><div></div><div class="keysocket" id="alphakeys" style="margin-top:12px;"></div></div><div style="display:inline-block; margin-left:6px;"><div class="keysocket" id="homekeys2"></div><div style="height:12px;"></div><div class="keysocket" id="homekeys"></div><div style="height:44px;"></div><div class="keysocket" id="arrows"></div></div></div>
 </body>
 </html>

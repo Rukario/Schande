@@ -50,9 +50,9 @@ canvas {
 
 .plate {
   background-color: var(--color-keyboard);
-  width: 51px;
-  height: 50px;
-  top: -8px;
+  width: 52px;
+  height: 51px;
+  top: -9px;
 
   background-clip: padding-box;
   display: inline-block;
@@ -74,6 +74,7 @@ canvas {
     border-radius: 0 0 0 4px;
     border-right: 0;
     right: -2px;
+    margin-right: -2px;
 
     &::before, &::after {
       box-shadow: 5px 0 0 0 var(--color-keyboard), 3px -3px 0 0 var(--color-keyboard), 0 -5px 0 0 var(--color-keyboard);
@@ -82,11 +83,12 @@ canvas {
     }
 
     &::before {
+      top: 1px;
       left: -6px;
     }
 
     &::after {
-      right: 0;
+      right: 1px;
       bottom: -6px;
     }
   }
@@ -95,6 +97,7 @@ canvas {
     border-radius: 0 0 4px 0;
     border-left: 0;
     left: -2px;
+    margin-left: -2px;
 
     &::before, &::after {
       box-shadow: -5px 0 0 0 var(--color-keyboard), -3px -3px 0 0 var(--color-keyboard), 0 -5px 0 0 var(--color-keyboard);
@@ -103,11 +106,12 @@ canvas {
     }
 
     &::before {
+      top: 1px;
       right: -6px;
     }
 
     &::after {
-      left: 0;
+      left: 1px;
       bottom: -6px;
     }
   }

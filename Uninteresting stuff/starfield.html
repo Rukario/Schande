@@ -373,18 +373,18 @@ canvas {
   height: 18px;
   top: 243px;
   left: 4px;
+
+  &::before {
+    content: '';
+    top: -4px;
+    left: -4px;
+    background: #c0c0c0;
+    width: 8px;
+    height: 20px;
+  }
 }
 
-.leverdot:before {
-  content: '';
-  top: -4px;
-  left: -4px;
-  background: #c0c0c0;
-  width: 8px;
-  height: 20px;
-}
-
-.leverdot, .leverdot:before{
+.leverdot, .leverdot:before {
   pointer-events: none;
   position: absolute;
   clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
@@ -472,7 +472,7 @@ var solitaire = false;
 var qix = false;
 var scale = 1;
 
-var dim = {x:0, y: 0};
+var dim = {x:0, y:0};
 var mousepos = {x:0, y:0};
 var rubbermouse = {x:0, y:0};
 
@@ -563,18 +563,18 @@ function newstar(ishtar) {
 
 
 function starry(toodiff) {
-  if (toodiff > (1000 / fps.vfps) + fps.msec/20) {
-    startTime = Date.now();
+  if (toodiff > (1000 / star.delay) + 60/fps.vfps) {
+    startTime = performance.now();
     frameCount = 0;
     if (!star.accelerate) {
-      fps.vfps = 1000 / fps.msec;
-    } else if (isFinite(fps.vfps)) {
-      fps.vfps = fps.vfps / (1 + fps.msec / (star.accelerate*200));
+      star.delay = 10*fps.vfps;
+    } else if (isFinite(star.delay)) {
+      star.delay = star.delay / (1 + (1000/fps.vfps) / (star.accelerate*200));
     } else {
-      fps.vfps = 57600 / fps.msec;
+      star.delay = 60*fps.vfps;
     }
   } else {
-    fps.vfps = Math.round(1000 / toodiff * 100) / 100;
+    star.delay = Math.round(1000 / toodiff * 100) / 100;
   }
 
   const driftx = (mousepos.x-dim.x)/(200/scr.levitate)/(20/fps.msec)/star.life-(mousepos.x-rubbermouse.x)/scr.friction.x*scr.drift;
@@ -612,7 +612,7 @@ function starry(toodiff) {
     ) {
       ishtar[0] = 0;
     } else {
-      ishtar[0] += star.speed / fps.vfps;
+      ishtar[0] += star.speed / star.delay;
 
       //if (ishtar[1] < dim.x) {
       //  ishtar[1] -= ((dim.x/ishtar[1])-1)*(1+ishtar[0]/5);
@@ -663,30 +663,37 @@ function starry(toodiff) {
 }
 
 function screensaver(resolve) {
-  let then = Date.now();
+  let frameThen = then = performance.now();
+  let fps_increase = 0;
   const update = () => {
     if (stopscreensaver) {
       return resolve(true);
     }
     requestAnimationFrame(update);
-    const now = Date.now();
+    fps_increase++;
+
+    const frameNow = now = performance.now();
+    const sinceStart = now - startTime;
+    if (frameNow >= frameThen + 1000) {
+      frameThen += 1000;
+      fps.hz = fps_increase;
+      const sec = (Math.round(sinceStart / 1000 * 100) / 100).toFixed(2).padStart(3, '0');
+      const simfps = fps_increase.toFixed(2).padStart(3, '0');
+      result.innerHTML = `Uninterrupted for ${sec} seconds @ ${simfps} fps`;
+      fps_increase = 0;
+    }
+
     const elapsed = now - then;
     if (!fps.throttle || elapsed > fps.msec) {
       then = now - (elapsed % fps.msec);
-
-      const sinceStart = now - startTime;
-      const sec = (Math.round(sinceStart / 1000 * 100) / 100).toFixed(2).padStart(3, '0');
-      const simfps = fps.vfps.toFixed(2).padStart(3, '0');
-      const msec = fps.msec.toFixed(2).padStart(3, '0');
-      result.innerHTML = `Uninterrupted for ${sec} seconds @ ${simfps} fps ${msec} milliseconds`;
-
       const toodiff = sinceStart / ++frameCount;
+
       starry(toodiff);
     }
   };
-  startTime = Date.now();
+  startTime = performance.now();
   frameCount = 0;
-  fps.vfps = 57600/fps.msec;
+  star.delay = 60*fps.vfps;
   result.style.display = fps.display ? 'block' : 'none';
   update();
 }
@@ -766,7 +773,9 @@ function new_stars() {
 
     const foliage = new Image();
     foliage.src = 'spruce.png';
-    canvasToFrame(starmask(false, foliage), variant, scr.density/xlight.length*(xlight.length-1));
+    foliage.onload = () => {
+      canvasToFrame(starmask(false, foliage), variant, scr.density/xlight.length*(xlight.length-1));
+    }
 
     for (const color of xlight) {
       canvasToFrame(starmask(color), variant, scr.density/xlight.length/xlight.length);
@@ -1734,7 +1743,7 @@ function computerplaysol(forhint) {
 
 
 
-var fastclick = Date.now();
+var fastclick = performance.now();
 var dragcard = false;
 var returncard = false;
 
@@ -1969,7 +1978,7 @@ var releasecard = () => {
       if (mousepos.x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*(pos+4) + cardsize[0]*(pos+3) && mousepos.x - dragcard.dx + dragcard.x < gap.x*(pos+4) + cardsize[0]*(pos+4) && mousepos.y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*1 + cardsize[1]*0 && mousepos.y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1) {
         slot.push(slots[pos+1]);
       }
-      if (fastclick + 200 > Date.now()) {
+      if (fastclick + 200 > performance.now()) {
         let stack = slots[pos+1][1].at(-1);
         let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
         let card = dragcards.at(-1);
@@ -2035,7 +2044,7 @@ var releasecard = () => {
             }
             snapshot();
             sol();
-            fastclick = Date.now();
+            fastclick = performance.now();
             return;
           } else {
             rubberband();
@@ -2050,7 +2059,7 @@ var releasecard = () => {
           }
           snapshot();
           sol();
-          fastclick = Date.now();
+          fastclick = performance.now();
           return;
         } else {
           rubberband();
@@ -2065,7 +2074,7 @@ var releasecard = () => {
   if (!winanim) {
     sol();
   }
-  fastclick = Date.now();
+  fastclick = performance.now();
   return;
 }
 
@@ -2315,7 +2324,7 @@ function leverdraw(e) {
     // x = Math.max(x, 0);
     leverdot.style.left = 4 + x + "px";
     star.accelerate = (200-x) / 25;
-    fps.vfps = 57600/fps.msec;
+    star.delay = 60*fps.vfps;
     leverstat.innerHTML = `Accelerate: ${star.accelerate}s`;
   }
 }
@@ -3127,12 +3136,14 @@ function makemenu() {
       e.addEventListener(tc, () => {
         if (arg) {
           fps.throttle = true;
+          fps.vfps = arg;
           fps.msec = 1000 / arg;
         } else {
           fps.throttle = false;
+          fps.vfps = fps.hz;
           fps.msec = 1000 / fps.hz;
         }
-        fps.vfps = 57600/fps.msec;
+        star.delay = 60*fps.vfps;
         savestar();
       });
     };
@@ -3466,7 +3477,7 @@ window.onload = () => {
   });
 
   addEventListener("visibilitychange", (event) => {
-    //startTime = Date.now();
+    //startTime = performance.now();
     //frameCount = 0;
   });
 

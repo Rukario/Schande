@@ -179,7 +179,7 @@ canvas {
 }
 
 .hintscreen {
-  position:absolute;
+  position: absolute;
   pointer-events:none;
   width: 100% /*738px*/;
   height: 100% /*400px*/;
@@ -306,6 +306,39 @@ canvas {
   left: 15px;
   top: 8px;
   float: right;
+}
+
+#touchloc, #touchlocm {
+  display: none;
+  pointer-events: none;
+  z-index: 4;
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  animation: fade 1000ms linear 1;
+  //animation: fade 1000ms steps(2, end);
+}
+
+@keyframes fade {
+  50% {
+    opacity: 100%;
+  }
+  100% {
+    opacity: 0%;
+  }
+}
+
+#touchloc {
+  border: 1px solid #00f;
+}
+
+#touchlocm {
+  background-color: #00f;
+}
+
+#glyph {
+  left: 8px;
+  top: 8px;
 }
 
 .graph {
@@ -2045,11 +2078,29 @@ var FFdown = (e_) => {
     mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop: e_.y;
   }
 
+  if (isTouch) {
+    clearTimeout(fader);
+    touchloc.style.display = 'block';
+    touchlocm.style.display = 'block';
+    touchloc.style.animation = 'none';
+    touchlocm.style.animation = 'none';
+    touchloc.style.width = 3 / window.visualViewport.scale + 'px';
+    touchloc.style.height = 3 / window.visualViewport.scale + 'px';
+    touchloc.style.top = mousepos.y - 2 / window.visualViewport.scale + 'px';
+    touchloc.style.left = mousepos.x - 2 / window.visualViewport.scale + 'px';
+    touchlocm.style.top = mousepos.y - 1 + 'px';
+    touchlocm.style.left = mousepos.x - 1 + 'px';
+  }
+
   graphdraw(e_);
   leverdraw(e_);
 
   if (e_.target.classList.contains('poppy') || e_.target.parentNode.classList.contains('poppy') || isTouch && e_.touches.length > 1) {
     ZOOKd = true;
+    if (solitaire) {
+      rubberband();
+      dragcard = false;
+    }
   } else {
     ZOOKd = false;
     if (solitaire) {
@@ -2059,7 +2110,7 @@ var FFdown = (e_) => {
 }
 
 
-
+var fader = null;
 var FFup = (e_) => {
   mousec.down = 0;
 
@@ -2071,6 +2122,15 @@ var FFup = (e_) => {
     if (dialogbox.style.display != 'none') {
       dialogbox.style.display = 'none';
     }
+  }
+
+  if (isTouch) {
+    touchloc.style.animation = '';
+    touchlocm.style.animation = '';
+    fader = setTimeout(() => {
+      touchloc.style.display = 'none';
+      touchlocm.style.display = 'none';
+    }, 900);
   }
 
   leverdrawing = false;
@@ -2127,6 +2187,11 @@ var FFmove = (e_) => {
       mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft: e_.x;
       mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop: e_.y;
     }
+  }
+
+  if (isTouch) {
+    touchlocm.style.top = mousepos.y - 1 + 'px';
+    touchlocm.style.left = mousepos.x - 1 + 'px';
   }
 
   graphdraw(e_);
@@ -3437,10 +3502,12 @@ window.onload = () => {
 <div class="hintscreen"><div class="hint" id="qixscr"></div></div>
 <div class="hintscreen"><div class="hint" id="qixscr2"></div></div>
 <div id="result"></div>
-<div id="glyph" style="left:8px; top:8px;"></div>
-<div id="stdout">Output:</div>
-<div class="poppy" id="poppy"></div>
-<div id="dialogbox"><div id="close">&times;</div><div id="dialog"></div></div>
+<div id='glyph'></div>
+<div id='stdout'>Output:</div>
+<div class='poppy' id='poppy'></div>
+<div id='touchloc'></div>
+<div id='touchlocm'></div>
+<div id='dialogbox'><div id='close'>&times;</div><div id='dialog'></div></div>
 <div id="keyboard"><div style="display:inline-block;"><div class="keysocket" id="esc" style="margin-right:44px;"></div><div class="keysocket" id="f1" style="margin-right:24px;"></div><div class="keysocket" id="f5" style="margin-right:24px;"></div><div class="keysocket" id="f9"></div><div></div><div class="keysocket" id="alphakeys" style="margin-top:12px;"></div></div><div style="display:inline-block; margin-left:6px;"><div class="keysocket" id="homekeys2"></div><div style="height:12px;"></div><div class="keysocket" id="homekeys"></div><div style="height:44px;"></div><div class="keysocket" id="arrows"></div></div></div>
 </body>
 </html>

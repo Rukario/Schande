@@ -680,9 +680,9 @@ function screensaver(resolve) {
 
     const frameNow = now = performance.now();
     const sinceStart = now - startTime;
-    if (frameNow >= frameThen + 1000) {
-      frameThen += 1000;
-      fps.hz = fps_increase;
+    if (frameNow >= frameThen) {
+      frameThen = frameNow + 1000;
+      fps.hz = fps_increase > 70 ? 120 : 60;
       const sec = (Math.round(sinceStart / 1000 * 100) / 100).toFixed(2).padStart(3, '0');
       const simfps = fps_increase.toFixed(2).padStart(3, '0');
       result.innerHTML = `Uninterrupted for ${sec} seconds @ ${simfps} fps`;
@@ -2462,23 +2462,27 @@ function clearSq(x, y, w, h, co = 0) {
   qixmaskc.putImageData(qixmap, 0, 0);
 }
 
-function stixpath(nx, ny) {
+function stixpath(nx, ny, land) {
   const x = Math.floor(qixpos.x/qixsc);
   const y = Math.floor(qixpos.y/qixsc);
   if (!qixlines.length) {
+    if (land) {
+      return;
+    }
     qixlines = [[x, y, 0, 0]];
     qixline.x = x;
     qixline.y = y;
     qixline.d = nx ? 'y' : 'x';
     return;
   }
+
   const stix = qixlines.at(-1);
   if (qixline[qixline.d] === x) {
-    stix[3] = y-stix[1];
+    stix[3] = y-stix[1] +(land?ny:0);
   } else if (qixline[qixline.d] === y) {
-    stix[2] = x-stix[0];
+    stix[2] = x-stix[0] +(land?nx:0);
   } else {
-    qixlines.push([x, y, 0, 0]);
+    qixlines.push([x+(land?nx:0), y+(land?ny:0), 0, 0]);
     qixline.x = x;
     qixline.y = y;
     qixline.d = nx ? 'y' : 'x';
@@ -2488,19 +2492,23 @@ function stixpath(nx, ny) {
 function qixstep() {
   const x = Math.floor(qixpos.x/qixsc);
   const y = Math.floor(qixpos.y/qixsc);
-  const nx = (Keypress[4] || Keypress[39] ? 1 : 0) + (Keypress[1] || Keypress[37] ? -1 : 0);
-  const ny = (Keypress[19] || Keypress[40] ? 1 : 0) + (Keypress[23] || Keypress[38] ? -1 : 0);
+  let nx = (Keypress[4] || Keypress[39] ? 1 : 0) + (Keypress[1] || Keypress[37] ? -1 : 0);
+  let ny = (Keypress[19] || Keypress[40] ? 1 : 0) + (Keypress[23] || Keypress[38] ? -1 : 0);
+  //nx *= 2; //Math.round(120/fps.hz);
+  //ny *= 2; //Math.round(120/fps.hz);
   if (
     x+nx >= 0 &&
     y+ny >= 0 &&
     x+nx < qixmask.width &&
     y+ny < qixmask.height
   ) {
-    const o = x + nx + qixmask.width*(y + ny);
-    if (qixmap.data[o*4+3] !== 255) {
+    // death barrier
+    const offset = x + nx + qixmask.width*(y + ny);
+    if (qixmap.data[offset*4+3] !== 255) {
+      // established land
       qixpos.x += nx;
       qixpos.y += ny;
-      //stixpath();
+      //stixpath(nx, ny, true);
       if (mousec.hold) {
         mousec.hold = 0;
         for (const area of qixlines) {
@@ -2510,7 +2518,9 @@ function qixstep() {
         qixscan();
       }
     } else if (mousec.down) {
+      // on adventure
       mousec.hold = 1;
+      // developer note: need to find way to make every step a center of tile
       qixpos.x += nx;
       qixpos.y += ny;
       stixpath(nx, ny);
@@ -2690,7 +2700,7 @@ function qixupdate() {
   }
 
   context.drawImage(qixmask, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
-  currentFrame = currentFrame + 8;
+  currentFrame = currentFrame + 960/fps.hz;
   if (currentFrame > 0) {
     currentFrame = currentFrame - anim.width;
   }

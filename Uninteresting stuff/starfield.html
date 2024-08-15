@@ -9,7 +9,7 @@
 :root {
   --color-keyboard: #fff;
   --color-keysocket: #6c7074;
-  --color-keyboard-border: 2px solid rgb(from var(--color-keyboard) r g b / 0.5);
+  --color-keyborder: color-mix(in srgb, var(--color-keyboard), var(--color-keysocket));
 }
 
 body {
@@ -58,15 +58,16 @@ canvas {
   display: inline-block;
   position: relative;
   margin: -10px -1px;
-  border: var(--color-keyboard-border);
+  border: 2px solid var(--color-keyborder);
+  border-top: 0;
 
   &::before, &::after {
     content: '';
     position: absolute;
     background-color: var(--color-keysocket);
-    border-top: var(--color-keyboard-border);
-    width: 3px;
-    height: 3px;
+    border-top: 2px solid var(--color-keyborder);
+    width: 4px;
+    height: 4px;
   }
 
   &.left {
@@ -75,18 +76,18 @@ canvas {
     right: -2px;
 
     &::before, &::after {
-      box-shadow: 2px -2px 0 0 var(--color-keyboard);
-      border-radius: 0 4px 0 0;
-      border-right: var(--color-keyboard-border);
+      box-shadow: 5px 0 0 0 var(--color-keyboard), 3px -3px 0 0 var(--color-keyboard), 0 -5px 0 0 var(--color-keyboard);
+      border-radius: 0 6px 0 0;
+      border-right: 2px solid var(--color-keyborder);
     }
 
     &::before {
-      left: -5px;
+      left: -6px;
     }
 
     &::after {
       right: 0;
-      bottom: -5px;
+      bottom: -6px;
     }
   }
 
@@ -96,18 +97,18 @@ canvas {
     left: -2px;
 
     &::before, &::after {
-      box-shadow: -2px -2px 0 0 var(--color-keyboard);
-      border-radius: 4px 0 0 0;
-      border-left: var(--color-keyboard-border);
+      box-shadow: -5px 0 0 0 var(--color-keyboard), -3px -3px 0 0 var(--color-keyboard), 0 -5px 0 0 var(--color-keyboard);
+      border-radius: 6px 0 0 0;
+      border-left: 2px solid var(--color-keyborder);
     }
 
     &::before {
-      right: -5px;
+      right: -6px;
     }
 
     &::after {
       left: 0;
-      bottom: -5px;
+      bottom: -6px;
     }
   }
 }
@@ -115,8 +116,8 @@ canvas {
 .keysocket {
   font-size: 11px;
   background: var(--color-keysocket);
-  border: var(--color-keyboard-border);
-  border-radius: 4px;
+  border: 2px solid var(--color-keyborder);
+  border-radius: 6px;
   padding: 1px;
   display: inline-block;
   vertical-align: text-bottom;
@@ -139,6 +140,7 @@ canvas {
 }
 
 .keycap {
+  z-index: 2;
   position: relative;
   display: inline-block;
   background: #c4c2bb;
@@ -3519,6 +3521,6 @@ window.onload = () => {
 <div id='touchloc'></div>
 <div id='touchlocm'></div>
 <div id='dialogbox'><div id='close'>&times;</div><div id='dialog'></div></div>
-<div id="keyboard"><div style="display:inline-block;"><div class="keysocket" id="esc" style="margin-right:44px;"></div><div class="keysocket" id="f1" style="margin-right:24px;"></div><div class="keysocket" id="f5" style="margin-right:24px;"></div><div class="keysocket" id="f9"></div><div></div><div class="keysocket" id="alphakeys" style="margin-top:12px;"></div></div><div style="display:inline-block; margin-left:6px;"><div class="keysocket" id="homekeys2"></div><div style="height:12px;"></div><div class="keysocket" id="homekeys"></div><div style="height:44px;"></div><div class="keysocket" id="arrows"></div></div></div>
+<div id="keyboard"><div style="display:inline-block;"><div class="keysocket" id="esc" style="margin-right:44px;"></div><div class="keysocket" id="f1" style="margin-right:24px;"></div><div class="keysocket" id="f5" style="margin-right:24px;"></div><div class="keysocket" id="f9"></div><div></div><div class="keysocket" id="alphakeys" style="margin-top:12px;"></div></div><div style="display:inline-block; margin-left:6px;"><div class="keysocket" id="homekeys2"></div><div></div><div class="keysocket" id="homekeys" style="margin-top:13px;"></div><div></div><div class="keysocket" id="arrows" style="margin-top:43px;"></div></div></div>
 </body>
 </html>

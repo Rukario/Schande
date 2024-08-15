@@ -1180,7 +1180,7 @@ function winsol() {
 
   const update = () => {
     const flycard = flycards[i];
-    for (const nth of Array(2).keys()) {
+    for (const nth of Array(Math.round(240/fps.hz)).keys()) {
       if (!winanim) {
         resize();
         return;

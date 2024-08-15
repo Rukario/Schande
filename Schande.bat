@@ -21,8 +21,7 @@ batchfile = os.path.basename(__file__)
 batchname = os.path.splitext(batchfile)[0]
 batchdir = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
 filelist = []
-savefiles = [[]]
-delfiles = [[]]
+schande_filelist = [[], []]
 pythondir = ""
 thumbnail_dir = ""
 
@@ -694,8 +693,9 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
         try:
             self.handle_one_request()
         except:
-            echo("DISCONNECTED", 0, 1)
+            whereami("DISCONNECTED", 0, 1)
             self.close_connection = True
+            raise
         while not self.close_connection:
             self.handle_one_request()
 
@@ -733,11 +733,11 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             ondisk = saint(api["ondisk"]).replace("\\", "/")
             if api["kind"] == "Save":
                 echo(f"Save {dir}{ondisk}", 0, 1)
-                savefiles[0] += [f"{dir}{ondisk}"]
+                schande_filelist[0][0] += [f"{dir}{ondisk}"]
                 self.wfile.write(bytes(f"Save list updated", 'utf-8'))
             elif api["kind"] == "Schande!":
                 echo(f"Schande! {dir}{ondisk}", 0, 1)
-                delfiles[0] += [f"{dir}{ondisk}"]
+                schande_filelist[0][1] += [f"{dir}{ondisk}"]
                 self.wfile.write(bytes(f"Schande list updated", 'utf-8'))
             elif api["kind"] == "keywords":
                 echo(f""" File updated: {dir}{ondisk}""", 0, 1)
@@ -764,13 +764,6 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             self.wfile.write(bytes(f"Large POST data sent", 'utf-8'))
 
     def list_directory(self, ondisk, ntime=False):
-        try:
-            list = os.listdir(ondisk)
-        except OSError:
-            self.send_error(404, "No permission to list directory")
-            return
-        list.sort(key=lambda a: a.lower())
-
         parent = parse.unquote(self.path)
         parent += "" if parent.endswith("/") else "/ (please fix missing slash in url)"
         if parent == "/":
@@ -779,31 +772,60 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
                 return
         else:
             title = parent.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;").replace("/", "\\")
+
         enc = sys.getfilesystemencoding()
+        htmldata = False
 
-        dirs = []
-        files = []
-        ondisk += "" if ondisk.endswith("/") else "/"
-        for name in list:
-            fullname = f"{ondisk}{name}"
-            label = name.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
-            link = parse.quote(name)
-            ut = f" {os.path.getmtime(fullname):.7f}" if ntime else "&gt;"
-            if os.path.isdir(fullname):
-                label = "\\" + label + "\\"
-                gallery = ""
-                if os.path.exists(fullname + "/gallery.html"):
-                    gallery = f' - <a href="{link}/gallery.html">gallery.html</a>'
-                dirs.append(f' {ut} <a href="{link}/">{label}</a>{gallery}')
-            elif os.path.isfile(fullname):
-                files.append(f' {ut}  <a href="{link}">{label}</a>')
-        buffer = '\n'.join(dirs + files)
+        if os.path.exists(f"{ondisk}/partition.json"):
+            echo('found partition', 0, 1)
+            if os.path.exists(s := f"{ondisk}/savelink.URL"):
+                echo(f'found {s}', 0, 1)
+                with open(s, 'r') as f:
+                    page = f.read().splitlines()[1].replace("URL=", "")
+                get_pick = [x for x in navigator["pickers"].keys() if page.startswith(x)]
+                if not get_pick:
+                    kill(f"\n  {page}\n\nCouldn't recognize this url, I must exit!")
+                pattern = navigator["pickers"][get_pick[0]]["pattern"]
+            else:
+                echo(f'{s} not found', 0, 1)
+                pattern = [[], []]
+            htmldata = new_html("", "Gallery", "", pattern).encode(enc, 'surrogateescape')
+        elif os.path.exists(f"{ondisk}/{batchname}.savx"):
+            echo('found savx', 0, 1)
+            pattern = [[], []]
+            htmldata = new_html("", "Schande", "", pattern).encode(enc, 'surrogateescape')
 
-        style = """html,body{white-space:pre; background-color:#10100c; color:#088; font-family:courier; font-size:14px;}
+        if not htmldata:
+            try:
+                list = sorted(os.listdir(ondisk), key=lambda a: a.lower())
+            except OSError:
+                self.send_error(404, "No permission to list directory")
+                return
+
+            dirs = []
+            files = []
+            ondisk += "" if ondisk.endswith("/") else "/"
+            for name in list:
+                fullname = f"{ondisk}{name}"
+                label = name.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
+                link = parse.quote(name)
+                ut = f" {os.path.getmtime(fullname):.7f}" if ntime else "&gt;"
+                if os.path.isdir(fullname):
+                    label = "\\" + label + "\\"
+                    gallery = ""
+                    if os.path.exists(fullname + "/gallery.html"):
+                        gallery = f' - <a href="{link}/gallery.html">gallery.html</a>'
+                    dirs.append(f' {ut} <a href="{link}/">{label}</a>{gallery}')
+                elif os.path.isfile(fullname):
+                    files.append(f' {ut}  <a href="{link}">{label}</a>')
+            buffer = '\n'.join(dirs + files)
+
+            style = """html,body{white-space:pre; background-color:#10100c; color:#088; font-family:courier; font-size:14px;}
 a{color:#cb7; text-decoration:none;}
 a:visited{color:#efdfa8;}
 h2 {margin:4px;}"""
-        htmldata = f"""<!DOCTYPE html>
+
+            htmldata = f"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8"/>
@@ -813,33 +835,7 @@ h2 {margin:4px;}"""
 </head>
 <body><h2>{title}</h2>{buffer}</body>
 </html>""".encode(enc, 'surrogateescape')
-        f = io.BytesIO()
-        f.write(htmldata)
-        f.seek(0)
-        size = str(len(htmldata))
-        self.send_response(200, size=size)
-        self.send_header('Content-Type', f"text/html; charset={enc}")
-        self.send_header('Content-Length', size)
-        self.end_headers()
-        return f
 
-    def send_ghost(self, ondisk):
-        enc = sys.getfilesystemencoding()
-
-        p = f"{ondisk.rsplit('gallery.html')[0]}savelink.URL"
-        if os.path.exists(p):
-            echo('success load pattern', 0, 1)
-            with open(p, 'r') as f:
-                page = f.read().splitlines()[1].replace("URL=", "")
-            get_pick = [x for x in navigator["pickers"].keys() if page.startswith(x)]
-            if not get_pick:
-                kill("Couldn't recognize this url, I must exit!")
-            pattern = navigator["pickers"][get_pick[0]]["pattern"]
-        else:
-            echo(f"{p} not found", 0, 1)
-            pattern = [[], []]
-
-        htmldata = new_html("test", "gallery.html", "", pattern).encode(enc, 'surrogateescape')
         f = io.BytesIO()
         f.write(htmldata)
         f.seek(0)
@@ -866,15 +862,12 @@ h2 {margin:4px;}"""
         ondisk = http2ondisk(self.path, self.directory)
         if os.path.isdir(ondisk):
             return self.list_directory(ondisk, ntime)
-
         if ondisk.endswith("/"):
             self.send_error(404, "File not found")
             return
         if ondisk.endswith(".cd") and not self.AUTH(ondisk):
             return
-        for x in ["gallery.html"]:
-            if ondisk.endswith(x):
-                return self.send_ghost(ondisk)
+
         try:
             f = open(ondisk, 'rb')
         except OSError:
@@ -931,7 +924,7 @@ h2 {margin:4px;}"""
             self.end_headers()
             return f
         except:
-            echo("DISCONNECTED", 0, 1)
+            whereami("DISCONNECTED", 0, 1)
 
     def send_response(self, code, message=None, size=0, dead=False):
         buffer = '' if dead else f' {size} bytes'
@@ -982,7 +975,7 @@ h2 {margin:4px;}"""
             self.end_headers()
             self.wfile.write(bytes(body, 'utf-8'))
         except:
-            echo("DISCONNECTED", 0, 1)
+            whereami("DISCONNECTED", 0, 1)
 
     def copyfile(self, source, outputfile):
         dl = self.range[0]
@@ -999,7 +992,7 @@ h2 {margin:4px;}"""
             if len(echothreadn) == 1:
                 echo("DONE", 0, 1)
         except:
-            echo("DISCONNECTED", 0, 1)
+            whereami("DISCONNECTED", 0, 1)
         echothreadn.remove(-thread)
 
 
@@ -1168,7 +1161,9 @@ def at(s, r, cw=[], alt=0, key=False, name=False, folder=False, meta=False):
         s += [[]]
     if n:
         s += [[] for _ in range(n-len(s)+1)]
-    s[n] += [r] if s[n] else [{"alt":alt}, r]
+    if not s[n]:
+        s[n] += [{"alt":alt}]
+    s[n] += [r]
     if name and r[0] and not r[1]:
         file_pos[0] = "file_after"
     if name or meta:
@@ -1297,7 +1292,9 @@ def add_picker(s, rule):
             z.insert(1, "")
         else:
             kill("""paginate picker is broken, there need to be a pair of parentheses or an asterisk!""")
-        s["paginate"][n] += [[x[0].split(" "), z]] if s["paginate"][n] else [{"alt":0}, [x[0].split(" "), z]]
+        if not s["paginate"][n]:
+            s["paginate"][n] += [{"alt":0}]
+        s["paginate"][n] += [[x[0].split(" "), z]]
     elif rule.startswith("checkpoint"):
         s["checkpoint"] = True
     elif rule.startswith("ready"):
@@ -2747,9 +2744,8 @@ def tree_files(db, k, f, pick, htmlpart, folder, filelist, pos):
                 cwf = [cwf[0] + "".join(off_branch_name), cwf[1]]
                 off_branch_name = []
             linear_name += [z[1][0][:4] + [cwf, stderr, 0]]
-        else:
-            x = tree(db, [z[0], [z[1][0][:4] + [cwf, stderr, 0]]])
-            off_branch_name += [x[0][0]] if x else []
+        elif x := tree(db, [z[0], [z[1][0][:4] + [cwf, stderr, 0]]]):
+            off_branch_name += [x[0][0]]
     files = tree(db, master_key + [file, key + choose[1] + f[1] + linear_name])
     if choose[1]:
         cf = []
@@ -3380,7 +3376,7 @@ def whsm(file):
 
 
 def ph(file):
-    dctii = cv2.dct(numpy.float32(Image.open(file).convert("L").resize((64, 64), Image.ANTIALIAS)))[:12,:12]
+    dctii = cv2.dct(numpy.float32(Image.open(file).convert("L").resize((64, 64), Resampling.LANCZOS)))[:12,:12]
     return format(int(''.join(str(b) for b in 1*(dctii > numpy.median(dctii)).flatten()), 2), 'x')
 
 
@@ -3448,7 +3444,7 @@ def tosav(fp, filevs=""):
             continue
         filelist = []
         title(subfolder)
-        print("\n - - - - " + subfolder + " - - - -")
+        print("\n - - - - \\" + subfolder + "\\ - - - -")
         for dir, folders, files in os.walk(f"{fp}/{subfolder}"):
             dir = fp + "/" + os.path.relpath(dir, fp).replace("\\", "/") + "/"
             for file in files:
@@ -3486,13 +3482,11 @@ def ren(filename, append):
 
 
 
-def container(dir, ondisk, label=''):
+def container(ondisk, label=''):
     link = ondisk.replace("#", "%23")
     if ondisk.lower().endswith(tuple(videofile)):
         return f"""<div class="frame"><video height="200" autoplay><source src="{link}"></video>{label}</div>"""
     elif ondisk.lower().endswith(tuple(imagefile)):
-        # if not os.path.exists(dir + ondisk):
-        #     return f"""<div class="frame"><div class="edits">Rebuild HTML with<br>{batchfile} in another<br>dir is required to view</div>{label}</div>"""
         if sorter["buildthumbnail"]:
             thumbnail = f"{subdir}{thumbnail_dir}" + ren(link.rsplit("/", 1), "_small")
         else:
@@ -3501,15 +3495,12 @@ def container(dir, ondisk, label=''):
     else:
         label = f"""<div class="aqua" style="height:174px; width:126px;">{ondisk}</div>"""
         buffer = f"""<a href="{link}">{label}</a>"""
-        if os.path.exists(dir + ondisk.rsplit(".", 1)[0] + "/"):
-            buffer += f"""<a href="{ondisk.rsplit(".", 1)[0].replace("#", "%23")}"><div class="aqua" style="height:174px;"><i class="aqua" style="border-width:0 3px 3px 0; padding:3px; -webkit-transform: rotate(-45deg); margin-top:82px;"></i></div></a>"""
+        buffer += f"""<a href="{ondisk.rsplit(".", 1)[0].replace("#", "%23")}"><div class="aqua" style="height:174px;"><i class="aqua" style="border-width:0 3px 3px 0; padding:3px; -webkit-transform: rotate(-45deg); margin-top:82px;"></i></div></a>"""
         return buffer
 
 
 
-def new_html(builder, htmlname, listurls="", pattern=[[], []], imgsize=200):
-    if not listurls:
-        listurls = "Maybe in another page."
+def new_html(builder, htmlname, listurls='', pattern=[[], []], imgsize=200):
     return """<!DOCTYPE html>
 <html>
 <meta charset="UTF-8"/>
@@ -3517,64 +3508,328 @@ def new_html(builder, htmlname, listurls="", pattern=[[], []], imgsize=200):
 <meta name="viewport" content="user-scalable=0">
 """ + f"<title>{htmlname}</title>" + """
 <style>
-body {background-color:#10100c; color:#088 /*088 cb7*/; font-family:consolas, courier; font-size:14px; -webkit-text-size-adjust:none;}
-a{color:#6cb /*efdfa8*/;}
-a:visited{color:#bfe;}
-.external{color:#db6;}
-.external:visited{color:#ed9;}
+body {
+  background-color: #10100c;
+  color: #088 /*088 cb7*/;
+  font-family: consolas, courier;
+  font-size: 14px;
+  -webkit-text-size-adjust: none;
+}
 
-img {vertical-align:top;}
-h2 {margin:4px;}
-button {padding:1px 4px;}
-[contenteditable]:focus, input:focus {outline:none;}
+a {
+  color: #6cb /*efdfa8*/;
+}
 
-.aqua{background-color:#006666; color:#33ffff; border:1px solid #22cccc;}
-.carbon, .files, .time{background-color:#10100c /*10100c 112230 07300f*/; border:3px solid #6a6a66 /*6a6a66 367 192*/; border-radius:12px;}
-.time{white-space:pre-wrap; color:#ccc; font-size:90%; line-height:1.6;}
-.cell, .mySlides{background-color:#1c1a19; border:none; border-radius:12px;}
-.edits{background-color:#330717; border:3px solid #912; border-radius:12px; color:#f45; padding:12px; margin:6px; word-wrap:break-word;}
-.previous{background-color:#f1f1f1; color:black; border:none; border-radius:10px; cursor:pointer;}
-.next{background-color:#444; color:white; border:none; border-radius:10px; cursor:pointer;}
-.nextword{margin-left:8px; display:inline-block; color:#6fe; background-color:#066; border:none; padding:0px 8px;}
-.nextword::placeholder {color:#3cb;}
-.dark{background-color:rgba(0, 0, 0, 0.5); color:#fff; border:none; border-radius:10px; cursor:pointer;}
-.reverse{background-color:#63c; color:#d9f; border:none; border-radius:10px; cursor:pointer;}
-.tangerine{background-color:#c60; color:#fc3; border:none; border-radius:10px; cursor:pointer;}
-.edge{background-color:#261; color:#8c4; border:none; border-radius:10px; cursor:pointer;}
+a:visited {
+  color: #bfe;
+}
 
-.sources{font-size:80%; width:200px;}
-.container{display:block; position:relative;}
-.frame{display:inline-block; vertical-align:top; position:relative; min-width:64px; min-height:64px;}
-.aqua{display:inline-block; vertical-align:top; padding:12px; word-wrap:break-word;}
-.carbon, .time, .files, .edits{display:inline-block; vertical-align:top;}
-.carbon, .time, .cell, .mySlides, .files, .edits{padding:8px; margin:6px; word-wrap:break-word;}
-.mySlides{white-space:pre-wrap; padding-right:32px;}
-.close_button {position:absolute; top:15px; right:15px;}
-.tooltip {display:none; position:relative; cursor:default; font-family:sans-serif; font-size:12px;}
-.cursor_tooltip {padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial; pointer-events:none;}
-.carbon, .files, .edits{margin-right:12px;}
-.cell{overflow:auto; width:calc(100% - 30px); display:inline-block; vertical-align:text-top;}
-.postMessage{white-space:pre-wrap;}
-.menu {color:#9b859d; background-color:#110c13;}
-.exitmenu {color:#f45; background-color:#2d0710;}
-.stdout {white-space:pre-wrap; color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; min-height:0px;}
-.schande{opacity:0.5; position:absolute; top:158px; text-align:center; line-height:34px; height:34px; cursor:pointer; min-width:40px; border:2px solid transparent; background-clip: padding-box; box-shadow:inset 0 0 0 2px #c44; padding:2px; background-color:#602; color:#f45; -webkit-user-select:none;}
-.save{box-shadow:inset 0 0 0 2px #367; background-color:#142434; color:#2a9;}
-.spinner {position:absolute; border-top:9px solid #6cc; height:6px; width:3px; top:162px; left:24px; pointer-events:none; animation-name:spin; animation-duration: 1000ms; animation-timing-function: linear;}
-.left {position:absolute; border-bottom:2px solid #f66; border-left:2px solid #f66; height:5px; width:5px; transform:rotate(45deg); top:166px; left:86px; pointer-events:none;}
-.right {position:absolute; border-bottom:2px solid #6cc; border-left:2px solid #6cc; height:5px; width:5px; transform:rotate(225deg); top:166px; left:21px; pointer-events:none;}
+.external {
+  color: #db6;
+}
+
+.external: visited{
+  color: #ed9;
+}
+
+img {
+  vertical-align: top;
+}
+
+.fileThumb {
+ scroll-margin-top: 100px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 4px;
+}
+
+button {
+  padding: 1px 4px;
+}
+
+[contenteditable]:focus, input:focus {
+  outline: none;
+}
+
+input[type='text'] {
+  padding-left: 8px;
+  padding-right: 8px;
+  width: 100px;
+}
+
+.aqua {
+  background-color: #006666;
+  color: #33ffff;
+  border: 1px solid #22cccc;
+}
+
+.carbon, .files, .time {
+  background-color: #10100c /*10100c 112230 07300f*/;
+  border: 3px solid #6a6a66 /*6a6a66 367 192*/;
+  border-radius: 12px;
+}
+
+.time {
+  white-space: pre-wrap;
+  color: #ccc;
+  font-size: 90%;
+  line-height: 1.6;
+}
+
+.cell, .listurls {
+  background-color: #1c1a19;
+  border: none;
+  border-radius: 12px;
+}
+
+.edits {
+  background-color: #330717;
+  border: 3px solid #912;
+  border-radius: 12px;
+  color: #f45;
+  padding: 12px;
+  margin: 6px;
+  word-wrap: break-word;
+}
+
+.previous {
+  background-color: #f1f1f1;
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.next {
+  background-color: #444;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.nextword {
+  margin-left: 8px;
+  display: inline-block;
+  color: #6fe;
+  background-color: #066;
+  border: none;
+  padding: 0px 8px;
+}
+
+.nextword::placeholder {
+  color: #3cb;
+}
+
+.dark {
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.reverse {
+  background-color: #63c;
+  color: #d9f;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.tangerine {
+  background-color: #c60;
+  color: #fc3;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.edge {
+  background-color: #261;
+  color: #8c4;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.sources {
+  font-size: 80%;
+  width: 200px;
+}
+
+.container {
+  display: block;
+  position: relative;
+}
+
+.frame {
+  display: inline-block;
+  vertical-align: top;
+  position: relative;
+  min-width: 64px;
+  min-height:64px;
+}
+
+.aqua {
+  display: inline-block;
+  vertical-align: top;
+  padding: 12px;
+  word-wrap: break-word;
+}
+
+.carbon, .time, .files, .edits {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.carbon, .time, .cell, .listurls, .files, .edits {
+  padding: 8px;
+  margin: 6px;
+  word-wrap: break-word;
+}
+
+.listurls {
+  white-space: pre-wrap;
+  padding-right: 32px;
+}
+
+.close_button {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+}
+
+#tooltip {
+  padding: 0px 8px;
+  font-family: sans-serif;
+  font-size: 90%;
+  z-index: 1;
+  left: 0px;
+  top: 0px;
+  right: initial;
+  pointer-events: none;
+}
+
+.cursor_tooltip {
+  padding: 0px 8px;
+  font-family: sans-serif;
+  font-size: 90%;
+  z-index: 1;
+  left: 0px;
+  top: 0px;
+  right: initial;
+  pointer-events: none;
+}
+
+.carbon, .files, .edits {
+  margin-right: 12px;
+}
+
+.cell {
+  overflow: auto;
+  width: calc(100% - 30px);
+  display: inline-block;
+  vertical-align: text-top;
+}
+
+.postMessage {
+  white-space: pre-wrap;
+}
+
+.menu {
+  color: #9b859d;
+  background-color: #110c13;
+}
+
+.exitmenu {
+  color: #f45;
+  background-color: #2d0710;
+}
+
+.stdout {
+  white-space: pre-wrap;
+  color: #9b859d;
+  background-color: #110c13;
+  border: 2px solid #221926;
+  display: inline-block;
+  padding: 6px;
+  min-height: 0px;
+}
+
+.schande {
+  opacity: 0.5;
+  position: absolute;
+  top: 158px;
+  text-align: center;
+  line-height: 34px;
+  height: 34px;
+  cursor: pointer;
+  min-width: 40px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  box-shadow: inset 0 0 0 2px #c44;
+  padding: 2px;
+  background-color: #602;
+  color: #f45;
+  -webkit-user-select: none;
+}
+
+.save {
+  box-shadow: inset 0 0 0 2px #367;
+  background-color: #142434;
+  color: #2a9;
+}
+
+.spinner {
+  position: absolute;
+  border-top: 9px solid #6cc;
+  height: 6px;
+  width: 3px;
+  top: 162px;
+  left: 24px;
+  pointer-events: none;
+  animation-name: spin;
+  animation-duration: 1000ms;
+  animation-timing-function: linear;
+}
+
+.left, .right {
+  position: absolute;
+  height: 5px;
+  width: 5px;
+  top: 166px;
+  pointer-events: none;
+}
+
+.left {
+  border-bottom: 2px solid #f66;
+  border-left: 2px solid #f66;
+  transform: rotate(45deg);
+  left: 86px;
+}
+
+.right {
+  border-bottom: 2px solid #6cc;
+  border-left: 2px solid #6cc;
+  transform: rotate(225deg);
+  left: 21px;
+}
+
 @keyframes spin {
   from {
-    transform:rotate(0deg);
+    transform: rotate(0deg);
   }
+
   to {
-    transform:rotate(360deg);
+    transform: rotate(360deg);
   }
 }
 </style>
 <script>
-var imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"];
-var videofile = [".mkv", ".mp4", ".webm"];
+var imagefile = ['.gif', '.jpe', '.jpeg', '.jpg', '.png', '.heif'];
+var videofile = ['.mkv', '.mp4', '.webm'];
 
 function send(b, e) {
   const xhr = new XMLHttpRequest();
@@ -3660,7 +3915,6 @@ function loadkeys() {
 
 function loadpart() {
   const xhr = new XMLHttpRequest();
-  var isTainted = true
   xhr.overrideMimeType("application/json");
   xhr.open('GET', "partition.json", true);
   xhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
@@ -3670,14 +3924,43 @@ function loadpart() {
       if (xhr.status !== 404 && xhr.responseText) {
         readpart(JSON.parse(xhr.responseText));
       } else if (xhr.responseText){
-        document.insertAdjacentHTML('beforeend', "test");
+        console.log("partition.json not found");
+        lazyload();
+        loadkeys();
       } else {
         local_tooltip.style.display = "inline-block";
         local_tooltip.innerHTML = "⚠";
         local_tooltip.setAttribute("data-tooltip", "Not loaded on HTTP server: HTTP server is used for custom keywords and interacting with Schande/Save buttons.");
       }
     }
-    isTainted = false
+  }
+}
+
+var savdata = {};
+function opensav(sav="Schande.sav") {
+  const xhr = new XMLHttpRequest();
+  xhr.overrideMimeType("application/octet-stream");
+  xhr.open('GET', sav, true);
+  xhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
+  xhr.send();
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status !== 404 && xhr.responseText) {
+        savdata[sav] = xhr.responseText.split("\\n").slice(1);
+        if (sav == "Schande.savx") {
+          readschande();
+          lazyload();
+        } else {
+          opensav("Schande.savx");
+        }
+      } else if (xhr.responseText){
+        console.log(`${sav} not found`);
+      } else {
+        local_tooltip.style.display = "inline-block";
+        local_tooltip.innerHTML = "⚠";
+        local_tooltip.setAttribute("data-tooltip", "Not loaded on HTTP server: HTTP server is used for custom keywords and interacting with Schande/Save buttons.");
+      }
+    }
   }
 }
 
@@ -3744,9 +4027,11 @@ function plaintext(elem, e) {
 }
 
 function echo(B, b) {
-  if (!b) B = "\\n" + B
-  if (b) B = " " + B
-  stdout.innerHTML += B;
+  if (!b) {
+    stdout.innerHTML += "\\n" + B;
+  } else {
+    stdout.innerHTML += " " + B;
+  }
 }
 
 var Expand = function(c, t) {
@@ -4241,7 +4526,7 @@ function preview(e) {
 }
 
 function showDivs(n) {
-  const nodes = document.getElementsByClassName("mySlides");
+  const nodes = document.querySelectorAll('.listurls');
   if (n > nodes.length) {
     slideIndex = 1;
   }
@@ -4260,7 +4545,7 @@ function showDivs(n) {
 }
 
 function resizeImg(n) {
-  for (const node of document.getElementsByClassName("lazy")) {
+  for (const node of document.querySelectorAll('.lazy')) {
     if (n === 'auto') {
       node.style.maxWidth = '100%';
     } else {
@@ -4272,58 +4557,53 @@ function resizeImg(n) {
 }
 
 function resizeCell(n) {
-  for (const node of document.getElementsByClassName("cell")) {
+  for (const node of document.querySelectorAll('.cell')) {
     node.style.width = n;
   }
 }
 
 function hideDetails(e) {
-  const nodes = document.getElementsByClassName("sources");
   let hide = false;
 
-  if (e.classList.contains("next")) {
-    e.classList = "previous";
+  if (e.classList.contains('next')) {
+    e.classList = 'previous';
     hide = true;
   } else {
-    e.classList = "next";
+    e.classList = 'next';
   }
 
-  for (const node of nodes) {
-    if (hide) {
-      node.style.display = 'block';
-    } else {
-      node.style.display = 'none';
-    }
+  for (const node of document.querySelectorAll('.sources')) {
+    node.style.display = hide ? 'block' : 'none';
   }
 }
 
 function hideParts(tagName, className, filterNode) {
-  const nodes = document.getElementsByClassName("cell");
+  const nodes = document.querySelectorAll('.cell');
 
   // shamefur dispray
   if (!tagName) {
     for (const node of nodes) {
       node.style.display = 'inline-block';
     }
+
     return;
   }
 
   for (const node of nodes) {
     let hide = false;
     let tagNode = node.getElementsByTagName(tagName);
-    let classNode = node.getElementsByClassName(className);
+    let classNode = node.querySelectorAll(className);
 
     if (tagNode.length > 0) {
-      tagNode = tagNode[0].textContent;
-      tagNode = tagNode.toLowerCase();
+      tagNode = tagNode[0].textContent.toLowerCase();
     } else {
       // no content no dispray!
       node.style.display = 'none';
       continue;
     }
 
-    if (filterNode["ignored"].length) {
-      for (const p of filterNode["ignored"]) {
+    if (filterNode.ignore.length > 0) {
+      for (const p of filterNode.ignore) {
         if (p && tagNode.includes(p)) {
           hide = true;
           break;
@@ -4331,9 +4611,9 @@ function hideParts(tagName, className, filterNode) {
       }
     }
 
-    if (!hide && filterNode["searched"].length) {
+    if (!hide && filterNode.search.length > 0) {
       hide = true;
-      for (const p of filterNode["searched"]) {
+      for (const p of filterNode.search) {
         if (p && tagNode.includes(p)) {
           hide = false;
           break;
@@ -4342,16 +4622,15 @@ function hideParts(tagName, className, filterNode) {
     }
 
     if (classNode.length > 0) {
-      classNode = classNode[0].textContent;
-      classNode = classNode.toLowerCase();
+      classNode = classNode[0].textContent.toLowerCase();
     } else {
       // no content no dispray!
       node.style.display = 'none';
       continue;
     }
 
-    if (!hide && filterNode["excluding"].length) {
-      for (const p of filterNode["excluding"]) {
+    if (!hide && filterNode.excluding.length > 0) {
+      for (const p of filterNode.excluding) {
         if (p && classNode.includes(p)) {
           hide = true;
           break;
@@ -4359,9 +4638,9 @@ function hideParts(tagName, className, filterNode) {
       }
     }
 
-    if (!hide && filterNode["contains"].length) {
+    if (!hide && filterNode.contains.length > 0) {
       hide = true;
-      for (const p of filterNode["contains"]) {
+      for (const p of filterNode.contains) {
         if (p && classNode.includes(p)) {
           hide = false;
           break;
@@ -4369,52 +4648,134 @@ function hideParts(tagName, className, filterNode) {
       }
     }
 
-    if (hide) {
-      node.style.display = 'none';
+    node.style.display = hide ? 'none' : 'inline-block';
+  }
+}
+
+function registerFilter(filterNode, op_text, bar) {
+  const op_keywords = {
+    keyword: ['kw:'],
+    search: ['fi:'],
+    ignore: ['fk:'],
+    contains: ['in:'],
+    excluding: ['xl:'],
+    status: ['is:'],
+  };
+
+  const search_ops = [
+    [op_keywords.keyword, 'keyword'],
+    [op_keywords.search, 'search'],
+    [op_keywords.ignore, 'ignore'],
+    [op_keywords.contains, 'contains'],
+    [op_keywords.excluding, 'excluding'],
+    [
+      op_keywords.status,
+      'states',
+      [
+        "placeholder",
+      ],
+    ],
+    [],
+  ];
+
+  let text = op_text;
+  for (let [op, c, a] of search_ops) {
+    if (op) {
+      op = op.find((x) => op_text.startsWith(x));
+      if (!op) {
+        continue;
+      }
+      text = op_text.slice(op.length);
+      filterNode.autocomplete = a;
+      filterNode.controller = filterNode[c];
+    }
+
+    c = filterNode.controller;
+    if (c) {
+      let text_array = text.split(/,+/);
+      // Comma delimiter
+      a = filterNode.autocomplete;
+      if (a) {
+        const new_ta = [];
+        for (const t of text_array) {
+          if (t) {
+            new_ta.push(a.find((e) => e.startsWith(t)));
+          }
+        }
+        text_array = new_ta;
+      }
+
+      if (op) {
+        c.push(text_array);
+      } else {
+        c.at(-1).push(...text_array);
+      }
+
+      if (text && !text.endsWith(',')) {
+        filterNode.autocomplete = null;
+        filterNode.controller = null;
+      }
+      return;
+    }
+  }
+  filterNode[bar].push(text);
+}
+
+function rebuildFilter(filterNode, f, bar) {
+  const farray = f.match(/(?:\\\\.|[^"])+|^/g);
+  // Quote delimiter
+  for (const [n, t] of farray.entries()) {
+    const text = t.replaceAll(/\\\\(.)/g, '$1');
+    // Backslash delimiter
+    if (n % 2) {
+      // quoted
+      const c = filterNode.controller;
+      if (c) {
+        const a = filterNode.autocomplete;
+        c.at(-1).push(a ? a.find((e) => e.startsWith(text)) : text);
+      } else {
+        filterNode[bar].push(text);
+      }
     } else {
-      node.style.display = 'inline-block';
+      // not quoted
+      for (const op_text of text.trimEnd().toLowerCase().split(/ +/)) {
+        // Space delimiter
+        if (op_text) {
+          registerFilter(filterNode, op_text, bar);
+        } else {
+          filterNode.autocomplete = null;
+          filterNode.controller = null;
+        }
+      }
     }
   }
 }
 
 var busytyping;
 function hidePattern() {
-  if (ignore.value.length == 1 || search.value.length == 1 || searchb.value.length == 1 || ignoreb.value.length == 1) return;
+  if (
+    ignore.value.length === 1 ||
+    search.value.length === 1
+  ) {
+    return;
+  }
+
   clearTimeout(busytyping);
 
-  const ignored = ignore.value.toLowerCase().split(" ");
-  const searched = search.value.toLowerCase().split(" ");
-  const contains = searchb.value.toLowerCase().split(" ");
-  const excluding = ignoreb.value.toLowerCase().split(" ");
-
-  const filterNode = {"ignored":[], "searched":[], "contains":[], "excluding":[]};
-
-  for (const text of ignored) {
-    if (text.length > 1) {
-      filterNode["ignored"].push(text);
-    }
-  }
-
-  for (const text of searched) {
-    if (text.length > 1) {
-      filterNode["searched"].push(text);
-    }
-  }
-
-  for (const text of contains) {
-    if (text.length > 1) {
-      filterNode["contains"].push(text);
-    }
-  }
-
-  for (const text of excluding) {
-    if (text.length > 1) {
-      filterNode["excluding"].push(text);
-    }
-  }
+  const filterNode = {
+    keyword: [],
+    search: [],
+    ignore: [],
+    contains: [],
+    excluding: [],
+    autocomplete: null,
+    controller: null,
+  };
 
   busytyping = setTimeout(() => {
-    hideParts('h2', 'postMessage', filterNode);
+    rebuildFilter(filterNode, search.value, 'search');
+    rebuildFilter(filterNode, ignore.value, 'ignore');
+    hideParts('h2', '.postMessage', filterNode);
   }, 500);
 }
 
@@ -4438,7 +4799,11 @@ window.onload = () => {
     stdout.setAttribute("contenteditable", "true");
   }
 
-  loadpart();
+  if (document.title == "Gallery") {
+    loadpart();
+  } else {
+    opensav();
+  }
 }
 
 function lazyload() {
@@ -4507,6 +4872,133 @@ function container(ondisk) {
   }
 }
 
+function label_geistauge(m, s) {
+  const label = document.createElement("SPAN");
+  const diff = document.createElement("SPAN");
+  const percent = document.createElement("SPAN");
+  const sizevs = (parseInt(s[2]) - parseInt(m[2])) / parseInt(m[2]) * 100;
+
+  if (m[3] == s[3]) {
+    diff.innerHTML = "Identical";
+  } else if (m[0] > s[0] && m[1] > s[1]) {
+    diff.style.color = "#ff0000";
+    diff.innerHTML = `${s[0]} x ${s[1]}`;
+  } else if (m[0] >= s[0] && m[1] > s[1] || m[0] > s[0] && m[1] <= s[1]) {
+    diff.style.color = "#eedd99";
+    diff.innerHTML = "Stretched/Un";
+  } else if (m[0] == s[0] && m[1] == s[1]) {
+    diff.style.color = "#ffaa33";
+    diff.innerHTML = "Artifact/Un";
+  } else {
+    diff.style.color = "#00ff00";
+    diff.innerHTML = `${s[0]} x ${s[1]}`;
+  }
+
+  if (sizevs < 0) {
+    percent.style.color = "#66cc66";
+    percent.innerHTML = Math.floor(sizevs*100)/100 + "%";
+  } else if (sizevs == 0) {
+    percent.innerHTML = "0.00%";
+  } else {
+    percent.style.color = "#cc6666";
+    percent.innerHTML = Math.floor(sizevs*100)/100 + "%";
+  }
+
+  label.appendChild(diff);
+  label.insertAdjacentHTML('beforeend', " ");
+  label.appendChild(percent);
+  return label;
+}
+
+function readschande() {
+  const savread = savdata["Schande.sav"]
+  const savxread = savdata["Schande.savx"]
+  // savread.split(" ", 1)[1];
+  // sort the sav by ondisk
+
+  const new_savread = [];
+  for (const d of savread) {
+    const i = d.indexOf(' ');
+    new_savread.push([d.slice(i+1), d.slice(0, i)]);
+  }
+
+  new_savread.sort();
+
+  const datagroup = {};
+  for (const d of new_savread) {
+    if (!datagroup[d[1]]) {
+      datagroup[d[1]] = [];
+    }
+    datagroup[d[1]].push(d[0]);
+  }
+  //console.log(datagroup);
+
+  for (const [phash, philist] of Object.entries(datagroup).sort(([, a], [, b]) => a[0].localeCompare(b[0]))) {
+    if (philist.length < 2) {
+      continue;
+    }
+
+    let pos = 0;
+    let file = philist[0];
+
+    comparable = [];
+    let whsm_m = [0, 0, 0, 0];
+
+    while (true) {
+      pos += 1;
+      const file2 = philist[pos];
+
+      if (!file2) {
+        break;
+      }
+
+      let whsm_s = [0, 0, 0, 0];
+      for (const line of savxread) {
+        if (line.endsWith(file2)) {
+          const x = line.split(" ");
+          whsm_s = [parseInt(x[0]), parseInt(x[1]), parseInt(x[2]), x[3]];
+          break;
+        }
+      }
+
+      // if (!whsm_s[3]) {
+      //   continue;
+      // }
+
+      if (!whsm_m[3]) {
+        for (const line of savxread) {
+          if (line.endsWith(file)) {
+            const x = line.split(" ");
+            whsm_m = [parseInt(x[0]), parseInt(x[1]), parseInt(x[2]), x[3]];
+            break;
+          }
+        }
+      }
+
+      const d = container(file2);
+      d.appendChild(document.createElement("BR"));
+      d.appendChild(label_geistauge(whsm_m, whsm_s));
+      comparable.push(d);
+    }
+
+    if (comparable.length) {
+      const div = document.createElement('DIV');
+      div.classList = "container";
+
+      const d = container(file);
+      d.appendChild(document.createElement("BR"));
+      d.insertAdjacentHTML('beforeend', `${whsm_m[0]} x ${whsm_m[1]}`);
+      div.appendChild(d);
+
+      for (const b of comparable) {
+        div.appendChild(b);
+      }
+
+      document.body.appendChild(div);
+    }
+  }
+}
+
 function readpart(part) {
   const ignored = ignore.value.toLowerCase().split(" ");
   for (const key of Object.keys(part)) {
@@ -4514,7 +5006,7 @@ function readpart(part) {
     cell.classList = "cell";
 
     const keywords = part[key]["keywords"];
-    const partkeytitle = document.createElement("H2");
+    const partkeytitle = document.createElement('H2');
 
     if (keywords && keywords[0]) {
       partkeytitle.innerHTML = keywords[0];
@@ -4537,11 +5029,8 @@ function readpart(part) {
     }
 
     if (keywords.length > 1) {
-      let timestamp = "No timestamp";
-      let afterkeys = "None";
-      if (keywords[1]) {
-        timestamp = keywords[1];
-      }
+      const timestamp = keywords[1] ? keywords[1] : 'No timestamp';
+      let afterkeys = 'None';
       if (keywords.length > 2) {
         const fullkeys = [];
         for (const x of keywords.slice(2)) {
@@ -4551,10 +5040,10 @@ function readpart(part) {
         }
         afterkeys = fullkeys.join(", ");
       }
-      const tsx = document.createElement("DIV");
-      tsx.classList = "time";
+      const tsx = document.createElement('DIV');
+      tsx.classList = 'time';
       tsx.id = key;
-      tsx.style.float = "right";
+      tsx.style.float = 'right';
       tsx.innerHTML = `Part ${key} ꍯ ${timestamp}
 Keywords: ${afterkeys}`;
       cell.appendChild(tsx);
@@ -4646,32 +5135,35 @@ Keywords: ${afterkeys}`;
 }
 </script>
 <body>
-<div class="dark close_button cursor_tooltip" id="tooltip" style="padding:0px 8px; font-family:sans-serif; font-size:90%; z-index:9999999; left:0px; top:0px; right:initial; pointer-events:none;"></div><div style="display:block; height:20px;"></div><div class="container" style="display:none;">
-<button class="dark" onclick="this.parentElement.style.display='none'">&times;</button>""" + f"""<div class="mySlides">{listurls}</div>
-<img id="expandedImg">
-</div>
-<div style="display:block; height:10px;"></div><div style="background:#0c0c0c; height:20px; border-radius: 0 0 12px 0; position:fixed; padding:6px; top:0px; z-index:1;">
-<button class="next" onclick="showDivs(slideIndex = 1)">Links in this HTML</button>
-<button class="next" onclick="resizeImg('{imgsize}px')">1x</button>
-<button class="next" onclick="resizeImg('{imgsize*2}px')">2x</button>
-<button class="next" onclick="resizeImg('{imgsize*4}px')">4x</button>
-<button class="next" onclick="resizeImg('auto')">1:1</button>
-<button class="next" onclick="resizeCell('calc(100% - 30px)')">&nbsp;.&nbsp;</button>
-<button class="next" onclick="resizeCell('calc(50% - 33px)')">. .</button>
-<button class="next" onclick="resizeCell('calc(33.33% - 34px)')">...</button>
-<button class="next" onclick="resizeCell('calc(25% - 35px)')">....</button>
-<button id="fi" class="next" onclick="preview(this)" data-sel="Preview, Preview [ ], Preview 1:1" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel<br>Choose 1:1 mode to enable shift key.">Preview</button>
-<button id="ge" class="next" onclick="previewg(this)" data-sel="Original, vs left, vs left &lt;, vs left &gt;, Find Edge" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
-<button class="next" onclick="hideDetails(this)">Filename</button>
-<input class="next" id="search" type="text" oninput="hidePattern();" style="padding-left:8px; padding-right:8px; width:100px;" value="{" ".join(pattern[1])}" placeholder="Search title">
-<input class="next" id="ignore" type="text" oninput="hidePattern();" style="padding-left:8px; padding-right:8px; width:100px;" value="{" ".join(pattern[0])}" placeholder="Ignore title">
-<input class="next" id="searchb" type="text" oninput="hidePattern();" style="padding-left:8px; padding-right:8px; width:100px;" value="" placeholder="Contains">
-<input class="next" id="ignoreb" type="text" oninput="hidePattern();" style="padding-left:8px; padding-right:8px; width:100px;" value="" placeholder="Excluding">
-<button class="next" onclick="hideParts('.edits')">Edits</button>
-<button class="next" onclick="hideParts()">&times;</button>
-<div class="dark local_tooltip" id="local_tooltip"></div>
-<div class="stdout" id="stdout" style="display:none;" onpaste="plaintext(this, event);" contenteditable="plaintext-only" spellcheck=false></div>
-</div>
+  <div class='dark close_button cursor_tooltip' id='tooltip'></div>
+  <div style='height: 20px;'></div>
+  <div class="container" style="display:none;">
+    <button class='dark' onclick="this.parentElement.style.display = 'none'">&times;</button>""" + f"""
+    <div class='listurls'>Maybe in another page.</div>
+    <img id="expandedImg">
+  </div>
+  <div style='height: 10px;'></div>
+
+  <div style="background:#0c0c0c; height:20px; border-radius: 0 0 12px 0; position:fixed; padding:6px; top:0px; z-index:1;">
+    <button class="next" onclick="showDivs(slideIndex = 1)">Links in this HTML</button>
+    <button class="next" onclick="resizeImg('{imgsize}px')">1x</button>
+    <button class="next" onclick="resizeImg('{imgsize*2}px')">2x</button>
+    <button class="next" onclick="resizeImg('{imgsize*4}px')">4x</button>
+    <button class="next" onclick="resizeImg('auto')">1:1</button>
+    <button class="next" onclick="resizeCell('calc(100% - 30px)')">&nbsp;.&nbsp;</button>
+    <button class="next" onclick="resizeCell('calc(50% - 33px)')">. .</button>
+    <button class="next" onclick="resizeCell('calc(33.33% - 34px)')">...</button>
+    <button class="next" onclick="resizeCell('calc(25% - 35px)')">....</button>
+    <button id="fi" class="next" onclick="preview(this)" data-sel="Preview, Preview [ ], Preview 1:1" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel<br>Choose 1:1 mode to enable shift key.">Preview</button>
+    <button id="ge" class="next" onclick="previewg(this)" data-sel="Original, vs left, vs left &lt;, vs left &gt;, Find Edge" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
+    <button class="next" onclick="hideDetails(this)">Filename</button>
+    <input class="next" id="search" type="text" oninput="hidePattern();" value='{" ".join(pattern[1])}' placeholder='Search title'>
+    <input class="next" id="ignore" type="text" oninput="hidePattern();" value='{" ".join(pattern[0])}' placeholder='Ignore title'>
+    <button class="next" onclick="hideParts('.edits')">Edits</button>
+    <button class="next" onclick="hideParts()">&times;</button>
+    <div class="dark local_tooltip" id="local_tooltip"></div>
+    <div class="stdout" id="stdout" style="display:none;" onpaste="plaintext(this, event);" contenteditable="plaintext-only" spellcheck=false></div>
+  </div>{builder}
 </body>
 </html>"""
 
@@ -4720,7 +5212,8 @@ def updatepart(partfile, relics, htmlpart, filelist, pattern):
                     break
             if not relics[key]["html"] == new_relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
                 new_stray_files = list(set(relics[key]["files"]).difference(new_relics[key]["files"]))
-                new_stray_files += relics[key]["stray_files"] if "stray_files" in relics[key] else []
+                if "stray_files" in relics[key]:
+                    new_stray_files += relics[key]["stray_files"]
                 if new_stray_files:
                     new_relics[key].update({"stray_files": new_stray_files})
                 # if not relics[key]["html"] == new_relics[key]["html"]:
@@ -4846,7 +5339,10 @@ def tohtml(subdir, htmlname, part, pattern):
                 continue
         new_container = False
         end_container = False
-        builder += ["""<div class="cell">"""] if part[key]["visible"] else ["""<div class="cell" style="display:none;">"""]
+        if part[key]["visible"]:
+            builder += ["<div class='cell'>"]
+        else:
+            builder += ["<div class='cell' style='display:none;'>"]
         if len(keywords) > 1:
             timestamp = keywords[1] if keywords[1] else "No timestamp"
             afterkeys = ", ".join(f"{x}" for x in keywords[2:] if x) if len(keywords) > 2 else "None"
@@ -4855,13 +5351,13 @@ def tohtml(subdir, htmlname, part, pattern):
         if part[key]["files"]:
             builder += ["""<div class="files">"""]
             for file in part[key]["files"]:
-                builder += [container(subdir, file, f"""<div class="sources">{file}</div>""")]
+                builder += [container(file, f"""<div class="sources">{file}</div>""")]
             builder += ["</div>"]
         if "stray_files" in part[key]:
             builder += ["""<div class="edits">"""]
             for file in part[key]["stray_files"]:
                 # os.rename(subdir + file, subdir + "Stray files/" + file)
-                builder += [container(subdir, file, f"""<div class="sources">{file}</div>""")]
+                builder += [container(file, f"""<div class="sources">{file}</div>""")]
             builder += ["<br><br>File(s) not on server\n</div>"]
         if html := part[key]["html"]:
             for array in html:
@@ -4871,7 +5367,7 @@ def tohtml(subdir, htmlname, part, pattern):
                         end_container = True
                         new_container = False
                     if array[1]:
-                        buffer += f"""{array[0]}{container(subdir, array[1], f'<div class="sources">{array[1]}</div>')}"""
+                        buffer += f"""{array[0]}{container(array[1], f'<div class="sources">{array[1]}</div>')}"""
                     else:
                         buffer += array[0]
                 elif end_container:
@@ -4929,61 +5425,70 @@ def label_geistauge(m, s, html=False):
 
 def tohtml_geistauge(delete=False):
     start = time.time()
-    print(f"\n Now compiling duplicates to {batchname} HTML . . . kill this CLI to cancel.\n")
+    echo(f"\n Now compiling duplicates to {batchname} HTML . . . kill this CLI to cancel.", 0, 2)
     builder = ""
     counter = 1
-    db = opensav(sav).splitlines()
-    db.sort(key=lambda s: s.split(" ", 1)[1].replace("\\", ""))
+    savread = opensav(sav).splitlines()
+    savxread = opensav(savx).splitlines()
+    if not batchdir == savread[0]:
+        echo(f"{batchdir} {savread[0]} Wrong SAV", 0, 1)
+        return
+    if not batchdir == savxread[0]:
+        echo(f"{batchdir} {savxread[0]} Wrong SAVX", 0, 1)
+        return
+    savsread = opensav(savs).splitlines()
+    ordered_sav = sorted(savread[1:], key=lambda s: s.split(" ", 1)[1])
     datagroup = {}
-    for line in db:
+    for line in ordered_sav:
         phash, file = line.split(" ", 1)
         datagroup.setdefault(phash, [])
         datagroup[phash].append(file)
-    new_savx = opensav(savx).splitlines()
-    savsread = opensav(savs).splitlines()
     for phash in datagroup.keys():
-        fplist = datagroup[phash]
+        philist = datagroup[phash]
         if phash in savsread and delete:
-            for file in fplist:
-                if os.path.exists(file):
-                    f = file.rsplit("/", 1)
-                    trashdir = f"{f[0]} Trash 2/"
+            for ondisk in philist:
+                if os.path.exists(ondisk):
+                    dir, filename = ondisk.rsplit("/", 1)
+                    trashdir = f"{dir} Trash 2/"
                     if not os.path.exists(trashdir):
                         os.makedirs(trashdir)
-                    os.rename(file, trashdir + f[1])
-                    # os.remove(file)
+                    os.rename(ondisk, trashdir + filename)
+                    # os.remove(ondisk)
             continue
-        if len(fplist := [x for x in fplist if os.path.exists(x)]) < 2:
+        if len(philist := [ondisk for ondisk in philist if os.path.exists(ondisk)]) < 2:
             continue
         Perfectexemption = True
-        for file in fplist:
-            if not any(word in file for word in sorter["exempts"]):
+        for ondisk in philist:
+            if not any(word in ondisk for word in sorter["exempts"]):
                 Perfectexemption = False
         if Perfectexemption:
             continue
-        fplist = iter(fplist)
-        builder2 = ""
-        fp = [0, 0, 0, 0]
-        file = next(fplist)
-        file2 = next(fplist)
+        comparable = []
+        whsm_m = [0, 0, 0, 0]
+
+        philist = iter(philist)
+        file = next(philist)
+        file2 = next(philist)
         while True:
-            fp2 = [0, 0, 0, 0]
-            for line in new_savx:
-                if file2 in line:
-                    fp2 = list(map(int, line.split(" ", 3)[:3])) + [line.split(" ", 4)[3]]
+            whsm_s = [0, 0, 0, 0]
+            for line in savxread[1:]:
+                x = line.split(" ", 4)
+                if x[4] == file2:
+                    whsm_s = [int(x[0]), int(x[1]), int(x[2]), x[3]]
                     break
-            if not fp2[3]:
-                fp2 = whsm(file2)
-                new_savx += [" ".join([str(x) for x in fp2]) + f" {file2}"]
-            if not fp[3]:
-                for line in new_savx:
-                    if file in line:
-                        fp = list(map(int, line.split(" ", 3)[:3])) + [line.split(" ", 4)[3]]
+            if not whsm_s[3]:
+                whsm_s = whsm(file2)
+                savxread += [" ".join([str(x) for x in whsm_s]) + f" {file2}"]
+            if not whsm_m[3]:
+                for line in savxread[1:]:
+                    x = line.split(" ", 4)
+                    if x[4] == file:
+                        whsm_m = [int(x[0]), int(x[1]), int(x[2]), x[3]]
                         break
-                if not fp[3]:
-                    fp = whsm(file)
-                    new_savx += [" ".join([str(x) for x in fp]) + f" {file}"]
-            if fp[3] == fp2[3] and delete:
+                if not whsm_m[3]:
+                    whsm_m = whsm(file)
+                    savxread == [" ".join([str(x) for x in whsm_m]) + f" {file}"]
+            if whsm_m[3] == whsm_s[3] and delete:
                 if not any(word in file2 for word in sorter["exempts"]):
                     if os.path.exists(file2):
                         os.remove(file2)
@@ -4991,16 +5496,16 @@ def tohtml_geistauge(delete=False):
                     if os.path.exists(file):
                         os.remove(file)
                     file = file2
-                if file2 := next(fplist, None):
+                if file2 := next(philist, None):
                     continue
                 else:
                     break
-            builder2 += container(batchdir, file2.replace(batchdir, ""), "<br />" + label_geistauge(fp, fp2, html=True))
-            if not (file2 := next(fplist, None)):
+            comparable += [container(file2, "<br>" + label_geistauge(whsm_m, whsm_s, html=True))]
+            if not (file2 := next(philist, None)):
                 break
-        if builder2:
+        if comparable:
             builder += f"""<div class="container">
-{container(batchdir, file.replace(batchdir, ""), f"<br />{fp[0]} x {fp[1]}")}{builder2}</div>
+{container(file, f"<br>{whsm_m[0]} x {whsm_m[1]}")}{"".join(comparable)}</div>
 
 """
             counter += 1
@@ -5008,18 +5513,16 @@ def tohtml_geistauge(delete=False):
             morehtml = htmlfile.replace(".html", f" {int(counter/512)}.html")
             with open(morehtml, 'wb') as f:
                 f.write(bytes(new_html(builder, batchname), 'utf-8'))
-            with open(savx, 'wb') as f:
-                f.write(bytes("\n".join(new_savx), 'utf-8'))
-            print("\"" + morehtml + "\" created!")
+            echo(f'"{morehtml}" created!', 0, 1)
             builder = ""
             counter += 1
     morehtml = htmlfile.replace(".html", f" {int(counter/512) + 1}.html")
     with open(morehtml, 'wb') as f:
         f.write(bytes(new_html(builder, batchname), 'utf-8'))
-    with open(savx, 'wb') as f:
-        f.write(bytes("\n".join(new_savx), 'utf-8'))
-    print("\"" + morehtml + "\" created!")
-    print(f"total runtime: {time.time()-start}")
+    if counter > 1:
+        with open(savx, 'wb') as f:
+            f.write(bytes("\n".join(savxread), 'utf-8'))
+    echo(f'"{morehtml}" created!\ntotal runtime: {time.time()-start}', 0, 1)
 
 
 
@@ -5058,9 +5561,9 @@ def savenow(trashdir=False):
         #     f.write(bytes("\n".join(savread) + "\n", 'utf-8'))
         # with open(savx, 'wb') as f:
         #     f.write(bytes("\n".join(savxread) + "\n", 'utf-8'))
-    elif savefiles[0]:
+    elif schande_filelist[0][0]:
         buffer = ""
-        for ondisk in savefiles[0]:
+        for ondisk in schande_filelist[0][0]:
             next_new = [[], []]
             for line in savread:
                 if ondisk in line:
@@ -5090,14 +5593,14 @@ def savenow(trashdir=False):
 def delnow():
     stdout = ""
     trashlist = {}
-    for file in delfiles[0]:
-        if os.path.exists(file):
-            f = file.rsplit("/", 1)
-            if not f[0] in trashlist:
-                trashlist.update({f[0]:[]})
-            trashlist[f[0]] += [f[1]]
-            buffer = f[0].replace("/", "\\")
-            stdout += f"{tcolorb}{buffer}\\{f[1]}{tcolorr} -> {tcolorg}{buffer} Trash\\{f[1]}{tcolorx}\n"
+    for ondisk in schande_filelist[0][1]:
+        if os.path.exists(ondisk):
+            dir, file = ondisk.rsplit("/", 1)
+            if not dir in trashlist:
+                trashlist.update({dir:[]})
+            trashlist[dir] += [file]
+            buffer = dir.replace("/", "\\")
+            stdout += f"{tcolorb}{buffer}\\{file}{tcolorr} -> {tcolorg}{buffer} Trash\\{file}{tcolorx}\n"
     if not trashlist:
         echo("No schande'd files!", 0, 1)
         return
@@ -5112,7 +5615,7 @@ def delnow():
                     os.rename(f"{dir}/{file}", f"{trashdir}{file}")
         echo(skull(), 0, 1)
         choice(bg=["4c", "%color%"])
-        delfiles[0] = []
+        schande_filelist[0][1] = []
     return True
 
 
@@ -5178,22 +5681,22 @@ def delmode_old(m):
         if file.lower() == "x":
             return
         if file.lower() == "v":
-            for dfile in delfiles[0]:
-                print(dfile)
+            for x in schande_filelist[0][1]:
+                echo(x, 0, 1)
         elif file.lower() == "r":
             file = parse.unquote(input("Remove file from delete list: ").rstrip().replace("file:///", "").replace("http://127.0.0.1:8886/", batchdir))
             while True:
                 try:
-                    delfiles[0].remove(file)
+                    schande_filelist[0][1].remove(file)
                     choice(bg=["2a", "%color%"])
                 except:
                     choice(bg=["08", "%color%"])
                     break
-        elif file.lower() == "d" and delfiles[0]:
+        elif file.lower() == "d" and schande_filelist[0][1]:
             delnow()
         elif os.path.exists(file):
             choice(bg=["4c", "%color%"])
-            delfiles[0] += [file]
+            schande_filelist[0][1] += [file]
         else:
             choice(bg=["08", "%color%"])
 

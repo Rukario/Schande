@@ -568,23 +568,21 @@ function newstar(ishtar) {
 
 
 
-function starry(toodiff) {
-  if (toodiff > (1000 / star.delay) + 60/fps.vfps) {
+function starry(vmsec) {
+  if (vmsec > (1000 / star.delay) + 60/fps.vfps) {
     startTime = performance.now();
     frameCount = 0;
     if (!star.accelerate) {
-      star.delay = 10*fps.vfps;
+      star.delay = fps.vfps;
     } else if (isFinite(star.delay)) {
-      star.delay = star.delay / (1 + (1000/fps.vfps) / (star.accelerate*200));
-    } else {
-      star.delay = 60*fps.vfps;
+      star.delay = star.delay / (1 + fps.msec / (star.accelerate*200));
     }
   } else {
-    star.delay = Math.round(1000 / toodiff * 100) / 100;
+    star.delay = (1000 / vmsec).toFixed(2);
   }
 
-  const driftx = (mousepos.x-dim.x)/(200/scr.levitate)/(20/fps.msec)/star.life-(mousepos.x-rubbermouse.x)/scr.friction.x*scr.drift;
-  const drifty = (mousepos.y-dim.y)/(200/scr.levitate)/(20/fps.msec)/star.life-(mousepos.y-rubbermouse.y)/scr.friction.y*scr.drift;
+  const driftx = (mousepos.x-dim.x)/(200/scr.levitate)/(fps.vfps/60)/star.life-(mousepos.x-rubbermouse.x)/scr.friction.x*scr.drift;
+  const drifty = (mousepos.y-dim.y)/(200/scr.levitate)/(fps.vfps/60)/star.life-(mousepos.y-rubbermouse.y)/scr.friction.y*scr.drift;
 
   context.fillStyle = ccolor;
   context.fillRect(0, 0, canvas.width, canvas.height);
@@ -692,9 +690,8 @@ function screensaver(resolve) {
     const elapsed = now - then;
     if (!fps.throttle || elapsed > fps.msec) {
       then = now - (elapsed % fps.msec);
-      const toodiff = sinceStart / ++frameCount;
-
-      starry(toodiff);
+      const vmsec = (sinceStart || fps.msec) / ++frameCount;
+      starry(vmsec);
     }
   };
   startTime = performance.now();

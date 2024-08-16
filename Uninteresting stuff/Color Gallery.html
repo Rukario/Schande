@@ -258,6 +258,10 @@ ul {
   cursor: pointer;
 }
 
+.cursed {
+  pointer-events: none;
+}
+
 .cursor_tooltip {
   padding: 0px 8px;
   font-family: sans-serif;
@@ -268,7 +272,6 @@ ul {
   top: 0px;
   right: initial;
   display: none;
-  pointer-events: none;
 }
 
 #cursor_tooltip {
@@ -615,7 +618,7 @@ function addtogallery(k) {
 
 var galleryset = [[], []];
 function makegallery() {
-  if (!editor.innerHTML.startsWith("Connect to Bad Dragon")) {
+  if (!editor.textContent.startsWith("Connect to Bad Dragon")) {
     echo("Replace this text field with 'Connect to Bad Dragon' and release me from liability.\nThis might strain Bad Dragon server/your computer and I'll not be held responsible for that.\n")
     return;
   }
@@ -623,7 +626,16 @@ function makegallery() {
   more.style.display = "none";
   gallery.innerHTML = "";
 
-  const bookmarks = editor.innerHTML.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n").filter(function(e){return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
+  const lines = editor.textContent.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n");
+  const bookmarks = lines.filter((e) => {
+    return (
+      e &&
+      !e.startsWith("SHAME ") && (
+        e.toLowerCase().endsWith(".jpg") ||
+        e.toLowerCase().endsWith(".png")
+      )
+    )
+  });
 
   for (const bookmark of bookmarks) {
     addtogallery(bookmark);
@@ -800,11 +812,22 @@ function FFdown(e) {
     makegallery();
   } else if (t.id == "replace") {
     more.style.display = "none"; 
-    gallery.innerHTML = "";
+    while (gallery.firstChild) {
+      gallery.lastChild.remove();
+    }
     galleryset = [[], []];
 
-    const lines = editor.innerHTML.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n");
-    const bookmarks = lines.filter((e) => {return (e&&!e.startsWith("SHAME ")&&(e.toLowerCase().endsWith(".jpg")||e.toLowerCase().endsWith(".png")))});
+    const lines = editor.textContent.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n");
+    const bookmarks = lines.filter((e) => {
+      return (
+        e &&
+        !e.startsWith("SHAME ") && (
+          e.toLowerCase().endsWith(".jpg") ||
+          e.toLowerCase().endsWith(".png")
+        )
+      )
+    });
+
     for (const bookmark of bookmarks) {
       galleryset[0].push(bookmark);
     }
@@ -878,8 +901,8 @@ function FFdown(e) {
     }
 
     const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
-    const h = editor.innerHTML.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/");
-    document.cookie = `gallerysave=${encodeURIComponent(h)}; expires=${expires}; path=/; SameSite=Strict;`;
+    const utf8 = editor.textContent.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/");
+    document.cookie = `gallerysave=${encodeURIComponent(utf8)}; expires=${expires}; path=/; SameSite=Strict;`;
     //no expiry would allow the cookie to be automatically deleted upon browser exit.
     gallerysave.classList = "previous";
     gallerysave.innerHTML = "Save completed";
@@ -1218,56 +1241,73 @@ var downmove = false;
 var busymoving, busypicker, busytyping;
 var updatesel = false;
 var updatelen = 0;
+
 function FFup() {
   let sel = editor.ownerDocument.defaultView.getSelection();
   let len = sel.toString().length;
   let pos = sel.getRangeAt(0);
-  if (link && link.classList.contains("hyperlink")) {
-    link.classList.remove("tang");
-    cursor_tooltip.style.display = "none";
+  if (link && link.classList.contains('hyperlink')) {
+    link.classList.remove('blink');
+    cursor_tooltip.style.display = 'none';
   }
   link = sel.anchorNode.parentNode;
-  let ans = false;
-  if (link.classList.contains("hyperlink")) {
-    link.classList.add("tang");
+  let ans = null;
+
+  while (cursor_tooltip.firstChild) {
+    cursor_tooltip.lastChild.remove();
+  }
+
+  if (link.classList.contains('hyperlink')) {
+    link.classList.add('blink');
     where = link.getBoundingClientRect();
-    cursor_tooltip.style.left = (window.scrollX + where.left + 6) + "px";
-    cursor_tooltip.style.top = (window.scrollY + where.top + (where.top < 60?30:-30)) + "px";
-    cursor_tooltip.innerHTML = "<a href='" + link.innerHTML + "' target='_blank' class='next' style='text-decoration:none; font-size:12px; font-family:sans-serif;'>Open</a>";
-    cursor_tooltip.style.display = "inline-block";
-  } else if (len > 0 && len < 256){
-    if (!updatesel){
-      updatesel = window.setInterval(function () {
+    cursor_tooltip.style.left = (window.scrollX + where.left + 6) + 'px';
+    cursor_tooltip.style.top = (window.scrollY + where.top + (where.top < 60 ? 30 : -30)) + 'px';
+    const a = document.createElement('A');
+    a.href = link.innerHTML;
+    a.target = '_blank';
+    a.classList = 'next';
+    a.style = 'text-decoration: none; font-size: 12px; font-family: sans-serif;';
+    a.textContent = 'Open';
+    cursor_tooltip.append(a);
+    cursor_tooltip.style.display = 'inline-block';
+  } else if (len > 0 && len < 256) {
+    if (!updatesel) {
+      updatesel = window.setInterval(() => {
         let sel = editor.ownerDocument.defaultView.getSelection();
         let len = sel.toString().length;
         if (len !== updatelen){
           updatelen = len;
-          FFup()
+          FFup();
         }
       }, 500);
     }
     try {
-      ans = new Function('return ' + sel.toString().replace(/(\r|\n)/g, ""))().toFixed(10)*1;
+      ans = new Function('return ' + sel.toString().replace(/(\r|\n)/g, ''))().toFixed(10) * 1;
     } catch {
-      cursor_tooltip.style.display = "none"
+      cursor_tooltip.style.display = 'none';
     }
   } else {
     window.clearInterval(updatesel);
     updatesel = false;
-    cursor_tooltip.style.display = "none";
+    cursor_tooltip.style.display = 'none';
   }
   let preCaretRange = pos.cloneRange();
-  if(ans !== false){
-    where = preCaretRange.getBoundingClientRect()
-    cursor_tooltip.style.left = (window.scrollX + where.left) + "px";
-    cursor_tooltip.style.top = (window.scrollY + where.top + 36) + "px";
-    cursor_tooltip.innerHTML = "<span class='tangerine' style='font-size:14px;'>" + ans + "</span>";
-    cursor_tooltip.style.display = "inline-block";
+  if (ans) {
+    where = preCaretRange.getBoundingClientRect();
+    cursor_tooltip.style.left = (window.scrollX + where.left) + 'px';
+    cursor_tooltip.style.top = (window.scrollY + where.top + 36) + 'px';
+
+    const s = document.createElement('SPAN');
+    s.classList = 'tangerine cursed';
+    s.style.fontSize = '14px';
+    s.textContent = ans;
+    cursor_tooltip.append(s);
+    cursor_tooltip.style.display = 'inline-block';
   };
   preCaretRange.selectNodeContents(editor);
   preCaretRange.setEnd(pos.endContainer, pos.endOffset);
   cur = preCaretRange.toString().length;
-  calc.placeholder = "Ln:" + editor.textContent.substr(0, cur).split("\n").length + " Pos:" + cur;
+  calc.placeholder = 'Ln:' + editor.textContent.substr(0, cur).split('\n').length + ' Pos:' + cur;
 }
 
 function plaintext(e) {
@@ -1303,9 +1343,9 @@ function edit() {
     }
   }
 
-  const h = editor.innerHTML.replace(/<br>/g, '\n').replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, 'Bad Dragon/')
+  const h = editor.textContent.replace(/<br>/g, '\n').replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, 'Bad Dragon/')
   const n = encodeURIComponent(h).length;
-  gallerysave.innerHTML = 'Save ' + n + '/4085';
+  gallerysave.textContent = 'Save ' + n + '/4085';
   if (4085 < n){
     gallerysave.classList = 'previous';
   } else {
@@ -1415,6 +1455,10 @@ var FFmove = (e) => {
   }
 }
 
+function hyperlink(utf8) {
+  return utf8.replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| |$)/g, '<span class="hyperlink">$1</span>$2');
+}
+
 var link, isTouch, gallerylist, creative, colorset, stdout, editor, editdiff, fadebar, toolbar;
 var rainbow = [];
 var rainbowfade = false;
@@ -1472,7 +1516,7 @@ window.onload = () => {
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.id = 'tooltip';
-  DOMwriter.classList = 'dark close_button cursor_tooltip';
+  DOMwriter.classList = 'dark close_button cursor_tooltip cursed';
   document.body.appendChild(DOMwriter);
 
   DOMwriter = document.createElement('DIV');
@@ -1718,12 +1762,13 @@ window.onload = () => {
   for (const cookie of cookies) {
     let c = cookie;
 
-    while (c.charAt(0) == ' '){
+    while (c.charAt(0) === ' '){
       c = c.substring(1, c.length);
     };
 
     if (c.indexOf('gallerysave=') == 0) {
-      editor.innerHTML = decodeURIComponent(c.substring('gallerysave='.length, c.length));
+      const utf8 = decodeURIComponent(c.substring('gallerysave='.length, c.length));
+      editor.innerHTML = hyperlink(utf8);
     }
   }
 

@@ -1498,9 +1498,6 @@ window.onload = () => {
 
   document.body.appendChild(DOMwriter);
 
-  DOMwriter = "<div style='position:absolute; top:-2px; right:12px;'>Changelog: <a href='https://github.com/Rukario/Schande/commits/main/Uninteresting%20stuff/colorsets.json' target='_blank'>colorset</a> / <a href='https://github.com/Rukario/Schande/commits/main/Uninteresting%20stuff/swatches.json' target='_blank'>swatch</a></div>";
-  document.body.insertAdjacentHTML('beforeend', DOMwriter);
-
   toolbar = document.createElement('DIV');
   document.body.appendChild(toolbar);
 
@@ -1593,8 +1590,6 @@ window.onload = () => {
   DOMwriter.style.padding = '4px';
 
   let bd = `• Choose several colors e.g. ${dotsample} for ${fadesample} fade bar to appear, as way to test as well as to anticipate for blend/smear issue.<br>• Write color name or color set name in text field of bookmarked pictures to manipulate fade bar.<br>&nbsp; ◦ <div class='next'>Replace gallery</div> to replace fade bar with written color names.<br>&nbsp; ◦ <div class='next'>Save</div> to save fade bar for next page visit.<br>&nbsp; ◦ Fade ends on non-color line.<br><br>Be mindful of translucent silicones<br>• Translucent silicones may overpower to each other especially darkened and/or pigmented ones if not become dull or muddled.<br>• Use fade bar for blend test of translucent silicones, they become pronounced of that.<br>• Solid silicones can create contours on translucent silicones or 3D depth behind translucent silicones.<br>Open <div class='next'>Gallery</div> for color set named <span class='colorset'>Arctic Ice</span>${makedots(['sky blue', 3, 0], 0)} from sky blue (${makedots(['sky blue', 0, 0], 0)}) color group for photo example of translucent silicone.`;
-
-  bd = `• Left side is navigation of a color picker, similar colors are grouped instead of silicones directly. Check gallery of each color set of a color group to find the silicone you want to choose for this color.<br>` + bd + `<br><br>If a toy does not make an appearance in <div class='tangerine' style='padding:4px;'>🧸</div> listing, it may be incomplete, you can contact customer service for toy compatibility. If it is due to toy's limitations, you may still be able to pick silicones of this color set for custom.<br>• Fade toys: You may choose to transplant fade. Base can be added, different, or removed.<br>• Masturbators: You may choose non-dazzle non-GitD silicones. Masturbators can have colors of dildos if not containing dazzle or glow throughout.<br><br>Pigmentation addon<br>• GitD (Glow in the Dark) choose from Ectoplasm (green), Starlight (aqua), Duka-Cola Quantum (blue), Ultraviolet (purple). Silicone containing glow requires all to be glow. You can mix and match different glows and/or to make non-glow silicones glow.<br>• Mica can only be silver, compare <span class='colorset'>Prissy Pink</span>${makedots(['orchid', 3, 0], 0)} and <span class='colorset'>Blossom Pink</span>${makedots(['orchid', 0, 0], 0)} from orchid (${makedots(['orchid', 0, 0], 0)}) color group for photo example of this mica addon.<br>• Dazzle choose from rainbow, silver, gold, red, blue, green.`
 
   DOMwriter.dataset.tooltip = bd;
   DOMwriter.textContent = ':?:';

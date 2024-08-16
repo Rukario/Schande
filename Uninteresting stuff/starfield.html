@@ -44,7 +44,7 @@ canvas {
   z-index: 2;
   background: var(--color-keyboard);
   border-radius: 4px;
-  padding: 10px;
+  padding: 8px;
   vertical-align: text-top;
 }
 
@@ -2345,11 +2345,11 @@ function updatestat() {
 //var qixmap = new Array(200*200).fill(0);
 var qixmask = document.createElement("canvas");
 var qixmaskc = qixmask.getContext("2d");
-qixmask.width = 160;
-qixmask.height = 102;
+qixmask.width = 960;
+qixmask.height = 618;
 var qixmap = qixmaskc.createImageData(qixmask.width, qixmask.height);
 
-var qixsc = 6;
+var qixsc = 1;
 var qixpos, qixpos2, qixlines, qixline;
 
 var glyphm = document.createElement('canvas');
@@ -2373,22 +2373,41 @@ glyphimg.onload = () => {
 }
 
 function new_qix() {
-  qixpos = {'x':80*qixsc, 'y':51*qixsc, 's':0};
-  qixpos2 = {'x':Math.floor((Math.random()*qixmask.width-2)+1)*qixsc, 'y':Math.floor((Math.random()*qixmask.height-2)+1)*qixsc, 's':0};
+  const center = [
+    Math.floor(qixmask.width/2),
+    Math.floor(qixmask.height/2),
+  ]
+  qixpos = {
+    x: center[0]*qixsc+1,
+    y: center[1]*qixsc+1,
+    s: 0,
+  };
+  qixpos2 = {
+    x: Math.floor((Math.random()*qixmask.width-2)+1)*qixsc,
+    y: Math.floor((Math.random()*qixmask.height-2)+1)*qixsc,
+    s: 0
+  };
   qixlines = [];
-  qixline = {'x':0, 'y':0, 'd':'x'};
-  for (let i=0; i < qixmap.data.length; i += 4) {
-    qixmap.data[i] = 0;
-    qixmap.data[i+1] = 0;
-    qixmap.data[i+2] = 0;
-    qixmap.data[i+3] = 255;
+  qixline = {
+    x: 0,
+    y: 0,
+    d: 'x',
+  };
+
+  for (const n of Array(qixmap.data.length/4).keys()){
+    qixmap.data[n*4] = 0;
+    qixmap.data[n*4+1] = 0;
+    qixmap.data[n*4+2] = 0;
+    qixmap.data[n*4+3] = 255;
   }
-  clearSq(75, 46, 10, 10);
-  clearSq(76, 47, 8, 8, 128);
-  clearSq(0, 0, 160, 0);
-  clearSq(0, 0, 0, 102);
-  clearSq(0, 101, 160, 0);
-  clearSq(159, 0, 0, 102);
+
+  clearSq(center[0]-5, center[1]-5, 10, 10);
+  clearSq(center[0]-4, center[1]-4, 8, 8, 128);
+  clearSq(0, 0, qixmask.width, 0);
+  clearSq(0, 0, 0, qixmask.height);
+  clearSq(0, qixmask.height-1, qixmask.width, 0);
+  clearSq(qixmask.width-1, 0, 0, qixmask.height);
+
   qix = true;
   drawqix(qixscr, qixpos);
   drawqix(qixscr2, qixpos2, 2);
@@ -2491,8 +2510,6 @@ function qixstep() {
   const y = Math.floor(qixpos.y/qixsc);
   let nx = (Keypress[4] || Keypress[39] ? 1 : 0) + (Keypress[1] || Keypress[37] ? -1 : 0);
   let ny = (Keypress[19] || Keypress[40] ? 1 : 0) + (Keypress[23] || Keypress[38] ? -1 : 0);
-  //nx *= 2; //Math.round(120/fps.hz);
-  //ny *= 2; //Math.round(120/fps.hz);
   if (
     x+nx >= 0 &&
     y+ny >= 0 &&
@@ -2500,8 +2517,8 @@ function qixstep() {
     y+ny < qixmask.height
   ) {
     // death barrier
-    const offset = x + nx + qixmask.width*(y + ny);
-    if (qixmap.data[offset*4+3] !== 255) {
+    const datapos = x + nx + qixmask.width*(y + ny);
+    if (qixmap.data[datapos*4+3] !== 255) {
       // established land
       qixpos.x += nx;
       qixpos.y += ny;
@@ -2517,7 +2534,6 @@ function qixstep() {
     } else if (mousec.down) {
       // on adventure
       mousec.hold = 1;
-      // developer note: need to find way to make every step a center of tile
       qixpos.x += nx;
       qixpos.y += ny;
       stixpath(nx, ny);
@@ -2544,7 +2560,7 @@ function qixstep2(k = false) {
   }
 }
 
-function drawqix(scr, pos, s=1){
+function drawqix(scr, pos, s=0.5){
   const tail = [];
   let dir = {'x':0, 'y':0, 'w':0, 'h':0, 'nw':0, 'nh':0};
   const chdir = (x, y, nx, ny, t) => {
@@ -2598,7 +2614,7 @@ function drawqix(scr, pos, s=1){
       }
     };
   }
-  if (s === 1) {
+  if (s < 2) {
     for (const area of qixlines) {
       const nx = area[0]+area[2];
       const ny = area[1]+area[3];
@@ -2620,7 +2636,7 @@ ${x+10*s}px ${y}px,
 ${x}px ${y+10*s}px,
 ${x-10*s}px ${y}px,
 ${x}px ${y-10*s}px`);
-  if (s === 1) {
+  if (s < 2) {
     dir = {'x':0, 'y':0, 'w':0, 'h':0, 'nw':0, 'nh':0};
     for (const area of qixlines.toReversed()) {
       const nx = area[0]+area[2];

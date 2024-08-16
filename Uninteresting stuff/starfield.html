@@ -2401,8 +2401,8 @@ function new_qix() {
     qixmap.data[n*4+3] = 255;
   }
 
-  clearSq(center[0]-5, center[1]-5, 10, 10);
-  clearSq(center[0]-4, center[1]-4, 8, 8, 128);
+  clearSq(center[0]-9, center[1]-9, 18, 18);
+  clearSq(center[0]-8, center[1]-8, 16, 16, 128);
   clearSq(0, 0, qixmask.width, 0);
   clearSq(0, 0, 0, qixmask.height);
   clearSq(0, qixmask.height-1, qixmask.width, 0);
@@ -3300,8 +3300,55 @@ function windo(win) {
 };
 
 var Keypress = Array(37).fill(false);
+var esc, f1, f5, f9, alphakeys, homekeys2, homekeys, arrows;
 
 function createkeyboard() {
+  const keydiv = (sockets, left) => {
+    const d = document.createElement('DIV');
+    d.style.display = 'inline-block';
+
+    if (left) {
+      d.style.marginLeft = left + 'px';
+    }
+
+    for (const s of sockets) {
+      if (s) {
+        d.appendChild(s);
+      } else {
+        const x = document.createElement('DIV');
+        d.appendChild(x);
+      }
+    }
+
+    keyboard.append(d);
+  }
+
+  const keysocket = (right, top) => {
+    const d = document.createElement('DIV');
+    d.classList = 'keysocket';
+
+    if (right) {
+      d.style.marginRight = right + 'px';
+    }
+
+    if (top) {
+      d.style.marginTop = top + 'px';
+    }
+    return d;
+  }
+
+  esc = keysocket(44);
+  f1 = keysocket(24);
+  f5 = keysocket(24);
+  f9 = keysocket();
+  alphakeys = keysocket(0, 12);
+  keydiv([esc, f1, f5, f9, null, alphakeys]);
+
+  homekeys2 = keysocket();
+  homekeys = keysocket(0, 13);
+  arrows = keysocket(0, 43);
+  keydiv([homekeys2, null, homekeys, null, arrows], 6);
+
   drawkeyboard([["Esc"]], esc);
   drawkeyboard([["F1", "F2", "F3", "F4"]], f1);
   drawkeyboard([["F5", "F6", "F7", "F8"]], f5);
@@ -3384,7 +3431,7 @@ window.onload = () => {
   result.style.display = fps.display ? 'block' : 'none';
   document.title = 'Starfield';
   glyph.appendChild(glyphscr);
-  let win = document.createElement("img");
+  let win = document.createElement('IMG');
   win.src = 'win95.png';
   win.onload = () => {
     windo(win);
@@ -3441,14 +3488,14 @@ window.onload = () => {
   const cookies = document.cookie.split(';');
   for (const cookie of cookies) {
     const ck = cookie.trimStart();
-    if (ck.indexOf("winsol=") == 0) {
-      winsoln = parseInt(decodeURIComponent(ck.substring("winsol=".length, ck.length)));
+    if (ck.indexOf('winsol=') == 0) {
+      winsoln = parseInt(decodeURIComponent(ck.substring('winsol='.length, ck.length)));
     }
   }
 
   makemenu();
 
-  document.addEventListener("keydown", (e) => {
+  document.addEventListener('keydown', (e) => {
     const { keyCode, location } = e;
     if (65 - 1 < keyCode && keyCode < 90 + 1) {
       pressed(keyCode - 64, true);
@@ -3481,7 +3528,7 @@ window.onload = () => {
     };
   });
 
-  document.addEventListener("keyup", (e) => {
+  document.addEventListener('keyup', (e) => {
     const { keyCode } = e;
     if (65 - 1 < keyCode && keyCode < 90 + 1) {
       pressed(keyCode - 64, false);
@@ -3495,7 +3542,7 @@ window.onload = () => {
     }
   });
   
-  addEventListener("resize", () => {
+  addEventListener('resize', () => {
     if (!winanim) {
       resize();
     }
@@ -3505,7 +3552,7 @@ window.onload = () => {
     }
   });
 
-  addEventListener("visibilitychange", (event) => {
+  addEventListener('visibilitychange', () => {
     //startTime = performance.now();
     //frameCount = 0;
   });
@@ -3533,21 +3580,21 @@ window.onload = () => {
 </script>
 </head>
 <body>
-<div id="fgbg"></div>
-<div class="hintscreen"><div class="hint" id="hint"></div></div>
-<div class="hintscreen"><div class="hint" id="hint2"></div></div>
-<div class="hintscreen"><div class="hint" id="hint3"></div></div>
-<div class="hintscreen"><div class="hint" id="hint4"></div></div>
-<div class="hintscreen"><div class="hint" id="hintb"></div></div>
-<div class="hintscreen"><div class="hint" id="qixscr"></div></div>
-<div class="hintscreen"><div class="hint" id="qixscr2"></div></div>
-<div id="result"></div>
+<div id='fgbg'></div>
+<div class='hintscreen'><div class='hint' id='hint'></div></div>
+<div class='hintscreen'><div class='hint' id='hint2'></div></div>
+<div class='hintscreen'><div class='hint' id='hint3'></div></div>
+<div class='hintscreen'><div class='hint' id='hint4'></div></div>
+<div class='hintscreen'><div class='hint' id='hintb'></div></div>
+<div class='hintscreen'><div class='hint' id='qixscr'></div></div>
+<div class='hintscreen'><div class='hint' id='qixscr2'></div></div>
+<div id='result'></div>
 <div id='glyph'></div>
 <div id='stdout'>Output:</div>
 <div class='poppy' id='poppy'></div>
 <div id='touchloc'></div>
 <div id='touchlocm'></div>
 <div id='dialogbox'><div id='close'>&times;</div><div id='dialog'></div></div>
-<div id="keyboard"><div style="display:inline-block;"><div class="keysocket" id="esc" style="margin-right:44px;"></div><div class="keysocket" id="f1" style="margin-right:24px;"></div><div class="keysocket" id="f5" style="margin-right:24px;"></div><div class="keysocket" id="f9"></div><div></div><div class="keysocket" id="alphakeys" style="margin-top:12px;"></div></div><div style="display:inline-block; margin-left:6px;"><div class="keysocket" id="homekeys2"></div><div></div><div class="keysocket" id="homekeys" style="margin-top:13px;"></div><div></div><div class="keysocket" id="arrows" style="margin-top:43px;"></div></div></div>
+<div id='keyboard'></div>
 </body>
 </html>

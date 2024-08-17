@@ -171,6 +171,11 @@ canvas {
   margin: -3px;
   padding: 2px;
   border-radius: 4px;
+
+  &.pressed {
+    color: #fff;
+    background: #66c;
+  }
 }
 
 .keycap2 {
@@ -182,6 +187,13 @@ canvas {
   border-right: 10px solid #8d8b90;
   border-bottom: 11px solid #817e84;
   border-radius: 3px;
+
+  &.pressed {
+    border-top: 5px solid #55b;
+    border-left: 10px solid #44a;
+    border-right: 10px solid #44a;
+    border-bottom: 11px solid #339;
+  }
 }
 
 .hintscreen {
@@ -576,6 +588,8 @@ function starry(vmsec) {
       star.delay = fps.vfps;
     } else if (isFinite(star.delay)) {
       star.delay = star.delay / (1 + fps.msec / (star.accelerate*200));
+    } else {
+      star.delay = 60*fps.vfps;
     }
   } else {
     star.delay = (1000 / vmsec).toFixed(2);
@@ -695,8 +709,8 @@ function screensaver(resolve) {
     }
   };
   startTime = performance.now();
-  frameCount = 0;
   star.delay = 60*fps.vfps;
+  frameCount = 0;
   result.style.display = fps.display ? 'block' : 'none';
   update();
 }
@@ -2356,7 +2370,7 @@ var glyphm = document.createElement('canvas');
 var glyphmc = glyphm.getContext('2d');
 var glyphscr = document.createElement('canvas');
 var glyphc = glyphscr.getContext('2d');
-var glyphdn = 1;
+var glyph_shift = 1;
 
 var glyphimg = new Image();
 glyphimg.src = "SOL/glyph.png";
@@ -3077,40 +3091,40 @@ function makemenu() {
   if (winsoln >= 64) {
     poppy.append(newmenu('Glide', listener, true));
 
-    document.addEventListener("wheel", (event) => {
+    document.addEventListener('wheel', (event) => {
       const w = -event.wheelDelta/480;
       if (star.life + w > 10.5) {
         star.life = 10.5;
       } else if (star.life + w >= 0.75) {
         star.life = parseInt((star.life + w)*4)/4;
       }
-      graphdot.style.left = -star.life * 20 + 200 + 13 + "px";
+      graphdot.style.left = -star.life * 20 + 200 + 13 + 'px';
       graphstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
     });
 
     poppy.append(newmenu('Star speed', submenu, false, staropt));
 
-    graph = document.createElement("DIV");
-    graph.classList = "graph";
+    graph = document.createElement('DIV');
+    graph.classList = 'graph';
     staropt.appendChild(graph);
 
-    graphstat = document.createElement("DIV");
+    graphstat = document.createElement('DIV');
     staropt.appendChild(graphstat);
-    graphdot = document.createElement("DIV");
-    graphdot.classList = "graphdot";
+    graphdot = document.createElement('DIV');
+    graphdot.classList = 'graphdot';
     graph.appendChild(graphdot);
 
-    graph.addEventListener("mousedown", () => {
+    graph.addEventListener('mousedown', () => {
       graphdrawing = true;
     });
-    graph.addEventListener("touchstart", (e) => {
+    graph.addEventListener('touchstart', (e) => {
       graphdrawing = true;
       FFmove(e);
     });
-    graph.addEventListener("touchmove", (e) => {
+    graph.addEventListener('touchmove', (e) => {
       FFmove(e);
     });
-    graph.addEventListener("touchend", (e) => {
+    graph.addEventListener('touchend', (e) => {
       FFup(e);
     });
 
@@ -3131,17 +3145,17 @@ function makemenu() {
 
     updatestat();
 
-    lever.addEventListener("mousedown", () => {
+    lever.addEventListener('mousedown', () => {
       leverdrawing = true;
     });
-    lever.addEventListener("touchstart", (e) => {
+    lever.addEventListener('touchstart', (e) => {
       leverdrawing = true;
       FFmove(e);
     });
-    lever.addEventListener("touchmove", (e) => {
+    lever.addEventListener('touchmove', (e) => {
       FFmove(e);
     });
-    lever.addEventListener("touchend", (e) => {
+    lever.addEventListener('touchend', (e) => {
       FFup(e);
     });
 
@@ -3172,7 +3186,9 @@ function makemenu() {
           fps.vfps = fps.hz;
           fps.msec = 1000 / fps.hz;
         }
+        startTime = performance.now();
         star.delay = 60*fps.vfps;
+        frameCount = 0;
         savestar();
       });
     };
@@ -3183,95 +3199,254 @@ function makemenu() {
   }
 }
 
-var glyphcur = 0;
-var glyphrn = 0;
-function pressed(i, b) {
-  if (b) {
-    console.log(i);
-    let x = i;
-    if (i > 26) {
-      x = i-26;
+var glyph_cursor = 0;
+var glyph_row = 0;
+function pressed(keyCode, location, down) {
+  if (location) {
+    location -= 1;
+  }
+
+  if (KeypressT[keyCode]) {
+    // console.log(keyCode, location, down ? 'down' : 'up', 'registered to', KeypressT[keyCode][location].childNodes[0].innerHTML);
+  } else {
+    console.log(keyCode, location, down ? 'down' : 'up', 'registered to', null);
+    return;
+  }
+
+  if (down) {
+    KeypressT[keyCode][location].childNodes[0].classList.add('pressed');
+    KeypressT[keyCode][location].classList.add('pressed');
+
+    // onwards is mostly glyph stuff~~
+    if (keyCode === 8) {
+      if (glyph_cursor) {
+        glyph_cursor -= 1;
+      }
+    
+      glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
     }
-    glyphc.clearRect(16*glyphcur, 16*glyphrn, 16, 16);
-    glyphc.drawImage(glyphm, 16*(x-1), i > 26 ? 0 : 16*glyphdn, 16, 16, 16*glyphcur, 16*glyphrn, 16, 16);
-    if (glyphcur > 57) {
-      glyphrn = glyphrn > 2 ? 0 : glyphrn + 1;
-      glyphcur = 0;
-    } else {
-      glyphcur += 1;
+
+    if (keyCode === 16) {
+      glyph_shift = 2;
+    }
+
+    if (keyCode === 32) {
+      glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
+
+      // cursor jump
+      if (glyph_cursor > 57) {
+        if (glyph_row > 2) { 
+          glyph_row = 0;
+        } else {
+          glyph_row += 1;
+        }
+        glyph_cursor = 0;
+      } else {
+        glyph_cursor += 1;
+      }
+    }
+
+    if (keyCode === 13) {
+      if (glyph_row > 2) {
+        glyph_row = 0
+      } else {
+        glyph_row += 1;
+      }
+      glyph_cursor = 0;
+    }
+
+    if (
+      keyCode >= 37 &&
+      keyCode <= 40 ||
+      keyCode >= 48 &&
+      keyCode <= 57 ||
+      keyCode >= 65 &&
+      keyCode <= 90
+    ) {
+      let pos = 0;
+      let des = 0;
+      if (keyCode <= 40) {
+        Keypress[keyCode] = true; // qix
+        return;
+      } else if (keyCode <= 57) {
+        Keypress[keyCode-21] = true; // qix
+        pos = 16 * (keyCode-48);
+      } else {
+        Keypress[keyCode-64] = true; // qix
+        pos = 16 * (keyCode-65);
+        des = 16 * glyph_shift;
+      }
+
+      glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
+      glyphc.drawImage(glyphm, pos, des, 16, 16, 16 * glyph_cursor, 16 * glyph_row, 16, 16);
+
+      // cursor jump
+      if (glyph_cursor > 57) {
+        if (glyph_row > 2) {
+          glyph_row = 0;
+        } else {
+          glyph_row += 1;
+        }
+        glyph_cursor = 0;
+      } else {
+        glyph_cursor += 1;
+      }
+    }
+  } else {
+    KeypressT[keyCode][location].childNodes[0].classList.remove('pressed');
+    KeypressT[keyCode][location].classList.remove('pressed');
+
+    // glyph stuff
+    if (keyCode === 16) {
+      glyph_shift = 1;
+    }
+
+    if (
+      keyCode >= 37 &&
+      keyCode <= 40 ||
+      keyCode >= 48 &&
+      keyCode <= 57 ||
+      keyCode >= 65 &&
+      keyCode <= 90
+    ) {
+      if (keyCode <= 40) {
+        Keypress[keyCode] = false; // qix
+      } else if (keyCode <= 57) {
+        Keypress[keyCode-21] = false; // qix
+      } else {
+        Keypress[keyCode-64] = false; // qix
+      }
     }
   }
-  Keypress[i] = b;
-  KeypressT[i].childNodes[0].classList = b ? "keycapface pressed" : "keycapface";
-  KeypressT[i].classList = b ? "keycap pressed" : "keycap";
 }
 
-var registerkeys = "?ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
-registerkeys.push("0 )", "1 !", "2 @", "3 #", "4 $", "5 %", "6 ^", "7 &", "8 *", "9 (");
-registerkeys.push(..."←↑→↓".split(''));
-registerkeys.push("Esc", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12");
-var KeypressT = Array(registerkeys.length).fill(null);
-function drawkeyboard(keycaps, socket) {
+function FFkeydown(e) {
+  const { keyCode, location } = e;
+  console.log(keyCode);
+  if (keyCode !== 123) {
+    e.preventDefault();
+  }
+  pressed(keyCode, location, true);
+}
+
+function FFkeyup(e) {
+  e.preventDefault();
+  const { keyCode, location} = e;
+  pressed(keyCode, location);
+}
+
+const registerkeys = Array(240).fill(null);
+const KeypressT = Array(registerkeys.length).fill(null);
+
+registerkeys[8] = 'Backspace';
+registerkeys[9] = 'Tab';
+registerkeys[13] = 'Enter';
+
+for (const [n, k] of ['Shift', 'Ctrl'].entries()) {
+  registerkeys[16+n] = k;
+}
+
+for (const [n, k] of ['Alt', 'Pause', 'Caps Lock'].entries()) {
+  registerkeys[18+n] = k;
+}
+
+registerkeys[27] = 'Esc';
+
+for (const [n, k] of ['Space', 'PgUp', 'PgDn', 'End', 'Home', ...'←↑→↓'.split('')].entries()) {
+  registerkeys[32+n] = k;
+}
+
+for (const [n, k] of ['PrtSc', 'Ins', 'Del'].entries()) {
+  registerkeys[44+n] = k;
+}
+
+for (const [n, k] of ['0 )', '1 !', '2 @', '3 #', '4 $', '5 %', '6 ^', '7 &', '8 *', '9 ('].entries()) {
+  registerkeys[48+n] = k;
+}
+
+registerkeys[59] = '; :';
+registerkeys[61] = '= +';
+
+for (const [n, k] of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').entries()) {
+  registerkeys[65+n] = k;
+}
+
+registerkeys[91] = 'Win';
+
+for (const [n, k] of ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'].entries()) {
+  registerkeys[112+n] = k;
+}
+
+registerkeys[145] = 'ScrLk';
+registerkeys[173] = '- _';
+
+for (const [n, k] of [', \<'].entries()) {
+  registerkeys[188+n] = k;
+}
+
+for (const [n, k] of ['. \>', '/ ?', '` ~'].entries()) {
+  registerkeys[190+n] = k;
+}
+
+for (const [n, k] of ['[ {', '\\ |', '] }', '\' "'].entries()) {
+  registerkeys[219+n] = k;
+}
+
+function drawkeyboard(socket, keycaps, w, face='keycapface', c='keycap') {
   for (const ks of keycaps) {
     for (const k of ks){
-      const i = registerkeys.indexOf(k);
-      const cap = document.createElement("div");
-      cap.innerHTML = k;
-      cap.classList = "keycapface";
-      const keycap = document.createElement("div");
-      keycap.appendChild(cap);
-      keycap.classList = "keycap";
-      if (i) {
-        KeypressT[i] = keycap;
+      const cap = document.createElement('DIV');
+      cap.textContent = k;
+      cap.classList = face;
 
-        if (isTouch) {
-          keycap.addEventListener("touchstart", (e) => {
+      const keycap = document.createElement('DIV');
+      keycap.classList = c;
+      if (w) {
+        cap.style.width = '100%';
+        keycap.style.width = w + 'px';
+      }
+      keycap.appendChild(cap);
+
+      const i = registerkeys.indexOf(k);
+      if (KeypressT[i]) {
+        KeypressT[i].push(keycap);
+      } else {
+        KeypressT[i] = [keycap];
+      }
+
+      const location = KeypressT[i].length === 1 ? 0 : KeypressT[i].length;
+      if (isTouch) {
+        keycap.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          pressed(i, location, true);
+        });
+        keycap.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          pressed(i, location, false);
+        });
+      } else {
+        keycap.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          pressed(i, location, true);
+        });
+        keycap.addEventListener('mouseenter', (e) => {
+          if (mousec.down) {
             e.preventDefault();
-            pressed(i, true);
-          });
-          keycap.addEventListener("touchend", (e) => {
-            e.preventDefault();
-            pressed(i, false);
-          });
-        } else {
-          keycap.addEventListener("mousedown", (e) => {
-            e.preventDefault();
-            pressed(i, true);
-          });
-          keycap.addEventListener("mouseenter", (e) => {
-            if (mousec.down) {
-              e.preventDefault();
-              pressed(i, true);
-            }
-          });
-          keycap.addEventListener("mouseleave", (e) => {
-            e.preventDefault();
-            pressed(i, false);
-          });
-          keycap.addEventListener("mouseup", (e) => {
-            e.preventDefault();
-            pressed(i, false);
-          });
-        }
-      };
+            pressed(i, location, true);
+          }
+        });
+        keycap.addEventListener('mouseleave', (e) => {
+          e.preventDefault();
+          pressed(i, location, false);
+        });
+        keycap.addEventListener('mouseup', (e) => {
+          e.preventDefault();
+          pressed(i, location, false);
+        });
+      }
       socket.appendChild(keycap);
     }
   }
-}
-
-function drawkeycap(key, w, cl="keycapface2", cl2="keycap2") {
-  const cap = document.createElement("div");
-  cap.innerHTML = key;
-  cap.classList = cl;
-  cap.style.width = "100%";
-
-  const keycap = document.createElement("div");
-  keycap.classList.add(cl2);
-  keycap.style.width = w;
-  keycap.style.display = "inline-block";
-  keycap.appendChild(cap);
-
-  alphakeys.appendChild(keycap);
 }
 
 function windo(win) {
@@ -3349,72 +3524,70 @@ function createkeyboard() {
   arrows = keysocket(0, 43);
   keydiv([homekeys2, null, homekeys, null, arrows], 6);
 
-  drawkeyboard([["Esc"]], esc);
-  drawkeyboard([["F1", "F2", "F3", "F4"]], f1);
-  drawkeyboard([["F5", "F6", "F7", "F8"]], f5);
-  drawkeyboard([["F9", "F10", "F11", "F12"]], f9);
+  drawkeyboard(esc, [['Esc']]);
+  drawkeyboard(f1, [['F1', 'F2', 'F3', 'F4']]);
+  drawkeyboard(f5, [['F5', 'F6', 'F7', 'F8']]);
+  drawkeyboard(f9, [['F9', 'F10', 'F11', 'F12']]);
 
-  drawkeyboard([["` ~", "1 !", "2 @", "3 #", "4 $", "5 %", "6 ^", "7 &", "8 *", "9 (", "0 )", "- _", "= +"]], alphakeys);
-  drawkeycap("Backspace", "88px");
-
-  DOMwriter = document.createElement("BR");
-  alphakeys.appendChild(DOMwriter);
-
-  drawkeycap("Tab", "58px");
-  drawkeyboard(["QWERTYUIOP", ["[ {", "] }"]], alphakeys);
-  drawkeycap("\\ |", "59px", "keycapface", "keycap");
+  drawkeyboard(alphakeys, [['` ~', '1 !', '2 @', '3 #', '4 $', '5 %', '6 ^', '7 &', '8 *', '9 (', '0 )', '- _', '= +']]);
+  drawkeyboard(alphakeys, [['Backspace']], 88, 'keycapface2', 'keycap2');
 
   DOMwriter = document.createElement("BR");
   alphakeys.appendChild(DOMwriter);
 
-  drawkeycap("Caps Lock", "68px");
-  drawkeyboard(["ASDFGHJKL", ["; :", "' \""]], alphakeys);
-  drawkeycap("Enter", "100px");
-
-  DOMwriter = document.createElement("BR");
-  alphakeys.appendChild(DOMwriter);
-
-  drawkeycap("Shift", "95px");
-  drawkeyboard(["ZXCVBNM", [", <", ". >", "/ ?"]], alphakeys);
-  drawkeycap("Shift", "124px");
+  drawkeyboard(alphakeys, [['Tab']], 58, 'keycapface2', 'keycap2');
+  drawkeyboard(alphakeys, ['QWERTYUIOP', ['[ {', '] }']]);
+  drawkeyboard(alphakeys, [['\\ |']], 59);
 
   DOMwriter = document.createElement('BR');
   alphakeys.appendChild(DOMwriter);
 
-  drawkeycap("Ctrl", "43px");
-  drawkeycap("&nbsp;", "43px", "keycapface2 windo");
-  drawkeycap("Alt", "43px");
-  drawkeycap("&nbsp;", "296px", "keycapface", "keycap");
-  drawkeycap("Alt", "43px");
-  drawkeycap("&nbsp;", "43px", "keycapface2 windo");
-  drawkeycap("Fn", "43px");
-  drawkeycap("Ctrl", "43px");
+  drawkeyboard(alphakeys, [['Caps Lock']], 68, 'keycapface2', 'keycap2');
+  drawkeyboard(alphakeys, ['ASDFGHJKL', ['; :', '\' "']]);
+  drawkeyboard(alphakeys, [['Enter']], 100, 'keycapface2', 'keycap2');
+
+  DOMwriter = document.createElement("BR");
+  alphakeys.appendChild(DOMwriter);
+
+  drawkeyboard(alphakeys, [['Shift']], 95, 'keycapface2', 'keycap2');
+  drawkeyboard(alphakeys, ['ZXCVBNM', [', <', '. >', '/ ?']]);
+  drawkeyboard(alphakeys, [['Shift']], 124, 'keycapface2', 'keycap2');
+
+  DOMwriter = document.createElement('BR');
+  alphakeys.appendChild(DOMwriter);
+
+  drawkeyboard(alphakeys, [['Ctrl']], 43, 'keycapface2', 'keycap2');
+  drawkeyboard(alphakeys, [['Win']], 43, 'keycapface2 windo', 'keycap2');
+  drawkeyboard(alphakeys, [['Alt']], 43, 'keycapface2', 'keycap2');
+  drawkeyboard(alphakeys, [['Space']], 296);
+  drawkeyboard(alphakeys, [['Alt']], 43, 'keycapface2', 'keycap2');
+  drawkeyboard(alphakeys, [['Win']], 43, 'keycapface2 windo', 'keycap2');
+  drawkeyboard(alphakeys, [['Fn']], 43, 'keycapface2', 'keycap2');
+  drawkeyboard(alphakeys, [['Ctrl']], 43, 'keycapface2', 'keycap2');
 
   DOMwriter = document.createElement('DIV');
-  DOMwriter.innerHTML = "&nbsp;";
-  DOMwriter.classList = "plate right";
+  DOMwriter.innerHTML = '&nbsp;';
+  DOMwriter.classList = 'plate right';
   arrows.appendChild(DOMwriter);
 
-  drawkeyboard(["↑"], arrows);
+  drawkeyboard(arrows, ['↑']);
 
   DOMwriter = document.createElement('DIV');
-  DOMwriter.innerHTML = "&nbsp;";
-  DOMwriter.classList = "plate left";
+  DOMwriter.innerHTML = '&nbsp;';
+  DOMwriter.classList = 'plate left';
   arrows.appendChild(DOMwriter);
 
   DOMwriter = document.createElement('BR');
   arrows.appendChild(DOMwriter);
 
-  drawkeyboard(["←", "↓", "→"], arrows);
-
-  drawkeyboard([["PrtSc", "ScrLk", "Pause"]], homekeys2);
-
-  drawkeyboard([["Ins", "Home", "PgUp"]], homekeys);
+  drawkeyboard(arrows, ['←', '↓', '→']);
+  drawkeyboard(homekeys2, [['PrtSc', 'ScrLk', 'Pause']]);
+  drawkeyboard(homekeys, [['Ins', 'Home', 'PgUp']]);
 
   DOMwriter = document.createElement('BR');
   homekeys.appendChild(DOMwriter);
 
-  drawkeyboard([["Del", "End", "PgDn"]], homekeys);
+  drawkeyboard(homekeys, [['Del', 'End', 'PgDn']]);
 }
 
 function resize() {
@@ -3495,53 +3668,8 @@ window.onload = () => {
 
   makemenu();
 
-  document.addEventListener('keydown', (e) => {
-    const { keyCode, location } = e;
-    if (65 - 1 < keyCode && keyCode < 90 + 1) {
-      pressed(keyCode - 64, true);
-    } else if (48 - 1 < keyCode && keyCode < 57 + 1) {
-      pressed(keyCode - 21, true);
-    } else if (37 - 1 < keyCode && keyCode < 40 + 1) {
-      pressed(keyCode, true);
-    } else {
-      if (keyCode === 8) {
-        glyphcur -= glyphcur ? 1 : 0;
-        glyphc.clearRect(16 * glyphcur, 16 * glyphrn, 16, 16);
-      }
-      if (keyCode === 16) {
-        glyphdn = 2;
-      }
-      if (keyCode === 32) {
-        glyphc.clearRect(16 * glyphcur, 16 * glyphrn, 16, 16);
-        if (glyphcur > 57) {
-          glyphrn = glyphrn > 2 ? 0 : glyphrn + 1;
-          glyphcur = 0;
-        } else {
-          glyphcur += 1;
-        }
-      }
-      if (keyCode === 13) {
-        glyphrn = glyphrn > 2 ? 0 : glyphrn + 1;
-        glyphcur = 0;
-      }
-      console.log(keyCode, location);
-    };
-  });
-
-  document.addEventListener('keyup', (e) => {
-    const { keyCode } = e;
-    if (65 - 1 < keyCode && keyCode < 90 + 1) {
-      pressed(keyCode - 64, false);
-    } else if (48 - 1 < keyCode && keyCode < 57 + 1) {
-      pressed(keyCode - 21, false);
-    } else if (37 - 1 < keyCode && keyCode < 40 + 1) {
-      pressed(keyCode, false);
-    };
-    if (keyCode === 16) {
-      glyphdn = 1;
-    }
-  });
-  
+  document.addEventListener('keydown', FFkeydown);
+  document.addEventListener('keyup', FFkeyup);
   addEventListener('resize', () => {
     if (!winanim) {
       resize();
@@ -3552,10 +3680,9 @@ window.onload = () => {
     }
   });
 
-  addEventListener('visibilitychange', () => {
-    //startTime = performance.now();
-    //frameCount = 0;
-  });
+  //addEventListener('visibilitychange', () => {
+  //  frameCount = 0;
+  //});
 
   canvas.style.cursor = 'pointer';
   document.body.append(canvas);

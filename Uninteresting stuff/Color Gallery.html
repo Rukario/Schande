@@ -1222,8 +1222,6 @@ function FFdown(e) {
       }
     }
 
-    //const req = ["I require", "I want", "I crave", "I'd die for", "Give me", "Where's my", "My precious", "Fondle my", "Touch some", "Apologize to"];
-    //colorlist.innerHTML = "<h3>🦦 -(" + req[Math.floor(Math.random()*req.length)] + " " + color + ")</h3>";
     colorlist.innerHTML = "<h3>" + color[0].toUpperCase() + color.slice(1) + " (" + makedots([color, 0, 0], 0) + ") silicone</h3>";
     for (const [p, cs] of colorsels.reverse().entries()) {
       colorlist.insertAdjacentHTML("beforeend", ["Translucent<br>", "Semi-translucent<br>", "Solid<br>"][p]);
@@ -1358,9 +1356,9 @@ var Expand = (c, t) => {
     return setTimeout(Expand, 10, c, t);
   }
   c.style.maxWidth = '100%';
-  c.style.display.remove();
+  c.style.display = 'block';
   t.style.display = 'none';
-  t.style.opacity.remove();
+  t.style.opacity = '1';
 };
 
 var FFclick = (e) => {
@@ -1379,7 +1377,7 @@ var FFclick = (e) => {
       t.style.opacity = '0.75';
       setTimeout(Expand, 10, img, t);
     } else {
-      a.firstChild.style.display = '';
+      a.firstChild.style.display = 'block';
       a.removeChild(t);
       outbound()
       a.offsetTop < window.pageYOffset && a.scrollIntoView({block: 'start', behavior: 'smooth'});

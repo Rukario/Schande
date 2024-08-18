@@ -2523,9 +2523,10 @@ function stixpath(nx, ny, land) {
 }
 
 function qixstep() {
+  const speed = qixsc*60/fps.hz;
   const step = {
-    x: (Keypress[4] || Keypress[39] ? 1*qixsc : 0) + (Keypress[1] || Keypress[37] ? -1*qixsc : 0),
-    y: (Keypress[19] || Keypress[40] ? 1*qixsc : 0) + (Keypress[23] || Keypress[38] ? -1*qixsc : 0),
+    x: (Keypress[4] || Keypress[39] ? speed : 0) + (Keypress[1] || Keypress[37] ? -speed : 0),
+    y: (Keypress[19] || Keypress[40] ? speed : 0) + (Keypress[23] || Keypress[38] ? -speed : 0),
   }
 
   if (
@@ -2543,7 +2544,7 @@ function qixstep() {
     const datapos = Math.floor(toMask.x + qixmask.width * toMask.y);
     if (qixmap.data[datapos * 4 + 3] !== 255) {
       // established land
-      stixpath(Math.floor(step.x/qixsc), Math.floor(step.y/qixsc), true);
+      stixpath(Math.floor(step.x/speed), Math.floor(step.y/speed), true);
       qixpos.x += step.x;
       qixpos.y += step.y;
       if (mousec.hold) {
@@ -2557,7 +2558,7 @@ function qixstep() {
     } else if (mousec.down) {
       // on adventure
       mousec.hold = 1;
-      stixpath(Math.floor(step.x/qixsc), Math.floor(step.y/qixsc));
+      stixpath(Math.floor(step.x/speed), Math.floor(step.y/speed));
       qixpos.x += step.x;
       qixpos.y += step.y;
     }
@@ -2565,20 +2566,28 @@ function qixstep() {
 }
 
 function qixstep2(k = false) {
-  const x = Math.floor(qixpos2.x/qixsc);
-  const y = Math.floor(qixpos2.y/qixsc);
-  const nx = k ? (Keypress[8]?1:0) + (Keypress[6]?-1:0) : Math.round((Math.random()-0.5)*8);
-  const ny = k ? (Keypress[7]?1:0) + (Keypress[20]?-1:0) : Math.round((Math.random()-0.5)*8);
+  const speed = qixsc*60/fps.hz;
+  const step = {
+    x: k ? (Keypress[8] ? speed : 0) + (Keypress[6] ? -speed : 0) : Math.round((Math.random() - 0.5) * 8),
+    y: k ? (Keypress[7] ? speed : 0) + (Keypress[20] ? -speed : 0) : Math.round((Math.random() - 0.5) * 8),
+  }
+
   if (
-    x+nx >= 0 &&
-    y+ny >= 0 &&
-    x+nx < qixmask.width &&
-    y+ny < qixmask.height
+    qixpos2.x + step.x >= 0 &&
+    qixpos2.y + step.y >= 0 &&
+    qixpos2.x + step.x <= qixmask.width*qixsc &&
+    qixpos2.y + step.y <= qixmask.height*qixsc
   ) {
-    const o = x + nx + qixmask.width*(y + ny);
-    if (qixmap.data[o*4+3] === 255) {
-      qixpos2.x += nx;
-      qixpos2.y += ny;
+    // death barrier
+    const toMask = {
+      x: Math.floor((qixpos2.x + step.x)/qixsc),
+      y: Math.floor((qixpos2.y + step.y)/qixsc),
+    }
+
+    const datapos = Math.floor(toMask.x + qixmask.width * toMask.y);
+    if (qixmap.data[datapos * 4 + 3] === 255) {
+      qixpos2.x += step.x;
+      qixpos2.y += step.y;
     }
   }
 }

@@ -2395,8 +2395,8 @@ function new_qix() {
     Math.floor(qixmask.height/2),
   ]
   qixpos = {
-    x: center[0]*qixsc+1,
-    y: center[1]*qixsc+1,
+    x: center[0]*qixsc + qixsc,
+    y: center[1]*qixsc + qixsc,
     s: 0,
   };
   qixpos2 = {
@@ -2511,11 +2511,11 @@ function stixpath(nx, ny, land) {
 
   const stix = qixlines.at(-1);
   if (qixline[qixline.d] === x) {
-    stix[3] = y-stix[1] +(land ? ny : 0);
+    stix[3] = y-stix[1];
   } else if (qixline[qixline.d] === y) {
-    stix[2] = x-stix[0] + (land ? nx : 0);
+    stix[2] = x-stix[0];
   } else {
-    qixlines.push([x + (land ? nx : 0), y + (land ? ny : 0), 0, 0]);
+    qixlines.push([x, y, 0, 0]);
     qixline.x = x;
     qixline.y = y;
     qixline.d = nx ? 'y' : 'x';
@@ -2523,25 +2523,29 @@ function stixpath(nx, ny, land) {
 }
 
 function qixstep() {
-  const x = Math.floor(qixpos.x/qixsc);
-  const y = Math.floor(qixpos.y/qixsc);
-  let nx = (Keypress[4] || Keypress[39] ? 1 : 0) + (Keypress[1] || Keypress[37] ? -1 : 0);
-  let ny = (Keypress[19] || Keypress[40] ? 1 : 0) + (Keypress[23] || Keypress[38] ? -1 : 0);
-  //nx *= qixsc;
-  //ny *= qixsc;
+  const step = {
+    x: (Keypress[4] || Keypress[39] ? 1*qixsc : 0) + (Keypress[1] || Keypress[37] ? -1*qixsc : 0),
+    y: (Keypress[19] || Keypress[40] ? 1*qixsc : 0) + (Keypress[23] || Keypress[38] ? -1*qixsc : 0),
+  }
+
   if (
-    x + nx >= 0 &&
-    y + ny >= 0 &&
-    x + nx < qixmask.width &&
-    y + ny < qixmask.height
+    qixpos.x + step.x >= 0 &&
+    qixpos.y + step.y >= 0 &&
+    qixpos.x + step.x <= qixmask.width*qixsc &&
+    qixpos.y + step.y <= qixmask.height*qixsc
   ) {
     // death barrier
-    const datapos = Math.floor(x + nx + qixmask.width * (y + ny));
+    const toMask = {
+      x: Math.floor((qixpos.x + step.x)/qixsc),
+      y: Math.floor((qixpos.y + step.y)/qixsc),
+    }
+
+    const datapos = Math.floor(toMask.x + qixmask.width * toMask.y);
     if (qixmap.data[datapos * 4 + 3] !== 255) {
       // established land
-      qixpos.x += nx;
-      qixpos.y += ny;
-      //stixpath(nx, ny, true);
+      stixpath(Math.floor(step.x/qixsc), Math.floor(step.y/qixsc), true);
+      qixpos.x += step.x;
+      qixpos.y += step.y;
       if (mousec.hold) {
         mousec.hold = 0;
         for (const area of qixlines) {
@@ -2553,9 +2557,9 @@ function qixstep() {
     } else if (mousec.down) {
       // on adventure
       mousec.hold = 1;
-      qixpos.x += nx;
-      qixpos.y += ny;
-      stixpath(nx, ny);
+      stixpath(Math.floor(step.x/qixsc), Math.floor(step.y/qixsc));
+      qixpos.x += step.x;
+      qixpos.y += step.y;
     }
   }
 }
@@ -2579,7 +2583,7 @@ function qixstep2(k = false) {
   }
 }
 
-function drawqix(scr, pos, s=0.5) {
+function drawqix(scr, pos, s=0.75) {
   const tail = [];
   let dir = {
     x: 0,
@@ -2589,10 +2593,10 @@ function drawqix(scr, pos, s=0.5) {
     nw: 0,
     nh: 0,
   };
-  const chdir = (x, y, nx, ny, t) => {
+  const chdir = (x, y, nx, ny) => {
     if (dir.x > 0) {
       if (y > 0) {
-        dir.w = t;
+        dir.w = qixsc;
         dir.h = 0;
       } else if (y < 0) {
         dir.w = 0;
@@ -2600,19 +2604,19 @@ function drawqix(scr, pos, s=0.5) {
       }
     } else if (dir.y > 0) {
       if (x < 0) {
-        dir.w = t;
-        dir.h = t;
+        dir.w = qixsc;
+        dir.h = qixsc;
       } else if (x > 0) {
-        dir.w = t;
+        dir.w = qixsc;
         dir.h = 0;
       }
     } else if (dir.x < 0) {
       if (y < 0) {
         dir.w = 0;
-        dir.h = t;
+        dir.h = qixsc;
       } else if (y > 0) {
-        dir.w = t;
-        dir.h = t;
+        dir.w = qixsc;
+        dir.h = qixsc;
       }
     } else if (dir.y < 0) {
       if (x > 0) {
@@ -2620,20 +2624,20 @@ function drawqix(scr, pos, s=0.5) {
         dir.h = 0;
       } else if (x < 0) {
         dir.w = 0;
-        dir.h = t;
+        dir.h = qixsc;
       }
     } else {
       dir.nw = nx;
       dir.nh = ny;
       if (x > 0) {
-        dir.w = t;
+        dir.w = qixsc;
         dir.h = 0;
       } else if (y > 0) {
-        dir.w = t;
-        dir.h = t;
+        dir.w = qixsc;
+        dir.h = qixsc;
       } else if (x < 0) {
         dir.w = 0;
-        dir.h = t;
+        dir.h = qixsc;
       } else if (y < 0) {
         dir.w = 0;
         dir.h = 0;
@@ -2642,17 +2646,17 @@ function drawqix(scr, pos, s=0.5) {
   }
   if (s < 2) {
     for (const area of qixlines) {
-      const nx = area[0]+area[2];
-      const ny = area[1]+area[3];
-      chdir(area[2], area[3], area[0], area[1], 2);
+      const nx = area[0] + area[2];
+      const ny = area[1] + area[3];
+      chdir(area[2], area[3], area[0], area[1]);
       dir.x = area[2];
       dir.y = area[3];
-      tail.push(`${dir.nw*qixsc+dir.w}px ${dir.nh*qixsc+dir.h}px`);
+      tail.push(`${dir.nw * qixsc + dir.w}px ${dir.nh * qixsc + dir.h}px`);
       dir.nw = nx;
       dir.nh = ny;
     };
     if (qixlines.length) {
-      tail.push(`${dir.nw*qixsc+dir.w}px ${dir.nh*qixsc+dir.h}px`);
+      tail.push(`${dir.nw * qixsc + dir.w}px ${dir.nh * qixsc + dir.h}px`);
     }
   }
   const x = pos.x+0.5;
@@ -2673,9 +2677,9 @@ ${x}px ${y-10*s}px`);
       nh: 0,
     };
     for (const area of qixlines.toReversed()) {
-      const nx = area[0]+area[2];
-      const ny = area[1]+area[3];
-      chdir(-area[2], -area[3], nx, ny, 2);
+      const nx = area[0] + area[2];
+      const ny = area[1] + area[3];
+      chdir(-area[2], -area[3], nx, ny, qixsc);
       dir.x = -area[2];
       dir.y = -area[3];
       dir.nw = nx;
@@ -2683,22 +2687,21 @@ ${x}px ${y-10*s}px`);
       tail.push(`${dir.nw*qixsc+dir.w}px ${dir.nh*qixsc+dir.h}px`);
     };
     if (qixlines.length) {
-      const t = 2;
       const area = qixlines[0];
       if (area[2] < 0) {
         dir.w = 0;
         dir.h = 0;
       } else if (area[3] < 0) {
-        dir.w = t;
+        dir.w = qixsc;
         dir.h = 0;
       } else if (area[2] > 0) {
-        dir.w = t;
-        dir.h = t;
+        dir.w = qixsc;
+        dir.h = qixsc;
       } else if (area[3] > 0) {
         dir.w = 0;
-        dir.h = t;
+        dir.h = qixsc;
       }
-      tail.push(`${area[0]*qixsc+dir.w}px ${area[1]*qixsc+dir.h}px`);
+      tail.push(`${area[0] * qixsc + dir.w}px ${area[1] * qixsc + dir.h}px`);
     }
   }
   scr.style.clipPath = `polygon(${tail.join(',')})`;

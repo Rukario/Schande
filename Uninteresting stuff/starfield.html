@@ -3547,21 +3547,14 @@ function createkeyboard() {
     return d;
   }
 
+
+
   esc = keysocket(44);
   f1 = keysocket(24);
   f5 = keysocket(24);
   f9 = keysocket();
   alphakeys = keysocket(0, 12);
   keydiv([esc, f1, f5, f9, null, alphakeys]);
-
-  homekeys2 = keysocket();
-  homekeys = keysocket(0, 13);
-  arrows = keysocket(0, 43);
-  keydiv([homekeys2, null, homekeys, null, arrows], 6);
-
-  numpad2 = keysocket();
-  numpad = keysocket(0, 12);
-  keydiv([numpad2, null, numpad], 6);
 
   drawkeyboard(esc, [['Esc']], null, 'keycapface2', 'keycap2');
   drawkeyboard(f1, [['F1', 'F2', 'F3', 'F4']]);
@@ -3604,63 +3597,80 @@ function createkeyboard() {
   drawkeyboard(alphakeys, [['Fn']], 43, 'keycapface2', 'keycap2');
   drawkeyboard(alphakeys, [['Ctrl']], 43, 'keycapface2', 'keycap2');
 
-  drawkeyboard(homekeys2, [['PrtSc', 'ScrLk', 'Pause']], null, 'keycapface2', 'keycap2');
-  drawkeyboard(homekeys, [['Ins', 'Home', 'PgUp']], null, 'keycapface2', 'keycap2');
 
-  DOMwriter = document.createElement('BR');
-  homekeys.appendChild(DOMwriter);
+  // TKL
+  if (true) {
+    homekeys2 = keysocket();
+    homekeys = keysocket(0, 13);
+    arrows = keysocket(0, 43);
+    keydiv([homekeys2, null, homekeys, null, arrows], 6);
 
-  drawkeyboard(homekeys, [['Del', 'End', 'PgDn']], null, 'keycapface2', 'keycap2');
+    drawkeyboard(homekeys2, [['PrtSc', 'ScrLk', 'Pause']], null, 'keycapface2', 'keycap2');
+    drawkeyboard(homekeys, [['Ins', 'Home', 'PgUp']], null, 'keycapface2', 'keycap2');
 
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.innerHTML = '&nbsp;';
-  DOMwriter.classList = 'plate right';
-  arrows.appendChild(DOMwriter);
+    DOMwriter = document.createElement('BR');
+    homekeys.appendChild(DOMwriter);
 
-  drawkeyboard(arrows, ['↑'], null, 'keycapface2', 'keycap2');
+    drawkeyboard(homekeys, [['Del', 'End', 'PgDn']], null, 'keycapface2', 'keycap2');
 
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.innerHTML = '&nbsp;';
-  DOMwriter.classList = 'plate left';
-  arrows.appendChild(DOMwriter);
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.innerHTML = '&nbsp;';
+    DOMwriter.classList = 'plate right';
+    arrows.appendChild(DOMwriter);
 
-  DOMwriter = document.createElement('BR');
-  arrows.appendChild(DOMwriter);
+    drawkeyboard(arrows, ['↑'], null, 'keycapface2', 'keycap2');
 
-  drawkeyboard(arrows, ['←', '↓', '→'], null, 'keycapface2', 'keycap2');
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.innerHTML = '&nbsp;';
+    DOMwriter.classList = 'plate left';
+    arrows.appendChild(DOMwriter);
 
-  drawkeyboard(numpad2, [['Cal', 'Mute', 'Dec', 'Inc']], null, 'keycapface2', 'keycap2');
-  drawkeyboard(numpad, [['Num'], '/', '*', '-'], null, 'keycapface2', 'keycap2');
+    DOMwriter = document.createElement('BR');
+    arrows.appendChild(DOMwriter);
 
-  DOMwriter = document.createElement('BR');
-  numpad.appendChild(DOMwriter);
+    drawkeyboard(arrows, ['←', '↓', '→'], null, 'keycapface2', 'keycap2');
+  }
 
-  drawkeyboard(numpad, ['7', '8', '9']);
 
-  drawkeyboard(numpad, [['+']], null, 'keycapface2', 'keycap2');
-  const numplus = KeypressT[107][0];
-  numplus.childNodes[0].style.height = '84px';
-  numplus.style.float = 'right';
+  // Full
+  if (false) {
+    numpad2 = keysocket();
+    numpad = keysocket(0, 12);
+    keydiv([numpad2, null, numpad], 6);
 
-  DOMwriter = document.createElement('BR');
-  numpad.appendChild(DOMwriter);
+    drawkeyboard(numpad2, [['Cal', 'Mute', 'Dec', 'Inc']], null, 'keycapface2', 'keycap2');
+    drawkeyboard(numpad, [['Num'], '/', '*', '-'], null, 'keycapface2', 'keycap2');
 
-  drawkeyboard(numpad, ['4', '5', '6']);
+    DOMwriter = document.createElement('BR');
+    numpad.appendChild(DOMwriter);
 
-  DOMwriter = document.createElement('BR');
-  numpad.appendChild(DOMwriter);
+    drawkeyboard(numpad, ['7', '8', '9']);
 
-  drawkeyboard(numpad, ['1', '2', '3',]);
-  drawkeyboard(numpad, [['Enter']], null, 'keycapface2', 'keycap2');
-  const numenter = KeypressT[13][1];
-  numenter.childNodes[0].style.height = '84px';
-  numenter.style.float = 'right';
+    drawkeyboard(numpad, [['+']], null, 'keycapface2', 'keycap2');
+    const numplus = KeypressT[107][0];
+    numplus.childNodes[0].style.height = '84px';
+    numplus.style.float = 'right';
 
-  DOMwriter = document.createElement('BR');
-  numpad.appendChild(DOMwriter);
+    DOMwriter = document.createElement('BR');
+    numpad.appendChild(DOMwriter);
 
-  drawkeyboard(numpad, ['0'], 80);
-  drawkeyboard(numpad, ['.']);
+    drawkeyboard(numpad, ['4', '5', '6']);
+
+    DOMwriter = document.createElement('BR');
+    numpad.appendChild(DOMwriter);
+
+    drawkeyboard(numpad, ['1', '2', '3',]);
+    drawkeyboard(numpad, [['Enter']], null, 'keycapface2', 'keycap2');
+    const numenter = KeypressT[13][1];
+    numenter.childNodes[0].style.height = '84px';
+    numenter.style.float = 'right';
+
+    DOMwriter = document.createElement('BR');
+    numpad.appendChild(DOMwriter);
+
+    drawkeyboard(numpad, ['0'], 80);
+    drawkeyboard(numpad, ['.']);
+  }
 }
 
 function resize() {

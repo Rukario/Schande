@@ -64,6 +64,7 @@ h1, h2, h3, h4, h5, h6 {
 .colorset {
   color: #bfddc6;
   cursor: pointer;
+  display: inline-block;
 }
 
 .colorsel {
@@ -272,6 +273,7 @@ ul {
   top: 0px;
   right: initial;
   display: none;
+  white-space: pre-wrap;
 }
 
 #cursor_tooltip {
@@ -305,7 +307,6 @@ ul {
   color: #9b859d;
   background-color: #110c13;
   border: 2px solid #221926;
-  display: inline-block;
   padding: 6px;
   min-height: 0px;
 }
@@ -434,23 +435,23 @@ var swatches = {};
 function opendb(file, callback) {
   const xhr = new XMLHttpRequest();
   let isTainted = true;
-  xhr.overrideMimeType("application/json");
+  xhr.overrideMimeType('application/json');
   xhr.open('GET', file, true);
-  xhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
+  xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
   xhr.send();
   xhr.onreadystatechange = () => {
     isTainted = false;
     if (xhr.readyState === 4) {
       if (xhr.status !== 404 && xhr.responseText) {
         callback(JSON.parse(xhr.responseText));
-      } else if (xhr.responseText){
-        local_tooltip.style.display = "inline-block";
-        local_tooltip.innerHTML = "⚠";
-        local_tooltip.dataset.tooltip = file + " not found! (404 error)";
+      } else if (xhr.responseText) {
+        local_tooltip.style.display = 'inline-block';
+        local_tooltip.textContent = '⚠';
+        local_tooltip.dataset.tooltip = file + ' not found! (404 error)';
       } else {
-        local_tooltip.style.display = "inline-block";
-        local_tooltip.innerHTML = "⚠";
-        local_tooltip.dataset.tooltip = "couldn't access " + file + "! (non-404 error)";
+        local_tooltip.style.display = 'inline-block';
+        local_tooltip.textContent = '⚠';
+        local_tooltip.dataset.tooltip = "couldn't access " + file + '! (non-404 error)';
       }
     }
   }
@@ -475,29 +476,29 @@ function lazyload() {
     });
   });
 
-  var lazyloadImages = document.querySelectorAll(".lazy");
+  var lazyloadImages = document.querySelectorAll('.lazy');
   lazyloadImages.forEach(function(e) {
-    e.classList.remove("lazy");
-    e.style.height = "200px";
-    e.style.width = "300px";
+    e.classList.remove('lazy');
+    e.style.height = '200px';
+    e.style.width = '300px';
     imageObserver.observe(e);
   });
 }
 
-function makedots(cs, pos, pre=false) {
+function ABtoUTF8(ta) {
+  return ta.map((t) => typeof t === 'string' ? t : t.outerHTML).join('');
+}
+
+function makedots(cs, pos) {
   var newbar = [];
 
   if (cs.length == 1) {
-    const d = document.createElement ("DIV");
-    d.classList = "droponly";
-    d.dataset.color = "droponly";
-    d.dataset.tooltip = "drop only";
-    d.innerHTML = "✨";
-    if (pre) {
-      return [d];
-    } else {
-      return d.outerHTML;
-    }
+    const d = document.createElement ('DIV');
+    d.classList = 'droponly';
+    d.dataset.color = 'droponly';
+    d.dataset.tooltip = 'drop only';
+    d.textContent = '✨';
+    return [d];
   }
 
   const gradientbg = [];
@@ -506,36 +507,36 @@ function makedots(cs, pos, pre=false) {
     var r1 = cs[pos];
     var r2 = cs[pos+1];
     var r3 = cs[pos+2];
-    var bc = "rgba(0, 0, 0, 0.5)";
+    var bc = 'rgba(0, 0, 0, 0.5)';
     var bt = r2;
-    var tr = "";
-    var st = "";
+    var tr = '';
+    var st = '';
     if (r2%4 == 2){
-      tr = "semi-translucent ";
-    } else if (r2%4 == 3){
-      tr = "translucent ";
+      tr = 'semi-translucent ';
+    } else if (r2%4 === 3){
+      tr = 'translucent ';
     }
     if (r2 > 7) {
-      tr += "metallic ";
-      st = "✨";
+      tr += 'metallic ';
+      st = '✨';
       bt -= 8;
     } else if (r2 > 3) {
-      tr += "pearlescent ";
-      st = "💫";
+      tr += 'pearlescent ';
+      st = '💫';
       bt -= 4;
     }
-    if (r1 == "black" || r1 == "galaxy") {
-      bc = "#556";
+    if (r1 === 'black' || r1 === 'galaxy') {
+      bc = '#556';
       bt += 1;
     }
     if (r3 == 2){
-      if (creative && creative.classList == "previous") {
+      if (creative && creative.classList === 'previous') {
         pos += 3;
         continue;
       }
       newbar[newbar.length-1][0].push(fc[r1]);
     } else {
-      newbar.push([[fc[r1]], ""]);
+      newbar.push([[fc[r1]], '']);
     }
     newbar[newbar.length-1][1] += "<div style='display:inline-block; padding:0px 3px; cursor:pointer;' data-color='" + r1 + "' data-tooltip='" + tr + r1 + "'><div class='dot' style='pointer-events:none; height:" + (12-2*bt) + "px; width:" + (12-2*bt) + "px; border:" + bt + "px solid " + bc + "; background: transparent; color:rgba(255, 255, 255, 0.5); font-size:15px; filter: grayscale(100%);'>" + st + "</div></div>";
     pos += 3;
@@ -570,11 +571,7 @@ function makedots(cs, pos, pre=false) {
     gradientbg.push(di);
   }
 
-  if (pre) {
-    return gradientbg;
-  } else {
-    return gradientbg.map(x => x.outerHTML).join("");
-  }
+  return gradientbg;
 }
 
 function galleryset2() {
@@ -600,16 +597,16 @@ function cssel() {
 }
 
 function addtogallery(k) {
-  const i = document.createElement("IMG");
-  i.classList = "lazy";
+  const i = document.createElement('IMG');
+  i.classList = 'lazy';
   i.dataset.src = k;
 
-  const a = document.createElement("A");
-  a.classList = "fileThumb";
+  const a = document.createElement('A');
+  a.classList = 'fileThumb';
   a.href = k;
   a.appendChild(i);
 
-  const d = document.createElement("DIV");
+  const d = document.createElement('DIV');
   d.classList = 'frame';
   d.appendChild(a);
 
@@ -618,21 +615,23 @@ function addtogallery(k) {
 
 var galleryset = [[], []];
 function makegallery() {
-  if (!editor.textContent.startsWith("Connect to Bad Dragon")) {
+  if (!editor.textContent.startsWith('Connect to Bad Dragon')) {
     echo("Replace this text field with 'Connect to Bad Dragon' and release me from liability.\nThis might strain Bad Dragon server/your computer and I'll not be held responsible for that.\n")
     return;
   }
 
-  more.style.display = "none";
-  gallery.innerHTML = "";
+  more.style.display = 'none';
+  while (gallery.firstChild) {
+    gallery.lastChild.remove();
+  };
 
-  const lines = editor.textContent.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n");
+  const lines = editor.textContent.replace(/Bad Dragon\//g, 'https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/').replace(/\<br\>/g, '\n').split('\n');
   const bookmarks = lines.filter((e) => {
     return (
       e &&
-      !e.startsWith("SHAME ") && (
-        e.toLowerCase().endsWith(".jpg") ||
-        e.toLowerCase().endsWith(".png")
+      !e.startsWith('SHAME ') && (
+        e.toLowerCase().endsWith('.jpg') ||
+        e.toLowerCase().endsWith('.png')
       )
     )
   });
@@ -641,36 +640,34 @@ function makegallery() {
     addtogallery(bookmark);
   }
 
-  for (const custom_twins of pictures["custom twins"]) {
+  for (const custom_twins of pictures['custom twins']) {
     let featured = false;
     const k = Object.keys(custom_twins)[0];
-    const ct = document.createElement("DIV");
+    const ct = document.createElement('DIV');
 
     for (const cs of custom_twins[k]) {
-      if (cs[0].toLowerCase().replace(/'/g, "") == colorset) {
+      if (cs[0].toLowerCase().replace(/'/g, '') === colorset) {
         featured = true;
       }
 
-      const d = document.createElement("DIV");
-      d.innerHTML = "&gt;";
+      const d = document.createElement('DIV');
+      d.innerHTML = '&gt;';
 
-      const s = document.createElement("SPAN");
+      const s = document.createElement('DIV');
       s.classList = 'colorset';
       s.innerHTML = cs[0];
 
       d.appendChild(s);
-      for (const dot of makedots(cs, 1, true)) {
-        d.appendChild(dot);
-      }
+      d.append(...makedots(cs, 1));
       ct.appendChild(d);
     }
 
     if (featured) {
       addtogallery(k);
 
-      const di = document.createElement("DIV");
-      di.style.display = "inline-block";
-      di.style.verticalAlign = "top";
+      const di = document.createElement('DIV');
+      di.style.display = 'inline-block';
+      di.style.verticalAlign = 'top';
       di.appendChild(ct);
 
       gallery.appendChild(di);
@@ -693,156 +690,57 @@ function makegallery() {
   cssel();
   lazyload();
 
-  if (pictures[colorset].length>11){
-    more.innerHTML = "Load " + (pictures[colorset].length-12) + " more pictures";
-    more.style.display = "inline-block"; 
+  if (pictures[colorset].length > 11) {
+    more.textContent = 'Load ' + (pictures[colorset].length-12) + ' more pictures';
+    more.style.display = 'inline-block'; 
   }
 }
 
-function makelinks(cs) {
-  let c = colorsets[cs];
-  let tt = "";
-  if (c[0]) {
-    if (Array.isArray(c[0])) {
-      tt += [c[0][0], ...c[0].slice(2)].join("/");
-      if (c[0][1]) {
-        tt += ' ꍯ ' + c[0][1];
-      }
-    } else {
-      tt += c[0];
-    }
+function replacegallery() {
+  more.style.display = 'none'; 
+  while (gallery.firstChild) {
+    gallery.lastChild.remove();
   }
-  let lowkey = cs.toLowerCase();
-  if (lowkey in swatches) {
-    if (Array.isArray(swatches[lowkey])) {
-      for (const ent of swatches[lowkey]) {
-        tt += "<br>" + ent["description"] + "<br><img style='vertical-align:middle;' src='" + ent["swatchImage"] + "'>";
-      }
-    } else {
-      tt += "<br>" + swatches[lowkey]["description"] + "<br><img style='vertical-align:middle;' src='" + swatches[lowkey]["swatchImage"] + "'>";
-    }
-    if (lowkey + " mas" in swatches) {
-      const swatchmas = swatches[lowkey + " mas"]
-      if (swatchmas["description"].toLowerCase().replace(/\./g, "") != swatches[lowkey]["description"].toLowerCase().replace(/\./g, "")) {
-        tt += "<br> ꍯ " + swatchmas["description"] + "<br>";
-      } else {
-        tt += " ꍯ ";
-      }
-      tt += "<img src='" + swatchmas["swatchImage"] + "'>";
-    } else if ("cs " + lowkey in swatches) {
-      tt += " ꍯ Swap available";
-    } else if (Array.isArray(c[0]) && c[0][1]) {
-      tt += " ꍯ Swap N/A or naming issue";
-    }
-  }
-  let s = document.createElement("SPAN");
-  s.classList.add("colorset");
-  if (Array.isArray(c[0])) {
-    s.dataset.colorTheme = c[0][0];
-    if (c[0][1]) {
-      s.dataset.colorTheme2 = c[0][1];
-    }
-    if (c[0].length > 2) {
-      s.dataset.colorTheme3 = c[0][2];
-    }
-    if (c[0].length > 3) {
-      s.dataset.colorTheme4 = c[0][3];
-    }
-    if (c[0].length > 4) {
-      s.dataset.colorTheme5 = c[0][4];
-    }
-  } else {
-    s.dataset.colorTheme = c[0];
-  }
-  s.dataset.tooltip = tt;
-  s.innerHTML = cs;
-  return s;
-}
+  galleryset = [[], []];
 
-function makeDIV(id, t, tooltip, pointer=false) {
-  const d = document.createElement("DIV");
-  d.classList = "next";
-  d.id = id;
-  d.dataset.tooltip = tooltip;
-  d.innerHTML = t;
-
-  if (pointer) {
-    d.style.cursor = "pointer";
-  }
-
-  return d;
-};
-
-function makeUL(array) {
-  const list = document.createElement('ul');
-  list.style.whiteSpace = "nowrap";
-  for (const i of Array(array.length).keys()) {
-    const item = document.createElement('li');
-    item.appendChild(document.createTextNode(array[i]));
-    list.appendChild(item);
-  }
-  return list;
-}
-
-function colorline(b, cs) {
-  const d = document.createElement('DIV');
-  d.innerHTML = b;
-  d.appendChild(makelinks(cs));
-  for (const dot of makedots(colorsets[cs], 1, true)) {
-    d.appendChild(dot);
-  }
-  colorlist.appendChild(d);
-}
-
-function FFdown(e) {
-  const t = e.target;
-  if (link && t.tagName != "A") {
-    link.classList.remove("tang");
-    gallery_tooltip.style.display = "none";
-  }
-
-  if (t.id == "creative") {
-    if (creative.classList == "next") {
-      creative.classList = "previous";
-    } else {
-      creative.classList = "next";
-    }
-  } else if (t.id == "odnary") {
-    colorset = odnary.dataset.colorset;
-    makegallery();
-  } else if (t.id == "replace") {
-    more.style.display = "none"; 
-    while (gallery.firstChild) {
-      gallery.lastChild.remove();
-    }
-    galleryset = [[], []];
-
-    const lines = editor.textContent.replace(/Bad Dragon\//g, "https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/").replace(/\<br\>/g, "\n").split("\n");
-    const bookmarks = lines.filter((e) => {
-      return (
-        e &&
-        !e.startsWith("SHAME ") && (
-          e.toLowerCase().endsWith(".jpg") ||
-          e.toLowerCase().endsWith(".png")
-        )
+  const lines = editor.textContent.replace(/Bad Dragon\//g, 'https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/').replace(/\<br\>/g, '\n').split('\n');
+  const bookmarks = lines.filter((e) => {
+    return (
+      e &&
+      !e.startsWith('SHAME ') && (
+        e.toLowerCase().endsWith('.jpg') ||
+        e.toLowerCase().endsWith('.png')
       )
-    });
+    )
+  });
 
-    for (const bookmark of bookmarks) {
-      galleryset[0].push(bookmark);
-    }
+  for (const bookmark of bookmarks) {
+    galleryset[0].push(bookmark);
+  }
 
-    for (const gset of galleryset[0]) {
-      addtogallery(gset);
-    }
+  for (const gset of galleryset[0]) {
+    addtogallery(gset);
+  }
 
-    rainbow = [];
-    for (const line of lines) {
-      if (line in colorsets && colorsets[line] != true){
-        let cs = colorsets[line];
+  rainbow = [];
+  for (const line of lines) {
+    if (line in colorsets && colorsets[line] != true){
+      let cs = colorsets[line];
+      rainbowfade = false;
+      for (var o=1; o<cs.length; o+=3) {
+        rainbow.push(cs[o], 0, rainbowfade?2:0);
+        rainbowfade = true;
+        if (rainbow.length > 408*3) {
+          rainbow = rainbow.slice(3);
+          rainbow[2] = 0;
+        }
+      }
+      rainbowfade = false;
+    } else if (line == 'palette') {
+      for (const p of palette) {
         rainbowfade = false;
-        for (var o=1; o<cs.length; o+=3) {
-          rainbow.push(cs[o], 0, rainbowfade?2:0);
+        for (const palett of p) {
+          rainbow.push(palett, 0, rainbowfade?2:0);
           rainbowfade = true;
           if (rainbow.length > 408*3) {
             rainbow = rainbow.slice(3);
@@ -850,114 +748,253 @@ function FFdown(e) {
           }
         }
         rainbowfade = false;
-      } else if (line == "palette") {
-        for (const p of palette) {
-          rainbowfade = false;
-          for (const palett of p) {
-            rainbow.push(palett, 0, rainbowfade?2:0);
-            rainbowfade = true;
-            if (rainbow.length > 408*3) {
-              rainbow = rainbow.slice(3);
-              rainbow[2] = 0;
-            }
-          }
-          rainbowfade = false;
-        }
-      } else if (line in fc) {
-        rainbow.push(line, 0, rainbowfade?2:0);
-        rainbowfade = true;
-        if (rainbow.length>408*3) {
-          rainbow = rainbow.slice(3);
-          rainbow[2] = 0;
-        }
-      } else {
-        rainbowfade = false;
       }
-    }
-
-    rainbowfade = false;
-    fadebar.innerHTML = "";
-    for (const dot of makedots(rainbow, 0, true)) {
-      fadebar.appendChild(dot);
-    }
-    const b = document.createElement("button");
-    b.innerHTML = "ꍯ";
-    b.classList = "dark";
-    b.id = "fadeends";
-    b.style.display = "none";
-    b.addEventListener('click', () => {
+    } else if (line in fc) {
+      rainbow.push(line, 0, rainbowfade?2:0);
+      rainbowfade = true;
+      if (rainbow.length>408*3) {
+        rainbow = rainbow.slice(3);
+        rainbow[2] = 0;
+      }
+    } else {
       rainbowfade = false;
-      fadeends.display = 'none';
-    });
-    b.dataset.tooltip = "Fade ends";
-    fadebar.appendChild(b);
-
-    colorset = undefined;
-    cssel();
-    lazyload();
-  } else if (t.id == "gallerysave") {
-    if (gallerysave.classList == "previous") {
-      return;
     }
+  }
 
-    const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
-    const utf8 = editor.textContent.replace(/<br>/g, "\n").replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/");
-    document.cookie = `gallerysave=${encodeURIComponent(utf8)}; expires=${expires}; path=/; SameSite=Strict;`;
-    //no expiry would allow the cookie to be automatically deleted upon browser exit.
-    gallerysave.classList = "previous";
-    gallerysave.innerHTML = "Save completed";
-  } else if (t.id == "cs") {
-    colorset = cs.dataset.colorset;
-    makegallery();
-  } else if (t.id == "mas") {
-    colorset = mas.dataset.colorset;
-    makegallery();
-  } else if (t.id == "more") {
-    galleryset2();
-  } else if (t.classList.contains("colorset")) {
+  rainbowfade = false;
+  while (fadebar.firstChild) {
+    fadebar.lastChild.remove();
+  }
+  fadebar.append(...makedots(rainbow, 0));
+  const b = document.createElement('BUTTON');
+  b.innerHTML = 'ꍯ';
+  b.classList = 'dark';
+  b.id = 'fadeends';
+  b.style.display = 'none';
+  b.addEventListener('click', () => {
+    rainbowfade = false;
+    fadeends.display = 'none';
+  });
+  b.dataset.tooltip = 'Fade ends';
+  fadebar.appendChild(b);
+
+  colorset = undefined;
+  cssel();
+  lazyload();
+}
+
+function echoIMG(src) {
+  return '<img style="vertical-align: middle;" src="' + src + '">';
+}
+
+function makelinks(cs) {
+  const c = colorsets[cs];
+  const ta = [];
+  if (c[0]) {
+    if (Array.isArray(c[0])) {
+      ta.push([c[0][0], ...c[0].slice(2)].join('/'));
+      if (c[0][1]) {
+        ta.push(' ꍯ ' + c[0][1]);
+      }
+    } else {
+      ta.push(c[0]);
+    }
+  }
+  let lowkey = cs.toLowerCase();
+  if (lowkey in swatches) {
+    if (Array.isArray(swatches[lowkey])) {
+      for (const ent of swatches[lowkey]) {
+        ta.push('\n', ent['description'], '\n', echoIMG(ent['swatchImage']));
+      }
+    } else {
+      ta.push('\n', swatches[lowkey]['description'], '\n', echoIMG(swatches[lowkey]['swatchImage']));
+    }
+    if (lowkey + ' mas' in swatches) {
+      const swatchmas = swatches[lowkey + ' mas']
+      if (swatchmas['description'].toLowerCase().replace(/\./g, '') != swatches[lowkey]['description'].toLowerCase().replace(/\./g, '')) {
+        ta.push('\n ꍯ ', swatchmas['description'], '\n');
+      } else {
+        ta.push(' ꍯ ');
+      }
+      ta.push(echoIMG(swatchmas['swatchImage']));
+    } else if ('cs ' + lowkey in swatches) {
+      ta.push(' ꍯ Swap available');
+    } else if (Array.isArray(c[0]) && c[0][1]) {
+      ta.push(' ꍯ Swap N/A or naming issue');
+    }
+  }
+  const d = document.createElement('DIV');
+  d.classList.add('colorset');
+  if (Array.isArray(c[0])) {
+    d.dataset.colorTheme = c[0][0];
+    if (c[0][1]) {
+      d.dataset.colorTheme2 = c[0][1];
+    }
+    if (c[0].length > 2) {
+      d.dataset.colorTheme3 = c[0][2];
+    }
+    if (c[0].length > 3) {
+      d.dataset.colorTheme4 = c[0][3];
+    }
+    if (c[0].length > 4) {
+      d.dataset.colorTheme5 = c[0][4];
+    }
+  } else {
+    d.dataset.colorTheme = c[0];
+  }
+  d.dataset.tooltip = ABtoUTF8(ta);
+  d.innerHTML = cs;
+  return d;
+}
+
+function makeDIV(t, tooltip, css, c = 'next') {
+  const d = document.createElement('DIV');
+  d.classList = c;
+  if (css) {
+    d.style = css;
+  }
+  if (tooltip) {
+    d.dataset.tooltip = tooltip;
+  }
+  d.textContent = t;
+
+  return d;
+};
+
+function beary(c, t = '🧸') {
+  const d = document.createElement('DIV');
+  d.classList = 'tangerine';
+  if (c) {
+    d.id = c;
+  }
+  d.style.padding = '4px';
+  d.textContent = t;
+  return d;
+};
+
+function makeUL(ta) {
+  const list = document.createElement('UL');
+  list.style.whiteSpace = 'nowrap';
+  for (const i of Array(ta.length).keys()) {
+    const item = document.createElement('LI');
+    item.appendChild(document.createTextNode(ta[i]));
+    list.appendChild(item);
+  }
+  return list;
+}
+
+function button(e, listener, args, pointer = true) {
+  if (pointer) {
+    e.style.cursor = 'pointer';
+  }
+  listener(e, args);
+  return e;
+}
+
+function colorline(b, cs) {
+  const d = document.createElement('DIV');
+  d.innerHTML = b;
+  d.appendChild(makelinks(cs));
+  for (const dot of makedots(colorsets[cs], 1)) {
+    d.appendChild(dot);
+  }
+  colorlist.appendChild(d);
+}
+
+function newcolorlist(ta = ['Choose a color!']) {
+  while (colorlist.firstChild) {
+    colorlist.lastChild.remove();
+  }
+  const h = document.createElement('H3');
+  h.append(...ta);
+  colorlist.appendChild(h);
+}
+
+function colorcell(c) {
+  const d = document.createElement('DIV');
+  d.classList = 'cell';
+
+  const m = document.createElement('DIV');
+  m.classList = 'cell minicell';
+
+  if (c == null) {
+    d.dataset.color = '';
+  } else {
+    const cc = fc[c];
+    let cb = '#000000';
+
+    // if (!cc || parseInt(cc.slice(1, 3), 16) < 144 && parseInt(cc.slice(3, 5), 16) < 144 && parseInt(cc.slice(5), 16) < 144) {
+    //   cb = "rgba(255, 255, 255, 0.5)";
+    // }
+
+    d.style.verticalAlign = 'top';
+    d.style.background = cc;
+    d.style.color = cb;
+    d.dataset.color = c;
+    d.innerHTML = c;
+
+    m.style.background = cc;
+  }
+
+  colortable.appendChild(d);
+  minimap.appendChild(m);
+}
+
+function FFdown(e) {
+  const t = e.target;
+  const id = t.id;
+  if (link && t.tagName !== 'A' && !t.dataset.colorset && !t.classList.contains('hyperlink')) {
+    link.classList.remove('tang');
+    gallery_tooltip.style.display = 'none';
+
+    link.classList.remove('blink');
+    cursor_tooltip.style.display = 'none';
+  }
+
+  if (t.classList.contains('colorset')) {
     link = t;
-    link.classList.add("tang");
+    link.classList.add('tang');
 
-    odnary.style.display = "none";
-    cs.style.display = "none";
-    mas.style.display = "none";
+    odnary.style.display = 'none';
+    cs.style.display = 'none';
+    mas.style.display = 'none';
 
-    const color = link.innerHTML.toLowerCase().replace(/'/g, "");
+    const color = link.innerHTML.toLowerCase().replace(/'/g, '');
     if (Object.keys(pictures).includes(color)) {
-      odnary.style.display = "inline-block";
+      odnary.style.display = 'inline-block';
       odnary.dataset.colorset = color;
     }
-    if (Object.keys(pictures).includes("cs " + color)) {
-      cs.style.display = "inline-block";
-      cs.dataset.colorset = "cs " + color;
+    if (Object.keys(pictures).includes('cs ' + color)) {
+      cs.style.display = 'inline-block';
+      cs.dataset.colorset = 'cs ' + color;
     }
-    if (Object.keys(pictures).includes(color + " mas")) {
-      mas.style.display = "inline-block";
-      mas.dataset.colorset = color + " mas";
+    if (Object.keys(pictures).includes(color + ' mas')) {
+      mas.style.display = 'inline-block';
+      mas.dataset.colorset = color + ' mas';
     }
 
     const listtoys = [];
     const ct = link.dataset.colorTheme;
     if (ct) {
-      checkinv.style.display = "inline-block";
-      checkinv.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct;
+      checkinv.style.display = 'inline-block';
+      checkinv.href = 'https://bad-dragon.com/shop/inventory?colorTheme=' + ct;
     } else {
-      checkinv.style.display = "none";
+      checkinv.style.display = 'none';
     }
     if (toys[ct]) {
       listtoys.push(...toys[ct]);
     } else {
-      listtoys.push("Unknown caller");
+      listtoys.push('Unknown caller');
     }
 
     const ct3 = link.dataset.colorTheme3;
     if (ct3) {
-      checkinv_2.style.display = "inline-block";
-      checkinv_2.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct3;
+      checkinv_2.style.display = 'inline-block';
+      checkinv_2.href = 'https://bad-dragon.com/shop/inventory?colorTheme=' + ct3;
       if (toys[ct3]) {
-        listtoys.push(...toys[ct3].map((x) => {return "2 " + x}));
+        listtoys.push(...toys[ct3].map((x) => '2 ' + x));
       } else {
-        listtoys.push("2 Unknown caller");
+        listtoys.push('2 Unknown caller');
       }
     } else {
       checkinv_2.style.display = "none";
@@ -965,41 +1002,41 @@ function FFdown(e) {
 
     const ct4 = link.dataset.colorTheme4;
     if (ct4) {
-      checkinv_3.style.display = "inline-block";
-      checkinv_3.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct4;
+      checkinv_3.style.display = 'inline-block';
+      checkinv_3.href = 'https://bad-dragon.com/shop/inventory?colorTheme=' + ct4;
       if (toys[ct4]) {
-        listtoys.push(...toys[ct4].map((x) => {return "3 " + x}));
+        listtoys.push(...toys[ct4].map((x) => '3 ' + x));
       } else {
-        listtoys.push("3 Unknown caller");
+        listtoys.push('3 Unknown caller');
       }
     } else {
-      checkinv_3.style.display = "none";
+      checkinv_3.style.display = 'none';
     }
 
     const ct5 = link.dataset.colorTheme5;
     if (ct5) {
-      checkinv_4.style.display = "inline-block";
-      checkinv_4.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct5;
+      checkinv_4.style.display = 'inline-block';
+      checkinv_4.href = 'https://bad-dragon.com/shop/inventory?colorTheme=' + ct5;
       if (toys[ct5]) {
-        listtoys.push(...toys[ct5].map((x) => {return "4 " + x}));
+        listtoys.push(...toys[ct5].map((x) => '4 ' + x));
       } else {
-        listtoys.push("4 Unknown caller");
+        listtoys.push('4 Unknown caller');
       }
     } else {
-      checkinv_4.style.display = "none";
+      checkinv_4.style.display = 'none';
     }
 
     const ct2 = link.dataset.colorTheme2;
     if (ct2) {
-      checkinv_mas.style.display = "inline-block";
-      checkinv_mas.href = "https://bad-dragon.com/shop/inventory?colorTheme=" + ct2;
+      checkinv_mas.style.display = 'inline-block';
+      checkinv_mas.href = 'https://bad-dragon.com/shop/inventory?colorTheme=' + ct2;
       if (toys[ct2]) {
-        listtoys.push(...toys[ct2].map((x) => {return "ꍯ " + x}));
+        listtoys.push(...toys[ct2].map((x) =>  'ꍯ ' + x));
       } else {
-        listtoys.push("ꍯ Unknown caller")
+        listtoys.push('ꍯ Unknown caller');
       }
     } else {
-      checkinv_mas.style.display = "none";
+      checkinv_mas.style.display = 'none';
     }
 
     const UL = makeUL(listtoys);
@@ -1007,22 +1044,22 @@ function FFdown(e) {
     UL.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
     checkcom.dataset.tooltip = UL.outerHTML;
     where = link.getBoundingClientRect();
-    gallery_tooltip.style.left = (window.scrollX + where.left -2) + "px";
-    gallery_tooltip.style.top = (window.scrollY + where.top -28) + "px";
-    gallery_tooltip.style.display = "inline-block";
+    gallery_tooltip.style.left = (window.scrollX + where.left -2) + 'px';
+    gallery_tooltip.style.top = (window.scrollY + where.top -28) + 'px';
+    gallery_tooltip.style.display = 'inline-block';
   } else if (t.dataset.schande) {
     var a = t.parentNode;
-    var d = document.createElement("div");
+    var d = document.createElement('DIV');
     a.appendChild(d);
     t.addEventListener('touchmove', (e) => {e.preventDefault()});
 
-    if (t.classList.contains("save")) {
+    if (t.classList.contains('save')) {
       if (isTouch) {
-        d.classList.add("right");
+        d.classList.add('right');
         const [x, y] = [e.pageX, e.pageY];
         const listener = (z) => {
           if (-20 < (y - z.pageY) && (y - z.pageY) < 20 && (z.pageX - x) > 50) {
-            d.classList.remove("right");
+            d.classList.remove('right');
             echo(t.dataset.schande);
             t.removeEventListener('touchend', listener);
             delete t.dataset.busy;
@@ -1036,24 +1073,24 @@ function FFdown(e) {
         }
 
         t.addEventListener('mouseleave', () => {
-          d.classList.remove("right");
+          d.classList.remove('right');
         });
       } else {
         const listener = () => {
           echo(t.dataset.schande);
-          t.removeEventListener("mouseup", listener);
+          t.removeEventListener('mouseup', listener);
           edit();
         }
-        t.addEventListener("mouseup", listener);
+        t.addEventListener('mouseup', listener);
       }
     } else {
       if (isTouch) {
-        d.classList.add("left");
+        d.classList.add('left');
         const [x, y] = [e.pageX, e.pageY];
         const listener = (z) => {
           if (-20 < (y - z.pageY) && (y - z.pageY) < 20 && (x - z.pageX) > 50) {
-            d.classList.remove("left");
-            echo("SHAME " + t.dataset.schande);
+            d.classList.remove('left');
+            echo('SHAME ' + t.dataset.schande);
             t.removeEventListener('touchend', listener);
             delete t.dataset.busy;
             edit();
@@ -1066,18 +1103,32 @@ function FFdown(e) {
         }
 
         t.addEventListener('mouseleave', () => {
-          d.classList.remove("left");
+          d.classList.remove('left');
         });
       } else {
         const listener = () => {
-          echo("SHAME " + t.dataset.schande);
-          t.removeEventListener("mouseup", listener);
+          echo('SHAME ' + t.dataset.schande);
+          t.removeEventListener('mouseup', listener);
           edit();
         }
-        t.addEventListener("mouseup", listener);
+        t.addEventListener('mouseup', listener);
       }
     }
-  } else if (t.id == "exotic") {
+  } else if (id === 'droponly' || t.dataset.color === 'droponly') {
+    if (isTouch && t.hasAttribute('data-color') && t.hasAttribute('data-tooltip')) {
+      return;
+    }
+
+    newcolorlist(['Drop only color sets']);
+    for (const css of Object.keys(colorsets)) {
+      if (colorsets[css] == true || colorsets[css].length != 1) {
+        continue;
+      }
+
+      colorline('&gt; ', css);
+    }
+    cssel();
+  } else if (id === 'exotic') {
     const colorsels = [];
     for (const key of Object.keys(colorsets)) {
       const k = colorsets[key];
@@ -1099,79 +1150,19 @@ function FFdown(e) {
       }
     }
 
-    colorlist.innerHTML = "<h3>Exotic color sets</h3>";
+    newcolorlist(['Exotic color sets']);
     for (const cs of colorsels) {
-      colorline("&gt; ", cs);
+      colorline('&gt; ', cs);
     }
     cssel();
-  } else if (t.id == "droponly" || t.dataset.color == "droponly") {
-    if (isTouch && t.hasAttribute("data-color") && t.hasAttribute("data-tooltip")) {
-      return;
-    }
-
-    colorlist.innerHTML = "<h3>Drop only color sets</h3>";
-    for (const css of Object.keys(colorsets)) {
-      if (colorsets[css] == true || colorsets[css].length != 1) {
-        continue;
-      }
-
-      colorline("&gt; ", css);
-    }
-    cssel();
-  } else if (t.id == "viewall") {
-    colorlist.innerHTML = "<h3>Choose a color!</h3>";
-    for (const css of Object.keys(colorsets)) {
-      if (colorsets[css] == true) {
-        colorlist.insertAdjacentHTML("beforeend", css);
-        continue;
-      }
-
-      colorline("&gt; ", css);
-    }
-    cssel();
-  } else if (t.id == "numbered") {
-    colorlist.innerHTML = "<h3>Choose a color!</h3>";
-
-    const presorted = {};
-    for (const css of Object.keys(colorsets)) {
-      if (colorsets[css] == true) {
-        continue;
-      }
-
-      id = colorsets[css][0];
-      if (Array.isArray(id)) {
-        for (const idp of id) {
-          if (idp && !presorted[idp]) {
-            presorted[idp] = css;
-          }
-        }
-      } else if (id) {
-        presorted[id] = css;
-      }
-    }
-
-    let index = 1;
-    for (const id of Object.keys(presorted)) {
-      while (id > index) {
-        const d = document.createElement("DIV");
-        d.innerHTML = index.toString().padStart(4, ' ');
-        colorlist.appendChild(d);
-        index++;
-      }
-      index++;
-
-      colorline(id.padStart(4, ' ') + " ", presorted[id]);
-    }
-
-    cssel();
-  } else if (t.hasAttribute("data-color")) {
+  } else if (t.hasAttribute('data-color')) {
     if (isTouch && t.dataset.tooltip) {
       return;
     }
 
     const color = t.dataset.color;
     if (!color) {
-      colorlist.innerHTML = "<h3>Choose a color!</h3>";
+      newcolorlist();
       return;
     }
 
@@ -1183,22 +1174,22 @@ function FFdown(e) {
       rainbow[2] = 0;
     }
 
-    fadebar.innerHTML = "";
-    for (const dot of makedots(rainbow, 0, true)) {
-      fadebar.appendChild(dot);
+    while (fadebar.firstChild) {
+      fadebar.lastChild.remove();
     }
-    const b = document.createElement("button");
-    b.innerHTML = "ꍯ";
-    b.classList = "dark";
-    b.id = "fadeends";
+    fadebar.append(...makedots(rainbow, 0));
+    const b = document.createElement('BUTTON');
+    b.innerHTML = 'ꍯ';
+    b.classList = 'dark';
+    b.id = 'fadeends';
     b.addEventListener('click', () => {
       rainbowfade = false;
       fadeends.style.display = 'none';
     });
-    b.dataset.tooltip = "Fade ends";
+    b.dataset.tooltip = 'Fade ends';
     fadebar.appendChild(b);
 
-    const god = creative.classList == "previous";
+    const god = creative.classList == 'previous';
     const colorsels = [[], [], []];
     for (const key of Object.keys(colorsets)) {
       const k = colorsets[key];
@@ -1222,14 +1213,22 @@ function FFdown(e) {
       }
     }
 
-    colorlist.innerHTML = "<h3>" + color[0].toUpperCase() + color.slice(1) + " (" + makedots([color, 0, 0], 0) + ") silicone</h3>";
+    newcolorlist([
+      color[0].toUpperCase(),
+      color.slice(1),
+      ' (',
+      ...makedots([color, 0, 0], 0),
+      ') silicone',
+    ]);
     for (const [p, cs] of colorsels.reverse().entries()) {
-      colorlist.insertAdjacentHTML("beforeend", ["Translucent<br>", "Semi-translucent<br>", "Solid<br>"][p]);
+      colorlist.insertAdjacentHTML('beforeend', ['Translucent<br>', 'Semi-translucent<br>', 'Solid<br>'][p]);
       for (const css of cs) {
-        colorline("&gt; ", css);
+        colorline('&gt; ', css);
       }
     }
     cssel();
+  } else {
+    //console.log('stray click', t);
   }
 }
 
@@ -1321,6 +1320,10 @@ function echo(B, b) {
     B = ' ' + B;
   }
   editor.insertAdjacentHTML('beforeend', B);
+}
+
+function deuni(e) {
+  return e.replace(/\\u[\dA-F]{4}/gi, function(match){return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));})
 }
 
 function edit() {
@@ -1457,15 +1460,21 @@ function hyperlink(utf8) {
   return utf8.replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| |$)/g, '<span class="hyperlink">$1</span>$2');
 }
 
-var link, isTouch, gallerylist, creative, colorset, stdout, editor, editdiff, fadebar, toolbar;
+var cursor_focus, cursor_tooltip, gallery_tooltip, local_tooltip, tooltip;
+var exotic, dragfile, droponly, link, gallery, gallerylist, gallerysave, creative, colorset, fadebar, toolbar;
+var stdout, editor, editdiff, calc;
+var odnary, mas, cs;
 var rainbow = [];
 var rainbowfade = false;
-var fadesample = makedots(['sky blue', 0, 0, 'copper', 0, 2, 'chestnut', 0, 2], 0);
-var dotsample = 'sky blue (' + makedots(['sky blue', 0, 0], 0) + ') copper (' + makedots(['copper', 0, 0], 0) + ') then chestnut (' + makedots(['chestnut', 0, 0], 0) + ')';
+const isTouch = 'ontouchstart' in window;
+
 window.onload = () => {
   while (document.body.firstChild) {
     document.body.lastChild.remove();
   }
+
+  let listener = null;
+  const tc = 'click';
 
   const makelink = (t, c) => {
     const a = document.createElement('A');
@@ -1473,19 +1482,10 @@ window.onload = () => {
     a.target = '_blank';
     a.id = c;
     a.textContent = t;
-    DOMwriter.appendChild(a);
+    return a;
   }
 
-  const makegallerylink = (t, c) => {
-    const d = document.createElement('DIV');
-    d.classList = 'next';
-    d.id = c;
-    d.style.cursor = 'pointer';
-    d.innerHTML = t;
-    DOMwriter.appendChild(d);
-  }
-
-  const neweditor = (v=true) => {
+  const neweditor = (v = true) => {
     const d = document.createElement('DIV');
     d.classList = 'editor';
     d.style.display = v ? 'inline-block' : 'none';
@@ -1503,63 +1503,214 @@ window.onload = () => {
     return d;
   }
 
-  let DOMwriter = document.createElement('DIV');
-  DOMwriter.id = 'cursor_focus';
-  document.body.appendChild(DOMwriter);
 
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.classList = 'cursor_tooltip';
-  DOMwriter.id = 'cursor_tooltip';
-  document.body.appendChild(DOMwriter);
 
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.id = 'tooltip';
-  DOMwriter.classList = 'dark close_button cursor_tooltip cursed';
-  document.body.appendChild(DOMwriter);
+  // tooltips
+  cursor_focus = document.createElement('DIV');
+  cursor_focus.id = 'cursor_focus';
+  document.body.appendChild(cursor_focus);
 
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.id = 'gallery_tooltip';
+  cursor_tooltip = document.createElement('DIV');
+  cursor_tooltip.id = 'cursor_tooltip';
+  cursor_tooltip.classList = 'cursor_tooltip';
+  document.body.appendChild(cursor_tooltip);
 
-  makegallerylink('Gallery', 'odnary');
+  tooltip = document.createElement('DIV');
+  tooltip.id = 'tooltip';
+  tooltip.classList = 'dark close_button cursor_tooltip cursed';
+  document.body.appendChild(tooltip);
+
+  listener = (e) => {
+    e.addEventListener(tc, () => {
+      colorset = e.dataset.colorset;
+      makegallery();
+
+      link.classList.remove('tang');
+      gallery_tooltip.style.display = 'none';
+    });
+  };
+
+  gallery_tooltip = document.createElement('DIV');
+  gallery_tooltip.id = 'gallery_tooltip';
+
+  odnary = button(makeDIV('Gallery'), listener);
+  gallery_tooltip.appendChild(odnary);
 
   for (const [n, c] of ['checkinv', 'checkinv_2', 'checkinv_3', 'checkinv_4'].entries()) {
-    makelink(n ? n + 1 + '🧺' : '🧺', c);
+    gallery_tooltip.appendChild(makelink(n ? n + 1 + '🧺' : '🧺', c));
   }
 
-  makegallerylink('Mas', 'mas');
-  makegallerylink('Swaps', 'cs');
+  mas = button(makeDIV('Mas'), listener);
+  gallery_tooltip.appendChild(mas);
 
-  makelink('ꍯ🧺', 'checkinv_mas');
+  cs = button(makeDIV('Swaps'), listener);
+  gallery_tooltip.appendChild(cs);
 
-  let d = document.createElement('DIV');
-  d.classList = 'tangerine';
-  d.id = 'checkcom';
-  d.style.padding = '4px';
-  d.innerHTML = '🧸';
-  DOMwriter.appendChild(d);
+  gallery_tooltip.appendChild(makelink('ꍯ🧺', 'checkinv_mas'));
+  gallery_tooltip.appendChild(beary('checkcom'));
+  document.body.appendChild(gallery_tooltip);
 
-  document.body.appendChild(DOMwriter);
 
+
+  // toolbar
   toolbar = document.createElement('DIV');
+  toolbar.id = 'toolbar';
   document.body.appendChild(toolbar);
 
+  main = document.createElement('DIV');
+  main.id = 'main';
+
+  colortable = document.createElement('DIV');
+  colortable.id = 'colortable';
+  main.appendChild(colortable);
+
+  minimap = document.createElement('DIV');
+  minimap.id = 'minimap';
+  main.appendChild(minimap);
+
+  colorlist = document.createElement('DIV');
+  colorlist.id = 'colorlist';
+  main.appendChild(colorlist);
+
+  listener = (e) => {
+    e.addEventListener(tc, () => {
+      if (e.classList == 'next') {
+        e.classList = 'previous';
+      } else {
+        e.classList = 'next';
+      }
+    });
+  };
+  creative = button(makeDIV('Creative mode', "Unload color sets of selected color not possible for custom\n> Fade toy's midway and bottom colors\n> Silicones exclusive to wereables\n> Non-white highlights\n> Silicones covered by full cover highlights"), listener, null, false);
+  toolbar.appendChild(creative);
+
+  listener = (e) => {
+    e.addEventListener(tc, () => {
+      newcolorlist();
+      for (const css of Object.keys(colorsets)) {
+        if (colorsets[css] == true) {
+          colorlist.insertAdjacentHTML('beforeend', css);
+          continue;
+        }
+        colorline('&gt; ', css);
+      }
+      cssel();
+    });
+  };
+  viewall = button(makeDIV('View all', "Can't find a color set? Try this & use your browser's find in page function!"), listener);
+  toolbar.appendChild(viewall);
+
+  listener = (e) => {
+    e.addEventListener(tc, () => {
+      newcolorlist();
+
+      const presorted = {};
+      for (const css of Object.keys(colorsets)) {
+        if (colorsets[css] == true) {
+          continue;
+        }
+
+        idx = colorsets[css][0];
+        if (Array.isArray(idx)) {
+          for (const idp of idx) {
+            if (idp && !presorted[idp]) {
+              presorted[idp] = css;
+            }
+          }
+        } else if (idx) {
+          presorted[idx] = css;
+        }
+      }
+
+      let index = 1;
+      for (const idx of Object.keys(presorted)) {
+        while (idx > index) {
+          const d = document.createElement('DIV');
+          d.innerHTML = index.toString().padStart(4, ' ');
+          colorlist.appendChild(d);
+          index++;
+        }
+        index++;
+
+        colorline(idx.padStart(4, ' ') + ' ', presorted[idx]);
+      }
+
+      cssel();
+    });
+  };
+  toolbar.appendChild(button(makeDIV('Numbered', 'View color sets in order of color theme ID'), listener));
+
+  let DOMwriter = beary(null, ':?:');
+
+  let ta = [
+    '• Choose several colors e.g. sky blue (',
+    ...makedots(['sky blue', 0, 0], 0),
+    ') copper (',
+    ...makedots(['copper', 0, 0], 0),
+    ') then chestnut (',
+    ...makedots(['chestnut', 0, 0], 0),
+    ') for ',
+    ...makedots(['sky blue', 0, 0, 'copper', 0, 2, 'chestnut', 0, 2], 0),
+    ' fade bar to appear, as way to test as well as to anticipate for blend/smear issue.\n• Write color name or color set name in text field of bookmarked pictures to manipulate fade bar.\n ◦ ',
+    makeDIV('Replace gallery'),
+    ' to replace fade bar with written color names.\n ◦ ',
+    makeDIV('Save'),
+    ' to save fade bar for next page visit.\n ◦ Fade ends on non-color line.\n\nBe mindful of translucent silicones\n• Translucent silicones may overpower to each other especially darkened and/or pigmented ones if not become dull or muddled.\n• Use fade bar for blend test of translucent silicones, they become pronounced of that.\n• Solid silicones can create contours on translucent silicones or 3D depth behind translucent silicones.\nOpen ',
+    makeDIV('Gallery'),
+    ' for color set named ',
+    makeDIV('Arctic Ice', null, 'colorset'),
+    ...makedots(['sky blue', 3, 0], 0),
+    ' from sky blue (',
+    ...makedots(['sky blue', 0, 0], 0),
+    ') color group for photo example of translucent silicone.',
+  ];
+
+  DOMwriter.dataset.tooltip = ABtoUTF8(ta);
+  toolbar.appendChild(DOMwriter);
+
+  fadebar = document.createElement('DIV');
+  fadebar.style.display = 'inline-block';
+  toolbar.appendChild(fadebar);
+
+  local_tooltip = document.createElement('DIV');
+  local_tooltip.classList = 'dark local_tooltip';
+  toolbar.appendChild(local_tooltip);
+
+
+
+  // colorpicker
+  for (const c of cn) {
+    colorcell(c);
+  }
+
+  droponly = document.createElement('DIV');
+  droponly.dataset.tooltip = 'View drop only color sets (unavailable for custom ordering)';
+  droponly.classList = 'cell';
+  droponly.id = 'droponly';
+  droponly.textContent = '✨';
+  colortable.appendChild(droponly);
+
+  exotic = document.createElement('DIV');
+  exotic.dataset.tooltip = "View all color sets using fades or 4+ color marbles i.e. can't be altered";
+  exotic.classList = 'cell';
+  exotic.id = 'exotic';
+  exotic.style.color = 'rgba(255, 255, 255, 0.5)';
+  exotic.textContent = 'Exotic';
+  colortable.appendChild(exotic);
+
   DOMwriter = document.createElement('DIV');
-  DOMwriter.id = 'main';
+  DOMwriter.dataset.color = '???';
+  DOMwriter.dataset.tooltip = 'View color sets with unassigned silicone colors';
+  DOMwriter.classList = 'cell';
+  DOMwriter.style.color = 'rgba(255, 255, 255, 0.5)';
+  DOMwriter.textContent = 'UNK';
+  colortable.appendChild(DOMwriter);
 
-  d = document.createElement('DIV');
-  d.id = 'colortable';
-  DOMwriter.appendChild(d);
 
-  d = document.createElement('DIV');
-  d.id = 'minimap';
-  DOMwriter.appendChild(d);
 
-  d = document.createElement('DIV');
-  d.id = 'colorlist';
-  DOMwriter.appendChild(d);
-
-  d = document.createElement('DIV');
-  d.style.verticalAlign = 'top';
+  // editor & gallery
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.style.verticalAlign = 'top';
 
   stdout = document.createElement('DIV');
   stdout.classList = 'stdout';
@@ -1575,145 +1726,76 @@ window.onload = () => {
   bp.innerHTML = '🦦 -(Bookmarked pictures)';
   hz.appendChild(bp);
 
-  bp = document.createElement('DIV');
-  bp.classList = 'next';
-  bp.id = 'replace';
-  bp.style.cursor = 'pointer';
-  bp.innerHTML = 'Replace gallery';
-  hz.appendChild(bp);
+  listener = (e) => {
+    e.addEventListener(tc, replacegallery);
+  }
+  hz.appendChild(button(makeDIV('Replace gallery'), listener));
 
-  bp = document.createElement('DIV');
-  bp.classList = 'previous';
-  bp.id = 'gallerysave';
-  bp.style.cursor = 'pointer';
-  bp.dataset.tooltip = 'Save text field as cookie for next page visit';
-  bp.innerHTML = 'Save';
-  hz.appendChild(bp);
+  listener = (e) => {
+    e.addEventListener(tc, () => {
+      if (e.classList.contains('previous')) {
+        return;
+      }
+
+      const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
+      const utf8 = editor.textContent.replace(/<br>/g, '\n').replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, 'Bad Dragon/');
+      document.cookie = `gallerysave=${encodeURIComponent(utf8)}; expires=${expires}; path=/; SameSite=Strict;`;
+      //no expiry would allow the cookie to be automatically deleted upon browser exit.
+      e.classList = 'previous';
+      e.textContent = 'Save completed';
+    });
+  };
+  gallerysave = button(makeDIV('Save', 'Save text field as cookie for next page visit', null, 'previous'), listener);
+  hz.appendChild(gallerysave);
 
   calc = document.createElement('INPUT');
   calc.classList = 'next';
-  calc.id = 'calc';
   calc.style.width = '100px';
   calc.type = 'text';
   calc.placeholder = 'Calculator';
   hz.appendChild(calc);
 
+  calc.addEventListener('keyup', (e) => {
+    let c = calc.value;
+    if (!c) {
+      calc.style.backgroundColor = '#066';
+    } else if (e.code === 'Enter') {
+      try {
+        calc.value = new Function('return ' + c)().toFixed(10)*1;
+      } catch {
+        if (c.startsWith('u') && c.length === 5) {
+          calc.value = deuni('\\' + c);
+        }
+      }
+    } else {
+      try {
+        new Function('return ' + c)();
+        calc.style.backgroundColor = '#066';
+      } catch {
+        if (c.startsWith('u') || c.startsWith('0x')) {
+          if (c.startsWith('u') && c.length === 5 || c.startsWith('0x') && Number('0x' + c.slice(1))) {
+            calc.style.backgroundColor = '#066';
+          } else if (c.startsWith('u') && c.length > 5 || c.startsWith('0x') && c.length > 2) {
+            calc.style.backgroundColor = '#399';
+          } else {
+            calc.style.backgroundColor = '#033';
+          }
+        } else {
+          calc.style.backgroundColor = '#399';
+        }
+      }
+    }
+  });
+
   stdout.appendChild(hz);
-  
+
   editor = neweditor();
   stdout.appendChild(editor);
 
   editdiff = neweditor(false);
   stdout.appendChild(editdiff);
 
-  d.appendChild(stdout);
-
-  hz = document.createElement('DIV');
-  hz.id = 'gallery';
-  hz.style.display = 'inline-block';
-  d.appendChild(hz);
-
-  hz = document.createElement('DIV');
-  hz.classList = 'next';
-  hz.id = 'more';
-  d.appendChild(hz);
-
-  DOMwriter.appendChild(d);
-  document.body.appendChild(DOMwriter);
-
-  toolbar.appendChild(makeDIV('creative', 'Creative mode', "Unload color sets of selected color not possible for custom<br>&gt; Fade toy's midway and bottom colors<br>&gt; Silicones exclusive to wereables<br>&gt; Non-white highlights<br>&gt; Silicones covered by full cover highlights"));
-
-  toolbar.appendChild(makeDIV('viewall', 'View all', "Can't find a color set? Try this &amp; use your browser's find in page function!", true));
-
-  toolbar.appendChild(makeDIV('numbered', 'Numbered', 'View color sets in order of color theme ID', true));
-
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.classList = 'tangerine';
-  DOMwriter.style.padding = '4px';
-
-  let bd = `• Choose several colors e.g. ${dotsample} for ${fadesample} fade bar to appear, as way to test as well as to anticipate for blend/smear issue.<br>• Write color name or color set name in text field of bookmarked pictures to manipulate fade bar.<br>&nbsp; ◦ <div class='next'>Replace gallery</div> to replace fade bar with written color names.<br>&nbsp; ◦ <div class='next'>Save</div> to save fade bar for next page visit.<br>&nbsp; ◦ Fade ends on non-color line.<br><br>Be mindful of translucent silicones<br>• Translucent silicones may overpower to each other especially darkened and/or pigmented ones if not become dull or muddled.<br>• Use fade bar for blend test of translucent silicones, they become pronounced of that.<br>• Solid silicones can create contours on translucent silicones or 3D depth behind translucent silicones.<br>Open <div class='next'>Gallery</div> for color set named <span class='colorset'>Arctic Ice</span>${makedots(['sky blue', 3, 0], 0)} from sky blue (${makedots(['sky blue', 0, 0], 0)}) color group for photo example of translucent silicone.`;
-
-  DOMwriter.dataset.tooltip = bd;
-  DOMwriter.textContent = ':?:';
-  toolbar.appendChild(DOMwriter);
-
-  fadebar = document.createElement('DIV');
-  fadebar.style.display = 'inline-block';
-  toolbar.appendChild(fadebar);
-
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.classList = 'dark local_tooltip';
-  DOMwriter.id = 'local_tooltip';
-  toolbar.appendChild(DOMwriter);
-
-  opendb('colorsets.json', (x) => {colorsets = x});
-  opendb('pictures.json', (x) => {pictures = x});
-  opendb('swatches.json', (x) => {swatches = x});
-  opendb('toys.json', (x) => {toys = x});
-
-  for (const ccn of cn) {
-    const d = document.createElement('DIV');
-    d.classList = 'cell';
-
-    const m = document.createElement('DIV');
-    m.classList = 'cell minicell';
-
-    if (ccn == null) {
-      d.dataset.color = '';
-    } else {
-      const cc = fc[ccn];
-      let cb = '#000000';
-
-      // if (!cc || parseInt(cc.slice(1, 3), 16) < 144 && parseInt(cc.slice(3, 5), 16) < 144 && parseInt(cc.slice(5), 16) < 144) {
-      //   cb = "rgba(255, 255, 255, 0.5)";
-      // }
-
-      d.style.verticalAlign = "top";
-      d.style.background = cc;
-      d.style.color = cb;
-      d.dataset.color = ccn;
-      d.innerHTML = ccn;
-
-      m.style.background = cc;
-    }
-
-    colortable.appendChild(d);
-    minimap.appendChild(m);
-  }
-
-  DOMwriter = document.createElement("DIV");
-  DOMwriter.id = "droponly";
-  //DOMwriter.dataset.color = "droponly";
-  DOMwriter.dataset.tooltip = "View drop only color sets (unavailable for custom ordering)";
-  DOMwriter.classList = "cell";
-  DOMwriter.innerHTML = "✨";
-  colortable.appendChild(DOMwriter);
-
-  DOMwriter = document.createElement("DIV");
-  DOMwriter.id = "exotic";
-  //DOMwriter.dataset.color = "droponly";
-  DOMwriter.dataset.tooltip = "View all color sets using fades or 4+ color marbles i.e. can't be altered"
-  DOMwriter.classList = "cell";
-  DOMwriter.style.color = "rgba(255, 255, 255, 0.5)";
-  DOMwriter.innerHTML = "Exotic";
-  colortable.appendChild(DOMwriter);
-
-  DOMwriter = document.createElement("DIV");
-  DOMwriter.dataset.color = "???";
-  DOMwriter.dataset.tooltip = "View color sets with unassigned silicone colors";
-  DOMwriter.classList = "cell";
-  DOMwriter.style.color = "rgba(255, 255, 255, 0.5)";
-  DOMwriter.innerHTML = "UNK";
-  colortable.appendChild(DOMwriter);
-
-  colorlist.innerHTML = '<h3>Choose a color!</h3>';
-  document.addEventListener('click', FFclick);
-  document.addEventListener('mousemove', FFmove);
-  document.addEventListener('mouseover', FFover);
-  //document.addEventListener('touchstart', FFdown);
-  document.addEventListener('mousedown', FFdown);
-
-  creative = document.getElementById('creative');
+  DOMwriter.appendChild(stdout);
 
   editor.addEventListener('mouseup', FFup);
 
@@ -1736,23 +1818,18 @@ window.onload = () => {
     edit();
   });
 
-  if ('ontouchstart' in window) {
-    isTouch = true;
-  }
-
-  var fileThumb;
   document.addEventListener('dragstart', (e) => {
-    if (e.target.className.contains('fileThumb')) {
-      fileThumb = e.target;
+    if (e.target.classList.contains('fileThumb')) {
+      dragfile = e.target;
     }
   }, false);
 
   editor.addEventListener('drop', (e) => {
-    if (fileThumb) {
+    if (dragfile) {
       e.preventDefault();
-      echo(fileThumb.childNodes[0].src.replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, 'Bad Dragon/'));
+      echo(dragfile.childNodes[0].src.replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, 'Bad Dragon/'));
       edit();
-      fileThumb = null;
+      dragfile = null;
     }
   }, false);
 
@@ -1770,38 +1847,38 @@ window.onload = () => {
     }
   }
 
-  calc.addEventListener('keyup', (e) => {
-    const { keyCode } = e;
-    let c = calc.value;
-    if (!c) {
-      calc.style.backgroundColor = '#066';
-    } else if (keyCode === 13) {
-      try {
-        calc.value = new Function('return ' + c)().toFixed(10)*1;
-      } catch {
-        if (c.startsWith('u')) {
-          calc.value = deuni('\\' + c);
-        }
-      }
-    } else {
-      try {
-        new Function('return ' + c)();
-        calc.style.backgroundColor = '#066';
-      } catch {
-        if (c.startsWith('u') && (!c.slice(1) || Number('0x'+c.slice(1)))) {
-          if (c.length == 5) {
-            calc.style.backgroundColor = '#066';
-          } else if (c.length > 5) {
-            calc.style.backgroundColor = '#399';
-          } else if (c.length < 5) {
-            calc.style.backgroundColor = '#033';
-          }
-        } else {
-          calc.style.backgroundColor = '#399';
-        }
-      }
-    }
-  });
+  gallery = document.createElement('DIV');
+  gallery.id = 'gallery';
+  gallery.style.display = 'inline-block';
+  DOMwriter.appendChild(gallery);
+
+  listener = (e) => {
+    e.addEventListener(tc, () => {
+      galleryset2();
+    });
+  }
+  more = button(makeDIV('more'), listener);
+  more.id = 'more';
+  DOMwriter.appendChild(more);
+
+  main.appendChild(DOMwriter);
+  document.body.appendChild(main);
+
+
+
+  opendb('colorsets.json', (x) => {colorsets = x});
+  opendb('pictures.json', (x) => {pictures = x});
+  opendb('swatches.json', (x) => {swatches = x});
+  opendb('toys.json', (x) => {toys = x});
+
+
+
+  newcolorlist(['Choose a color!']);
+  document.addEventListener('click', FFclick);
+  document.addEventListener('mousemove', FFmove);
+  document.addEventListener('mouseover', FFover);
+  //document.addEventListener('touchstart', FFdown);
+  document.addEventListener('mousedown', FFdown);
 }
 </script></head><body class="exitmenu">1. Set up and run Schande.bat for its HTTP server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a>
 2. Take me to Schande.bat, then launch <a href="http://127.0.0.1:8886/Color Gallery.html">http://127.0.0.1:8886/Color Gallery.html</a></body></html>

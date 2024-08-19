@@ -530,7 +530,7 @@ function makedots(cs, pos) {
       bt += 1;
     }
     if (r3 == 2){
-      if (creative && creative.classList === 'previous') {
+      if (creative && creative.classList.contains('previous')) {
         pos += 3;
         continue;
       }
@@ -1189,7 +1189,7 @@ function FFdown(e) {
     b.dataset.tooltip = 'Fade ends';
     fadebar.appendChild(b);
 
-    const god = creative.classList == 'previous';
+    const god = creative.classList.contains('previous');
     const colorsels = [[], [], []];
     for (const key of Object.keys(colorsets)) {
       const k = colorsets[key];

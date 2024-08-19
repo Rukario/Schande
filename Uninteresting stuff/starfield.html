@@ -1063,6 +1063,10 @@ function splitmix32(a) {
   }
 }
 
+function crapndom() {
+  return crypto.getRandomValues(new Uint32Array(1))[0].toString(36);
+}
+
 function new_deck() {
   draw = {'draw':-1, 'last':-1, 'cycle':true};
   rev = -1;
@@ -1075,7 +1079,7 @@ function new_deck() {
   var breakseal = [...factorysealed];
   ncard = breakseal.length;
 
-  const alphaseed = seed.value !== '' ? seed.value.replace(/\W/g, '') : Math.random().toString(36).slice(2);
+  const alphaseed = seed.value !== '' ? seed.value.replace(/\W/g, '') : crapndom();
   seednow.value = alphaseed;
   const s = parseInt(alphaseed, 36) / Math.pow(36, alphaseed.length).toString(10).slice(2);
   const rand = splitmix32(s);
@@ -2125,7 +2129,7 @@ var FFdown = (e_) => {
 
   if (e_.target.classList.contains('poppy') || e_.target.parentNode.classList.contains('poppy') || isTouch && e_.touches.length > 1) {
     ZOOKd = true;
-    if (solitaire) {
+    if (solitaire && dragcard) {
       rubberband();
       dragcard = false;
     }
@@ -2778,6 +2782,7 @@ function makemenu() {
 
   let listener = null;
   let dismissed = false;
+  const tc = 'click';
 
   options = document.createElement('DIV');
   options.classList = 'poppy right';
@@ -2787,8 +2792,6 @@ function makemenu() {
 
   staropt = document.createElement('DIV');
   staropt.classList = 'poppy right';
-
-  const tc = 'click';
 
   const newmenu = (name, listener, args, arrow) => {
     const e = document.createElement("DIV");
@@ -3358,13 +3361,13 @@ function FFkeydown(e) {
   const { keyCode, location } = e;
   console.log(keyCode);
   if (keyCode !== 123) {
-    e.preventDefault();
+    //e.preventDefault();
   }
   pressed(keyCode, location, true);
 }
 
 function FFkeyup(e) {
-  e.preventDefault();
+  //e.preventDefault();
   const { keyCode, location} = e;
   pressed(keyCode, location);
 }

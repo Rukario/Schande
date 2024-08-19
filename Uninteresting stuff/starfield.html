@@ -2535,8 +2535,8 @@ function stixpath(nx, ny, land) {
 function qixstep() {
   const speed = qixsc*60/fps.hz;
   const step = {
-    x: (Keypress[4] || Keypress[39] ? speed : 0) + (Keypress[1] || Keypress[37] ? -speed : 0),
-    y: (Keypress[19] || Keypress[40] ? speed : 0) + (Keypress[23] || Keypress[38] ? -speed : 0),
+    x: (Keypress.KeyD || Keypress.ArrowRight ? speed : 0) + (Keypress.KeyA || Keypress.ArrowLeft ? -speed : 0),
+    y: (Keypress.KeyS || Keypress.ArrowDown ? speed : 0) + (Keypress.KeyW || Keypress.ArrowUp ? -speed : 0),
   }
 
   if (
@@ -2578,8 +2578,8 @@ function qixstep() {
 function qixstep2(k = false) {
   const speed = qixsc*60/fps.hz;
   const step = {
-    x: k ? (Keypress[8] ? speed : 0) + (Keypress[6] ? -speed : 0) : Math.round((Math.random() - 0.5) * 8),
-    y: k ? (Keypress[7] ? speed : 0) + (Keypress[20] ? -speed : 0) : Math.round((Math.random() - 0.5) * 8),
+    x: k ? (Keypress.KeyH ? speed : 0) + (Keypress.KeyF ? -speed : 0) : Math.round((Math.random() - 0.5) * 8),
+    y: k ? (Keypress.KeyG ? speed : 0) + (Keypress.KeyT ? -speed : 0) : Math.round((Math.random() - 0.5) * 8),
   }
 
   if (
@@ -2732,15 +2732,17 @@ var anim = new Image();
 var mousec = {'down':0, 'hold':0};
 
 function qixupdate() {
-  if (Keypress[4] || Keypress[23] || Keypress[1] || Keypress[19] || Keypress[37] || Keypress[38] || Keypress[39] || Keypress[40]) {
+  if ('WASD'.split('').some((k) => Keypress['Key' + k]) || ['Left', 'Up', 'Right', 'Down'].some((k) => Keypress['Arrow' + k])) {
     qixstep();
     drawqix(qixscr, qixpos);
   }
-  if (Keypress[6] || Keypress[20] || Keypress[7] || Keypress[8]) {
+
+  if ('TFGH'.split('').some((k) => Keypress['Key' + k])) {
     qixstep2(true);
   } else {
     qixstep2();
   }
+
   drawqix(qixscr2, qixpos2, 2);
   if (!qix || stopqix) {
     stopqix = false;
@@ -2800,15 +2802,15 @@ function makemenu() {
   staropt.classList = 'poppy right';
 
   const newmenu = (name, listener, args, arrow) => {
-    const e = document.createElement("DIV");
+    const e = document.createElement('DIV');
     if (name) {
       e.innerHTML = name;
-      e.style.margin = "0 20px";
+      e.style.margin = '0 20px';
       listener(e, args);
 
       if (arrow) {
-        const a = document.createElement("DIV");
-        a.classList = "poppyarrow";
+        const a = document.createElement('DIV');
+        a.classList = 'poppyarrow';
 
         const p = document.createElement('DIV');
         p.classList = 'poppywin';
@@ -3244,36 +3246,47 @@ function makemenu() {
 
 var glyph_cursor = 0;
 var glyph_row = 0;
-function pressed(keyCode, location, down) {
+function pressed(code, location, down) {
   if (location) {
     location -= 1;
   }
 
-  if (KeypressT[keyCode]) {
-    // console.log(keyCode, location, down ? 'down' : 'up', 'registered to', KeypressT[keyCode][location].childNodes[0].innerHTML);
+  if (KeypressX[code]) {
+    //console.log(code, location, down ? 'down' : 'up', 'registered to', KeypressX[code][location].childNodes[0].innerHTML);
   } else {
-    console.log(keyCode, location, down ? 'down' : 'up', 'registered to', null);
+    console.log(code, location, down ? 'down' : 'up', 'registered to', null);
     return;
   }
 
   if (down) {
-    KeypressT[keyCode][location].childNodes[0].classList.add('pressed');
-    KeypressT[keyCode][location].classList.add('pressed');
+    KeypressX[code][location].childNodes[0].classList.add('pressed');
+    KeypressX[code][location].classList.add('pressed');
+    Keypress[code] = true;
 
-    // onwards is mostly glyph stuff~~
-    if (keyCode === 8) {
-      if (glyph_cursor) {
-        glyph_cursor -= 1;
-      }
-    
-      glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
-    }
+    // glyph stuff
 
-    if (keyCode === 16) {
+    if (code === 'ShiftLeft') {
       glyph_shift = 2;
     }
 
-    if (keyCode === 32) {
+    if (code === 'Backspace') {
+      if (glyph_cursor) {
+        glyph_cursor -= 1;
+      }
+
+      glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
+    }
+
+    if (code === 'Enter') {
+      if (glyph_row > 2) {
+        glyph_row = 0
+      } else {
+        glyph_row += 1;
+      }
+      glyph_cursor = 0;
+    }
+
+    if (code === 'Space') {
       glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
 
       // cursor jump
@@ -3289,36 +3302,9 @@ function pressed(keyCode, location, down) {
       }
     }
 
-    if (keyCode === 13) {
-      if (glyph_row > 2) {
-        glyph_row = 0
-      } else {
-        glyph_row += 1;
-      }
-      glyph_cursor = 0;
-    }
-
-    if (
-      keyCode >= 37 &&
-      keyCode <= 40 ||
-      keyCode >= 48 &&
-      keyCode <= 57 ||
-      keyCode >= 65 &&
-      keyCode <= 90
-    ) {
-      let pos = 0;
-      let des = 0;
-      if (keyCode <= 40) {
-        Keypress[keyCode] = true; // qix
-        return;
-      } else if (keyCode <= 57) {
-        Keypress[keyCode-21] = true; // qix
-        pos = 16 * (keyCode-48);
-      } else {
-        Keypress[keyCode-64] = true; // qix
-        pos = 16 * (keyCode-65);
-        des = 16 * glyph_shift;
-      }
+    if (code.startsWith('Key')) {
+      const pos = 16 * 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').indexOf(code.at(-1));
+      const des = 16 * glyph_shift;
 
       glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
       glyphc.drawImage(glyphm, pos, des, 16, 16, 16 * glyph_cursor, 16 * glyph_row, 16, 16);
@@ -3336,105 +3322,90 @@ function pressed(keyCode, location, down) {
       }
     }
   } else {
-    KeypressT[keyCode][location].childNodes[0].classList.remove('pressed');
-    KeypressT[keyCode][location].classList.remove('pressed');
+    KeypressX[code][location].childNodes[0].classList.remove('pressed');
+    KeypressX[code][location].classList.remove('pressed');
+    Keypress[code] = false;
 
     // glyph stuff
-    if (keyCode === 16) {
+    if (code === 'Shift') {
       glyph_shift = 1;
-    }
-
-    if (
-      keyCode >= 37 &&
-      keyCode <= 40 ||
-      keyCode >= 48 &&
-      keyCode <= 57 ||
-      keyCode >= 65 &&
-      keyCode <= 90
-    ) {
-      if (keyCode <= 40) {
-        Keypress[keyCode] = false; // qix
-      } else if (keyCode <= 57) {
-        Keypress[keyCode-21] = false; // qix
-      } else {
-        Keypress[keyCode-64] = false; // qix
-      }
     }
   }
 }
 
 function FFkeydown(e) {
-  const { keyCode, location } = e;
-  console.log(keyCode);
-  if (keyCode !== 123) {
+  const { code, location } = e;
+  if (code !== 'F12') {
     //e.preventDefault();
   }
-  pressed(keyCode, location, true);
+  pressed(code, location, true);
 }
 
 function FFkeyup(e) {
   //e.preventDefault();
-  const { keyCode, location} = e;
-  pressed(keyCode, location);
+  const { code, location} = e;
+  pressed(code, location);
 }
 
-const registerkeys = Array(240).fill(null);
-const KeypressT = Array(registerkeys.length).fill(null);
+const KeypressX = {};
 
-registerkeys[8] = 'Backspace';
-registerkeys[9] = 'Tab';
-registerkeys[13] = 'Enter';
+const registerk = {
+  AltLeft: 'Alt',
+  AltRight: 'Alt',
+  BracketLeft: '[ {',
+  BracketRight: '] }',
+  Backquote: '` ~',
+  Backslash: '\\ |',
+  Backspace: 'Backspace',
+  CapsLock: 'Caps Lock',
+  Comma: ', \<',
+  ControlLeft: 'Ctrl',
+  ControlRight: 'Ctrl',
+  Enter: 'Enter',
+  Equal: '= +',
+  Escape: 'Esc',
+  MetaRight: 'Win',
+  MetaLeft: 'Win',
+  Minus: '- _',
+  Period: '. \>',
+  Quote: '\' "',
+  Semicolon: '; :',
+  ShiftLeft: 'Shift',
+  ShiftRight: 'Shift',
+  Slash: '/ ?',
+  Space: 'Space',
+  Tab: 'Tab',
 
-for (const [n, k] of ['Shift', 'Ctrl'].entries()) {
-  registerkeys[16+n] = k;
-}
+  PrintScreen: 'PrtSc',
+  ScrollLock: 'ScrLk',
+  Pause: 'Pause',
 
-for (const [n, k] of ['Alt', 'Pause', 'Caps Lock'].entries()) {
-  registerkeys[18+n] = k;
-}
+  Insert: 'Ins',
+  Home: 'Home',
+  PageUp: 'PgUp',
 
-registerkeys[27] = 'Esc';
+  Delete: 'Del',
+  End: 'End',
+  PageDown: 'PgDn',
+};
 
-for (const [n, k] of ['Space', 'PgUp', 'PgDn', 'End', 'Home', ...'←↑→↓'.split('')].entries()) {
-  registerkeys[32+n] = k;
-}
-
-for (const [n, k] of ['PrtSc', 'Ins', 'Del'].entries()) {
-  registerkeys[44+n] = k;
+for (const k of ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12']) {
+  registerk[k] = k;
 }
 
 for (const [n, k] of ['0 )', '1 !', '2 @', '3 #', '4 $', '5 %', '6 ^', '7 &', '8 *', '9 ('].entries()) {
-  registerkeys[48+n] = k;
+  registerk['Digit' + n] = k;
 }
 
-registerkeys[59] = '; :';
-registerkeys[61] = '= +';
-
-for (const [n, k] of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').entries()) {
-  registerkeys[65+n] = k;
+for (const k of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')) {
+  registerk['Key' + k] = k;
 }
 
-registerkeys[91] = 'Win';
-registerkeys[107] = '+';
-
-for (const [n, k] of ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'].entries()) {
-  registerkeys[112+n] = k;
+for (const [n, k] of '←↑→↓'.split('').entries()) {
+  registerk['Arrow' + ['Left', 'Up', 'Right', 'Down'][n]] = k;
 }
 
-registerkeys[145] = 'ScrLk';
-registerkeys[173] = '- _';
-
-for (const [n, k] of [', \<'].entries()) {
-  registerkeys[188+n] = k;
-}
-
-for (const [n, k] of ['. \>', '/ ?', '` ~'].entries()) {
-  registerkeys[190+n] = k;
-}
-
-for (const [n, k] of ['[ {', '\\ |', '] }', '\' "'].entries()) {
-  registerkeys[219+n] = k;
-}
+const Keypress = Object.fromEntries(Object.keys(registerk).map((k) => [k, false]));
 
 function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
   for (const ks of keycaps) {
@@ -3454,41 +3425,42 @@ function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
       }
       keycap.appendChild(cap);
 
-      const i = registerkeys.indexOf(k);
-      if (KeypressT[i]) {
-        KeypressT[i].push(keycap);
+      const x = Object.keys(registerk).find(kx => registerk[kx] === k);
+
+      if (KeypressX[x]) {
+        KeypressX[x].push(keycap);
       } else {
-        KeypressT[i] = [keycap];
+        KeypressX[x] = [keycap];
       }
 
-      const location = KeypressT[i].length === 1 ? 0 : KeypressT[i].length;
+      const location = KeypressX[x].length === 1 ? 0 : KeypressX[x].length;
       if (isTouch) {
         keycap.addEventListener('touchstart', (e) => {
           e.preventDefault();
-          pressed(i, location, true);
+          pressed(x, location, true);
         });
         keycap.addEventListener('touchend', (e) => {
           e.preventDefault();
-          pressed(i, location, false);
+          pressed(x, location, false);
         });
       } else {
         keycap.addEventListener('mousedown', (e) => {
           e.preventDefault();
-          pressed(i, location, true);
+          pressed(x, location, true);
         });
         keycap.addEventListener('mouseenter', (e) => {
           if (mousec.down) {
             e.preventDefault();
-            pressed(i, location, true);
+            pressed(x, location, true);
           }
         });
         keycap.addEventListener('mouseleave', (e) => {
           e.preventDefault();
-          pressed(i, location, false);
+          pressed(x, location, false);
         });
         keycap.addEventListener('mouseup', (e) => {
           e.preventDefault();
-          pressed(i, location, false);
+          pressed(x, location, false);
         });
       }
       socket.appendChild(keycap);
@@ -3521,7 +3493,6 @@ function windo(win) {
   })
 };
 
-var Keypress = Array(37).fill(false);
 var esc, f1, f5, f9, alphakeys, homekeys2, homekeys, arrows, numpad2, numpad;
 
 function createkeyboard() {
@@ -3668,9 +3639,9 @@ function createkeyboard() {
     drawkeyboard(numpad, ['7', '8', '9']);
 
     drawkeyboard(numpad, [['+']], null, 'keycap2');
-    const numplus = KeypressT[107][0];
-    numplus.childNodes[0].style.height = '84px';
-    numplus.style.float = 'right';
+    //const numplus = KeypressX['Plus'][0];
+    //numplus.childNodes[0].style.height = '84px';
+    //numplus.style.float = 'right';
 
     DOMwriter = document.createElement('BR');
     numpad.appendChild(DOMwriter);
@@ -3682,9 +3653,9 @@ function createkeyboard() {
 
     drawkeyboard(numpad, ['1', '2', '3',]);
     drawkeyboard(numpad, [['Enter']], null, 'keycap2');
-    const numenter = KeypressT[13][1];
-    numenter.childNodes[0].style.height = '84px';
-    numenter.style.float = 'right';
+    //const numenter = KeypressX['Enter'][1];
+    //numenter.childNodes[0].style.height = '84px';
+    //numenter.style.float = 'right';
 
     DOMwriter = document.createElement('BR');
     numpad.appendChild(DOMwriter);

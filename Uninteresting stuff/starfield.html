@@ -236,8 +236,8 @@ canvas {
 #hint3 {
   background: repeating-linear-gradient(
     45deg,
-    #0ff,
-    #0ff 10px,
+    #700,
+    #700 10px,
     #f00 10px,
     #f00 20px
   );
@@ -767,6 +767,9 @@ function new_screensaver() {
   glyphscr.style.display = 'none';
   winanim = false;
   hint.style.display = 'none';
+  hint2.style.display = 'none';
+  hint3.style.display = 'none';
+  hint4.style.display = 'none';
   hintb.style.display = 'none';
 
   Promise.all([busyscreensaver]).then(() => {
@@ -1247,6 +1250,9 @@ function winsol() {
     }
   }
 
+  hint.style.display = 'none';
+  hintb.style.display = 'none';
+
   const update = () => {
     const flycard = flycards[i];
     for (const nth of Array(Math.round(240/fps.hz)).keys()) {
@@ -1276,7 +1282,7 @@ function winsol() {
       setTimeout(resize, 1000);
       idlescreensaver = setTimeout(() => {
         new_screensaver();
-      }, 1000);
+      }, 10000);
       return;
     }
     requestAnimationFrame(update);
@@ -1791,11 +1797,14 @@ function computerplaysol(forhint) {
       }
     }
 
-    console.log('Ran into a dead end');
-    const repeat = draw.draw < slots[0][1].length-1 ? Math.ceil((slots[0][1].length-draw.draw-1)/10)-1 : 0;
-    const x = gap.x + repeat*2;
-    const y = gap.y + repeat;
-    drawhint(hint, x, y, x, y);
+    if (!won) {
+      console.log('Ran into a dead end');
+      const repeat = draw.draw < slots[0][1].length-1 ? Math.ceil((slots[0][1].length-draw.draw-1)/10)-1 : 0;
+      const x = gap.x + repeat*2;
+      const y = gap.y + repeat;
+      drawhint(hint3, x, y, x, y);
+    }
+
     if (debugcomputer) {
       new_deck();
       sol();

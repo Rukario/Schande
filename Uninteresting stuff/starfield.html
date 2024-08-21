@@ -337,8 +337,6 @@ canvas {
   pointer-events: none;
   z-index: 4;
   position: absolute;
-  width: 3px;
-  height: 3px;
   animation: fade 1000ms linear 1;
   //animation: fade 1000ms steps(2, end);
 }
@@ -353,7 +351,8 @@ canvas {
 }
 
 #touchloc {
-  border: 1px solid #00f;
+  border-color: #00f;
+  border-style: solid;
 }
 
 #touchlocm {
@@ -2149,26 +2148,38 @@ var releasecard = () => {
 }
 
 
-var ZOOKd;
-var FFdown = (e_) => {
+let ZOOKd = null;
+const FFdown = (e_) => {
   mousec.down = 1;
-  if (!isTouch || e_.touches.length === 1) {
-    mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft: e_.x;
-    mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop: e_.y;
-  }
+  clearTimeout(fader);
 
   if (isTouch) {
-    clearTimeout(fader);
-    touchloc.style.display = 'block';
-    touchlocm.style.display = 'block';
-    touchloc.style.animation = 'none';
-    touchlocm.style.animation = 'none';
-    touchloc.style.width = 3 / window.visualViewport.scale + 'px';
-    touchloc.style.height = 3 / window.visualViewport.scale + 'px';
-    touchloc.style.top = mousepos.y - 2 / window.visualViewport.scale + 'px';
-    touchloc.style.left = mousepos.x - 2 / window.visualViewport.scale + 'px';
-    touchlocm.style.top = mousepos.y - 1 + 'px';
-    touchlocm.style.left = mousepos.x - 1 + 'px';
+    if (e_.touches.length === 1) {
+      mousepos.x = e_.touches[0].clientX + window.visualViewport.offsetLeft;
+      mousepos.y = e_.touches[0].clientY + window.visualViewport.offsetTop;
+      const sc = window.visualViewport.scale;
+
+      touchloc.style.display = 'block';
+      touchlocm.style.display = 'block';
+
+      touchloc.style.animation = 'none';
+      touchlocm.style.animation = 'none';
+
+      touchloc.style.width = 3 / sc + 'px';
+      touchloc.style.height = 3 / sc + 'px';
+      touchlocm.style.width = 3 / sc + 'px';
+      touchlocm.style.height = 3 / sc + 'px';
+
+      touchloc.style.top = mousepos.y - 1 / sc + 'px';
+      touchloc.style.left = mousepos.x - 1 / sc + 'px';
+      touchlocm.style.top = mousepos.y + 'px';
+      touchlocm.style.left = mousepos.x + 'px';
+
+      touchloc.style.borderWidth = 1 / sc + 'px';
+    }
+  } else {
+    mousepos.x = e_.x;
+    mousepos.y = e_.y;
   }
 
   graphdraw(e_);
@@ -2188,9 +2199,8 @@ var FFdown = (e_) => {
   }
 }
 
-
-var fader = null;
-var FFup = (e_) => {
+let fader = null;
+const FFup = (e_) => {
   mousec.down = 0;
 
   if (e_ && !ZOOKd) {
@@ -2203,7 +2213,7 @@ var FFup = (e_) => {
     }
   }
 
-  if (isTouch) {
+  if (isTouch && e_.touches.length === 0) {
     touchloc.style.animation = '';
     touchlocm.style.animation = '';
     fader = setTimeout(() => {
@@ -2268,16 +2278,23 @@ var FFmove = (e_) => {
   imawake();
 
   if (e_) {
-    if (!isTouch || e_.touches.length === 1) {
-      e_.preventDefault();
-      mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft: e_.x;
-      mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop: e_.y;
-    }
-  }
+    if (isTouch) {
+      if (e_.touches.length === 1) {
+        e_.preventDefault();
+        mousepos.x = e_.touches[0].clientX + window.visualViewport.offsetLeft;
+        mousepos.y = e_.touches[0].clientY + window.visualViewport.offsetTop;
+      }
 
-  if (isTouch) {
-    touchlocm.style.top = mousepos.y - 1 + 'px';
-    touchlocm.style.left = mousepos.x - 1 + 'px';
+      clearTimeout(fader);
+
+      const sc = window.visualViewport.scale;
+      touchlocm.style.top = mousepos.y + 'px';
+      touchlocm.style.left = mousepos.x + 'px';
+    } else {
+      e_.preventDefault();
+      mousepos.x = e_.x;
+      mousepos.y = e_.y;
+    }
   }
 
   graphdraw(e_);
@@ -3835,7 +3852,9 @@ window.onload = () => {
         clearTimeout(busyclick);
         busyclick = false;
       } else {
-        busyclick = setTimeout(() => {rightc(e_)}, 500);
+        busyclick = setTimeout(() => {
+          rightc(e_);
+        }, 500);
       }
     });
     canvas.addEventListener('touchend', (e_) => {

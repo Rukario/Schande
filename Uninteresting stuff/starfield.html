@@ -2749,8 +2749,6 @@ function qixstep() {
     y: (Keypress.KeyS || Keypress.ArrowDown ? speed : 0) + (Keypress.KeyW || Keypress.ArrowUp ? -speed : 0),
   }
 
-  console.log(step.x, step.y);
-
   if (
     qixpos.x + step.x >= 0 &&
     qixpos.y + step.y >= 0 &&
@@ -2953,7 +2951,20 @@ var mousec = {
 };
 
 function qixupdate() {
-  if ('WASD'.split('').some((k) => Keypress['Key' + k]) || ['Left', 'Up', 'Right', 'Down'].some((k) => Keypress['Arrow' + k])) {
+  if (qix_tails.length > 0 && !mousec.down) {
+    const stix = qix_tails.at(-1);
+    if (stix[2]) {
+      stix[2] += stix[2] > 0 ? -1 : 1;
+    } else if (stix[3]) {
+      stix[3] += stix[3] > 0 ? -1 : 1;
+    } else {
+      qix_tails.pop();
+    }
+
+    qixpos.x = (stix[0] + stix[2])*qixsc;
+    qixpos.y = (stix[1] + stix[3])*qixsc;
+    drawqix(qixscr, qixpos, 0.75);
+  } else if ('WASD'.split('').some((k) => Keypress['Key' + k]) || ['Left', 'Up', 'Right', 'Down'].some((k) => Keypress['Arrow' + k])) {
     qixstep();
     drawqix(qixscr, qixpos, 0.75);
   }

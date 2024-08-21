@@ -263,7 +263,7 @@ canvas {
   );
 }
 
-#result, #stdout, #glyph {
+#result, #stdout, #glyphscr {
   white-space: pre;
   display: none;
   color: #0f0;
@@ -360,7 +360,7 @@ canvas {
   background-color: #00f;
 }
 
-#glyph {
+#glyphscr {
   left: 8px;
   top: 8px;
   display: none;
@@ -494,6 +494,7 @@ const scr = {
 }
 
 var solitaire = false;
+var glyph = false;
 var qix = false;
 var scale = 1;
 
@@ -571,6 +572,7 @@ var idlecursor = false;
 var idlescreensaver = false;
 var busyscreensaver = false;
 var stopscreensaver = false;
+var sideways = false;
 var stars = [];
 var frameCount = 0;
 var startTime;
@@ -687,6 +689,39 @@ function starry(vmsec) {
   rubbermouse.y = mousepos.y;
 }
 
+var currentFrame = 0;
+var movingflower = new Image();
+var silhouette = new Image();
+var reveal = new Image();
+
+function movingphoto() {
+  //context.fillStyle = "#000";
+  //context.fillRect(0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
+  //context.drawImage(reveal,
+  //  // Selection
+  //  (reveal.width-canvas.width) * ((Math.floor(currentFrame) % 120)/120),
+  //  600, // sy
+  //  canvas.width, // sWidth
+  //  canvas.height, // sHeight
+  //  // Drawing
+  //  0, // dx
+  //  0, // dy
+  //  canvas.width, // dWidth
+  //  canvas.height // dHeight
+  //);
+
+  for (let y = 0; y < canvas.height; y += movingflower.height) {
+    for (let x = currentFrame; x < canvas.width; x += movingflower.width) {
+      context.drawImage(movingflower, x, y);
+    }
+  }
+
+  currentFrame = currentFrame + 960/fps.vfps;
+  if (currentFrame > 0) {
+    currentFrame = currentFrame - movingflower.width;
+  }
+}
+
 function screensaver(resolve) {
   let frameThen = then = performance.now();
   let fps_increase = 0;
@@ -712,11 +747,17 @@ function screensaver(resolve) {
     if (!fps.throttle || elapsed > fps.msec) {
       then = now - (elapsed % fps.msec);
       const vmsec = (sinceStart || fps.msec) / ++frameCount;
-      starry(vmsec);
+      if (sideways) {
+        movingphoto(vmsec);
+      } else {
+        starry(vmsec);
+      }
     }
   };
   startTime = performance.now();
-  star.delay = 60*fps.vfps;
+  if (!sideways) {
+    star.delay = 60*fps.vfps;
+  }
   frameCount = 0;
   result.style.display = fps.display ? 'block' : 'none';
   update();
@@ -724,7 +765,7 @@ function screensaver(resolve) {
 
 function new_screensaver() {
   keyboard.style.display = 'none';
-  glyph.style.display = 'none';
+  glyphscr.style.display = 'none';
   winanim = false;
   hint.style.display = 'none';
   hintb.style.display = 'none';
@@ -1466,18 +1507,18 @@ ${dx-2}px ${dy-2}px,
 ${dx-2}px ${y+2}px,
 ${x}px ${y+2}px
 )`;
-    hintb.style.display = "block";
-    hint.style.display = "none";
-    hint2.style.display = "none";
-    hint3.style.display = "none";
-    hint4.style.display = "none";
+    hintb.style.display = 'block';
+    hint.style.display = 'none';
+    hint2.style.display = 'none';
+    hint3.style.display = 'none';
+    hint4.style.display = 'none';
     givehint = false;
     if (!winsoln) {
       speaker("In case you need a hint, move cursor/fingertip across the magenta/lime striping ring to enable hint, cross again to disable hints.");
     }
     return;
   }
-  h.style.display = givehint && x ? "block" : "none";
+  h.style.display = givehint && x ? 'block' : 'none';
   if (x === dx && y === dy) {
     const ddx = dx + cardsize[0];
     const ddy = dy + cardsize[1];
@@ -2185,8 +2226,8 @@ var FFup = (e_) => {
 
 
 
-var imawake = () => {
-  if ((solitaire || qix) && !stopscreensaver) {
+function imawake() {
+  if ((solitaire || qix || glyph) && !stopscreensaver) {
     stopscreensaver = true;
 
     if (solitaire) {
@@ -2199,7 +2240,11 @@ var imawake = () => {
     if (qix) {
       keyboard.style.display = 'inline-block';
       qixupdate();
-      glyph.style.display = 'block';
+    }
+
+    if (glyph) {
+      hint.style.display = 'block';
+      new_glyph();
     }
   }
 
@@ -2372,32 +2417,129 @@ function updatestat() {
 
 var qixsc = 2;
 //var qixmap = new Array(200*200).fill(0);
-var qixmask = document.createElement("canvas");
-var qixmaskc = qixmask.getContext("2d");
+var qixmask = document.createElement('canvas');
+var qixmaskc = qixmask.getContext('2d');
 qixmask.width = 960/qixsc;
 qixmask.height = 618/qixsc;
-var qixmap = qixmaskc.createImageData(qixmask.width, qixmask.height);
-var qixpos, qixpos2, qixlines, qixline;
+var qixmap = null; // qixmaskc.createImageData(qixmask.width, qixmask.height);
+var qixpos, qixpos2, qix_tails, qixline;
 
 var glyphm = document.createElement('canvas');
 var glyphmc = glyphm.getContext('2d');
-var glyphscr = document.createElement('canvas');
-var glyphc = glyphscr.getContext('2d');
+var glyphc = document.createElement('canvas');
+var glyphcc = glyphc.getContext('2d');
 var glyph_shift = 1;
 
 var glyphimg = new Image();
-glyphimg.src = "SOL/glyph.png";
+glyphimg.src = 'SOL/glyph.png';
 glyphimg.onload = () => {
   glyphm.width = glyphimg.width;
   glyphm.height = glyphimg.height;
-  glyphscr.width = 16*59;
-  glyphscr.height = 16*4;
+  glyphc.width = 16*59;
+  glyphc.height = 16*38;
 
   glyphmc.drawImage(glyphimg, 0, 0);
-  glyphmc.globalCompositeOperation = "source-in";
-  glyphmc.fillStyle = "#0f0";
+  glyphmc.globalCompositeOperation = 'source-in';
+  glyphmc.fillStyle = '#0f0';
   glyphmc.fillRect(0, 0, glyphimg.width, glyphimg.height);
 }
+
+function new_glyph(clear) {
+  context.fillStyle = '#000';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  glyphscr.style.display = 'block';
+  keyboard.style.display = 'inline-block';
+
+  if (clear) {
+    glyphcc.clearRect(0, 0, glyphc.width, glyphc.height);
+    glyph_cursor = 0;
+    glyph_row = 0;
+  }
+}
+
+function glyph_update(code) {
+  if (code.startsWith('Arrow')) {
+    const x = (code === 'ArrowLeft' ? -1 : 0) + (code === 'ArrowRight' ? 1 : 0);
+    const y = (code === 'ArrowUp' ? -1 : 0) + (code === 'ArrowDown' ? 1 : 0);
+    if (glyph_cursor + x >= 0 && glyph_cursor + x < 59) {
+      glyph_cursor += x;
+    }
+    if (glyph_row + y >= 0 && glyph_row + y < 38) {
+      glyph_row += y;
+    }
+  }
+
+  if (['ShiftLeft', 'ShiftRight'].includes(code)) {
+    glyph_shift = 2;
+  }
+
+  if (code === 'Backspace') {
+    if (glyph_cursor) {
+      glyph_cursor -= 1;
+    } else if (glyph_row) {
+      glyph_row -= 1;
+      glyph_cursor = 58;
+    }
+
+    glyphcc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
+  }
+
+  if (code === 'Enter') {
+    if (glyph_row > 36) {
+      glyph_row = 0;
+    } else {
+      glyph_row += 1;
+    }
+    glyph_cursor = 0;
+  }
+
+  if (code === 'Space') {
+    glyphcc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
+
+    // cursor jump
+    if (glyph_cursor > 57) {
+      if (glyph_row > 36) { 
+        glyph_row = 0;
+      } else {
+        glyph_row += 1;
+      }
+      glyph_cursor = 0;
+    } else {
+      glyph_cursor += 1;
+    }
+  }
+
+  if (code.startsWith('Key')) {
+    const pos = 16 * 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').indexOf(code.at(-1));
+    const des = 16 * glyph_shift;
+
+    glyphcc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
+    glyphcc.drawImage(glyphm, pos, des, 16, 16, 16 * glyph_cursor, 16 * glyph_row, 16, 16);
+
+    // cursor jump
+    if (glyph_cursor > 57) {
+      if (glyph_row > 36) {
+        glyph_row = 0;
+      } else {
+        glyph_row += 1;
+      }
+      glyph_cursor = 0;
+    } else {
+      glyph_cursor += 1;
+    }
+  }
+
+  const x = 16*glyph_cursor + 7;
+  const y = 16*glyph_row + 7;
+
+  hint.style.clipPath = `polygon(${x}px ${y}px,
+${x+2}px ${y}px,
+${x+2}px ${y+18}px,
+${x}px ${y+18}px)`;
+}
+
+
 
 function new_qix() {
   const center = [
@@ -2407,36 +2549,35 @@ function new_qix() {
   qixpos = {
     x: center[0]*qixsc + qixsc,
     y: center[1]*qixsc + qixsc,
-    s: 0,
   };
   qixpos2 = {
     x: Math.floor((Math.random()*qixmask.width-2)+1)*qixsc,
     y: Math.floor((Math.random()*qixmask.height-2)+1)*qixsc,
-    s: 0
   };
-  qixlines = [];
+  qix_tails = [];
   qixline = {
     x: 0,
     y: 0,
-    d: 'x',
   };
 
-  for (const n of Array(qixmap.data.length/4).keys()){
-    qixmap.data[n*4] = 0;
-    qixmap.data[n*4+1] = 0;
-    qixmap.data[n*4+2] = 0;
-    qixmap.data[n*4+3] = 255;
-  }
+  //for (const n of Array(qixmap.data.length/4).keys()) {
+  //  qixmap.data[n*4] = 24;
+  //  qixmap.data[n*4+1] = 8;
+  //  qixmap.data[n*4+2] = 64;
+  //  qixmap.data[n*4+3] = 255;
+  //}
 
+  qixmaskc.drawImage(silhouette, 0, 0, silhouette.width, silhouette.height, 0, 0, qixmask.width, qixmask.height);
+  qixmap = qixmaskc.getImageData(0, 0, qixmask.width, qixmask.height);
   clearSq(center[0]-9, center[1]-9, 19, 19);
-  clearSq(center[0]-8, center[1]-8, 17, 17, 128);
+  clearSq(center[0]-8, center[1]-8, 17, 17, 0); // 128 for semi-translucent
   clearSq(0, 0, qixmask.width, 0);
   clearSq(0, 0, 0, qixmask.height);
   clearSq(0, qixmask.height-1, qixmask.width, 0);
   clearSq(qixmask.width-1, 0, 0, qixmask.height);
 
   qix = true;
-  drawqix(qixscr, qixpos);
+  drawqix(qixscr, qixpos, 0.75);
   drawqix(qixscr2, qixpos2, 2);
 }
 
@@ -2472,9 +2613,10 @@ function qixscan() {
   for (const [n, pixel] of monstermap.entries()) {
     if (pixel) {
       pixels++;
-      qixmap.data[n*4+3] = 128;
+      qixmap.data[n*4+3] = 0; // 128 for semi-translucent
     }
   }
+
   if (Math.floor((pixels/monstermap.length)*10000)/100 > 99) {
     setTimeout(() => {
       stopqix = true;
@@ -2505,27 +2647,27 @@ function clearSq(x, y, w, h, co = 0) {
   qixmaskc.putImageData(qixmap, 0, 0);
 }
 
-function stixpath(nx, ny, land) {
+function stixpath(nx, land) {
   const x = Math.floor(qixpos.x/qixsc);
   const y = Math.floor(qixpos.y/qixsc);
-  if (!qixlines.length) {
+
+  if (!qix_tails.length) {
     if (land) {
       return;
     }
-    qixlines = [[x, y, 0, 0]];
+    qix_tails = [[x, y, 0, 0]];
     qixline.x = x;
     qixline.y = y;
-    qixline.d = nx ? 'y' : 'x';
     return;
   }
 
-  const stix = qixlines.at(-1);
-  if (qixline[qixline.d] === x) {
+  const stix = qix_tails.at(-1);
+  if (qixline.d === 'x' && qixline.x === x) {
     stix[3] = y-stix[1];
-  } else if (qixline[qixline.d] === y) {
+  } else if (qixline.y === y) {
     stix[2] = x-stix[0];
   } else {
-    qixlines.push([x, y, 0, 0]);
+    qix_tails.push([x, y, 0, 0]);
     qixline.x = x;
     qixline.y = y;
     qixline.d = nx ? 'y' : 'x';
@@ -2533,11 +2675,14 @@ function stixpath(nx, ny, land) {
 }
 
 function qixstep() {
+  imawake();
   const speed = qixsc*60/fps.hz;
   const step = {
     x: (Keypress.KeyD || Keypress.ArrowRight ? speed : 0) + (Keypress.KeyA || Keypress.ArrowLeft ? -speed : 0),
     y: (Keypress.KeyS || Keypress.ArrowDown ? speed : 0) + (Keypress.KeyW || Keypress.ArrowUp ? -speed : 0),
   }
+
+  console.log(step.x, step.y);
 
   if (
     qixpos.x + step.x >= 0 &&
@@ -2551,24 +2696,27 @@ function qixstep() {
       y: Math.floor((qixpos.y + step.y)/qixsc),
     }
 
-    const datapos = Math.floor(toMask.x + qixmask.width * toMask.y);
+    //result.textContent = 'X: ' + toMask.x + ' Y: ' + toMask.y;
+    //result.style.display = 'block';
+
+    const datapos = toMask.x + qixmask.width * toMask.y;
     if (qixmap.data[datapos * 4 + 3] !== 255) {
       // established land
-      stixpath(Math.floor(step.x/speed), Math.floor(step.y/speed), true);
+      stixpath(step.x, true);
       qixpos.x += step.x;
       qixpos.y += step.y;
       if (mousec.hold) {
         mousec.hold = 0;
-        for (const area of qixlines) {
+        for (const area of qix_tails) {
           clearSq(...area);
         }
-        qixlines = [];
+        qix_tails = [];
         qixscan();
       }
     } else if (mousec.down) {
       // on adventure
       mousec.hold = 1;
-      stixpath(Math.floor(step.x/speed), Math.floor(step.y/speed));
+      stixpath(step.x);
       qixpos.x += step.x;
       qixpos.y += step.y;
     }
@@ -2602,7 +2750,7 @@ function qixstep2(k = false) {
   }
 }
 
-function drawqix(scr, pos, s=0.75) {
+function drawqix(scr, pos, size = 0) {
   const tail = [];
   let dir = {
     x: 0,
@@ -2612,6 +2760,7 @@ function drawqix(scr, pos, s=0.75) {
     nw: 0,
     nh: 0,
   };
+
   const chdir = (x, y, nx, ny) => {
     if (dir.x > 0) {
       if (y > 0) {
@@ -2663,8 +2812,9 @@ function drawqix(scr, pos, s=0.75) {
       }
     };
   }
-  if (s < 2) {
-    for (const area of qixlines) {
+
+  if (size < 2) {
+    for (const area of qix_tails) {
       const nx = area[0] + area[2];
       const ny = area[1] + area[3];
       chdir(area[2], area[3], area[0], area[1]);
@@ -2674,19 +2824,22 @@ function drawqix(scr, pos, s=0.75) {
       dir.nw = nx;
       dir.nh = ny;
     };
-    if (qixlines.length) {
+    if (qix_tails.length) {
       tail.push(`${dir.nw * qixsc + dir.w}px ${dir.nh * qixsc + dir.h}px`);
     }
   }
-  const x = pos.x+0.5;
-  const y = pos.y+0.5;
-  tail.push(`${x}px ${y-10*s}px,
-${x+10*s}px ${y}px,
-${x}px ${y+10*s}px,
-${x-10*s}px ${y}px,
-${x}px ${y-10*s}px`);
 
-  if (s < 2) {
+  if (size) {
+    const x = pos.x+0.5;
+    const y = pos.y+0.5;
+    tail.push(`${x}px ${y-10*size}px,
+${x+10*size}px ${y}px,
+${x}px ${y+10*size}px,
+${x-10*size}px ${y}px,
+${x}px ${y-10*size}px`);
+  }
+
+  if (size < 2) {
     dir = {
       x: 0,
       y: 0,
@@ -2695,7 +2848,7 @@ ${x}px ${y-10*s}px`);
       nw: 0,
       nh: 0,
     };
-    for (const area of qixlines.toReversed()) {
+    for (const area of qix_tails.toReversed()) {
       const nx = area[0] + area[2];
       const ny = area[1] + area[3];
       chdir(-area[2], -area[3], nx, ny, qixsc);
@@ -2705,8 +2858,8 @@ ${x}px ${y-10*s}px`);
       dir.nh = ny;
       tail.push(`${dir.nw*qixsc+dir.w}px ${dir.nh*qixsc+dir.h}px`);
     };
-    if (qixlines.length) {
-      const area = qixlines[0];
+    if (qix_tails.length) {
+      const area = qix_tails[0];
       if (area[2] < 0) {
         dir.w = 0;
         dir.h = 0;
@@ -2726,15 +2879,16 @@ ${x}px ${y-10*s}px`);
   scr.style.clipPath = `polygon(${tail.join(',')})`;
 }
 
-var currentFrame = 0;
 var stopqix = false;
-var anim = new Image();
-var mousec = {'down':0, 'hold':0};
+var mousec = {
+  down: 0,
+  hold: 0,
+};
 
 function qixupdate() {
   if ('WASD'.split('').some((k) => Keypress['Key' + k]) || ['Left', 'Up', 'Right', 'Down'].some((k) => Keypress['Arrow' + k])) {
     qixstep();
-    drawqix(qixscr, qixpos);
+    drawqix(qixscr, qixpos, 0.75);
   }
 
   if ('TFGH'.split('').some((k) => Keypress['Key' + k])) {
@@ -2749,32 +2903,11 @@ function qixupdate() {
     return;
   }
 
-  //context.fillStyle = "#000";
-  //context.fillRect(0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
-  //context.drawImage(anim,
-  //  // Selection
-  //  (anim.width-canvas.width) * ((Math.floor(currentFrame) % 120)/120),
-  //  600, // sy
-  //  canvas.width, // sWidth
-  //  canvas.height, // sHeight
-  //  // Drawing
-  //  0, // dx
-  //  0, // dy
-  //  canvas.width, // dWidth
-  //  canvas.height // dHeight
-  //);
+  context.fillStyle = '#000';
+  context.fillRect(0, 0, canvas.width, canvas.height);
 
-  for (let y=0; y < canvas.height; y += anim.height) {
-    for (let x=currentFrame; x < canvas.width; x += anim.width) {
-      context.drawImage(anim, x, y);
-    }
-  }
-
+  context.drawImage(reveal, 0, 0, reveal.width, reveal.height, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
   context.drawImage(qixmask, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
-  currentFrame = currentFrame + 960/fps.hz;
-  if (currentFrame > 0) {
-    currentFrame = currentFrame - anim.width;
-  }
 
   if (stopscreensaver) {
     requestAnimationFrame(qixupdate);
@@ -2899,10 +3032,11 @@ function makemenu() {
     e.addEventListener(tc, () => {
       solitaire = true;
       qix = false;
+      glyph = false;
       keyboard.style.display = 'none';
       qixscr.style.display = 'none';
       qixscr2.style.display = 'none';
-      glyph.style.display = 'none';
+      glyphscr.style.display = 'none';
       stopscreensaver = true;
       drawn = arg;
       drawhint();
@@ -2926,26 +3060,61 @@ function makemenu() {
     listener = (e) => {
       e.addEventListener(tc, () => {
         solitaire = false;
+        glyph = false;
+        hint.style.display = 'none';
         hintb.style.display = 'none';
         stopscreensaver = true;
-        qixscr.style.display = 'block';
-        qixscr2.style.display = 'block';
+
         if (qix) {
           stopqix = true;
         }
-        new_qix();
-        glyph.style.display = 'block';
-        anim.src = 'flower.jpg';
-        anim.onload = () => {
-          keyboard.style.display = 'inline-block';
-          qixupdate();
-        };
+        glyphscr.style.display = 'none';
+
+        silhouette.src = 'silhouette.png';
+        silhouette.onload = () => {
+          qixmask.width = silhouette.width/2/qixsc;
+          qixmask.height = silhouette.height/2/qixsc;
+          reveal.src = 'flower.jpg';
+          reveal.onload = () => {
+            qixscr.style.display = 'block';
+            qixscr2.style.display = 'block';
+            keyboard.style.display = 'inline-block';
+            new_qix();
+            qixupdate();
+          }
+        }
       });
     };
     poppy.append(newmenu('Qix', listener));
+
+    listener = (e) => {
+      e.addEventListener(tc, () => {
+        solitaire = false;
+        glyph = true;
+        qix = false;
+
+        hint.style.display = 'block';
+        const x = 7;
+        const y = 7;
+
+        hint.style.clipPath = `polygon(${x}px ${y}px,
+${x+2}px ${y}px,
+${x+2}px ${y+18}px,
+${x}px ${y+18}px)`;
+
+        hintb.style.display = 'none';
+        stopscreensaver = true;
+        qixscr.style.display = 'none';
+        qixscr2.style.display = 'none';
+
+        new_glyph(true);
+      });
+    };
+    poppy.append(newmenu('Glyph', listener));
     //newmenu('Chess', listener, [5, 3]);
   } else {
     poppy.append(unlock(['Qix (', ')'], 5));
+    poppy.append(unlock(['Glyph (', ')'], 5));
   }
 
   poppy.append(newmenu('Options', submenu, false, options));
@@ -2988,6 +3157,7 @@ function makemenu() {
   // screensaver
   listener = (e, args) => {
     e.addEventListener(tc, () => {
+      sideways = false;
       stopscreensaver = true;
 
       if (qix) {
@@ -2995,7 +3165,7 @@ function makemenu() {
         keyboard.style.display = 'none';
         qixscr.style.display = 'none';
         qixscr2.style.display = 'none';
-        glyph.style.display = 'none';
+        glyphscr.style.display = 'none';
       }
 
       if (solitaire) {
@@ -3066,6 +3236,31 @@ function makemenu() {
   } else {
     poppy.append(unlock(['More stars (', ')'], 24, true));
   }
+
+  listener = (e) => {
+    e.addEventListener(tc, () => {
+      sideways = true;
+      stopscreensaver = true;
+
+      solitaire = false;
+      glyph = false;
+      qix = false;
+
+      keyboard.style.display = 'none';
+      qixscr.style.display = 'none';
+      qixscr2.style.display = 'none';
+      glyphscr.style.display = 'none';
+
+      hint.style.display = 'block';
+      hintb.style.display = 'none';
+
+      movingflower.src = 'flower.jpg';
+      movingflower.onload = () => {
+        new_screensaver();
+      };
+    });
+  };
+  poppy.append(newmenu('Moving photo', listener));
 
   // solcomputer
   listener = (e, arg) => {
@@ -3264,62 +3459,8 @@ function pressed(code, location, down) {
     Keypress[code] = true;
 
     // glyph stuff
-
-    if (code === 'ShiftLeft') {
-      glyph_shift = 2;
-    }
-
-    if (code === 'Backspace') {
-      if (glyph_cursor) {
-        glyph_cursor -= 1;
-      }
-
-      glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
-    }
-
-    if (code === 'Enter') {
-      if (glyph_row > 2) {
-        glyph_row = 0
-      } else {
-        glyph_row += 1;
-      }
-      glyph_cursor = 0;
-    }
-
-    if (code === 'Space') {
-      glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
-
-      // cursor jump
-      if (glyph_cursor > 57) {
-        if (glyph_row > 2) { 
-          glyph_row = 0;
-        } else {
-          glyph_row += 1;
-        }
-        glyph_cursor = 0;
-      } else {
-        glyph_cursor += 1;
-      }
-    }
-
-    if (code.startsWith('Key')) {
-      const pos = 16 * 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').indexOf(code.at(-1));
-      const des = 16 * glyph_shift;
-
-      glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
-      glyphc.drawImage(glyphm, pos, des, 16, 16, 16 * glyph_cursor, 16 * glyph_row, 16, 16);
-
-      // cursor jump
-      if (glyph_cursor > 57) {
-        if (glyph_row > 2) {
-          glyph_row = 0;
-        } else {
-          glyph_row += 1;
-        }
-        glyph_cursor = 0;
-      } else {
-        glyph_cursor += 1;
-      }
+    if (glyph) {
+      glyph_update(code);
     }
   } else {
     KeypressX[code][location].childNodes[0].classList.remove('pressed');
@@ -3327,7 +3468,7 @@ function pressed(code, location, down) {
     Keypress[code] = false;
 
     // glyph stuff
-    if (code === 'Shift') {
+    if (['ShiftLeft', 'ShiftRight'].includes(code)) {
       glyph_shift = 1;
     }
   }
@@ -3678,7 +3819,7 @@ function resize() {
 window.onload = () => {
   result.style.display = fps.display ? 'block' : 'none';
   document.title = 'Starfield';
-  glyph.appendChild(glyphscr);
+  glyphscr.appendChild(glyphc);
   let win = document.createElement('IMG');
   win.src = 'win95.png';
   win.onload = () => {
@@ -3791,7 +3932,7 @@ window.onload = () => {
 <div class='hintscreen'><div class='hint' id='qixscr'></div></div>
 <div class='hintscreen'><div class='hint' id='qixscr2'></div></div>
 <div id='result'></div>
-<div id='glyph'></div>
+<div id='glyphscr'></div>
 <div id='stdout'>Output:</div>
 <div class='poppy' id='poppy'></div>
 <div id='touchloc'></div>

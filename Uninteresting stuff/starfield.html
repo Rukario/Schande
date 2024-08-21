@@ -2167,7 +2167,7 @@ var releasecard = () => {
           };
         } else if (
           card[0] % 2 !== s[1].at(-1)[0] % 2 &&
-          parseInt(card[1], 16) === parseInt(s[1].at(-1)[1][0], 16)
+          parseInt(card[1], 16) === parseInt(s[1].at(-1)[1][0], 16) - 1
         ) {
           if ('draw' in dragcard) {
             s[1].push(...dragcard.slot[1].slice(dragcard.draw));

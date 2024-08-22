@@ -339,6 +339,7 @@ canvas {
   position: absolute;
   animation: fade 1000ms linear 1;
   //animation: fade 1000ms steps(2, end);
+  mix-blend-mode: difference;
 }
 
 @keyframes fade {
@@ -351,12 +352,12 @@ canvas {
 }
 
 #touchloc {
-  border-color: #00f;
+  border-color: #ffffff;
   border-style: solid;
 }
 
 #touchlocm {
-  background-color: #00f;
+  background-color: #ffffff;
 }
 
 #glyphscr {
@@ -2216,7 +2217,10 @@ const FFdown = (e_) => {
     if (e_.touches.length === 1) {
       mousepos.x = e_.touches[0].clientX + window.visualViewport.offsetLeft;
       mousepos.y = e_.touches[0].clientY + window.visualViewport.offsetTop;
+
       const sc = window.visualViewport.scale;
+      const size = 3 / sc;
+      const border = 1 / sc;
 
       touchloc.style.display = 'block';
       touchlocm.style.display = 'block';
@@ -2224,17 +2228,17 @@ const FFdown = (e_) => {
       touchloc.style.animation = 'none';
       touchlocm.style.animation = 'none';
 
-      touchloc.style.width = 3 / sc + 'px';
-      touchloc.style.height = 3 / sc + 'px';
-      touchlocm.style.width = 3 / sc + 'px';
-      touchlocm.style.height = 3 / sc + 'px';
+      touchloc.style.width = size + 'px';
+      touchloc.style.height = size + 'px';
+      touchlocm.style.width = size + 'px';
+      touchlocm.style.height = size + 'px';
 
-      touchloc.style.top = mousepos.y - 1 / sc + 'px';
-      touchloc.style.left = mousepos.x - 1 / sc + 'px';
+      touchloc.style.top = mousepos.y - border + 'px';
+      touchloc.style.left = mousepos.x - border + 'px';
       touchlocm.style.top = mousepos.y + 'px';
       touchlocm.style.left = mousepos.x + 'px';
 
-      touchloc.style.borderWidth = 1 / sc + 'px';
+      touchloc.style.borderWidth = border + 'px';
     }
   } else {
     mousepos.x = e_.x;

@@ -35,6 +35,8 @@ canvas {
 }
 
 #keyboard {
+  width: calc(100% - 16px);
+  max-width: 780px;
   display: none;
   position: absolute;
   bottom: 0px;
@@ -49,7 +51,7 @@ canvas {
   background-color: var(--color-keyboard);
   width: 52px;
   height: 51px;
-  top: -9px;
+  top: 6px;
 
   background-clip: padding-box;
   display: inline-block;
@@ -127,14 +129,17 @@ canvas {
   display: flex;
 }
 
-.keycap {
+.keycap, .keycap2 {
   flex: auto;
-  z-index: 2;
   position: relative;
+  z-index: 2;
   display: inline-block;
-  background: #c4c2bb;
   margin: 1px;
   border-radius: 3px;
+}
+
+.keycap {
+  background: #c4c2bb;
   border-top: 5px solid #c4c2bb;
   border-left: 10px solid #a4a29b;
   border-right: 10px solid #a4a29b;
@@ -149,8 +154,7 @@ canvas {
 
   .face {
     background: #dddad7;
-    min-width: 20px;
-    width: 31px;
+    min-width: 16px;
     height: 34px;
     color: #088;
     margin: -3px;
@@ -166,14 +170,11 @@ canvas {
 }
 
 .keycap2 {
-  display: inline-block;
   background: #9d9ba0;
-  margin: 1px;
   border-top: 5px solid #a4a2a0;
   border-left: 10px solid #8d8b90;
   border-right: 10px solid #8d8b90;
   border-bottom: 11px solid #817e84;
-  border-radius: 3px;
 
   &.pressed {
     border-top: 5px solid #55b;
@@ -184,8 +185,7 @@ canvas {
 
   .face {
     background: #b6b4b9;
-    min-width: 20px;
-    width: 31px;
+    min-width: 16px;
     height: 34px;
     color: #088;
     margin: -3px;
@@ -3666,7 +3666,7 @@ function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
       const keycap = document.createElement('DIV');
       keycap.classList = c;
       if (w) {
-        cap.style.width = '100%';
+        cap.style.width = 'calc(100% + 2px)';
         keycap.style.width = w + 'px';
       }
       keycap.appendChild(cap);
@@ -3742,7 +3742,7 @@ function windo(win) {
 var esc, f1, f5, f9, alphakeys, homekeys2, homekeys, arrows, numpad2, numpad;
 
 function createkeyboard() {
-  const keydiv = (sockets, left) => {
+  const keydiv = (sockets, left, w) => {
     const d = document.createElement('DIV');
     d.style.display = 'inline-block';
 
@@ -3759,10 +3759,15 @@ function createkeyboard() {
       }
     }
 
+    if (w) {
+      d.style.maxWidth = w;
+      d.style.width = '100%';
+    }
+
     keyboard.append(d);
   }
 
-  const keysocket = (right, top) => {
+  const keysocket = (right, top, w) => {
     const d = document.createElement('DIV');
     d.classList = 'keysocket';
 
@@ -3773,28 +3778,47 @@ function createkeyboard() {
     if (top) {
       d.style.marginTop = top + 'px';
     }
+
+    if (w) {
+      d.style.width = w;
+    }
     return d;
   }
 
 
 
-  esc = keysocket(44);
-  f1 = keysocket(24);
-  f5 = keysocket(24);
-  f9 = keysocket();
-  alphakeys = keysocket(0, 12);
-  keydiv([esc, f1, f5, f9, null, alphakeys]);
+  esc = keysocket(44, 0, 'calc(5% + 12px)');
+  f1 = keysocket(24, 0, 'calc(32% - 46px)');
+  f5 = keysocket(24, 0, 'calc(32% - 46px)');
+  f9 = keysocket(0, 0, 'calc(32% - 46px)');
+  alphakeys = keysocket(0, 12, 'calc(100% - 6px)');
+  keydiv([esc, f1, f5, f9, null, alphakeys], 0, '779px');
 
-  drawkeyboard(esc, [['Esc']], null, 'keycap2');
-  drawkeyboard(f1, [['F1', 'F2', 'F3', 'F4']]);
-  drawkeyboard(f5, [['F5', 'F6', 'F7', 'F8']], null, 'keycap2');
-  drawkeyboard(f9, [['F9', 'F10', 'F11', 'F12']]);
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  esc.appendChild(DOMwriter);
+  drawkeyboard(DOMwriter, [['Esc']], null, 'keycap2');
+
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  f1.appendChild(DOMwriter);
+  drawkeyboard(DOMwriter, [['F1', 'F2', 'F3', 'F4']], 31);
+
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  f5.appendChild(DOMwriter);
+  drawkeyboard(DOMwriter, [['F5', 'F6', 'F7', 'F8']], 31, 'keycap2');
+
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  f9.appendChild(DOMwriter);
+  drawkeyboard(DOMwriter, [['F9', 'F10', 'F11', 'F12']], 31);
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
   alphakeys.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, [['` ~', '1 !', '2 @', '3 #', '4 $', '5 %', '6 ^', '7 &', '8 *', '9 (', '0 )', '- _', '= +']]);
+  drawkeyboard(DOMwriter, [['` ~', '1 !', '2 @', '3 #', '4 $', '5 %', '6 ^', '7 &', '8 *', '9 (', '0 )', '- _', '= +']], 31);
   drawkeyboard(DOMwriter, [['Backspace']], 88, 'keycap2');
 
   DOMwriter = document.createElement('DIV');
@@ -3802,7 +3826,7 @@ function createkeyboard() {
   alphakeys.appendChild(DOMwriter);
 
   drawkeyboard(DOMwriter, [['Tab']], 58, 'keycap2');
-  drawkeyboard(DOMwriter, ['QWERTYUIOP', ['[ {', '] }']]);
+  drawkeyboard(DOMwriter, ['QWERTYUIOP', ['[ {', '] }']], 31);
   drawkeyboard(DOMwriter, [['\\ |']], 59);
 
   DOMwriter = document.createElement('DIV');
@@ -3810,7 +3834,7 @@ function createkeyboard() {
   alphakeys.appendChild(DOMwriter);
 
   drawkeyboard(DOMwriter, [['Caps Lock']], 68, 'keycap2');
-  drawkeyboard(DOMwriter, ['ASDFGHJKL', ['; :', '\' "']]);
+  drawkeyboard(DOMwriter, ['ASDFGHJKL', ['; :', '\' "']], 31);
   drawkeyboard(DOMwriter, [['Enter']], 100, 'keycap2');
 
   DOMwriter = document.createElement('DIV');
@@ -3818,7 +3842,7 @@ function createkeyboard() {
   alphakeys.appendChild(DOMwriter);
 
   drawkeyboard(DOMwriter, [['Shift']], 95, 'keycap2');
-  drawkeyboard(DOMwriter, ['ZXCVBNM', [', <', '. >', '/ ?']]);
+  drawkeyboard(DOMwriter, ['ZXCVBNM', [', <', '. >', '/ ?']], 31);
   drawkeyboard(DOMwriter, [['Shift']], 124, 'keycap2');
 
   DOMwriter = document.createElement('DIV');
@@ -3837,36 +3861,59 @@ function createkeyboard() {
 
 
   // TKL
-  if (true) {
-    homekeys2 = keysocket();
-    homekeys = keysocket(0, 12);
-    arrows = keysocket(0, 44);
-    keydiv([homekeys2, null, homekeys, null, arrows], 6);
+  if (false) {
+    keyboard.style.maxWidth = '944px';
+    homekeys2 = keysocket(0, 0, 'calc(100% - 6px)');
+    homekeys = keysocket(0, 12, 'calc(100% - 6px)');
+    arrows = keysocket(0, 44, 'calc(100% - 6px)');
+    keydiv([homekeys2, null, homekeys, null, arrows], 6, '159px');
 
-    drawkeyboard(homekeys2, [['PrtSc', 'ScrLk', 'Pause']], null, 'keycap2');
-    drawkeyboard(homekeys, [['Ins', 'Home', 'PgUp']], null, 'keycap2');
 
-    DOMwriter = document.createElement('BR');
+
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.classList = 'keysocketrow';
+    homekeys2.appendChild(DOMwriter);
+
+    drawkeyboard(DOMwriter, [['PrtSc', 'ScrLk', 'Pause']], 31, 'keycap2');
+
+
+
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.classList = 'keysocketrow';
     homekeys.appendChild(DOMwriter);
 
-    drawkeyboard(homekeys, [['Del', 'End', 'PgDn']], null, 'keycap2');
+    drawkeyboard(DOMwriter, [['Ins', 'Home', 'PgUp']], 31, 'keycap2');
 
     DOMwriter = document.createElement('DIV');
-    DOMwriter.innerHTML = '&nbsp;';
-    DOMwriter.classList = 'plate right';
-    arrows.appendChild(DOMwriter);
+    DOMwriter.classList = 'keysocketrow';
+    homekeys.appendChild(DOMwriter);
 
-    drawkeyboard(arrows, ['↑'], null, 'keycap2');
+    drawkeyboard(DOMwriter, [['Del', 'End', 'PgDn']], 31, 'keycap2');
+
 
     DOMwriter = document.createElement('DIV');
-    DOMwriter.innerHTML = '&nbsp;';
-    DOMwriter.classList = 'plate left';
+    DOMwriter.classList = 'keysocketrow';
     arrows.appendChild(DOMwriter);
 
-    DOMwriter = document.createElement('BR');
+    let plate = document.createElement('DIV');
+    plate.innerHTML = '&nbsp;';
+    plate.classList = 'plate right';
+    DOMwriter.appendChild(plate);
+
+    drawkeyboard(DOMwriter, ['↑'], 31, 'keycap2');
+
+    plate = document.createElement('DIV');
+    plate.innerHTML = '&nbsp;';
+    plate.classList = 'plate left';
+    DOMwriter.appendChild(plate);
+
+
+
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.classList = 'keysocketrow';
     arrows.appendChild(DOMwriter);
 
-    drawkeyboard(arrows, ['←', '↓', '→'], null, 'keycap2');
+    drawkeyboard(DOMwriter, ['←', '↓', '→'], 31, 'keycap2');
   }
 
 

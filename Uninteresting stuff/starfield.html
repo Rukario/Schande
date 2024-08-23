@@ -1846,7 +1846,12 @@ var returncard = false;
 var pickcard = () => {
   returncard = false;
   const sel = (x, y, e) => {
-    return mousepos.x > gap.x*(x+1) + cardsize[0]*x && mousepos.x < gap.x*(x+1) + cardsize[0]*(x+1)+e && mousepos.y > gap.y*(y+1) + cardsize[1]*y && mousepos.y < gap.y*(y+1) + cardsize[1]*(y+1)
+    return (
+      mousepos.x >= gap.x*(x+1) + cardsize[0]*x &&
+      mousepos.x < gap.x*(x+1) + cardsize[0]*(x+1)+e &&
+      mousepos.y >= gap.y*(y+1) + cardsize[1]*y &&
+      mousepos.y < gap.y*(y+1) + cardsize[1]*(y+1)
+    )
   };
 
   // Deck to Waste
@@ -2225,7 +2230,7 @@ var releasecard = () => {
 }
 
 
-let ZOOKd = null;
+var ZOOKd = null;
 const FFdown = (e_) => {
   mousec.down = 1;
 
@@ -2276,27 +2281,27 @@ const FFdown = (e_) => {
   }
 }
 
-let fader = null;
+var fader = null;
 const FFup = (e_) => {
   mousec.down = 0;
 
   if (e_ && !ZOOKd) {
-    if(!e_.target.parentNode.classList.contains('poppy') && poppy.style.display !== 'none') {
+    if (!e_.target.parentNode.classList.contains('poppy') && poppy.style.display !== 'none') {
       poppy.style.display = 'none';
     }
 
     if (dialogbox.style.display != 'none') {
       dialogbox.style.display = 'none';
     }
-  }
 
-  if (isTouch && e_.touches.length === 0) {
-    touchloc.style.animation = '';
-    touchlocm.style.animation = '';
-    fader = setTimeout(() => {
-      touchloc.style.display = 'none';
-      touchlocm.style.display = 'none';
-    }, 900);
+    if (isTouch && e_.touches.length === 0) {
+      touchloc.style.animation = '';
+      touchlocm.style.animation = '';
+      fader = setTimeout(() => {
+        touchloc.style.display = 'none';
+        touchlocm.style.display = 'none';
+      }, 900);
+    }
   }
 
   leverdrawing = false;
@@ -2346,7 +2351,7 @@ var hints = 1;
 
 
 
-var FFmove = (e_) => {
+const FFmove = (e_) => {
   clearTimeout(idlecursor);
   idlecursor = setTimeout(() => {
     canvas.style.cursor = "none";

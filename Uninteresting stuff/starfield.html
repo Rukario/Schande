@@ -28,6 +28,7 @@ canvas {
 }
 
 #shaderscr {
+  display: none;
   position: absolute;
   z-index: 2;
   pointer-events: none;
@@ -502,7 +503,6 @@ var rubbermouse = {x:0, y:0};
 const isTouch = 'ontouchstart' in window;
 var busyclick = false;
 
-var alpha = new Image();
 var ccolor = '#000';
 var lastcolor = '#000';
 
@@ -541,7 +541,7 @@ function ABtoAB(ab) {
 function canvasToAB(c, ext = 'png') {
   return function(resolve) {
     c.toBlob((blob0) => {
-      var fr = new FileReader();
+      const fr = new FileReader();
       fr.readAsArrayBuffer(blob0);
       fr.addEventListener('load', () => {
         arri = new Uint8Array(fr.result);
@@ -691,7 +691,7 @@ function starry(vmsec) {
         //maskcontext.globalCompositeOperation = "source-in";
         //maskcontext.fillRect(0, 0, star.x, star.y);
         //context.drawImage(mask, Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
-      
+
         //context.fillStyle = ishtar[3];
         //context.fillRect(Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
         //context.drawImage(alpha, Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
@@ -706,11 +706,39 @@ function starry(vmsec) {
   rubbermouse.y = mousepos.y;
 }
 
-var currentFrame = 0;
-var movingflower = new Image();
-var silhouette = new Image();
-var reveal = new Image();
+const alpha = new Image();
+alpha.addEventListener('load', () => {
+  new_stars();
+});
 
+const movingflower = new Image();
+movingflower.addEventListener('load', () => {
+  new_screensaver();
+});
+
+const silhouette = new Image();
+silhouette.addEventListener('load', () => {
+  qixmask.width = silhouette.width/2/qixsc;
+  qixmask.height = silhouette.height/2/qixsc;
+  reveal.src = 'flower.jpg';
+});
+
+const reveal = new Image();
+reveal.addEventListener('load', () => {
+  qixscr.style.display = 'block';
+  qixscr2.style.display = 'block';
+  keyboard.style.display = 'inline-block';
+  new_qix();
+  qixupdate();
+});
+
+const win = new Image();
+win.src = 'win95.png';
+win.addEventListener('load', () => {
+  windo(win);
+});
+
+var currentFrame = 0;
 function movingphoto() {
   //context.fillStyle = "#000";
   //context.fillRect(0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
@@ -1264,7 +1292,14 @@ function winsol() {
     for (const pos of [...Array(4).keys()]){
       const falldir = Math.floor(Math.random()*14-7)+1;
       const dep = Math.ceil((12-card)/4)*scale;
-      flycards.push({'card':slots[pos+1][1][12-card], 'x':gap.x*4 + gap.x*pos + cardsize[0]*(pos+3) + dep*2, 'y':gap.y + dep, 'xdir':scale, 'ydir':scale, 'xvel':falldir ? falldir : -2, 'yvel':-Math.ceil(Math.random()*18)});
+      flycards.push({
+        card: slots[pos+1][1][12-card],
+        x: gap.x*4 + gap.x*pos + cardsize[0]*(pos+3) + dep*2,
+        y: gap.y + dep,
+        xdir: scale,
+        ydir: scale,
+        xvel: falldir ? falldir : -2,
+        yvel: -Math.ceil(Math.random()*18)});
     }
   }
 
@@ -1273,9 +1308,11 @@ function winsol() {
 
   const update = () => {
     const flycard = flycards[i];
+    const ground = solsize[1];
+    //const ground = document.documentElement.clientHeight;
     for (const nth of Array(Math.round(240/fps.hz)).keys()) {
       if (!winanim) {
-        resize();
+        //resize();
         return;
       }
       flycard.xvel += gravity.x;
@@ -1286,8 +1323,8 @@ function winsol() {
         break;
         //flycard.xvel = -flycard.xvel;
       }
-      if (flycard.y + cardsize[1] > solsize[1]) {
-        flycard.y = solsize[1] - cardsize[1];
+      if (flycard.y + cardsize[1] > ground) {
+        flycard.y = ground - cardsize[1];
         flycard.yvel = -flycard.yvel*kinecticloss;
       }
       context.drawImage(cards[flycard["card"]], flycard.x, flycard.y, ...cardsize);
@@ -3135,14 +3172,18 @@ function makemenu() {
 
   listener = (e, arg) => {
     e.addEventListener(tc, () => {
-      solitaire = true;
-      qix = false;
-      glyph = false;
+      stopscreensaver = true;
       keyboard.style.display = 'none';
+
+      qix = false;
       qixscr.style.display = 'none';
       qixscr2.style.display = 'none';
+
+      glyph = false;
       glyphscr.style.display = 'none';
-      stopscreensaver = true;
+
+      solitaire = true;
+
       drawn = arg;
       drawhint();
       readcard(sol);
@@ -3164,30 +3205,20 @@ function makemenu() {
   if (winsoln >= 5) {
     listener = (e) => {
       e.addEventListener(tc, () => {
-        solitaire = false;
-        glyph = false;
-        hint.style.display = 'none';
-        hintb.style.display = 'none';
         stopscreensaver = true;
 
         if (qix) {
           stopqix = true;
         }
+
+        glyph = false;
         glyphscr.style.display = 'none';
 
+        solitaire = false;
+        hint.style.display = 'none';
+        hintb.style.display = 'none';
+
         silhouette.src = 'silhouette.png';
-        silhouette.addEventListener('load', () => {
-          qixmask.width = silhouette.width/2/qixsc;
-          qixmask.height = silhouette.height/2/qixsc;
-          reveal.src = 'flower.jpg';
-          reveal.addEventListener('load', () => {
-            qixscr.style.display = 'block';
-            qixscr2.style.display = 'block';
-            keyboard.style.display = 'inline-block';
-            new_qix();
-            qixupdate();
-          });
-        });
       });
     };
     poppy.append(newmenu('Qix', listener));
@@ -3225,7 +3256,7 @@ ${x}px ${y+18}px)`;
   poppy.append(newmenu('Options', submenu, false, options));
 
   listener = (e) => {
-      e.addEventListener(tc, () => {
+    e.addEventListener(tc, () => {
       if (document.fullscreenElement) {
         document.exitFullscreen();
       } else {
@@ -3262,21 +3293,20 @@ ${x}px ${y+18}px)`;
   // screensaver
   listener = (e, args) => {
     e.addEventListener(tc, () => {
-      sideways = false;
       stopscreensaver = true;
+      keyboard.style.display = 'none';
 
-      if (qix) {
-        qix = false;
-        keyboard.style.display = 'none';
-        qixscr.style.display = 'none';
-        qixscr2.style.display = 'none';
-        glyphscr.style.display = 'none';
-      }
+      qix = false;
+      qixscr.style.display = 'none';
+      qixscr2.style.display = 'none';
 
-      if (solitaire) {
-        solitaire = false;
-        hintb.style.display = 'none';
-      }
+      glyph = false;
+      glyphscr.style.display = 'none';
+
+      solitaire = false;
+      hintb.style.display = 'none';
+
+      sideways = false;
 
       scr.color = args[0];
       scr.density = args[1];
@@ -3291,9 +3321,6 @@ ${x}px ${y+18}px)`;
 
       if (args[2]) {
         alpha.src = args[2];
-        alpha.addEventListener('load', () => {
-          new_stars();
-        });
       } else {
         new_stars();
       }
@@ -3306,22 +3333,10 @@ ${x}px ${y+18}px)`;
   };
   poppy.append(newmenu('Flying Windows',               listener, [2,      75,   'win95.png', true,   95,  95,    1, 4, false]));
 
-  if (winsoln >= 1) {
-    poppy.append(newmenu('Slow Windows',               listener, [2,      75,   'win95.png', true,   95,  95,   10, 4, false]));
-  } else {
-    poppy.append(unlock(['Slow Windows (', ')'], 1));
-  }
-
   if (winsoln >= 5) {
-    poppy.append(newmenu('Big Windows',                listener, [2,      75,   'win95.png', true,  380, 380,    1, 4, false]));
-  } else {
-    poppy.append(unlock(['Big Windows (', ')'], 5));
-  }
-
-  if (winsoln >= 10) {
     poppy.append(newmenu('Starfield',                  listener, [0,      200,  false,       false,   4,   4, 1.50, 0, false]));
   } else {
-    poppy.append(unlock(['Starfield (', ')'], 10));
+    poppy.append(unlock(['Starfield (', ')'], 5));
   }
 
   if (winsoln >= 24) {
@@ -3342,30 +3357,33 @@ ${x}px ${y+18}px)`;
     poppy.append(unlock(['More stars (', ')'], 24, true));
   }
 
-  listener = (e) => {
-    e.addEventListener(tc, () => {
-      sideways = true;
-      stopscreensaver = true;
+  if (winsoln >= 16) {
+    listener = (e) => {
+      e.addEventListener(tc, () => {
+        stopscreensaver = true;
 
-      solitaire = false;
-      glyph = false;
-      qix = false;
+        keyboard.style.display = 'none';
 
-      keyboard.style.display = 'none';
-      qixscr.style.display = 'none';
-      qixscr2.style.display = 'none';
-      glyphscr.style.display = 'none';
+        qix = false;
+        qixscr.style.display = 'none';
+        qixscr2.style.display = 'none';
 
-      hint.style.display = 'block';
-      hintb.style.display = 'none';
+        glyph = false;
+        glyphscr.style.display = 'none';
 
-      movingflower.src = 'flower.jpg';
-      movingflower.addEventListener('load', () => {
-        new_screensaver();
+        solitaire = false;
+        hint.style.display = 'block';
+        hintb.style.display = 'none';
+
+        sideways = true;
+    
+        movingflower.src = 'flower.jpg';
       });
-    });
-  };
-  poppy.append(newmenu('Moving photo', listener));
+    };
+    poppy.append(newmenu('Moving photo', listener));
+  } else {
+    poppy.append(unlock(['Moving photo (', ')'], 16));
+  }
 
   // solcomputer
   listener = (e, arg) => {
@@ -3971,11 +3989,6 @@ function resize() {
 window.addEventListener('load', () => {
   result.style.display = fps.display ? 'block' : 'none';
   document.title = 'Starfield';
-  let win = document.createElement('IMG');
-  win.src = 'win95.png';
-  win.addEventListener('load', () => {
-    windo(win);
-  });
 
   createkeyboard();
 
@@ -4069,9 +4082,6 @@ window.addEventListener('load', () => {
   scr.friction.y = Math.ceil(canvas.height/canvas.width);
 
   alpha.src = 'win95.png';
-  alpha.addEventListener('load', () => {
-    new_stars();
-  });
 
   const close = document.getElementById('close');
   close.addEventListener('click', () => {

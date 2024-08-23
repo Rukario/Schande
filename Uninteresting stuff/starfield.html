@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="white">
+<meta name="format-detection" content="telephone=no">
+<meta name="viewport" content="width=675, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
 <style>
 
 :root {
@@ -25,16 +27,11 @@ canvas {
   image-rendering: pixelated;
 }
 
-#fgbg {
-  display: none;
-  width: 100%;
-  height: 100%;
+#shaderscr {
   position: absolute;
-  background-image: url("bg.png");
-  image-rendering: pixelated;
-  mix-blend-mode: multiply;
-  z-index: 2;
+  z-index: 4;
   pointer-events: none;
+  mix-blend-mode: multiply;
 }
 
 #keyboard {
@@ -204,7 +201,7 @@ canvas {
 
 .hintscreen {
   position: absolute;
-  pointer-events:none;
+  pointer-events: none;
   width: 100% /*738px*/;
   height: 100% /*400px*/;
   z-index: 1;
@@ -546,10 +543,10 @@ function canvasToAB(c, ext = 'png') {
     c.toBlob((blob0) => {
       var fr = new FileReader();
       fr.readAsArrayBuffer(blob0);
-      fr.onload = () => {
+      fr.addEventListener('load', () => {
         arri = new Uint8Array(fr.result);
         resolve(arri);
-      };
+      });
     }, 'image/' + ext);
   }
 }
@@ -561,12 +558,32 @@ function canvasToFrame(mask, callback, interFrameN) {
   });
 }
 
-var canvas = document.createElement('canvas');
+const canvas = document.createElement('canvas');
 canvas.width = document.documentElement.clientWidth;
 canvas.height = document.documentElement.clientHeight;
-
-var context = canvas.getContext('2d');
+const context = canvas.getContext('2d');
 context.imageSmoothingEnabled = false;
+
+const shader = document.createElement('canvas');
+shader.width = canvas.width
+shader.height = canvas.height;
+const shaderc = shader.getContext('2d');
+shaderc.imageSmoothingEnabled = false;
+shaderc.fillStyle = '#fff';
+shaderc.fillRect(0, 0, shader.width, shader.height);
+
+for (const n of Array(shader.width).keys()) {
+  shaderc.fillStyle = ['rgba(255, 0, 0, 0.2)', 'rgba(0, 255, 0, 0.2)', 'rgba(0, 0, 255, 0.2)'][n%3];
+  shaderc.fillRect(n, 0, 1, shader.height);
+}
+
+//for (const c of Array(shader.width).keys()) {
+//  for (const r of Array(shader.height).keys()) {
+//    //shaderc.fillStyle = ['rgba(255, 0, 0, 0.2)', 'rgba(0, 255, 0, 0.2)', 'rgba(0, 0, 255, 0.2)'][Math.floor(Math.random()*3)];
+//    shaderc.fillStyle = `rgba(0, 0, 0, ${Math.random()/5})`;
+//    shaderc.fillRect(c, r, 1, 1);
+//  }
+//}
 
 var idlecursor = false;
 var idlescreensaver = false;
@@ -842,9 +859,9 @@ function new_stars() {
 
     const foliage = new Image();
     foliage.src = 'spruce.png';
-    foliage.onload = () => {
+    foliage.addEventListener('load', () => {
       canvasToFrame(starmask(false, foliage), variant, scr.density/xlight.length*(xlight.length-1));
-    }
+    });
 
     for (const color of xlight) {
       canvasToFrame(starmask(color), variant, scr.density/xlight.length/xlight.length);
@@ -1186,9 +1203,9 @@ function readcard(callback, interFrameN) {
         reject(cards[card]);
       }, 1000);
 
-      cards[card].onload = () => {
+      cards[card].addEventListener('load', () => {
         resolve();
-      };
+      });
     }))
   }
 
@@ -2211,38 +2228,35 @@ var releasecard = () => {
 let ZOOKd = null;
 const FFdown = (e_) => {
   mousec.down = 1;
-  clearTimeout(fader);
 
-  if (isTouch) {
-    if (e_.touches.length === 1) {
-      mousepos.x = e_.touches[0].clientX + window.visualViewport.offsetLeft;
-      mousepos.y = e_.touches[0].clientY + window.visualViewport.offsetTop;
+  if (!isTouch || e_.touches.length === 1) {
+    mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft : e_.x;
+    mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop : e_.y;
+  }
 
-      const sc = window.visualViewport.scale;
-      const size = 3 / sc;
-      const border = 1 / sc;
+  if (isTouch && e_.touches.length === 1) {
+    clearTimeout(fader);
+    const sc = window.visualViewport.scale;
+    const size = 3 / sc;
+    const border = 1 / sc;
 
-      touchloc.style.display = 'block';
-      touchlocm.style.display = 'block';
+    touchloc.style.display = 'block';
+    touchlocm.style.display = 'block';
 
-      touchloc.style.animation = 'none';
-      touchlocm.style.animation = 'none';
+    touchloc.style.animation = 'none';
+    touchlocm.style.animation = 'none';
 
-      touchloc.style.width = size + 'px';
-      touchloc.style.height = size + 'px';
-      touchlocm.style.width = size + 'px';
-      touchlocm.style.height = size + 'px';
+    touchloc.style.width = size + 'px';
+    touchloc.style.height = size + 'px';
+    touchlocm.style.width = size + 'px';
+    touchlocm.style.height = size + 'px';
 
-      touchloc.style.top = mousepos.y - border + 'px';
-      touchloc.style.left = mousepos.x - border + 'px';
-      touchlocm.style.top = mousepos.y + 'px';
-      touchlocm.style.left = mousepos.x + 'px';
+    touchloc.style.top = mousepos.y - border + 'px';
+    touchloc.style.left = mousepos.x - border + 'px';
+    touchlocm.style.top = mousepos.y + 'px';
+    touchlocm.style.left = mousepos.x + 'px';
 
-      touchloc.style.borderWidth = border + 'px';
-    }
-  } else {
-    mousepos.x = e_.x;
-    mousepos.y = e_.y;
+    touchloc.style.borderWidth = border + 'px';
   }
 
   graphdraw(e_);
@@ -2341,22 +2355,17 @@ var FFmove = (e_) => {
   imawake();
 
   if (e_) {
+    if (!isTouch || e_.touches.length === 1) {
+      e_.preventDefault();
+      mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft : e_.x;
+      mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop : e_.y;
+    }
+
     if (isTouch) {
-      if (e_.touches.length === 1) {
-        e_.preventDefault();
-        mousepos.x = e_.touches[0].clientX + window.visualViewport.offsetLeft;
-        mousepos.y = e_.touches[0].clientY + window.visualViewport.offsetTop;
-      }
-
-      clearTimeout(fader);
-
-      const sc = window.visualViewport.scale;
+      //clearTimeout(fader);
+      //const sc = window.visualViewport.scale;
       touchlocm.style.top = mousepos.y + 'px';
       touchlocm.style.left = mousepos.x + 'px';
-    } else {
-      e_.preventDefault();
-      mousepos.x = e_.x;
-      mousepos.y = e_.y;
     }
   }
 
@@ -2495,7 +2504,7 @@ function updatestat() {
 }
 
 
-var qixsc = 2;
+const qixsc = 1;
 //var qixmap = new Array(200*200).fill(0);
 var qixmask = document.createElement('canvas');
 var qixmaskc = qixmask.getContext('2d');
@@ -2512,7 +2521,7 @@ var glyph_shift = 1;
 
 var glyphimg = new Image();
 glyphimg.src = 'SOL/glyph.png';
-glyphimg.onload = () => {
+glyphimg.addEventListener('load', () => {
   glyphm.width = glyphimg.width;
   glyphm.height = glyphimg.height;
   glyphc.width = 16*59;
@@ -2522,7 +2531,7 @@ glyphimg.onload = () => {
   glyphmc.globalCompositeOperation = 'source-in';
   glyphmc.fillStyle = '#0f0';
   glyphmc.fillRect(0, 0, glyphimg.width, glyphimg.height);
-}
+});
 
 function new_glyph(clear) {
   context.fillStyle = '#000';
@@ -3162,18 +3171,18 @@ function makemenu() {
         glyphscr.style.display = 'none';
 
         silhouette.src = 'silhouette.png';
-        silhouette.onload = () => {
+        silhouette.addEventListener('load', () => {
           qixmask.width = silhouette.width/2/qixsc;
           qixmask.height = silhouette.height/2/qixsc;
           reveal.src = 'flower.jpg';
-          reveal.onload = () => {
+          reveal.addEventListener('load', () => {
             qixscr.style.display = 'block';
             qixscr2.style.display = 'block';
             keyboard.style.display = 'inline-block';
             new_qix();
             qixupdate();
-          }
-        }
+          });
+        });
       });
     };
     poppy.append(newmenu('Qix', listener));
@@ -3277,9 +3286,9 @@ ${x}px ${y+18}px)`;
 
       if (args[2]) {
         alpha.src = args[2];
-        alpha.onload = () => {
+        alpha.addEventListener('load', () => {
           new_stars();
-        }
+        });
       } else {
         new_stars();
       }
@@ -3346,9 +3355,9 @@ ${x}px ${y+18}px)`;
       hintb.style.display = 'none';
 
       movingflower.src = 'flower.jpg';
-      movingflower.onload = () => {
+      movingflower.addEventListener('load', () => {
         new_screensaver();
-      };
+      });
     });
   };
   poppy.append(newmenu('Moving photo', listener));
@@ -3907,15 +3916,14 @@ function resize() {
   scr.friction.y = Math.ceil(canvas.height/canvas.width);
 }
 
-window.onload = () => {
+window.addEventListener('load', () => {
   result.style.display = fps.display ? 'block' : 'none';
   document.title = 'Starfield';
-  glyphscr.appendChild(glyphc);
   let win = document.createElement('IMG');
   win.src = 'win95.png';
-  win.onload = () => {
+  win.addEventListener('load', () => {
     windo(win);
-  }
+  });
 
   createkeyboard();
 
@@ -3993,8 +4001,13 @@ window.onload = () => {
   //  frameCount = 0;
   //});
 
-  canvas.style.cursor = 'pointer';
-  document.body.append(canvas);
+  document.body.appendChild(canvas);
+  shaderscr.appendChild(shader);
+
+  const glyphscr = document.createElement('DIV');
+  glyphscr.id = 'glyphscr';
+  document.body.appendChild(glyphscr);
+  glyphscr.appendChild(glyphc);
 
   dim.x = Math.floor(canvas.width/2)
   dim.y = Math.floor(canvas.height/2);
@@ -4004,19 +4017,19 @@ window.onload = () => {
   scr.friction.y = Math.ceil(canvas.height/canvas.width);
 
   alpha.src = 'win95.png';
-  alpha.onload = () => {
+  alpha.addEventListener('load', () => {
     new_stars();
-  }
+  });
 
   const close = document.getElementById('close');
   close.addEventListener('click', () => {
     dialogbox.style.display = 'none';
   });
-}
+});
 </script>
 </head>
 <body>
-<div id='fgbg'></div>
+<div id='shaderscr'></div>
 <div class='hintscreen'><div class='hint' id='hint'></div></div>
 <div class='hintscreen'><div class='hint' id='hint2'></div></div>
 <div class='hintscreen'><div class='hint' id='hint3'></div></div>
@@ -4025,7 +4038,6 @@ window.onload = () => {
 <div class='hintscreen'><div class='hint' id='qixscr'></div></div>
 <div class='hintscreen'><div class='hint' id='qixscr2'></div></div>
 <div id='result'></div>
-<div id='glyphscr'></div>
 <div id='stdout'>Output:</div>
 <div class='poppy' id='poppy'></div>
 <div id='touchloc'></div>

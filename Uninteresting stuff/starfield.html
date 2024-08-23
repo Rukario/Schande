@@ -1297,10 +1297,10 @@ function winsol() {
       i++;
     }
     if (i === ncard) {
-      setTimeout(resize, 1000);
+      setTimeout(resize, 4000);
       idlescreensaver = setTimeout(() => {
         new_screensaver();
-      }, 10000);
+      }, 4000);
       return;
     }
     requestAnimationFrame(update);

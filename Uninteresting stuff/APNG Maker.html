@@ -2,46 +2,275 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="white">
 <meta name="format-detection" content="telephone=no">
-<meta name="viewport" content="user-scalable=0">
+<meta name="viewport" content="width=675, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
 <style>
-body {caret-color:#ff8228; font-family:courier; font-size:14px; -webkit-text-size-adjust:none;}
-/* :root {color-scheme: light dark; body {background-color: Canvas;}} */
-[contenteditable]:focus, input:focus {outline:none;}
-#getfps:focus {outline:none;}
-a {color:#ff9449;}
-a:visited {color:#ffc66d;}
-.frame {display:inline-block; vertical-align:top;}
 
-input[type="text"] {cursor:text; height:1em;}
-input[type="file"] {display:none;}
-input[type="color"] {width:0; height:0; padding:0; margin:0; border:0; opacity:0;}
-ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:column; grid-column-gap:10px; list-style:none; padding:0; margin:0;}
-::placeholder {color:#3cb;}
+:root {
+  color-scheme: light dark;
 
-.previous, .reverse, .inverse, .next, .butt {position:relative; display:inline-block; border-radius:0px; padding:4px 11px; margin:4px; line-height:1; font-size:12px;}
-.previous, .reverse, .inverse, .next {cursor:pointer; font-family:sans-serif;}
-.next {background-color:#066; color:#6fe; border:1px solid #033;}
-.previous {background-color:#4bb; color:#133; border:1px solid #033;}
-.reverse {background-color:#428; color:#d9f; border:1px solid #214;}
-.inverse {background-color:#d9f; color:#428; border:1px solid #214;}
+  --color-bg: Canvas;
+  --color-bg: #2d0710;
 
-.tooltip {display:none; position:absolute; margin-top:37px; white-space:initial; background-color:inherit; padding:2px 8px; font-family:sans-serif; font-size:12px; max-width:calc(100% - 36px); line-height:calc(1em + 2px); z-index:9999999; left:0px; top:0px; right:initial;}
-.menu {color:#9b859d; background-color:#110c13;}
-.exitmenu {color:#f45; background-color:#2d0710;}
-.cursor_tooltip {position:absolute; left:0px; top:0px; right:initial; display:none;}
+  --color-fg: CanvasText;
+  --color-fg: #f45;
+}
 
-.backtip {cursor:default; position:relative; display:inline-block; font-size:12px; padding:5px 12px; top:-1px;}
-.backtip::before {content:''; position:absolute; left:0; top:0; border:1px solid #ffffff; background:transparent; mix-blend-mode:overlay; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none;}
-.backtip {background:inherit; z-index:1;}
+body {
+  caret-color: #ff8228;
+  font-family: courier;
+  font-size: 14px;
+  -webkit-text-size-adjust: none;
+}
 
-.local_tooltip {z-index:2; display:inline-block; color:inherit; cursor:default; padding:6px 11px 4px; margin:1px;}
-.label {top:-11px; display:table; line-height:1; font-size:12px;}
-.cell {width:352px; vertical-align:text-top; font-size:14px; margin:0 4px;}
-.cell::before {border:2px solid rgba(255, 255, 255, 0.75); width:calc(100% - 4px); height:calc(100% - 4px);}
-.stdout {white-space:pre; line-height:calc(1em + 2px); color:#9b859d; background-color:#110c13; border:2px solid #221926; display:inline-block; padding:6px; margin-top:12px;}
+[contenteditable]:focus, input:focus {
+  outline: none;
+}
 
-.aczo {font-family:courier; font-size:12px; border:none; border-top:1px solid #033; border-bottom:1px solid #033; margin:-4px 2px; bottom:4px; padding:8px 5px 9px; text-align:center; width:34px; display:inline-block;
+#getfps:focus {
+  outline: none;
+}
+
+a {
+  color: #ff9449;
+
+  ::visited {
+    color: #ffc66d;
+  }
+}
+
+.frame {
+  display: inline-block;
+  vertical-align: top;
+}
+
+input {
+  &[type='text'] {
+    cursor: text;
+    height: 1em;
+  }
+
+  &[type='file'] {
+    display: none;
+  }
+
+  &[type='color'] {
+    width: 0;
+    height: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    opacity: 0;
+  }
+
+  &[type='range'] {
+    position:relative;
+    top:6px;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: #066;
+    outline: none;
+    border:8px solid transparent;
+    background-clip: padding-box; box-shadow:inset 0 0 0 4px #066;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+    cursor: pointer;
+
+    &::hover {
+      opacity: 1;
+    }
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      border-radius: 0px;
+      height: 12px;
+      background: #4bb;
+      border:none;
+    }
+
+    &::-moz-range-thumb {
+      border-radius: 0px;
+      width: 12px;
+      height: 12px;
+      background: #4bb;
+      border:none;
+    }
+  }
+
+  &::placeholder {
+    color: #3cb;
+  }
+}
+
+ul {
+  display: inline-grid;
+  grid-template-rows: repeat(20, 1fr);
+  grid-auto-flow: column;
+  grid-column-gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+
+
+.previous, .reverse, .inverse, .next, .butt {
+  position: relative;
+  display: inline-block;
+  border-radius: 0px;
+  padding: 4px 11px;
+  margin: 4px;
+  line-height: 1;
+  font-size: 12px;
+}
+
+.previous, .reverse, .inverse, .next {
+  cursor: pointer;
+  font-family: sans-serif;
+}
+
+.next {
+  background-color: #066;
+  color: #6fe;
+  border: 1px solid #033;
+}
+
+.previous {
+  background-color: #4bb;
+  color: #133;
+  border: 1px solid #033;
+}
+
+.reverse {
+  background-color: #428;
+  color: #d9f;
+  border: 1px solid #214;
+}
+
+.inverse {
+  background-color: #d9f;
+  color: #428;
+  border: 1px solid #214;
+}
+
+.tooltip {
+  display: none;
+  position: absolute;
+  margin-top: 37px;
+  white-space: initial;
+  background-color: inherit;
+  padding: 2px 8px;
+  font-family: sans-serif;
+  font-size: 12px;
+  max-width: calc(100% - 36px);
+  line-height: calc(1em + 2px);
+  z-index: 9999999;
+  left: 0px;
+  top: 0px;
+  right: initial;
+}
+
+.menu {
+  color: #9b859d;
+  background-color: #110c13;
+}
+
+.exitmenu {
+  color: var(--color-fg);
+  background-color: var(--color-bg);
+}
+
+.cursor_tooltip {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  right: initial;
+  display: none;
+}
+
+.backtip {
+  cursor: default;
+  position: relative;
+  display: inline-block;
+  font-size: 12px;
+  padding: 5px 12px;
+  top: -1px;
+  background: inherit;
+  z-index: 1;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    border: 1px solid #ffffff;
+    background: transparent;
+    mix-blend-mode: overlay;
+    width: calc(100% - 2px);
+    height: calc(100% - 2px);
+    pointer-events: none;
+  }
+}
+
+.local_tooltip {
+  z-index: 2;
+  display: inline-block;
+  color: inherit;
+  cursor: default;
+  padding: 6px 11px 4px;
+  margin: 1px;
+}
+
+.label {
+  top: -11px;
+  display: table;
+  line-height: 1;
+  font-size: 12px;
+}
+
+.cell {
+  width: 352px;
+  vertical-align: text-top;
+  font-size: 14px;
+  margin: 0 4px;
+
+  &::before {
+    border: 2px solid rgba(255, 255, 255, 0.75);
+    width: calc(100% - 4px);
+    height: calc(100% - 4px);
+  }
+}
+
+.stdout {
+  white-space: pre;
+  line-height: calc(1em + 2px);
+  color: #9b859d;
+  background-color: #110c13;
+  border: 2px solid #221926;
+  display: inline-block;
+  padding: 6px;
+  margin-top: 12px;
+}
+
+.aczo {
+  font-family: courier;
+  font-size: 12px;
+  border: none;
+  border-top: 1px solid #033;
+  border-bottom: 1px solid #033;
+  margin: -4px 2px;
+  bottom: 4px;
+  padding: 8px 5px 9px;
+  text-align: center;
+  width: 34px;
+  display: inline-block;
+
   clip-path: polygon(
 14% 12%,
 50% 0%,
@@ -53,54 +282,27 @@ ul {display:inline-grid; grid-template-rows:repeat(20, 1fr); grid-auto-flow:colu
 );
 }
 
-.aczo28 {bottom:5px; padding:10px 7px 11px; width:44px;}
-
-input[type="range"] {
-  position:relative;
-  top:6px;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 4px;
-  background: #066;
-  outline: none;
-  border:8px solid transparent;
-  background-clip: padding-box; box-shadow:inset 0 0 0 4px #066;
-  opacity: 0.7;
-  -webkit-transition: .2s;
-  transition: opacity .2s;
-  cursor: pointer;
+.aczo28 {
+  bottom: 5px;
+  padding: 10px 7px 11px;
+  width: 44px;
 }
 
-input[type="range"]:hover {
-  opacity: 1;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 12px;
-  border-radius: 0px;
-  height: 12px;
-  background: #4bb;
-  border:none;
-}
-
-input[type="range"]::-moz-range-thumb {
-  border-radius: 0px;
-  width: 12px;
-  height: 12px;
-  background: #4bb;
-  border:none;
-}
 </style>
 <script>
-var isTouch = 'ontouchstart' in window ? true : false;
+var isTouch = 'ontouchstart' in window;
 var busyclick = false;
-var mousepos = {'x':0, 'y':0};
-var rubbermouse = {'x':0, 'y':0};
+var mousepos = {
+  x: 0,
+  y: 0
+};
+var rubbermouse = {
+  x: 0,
+  y: 0
+};
 
 function getfontcolor(c, v){
-  if(c[0] >= "cc" && c[1] >= "cc" && c[2] >= "cc"){
+  if(c[0] >= 'cc' && c[1] >= 'cc' && c[2] >= 'cc'){
     return ".exitmenu{background-color:#" + v + "; color:#586e75;}"
   } else if(c[0] >= "99" || c[1] >= "99" || c[2] >= "99"){
     return ".exitmenu{background-color:#" + v + "; color:#000;}"
@@ -114,27 +316,27 @@ function getfontcolor(c, v){
 }
 
 var sharp = [false, false];
-if (window.location.href.includes("#")) {
+if (window.location.href.includes('#')) {
   sharp[0] = window.location.href.split('#')[1];
 }
 
 if (sharp[0]) {
-  if (sharp[0].endsWith(".css")) {
-    const link = document.createElement("link");
+  if (sharp[0].endsWith('.css')) {
+    const link = document.createElement('link');
     link.href = sharp[0];
-    link.rel = "stylesheet";
-    document.getElementsByTagName("head")[0].appendChild(link);
+    link.rel = 'stylesheet';
+    document.getElementsByTagName('head')[0].appendChild(link);
     link.onerror = () => {
       sharp[1] = true;
     }
   } else {
-    const s = document.createElement("style");
+    const s = document.createElement('style');
     s.innerHTML = getfontcolor(sharp[0].match(/.{1,2}/g), sharp[0]);
-    document.getElementsByTagName("head")[0].appendChild(s);
+    document.getElementsByTagName('head')[0].appendChild(s);
   }
 } else {
-  const a = document.createElement("a");
-  a.href = "#2d0710";
+  const a = document.createElement('A');
+  a.href = '#2d0710';
   a.click();
 }
 
@@ -156,16 +358,16 @@ var FFdown = (e_) => {
     const hs = t.height/t.offsetHeight;
 
     magic_wand([(mousepos.x - Math.ceil(rect.left)) * ws, (mousepos.y - Math.ceil(rect.top)) * hs]);
-  } else if (t.hasAttribute("data-tooltip")) {
-    tooltip.style.display = "inline-block";
+  } else if (t.hasAttribute('data-tooltip')) {
+    tooltip.style.display = 'inline-block';
     tooltip.innerHTML = t.dataset.tooltip;
     const left = () => {
       setTimeout(() => {
-        tooltip.style.display = "none";
+        tooltip.style.display = 'none';
       }, 1250);
-      a.removeEventListener("mouseleave", left);
+      a.removeEventListener('mouseleave', left);
     }
-    a.addEventListener("mouseleave", left);
+    a.addEventListener('mouseleave', left);
   }
 }
 
@@ -185,24 +387,24 @@ var FFmove = (e_) => {
 
 function plaintext(e) {
   e.preventDefault();
-  const text = e.clipboardData.getData('text/plain').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const text = e.clipboardData.getData('text/plain').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   document.execCommand('insertHTML', false, text);
 }
 
 function quicklook(e) {
-  if (e.target.classList.contains("lazy")) {
+  if (e.target.classList.contains('lazy')) {
     e.preventDefault();
     var t = e.target;
     var c = {};
 
     var m = new Image();
-    m.src = t.parentNode.getAttribute("href");
+    m.src = t.parentNode.getAttribute('href');
     var s = new Image();
-    s.src = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0].getAttribute("href");
+    s.src = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0].getAttribute('href');
 
-    c = document.createElement("canvas");
+    c = document.createElement('CANVAS');
     get_dim(m, 3);
-    context = c.getContext("2d");
+    context = c.getContext('2d');
     c.width = dim[3][2];
     c.height = dim[3][3];
 
@@ -220,29 +422,29 @@ function quicklook(e) {
     //c.setAttribute("src", t.parentNode.getAttribute("href"));
 
     c.style = cs;
-    c.setAttribute("id", "quicklook");
+    c.id = 'quicklook';
     t.parentNode.appendChild(c);
 
     const listener = () => {
       setTimeout(() => {
         t.parentNode.removeChild(c);
       }, 40);
-      t.removeEventListener("mouseleave", listener);
+      t.removeEventListener('mouseleave', listener);
     }
-    t.addEventListener("mouseleave", listener);
+    t.addEventListener('mouseleave', listener);
   }
 }
 
-document.addEventListener("mouseover", quicklook);
+document.addEventListener('mouseover', quicklook);
 
-var co = "position:fixed; right:0; top:0; z-index:1; pointer-events:none;";
-var cf = co + "max-height: 100vh; max-width: 100vw;";
+var co = 'position:fixed; right:0; top:0; z-index:1; pointer-events:none;';
+var cf = co + 'max-height: 100vh; max-width: 100vw;';
 var cs = cf;
 
 function lazyload() {
   var lazyloadImages;
 
-  lazyloadImages = document.querySelectorAll(".lazy");
+  lazyloadImages = document.querySelectorAll('.lazy');
   var imageObserver = new IntersectionObserver((entries, observer) => {
     entries.forEach((e) => {
       if (e.isIntersecting) {
@@ -254,8 +456,8 @@ function lazyload() {
   });
 
   lazyloadImages.forEach((image) => {
-    image.style.height = "200px";
-    image.style.width = "auto";
+    image.style.height = '200px';
+    image.style.width = 'auto';
     imageObserver.observe(image);
   });
 }
@@ -264,28 +466,28 @@ var Expand = (c, t) => {
   if (!c.naturalWidth) {
     return setTimeout(Expand, 10, c, t);
   }
-  c.style.maxWidth = "100%";
-  c.style.display = "";
-  t.style.display = "none";
-  t.style.opacity = "";
+  c.style.maxWidth = '100%';
+  c.style.display = '';
+  t.style.display = 'none';
+  t.style.opacity = '';
 };
 
 var Expander = (e) => {
   const t = e.target;
-  if (t.parentNode.classList.contains("fileThumb")) {
+  if (t.parentNode.classList.contains('fileThumb')) {
     e.preventDefault();
-    if (t.hasAttribute("data-src")) {
-      const c = document.createElement("img");
-      c.setAttribute("src", t.parentNode.getAttribute("href"));
-      c.style.display = "none";
+    if (t.hasAttribute('data-src')) {
+      const c = document.createElement('img');
+      c.setAttribute('src', t.parentNode.getAttribute('href'));
+      c.style.display = 'none';
       t.parentNode.appendChild(c);
-      t.style.opacity = "0.75";
+      t.style.opacity = '0.75';
       setTimeout(Expand, 10, c, t);
     } else {
       const a = t.parentNode;
-      a.firstChild.style.display = "";
+      a.firstChild.style.display = '';
       a.removeChild(t);
-      a.offsetTop < window.pageYOffset && a.scrollIntoView({top: 0, behavior: "smooth"});
+      a.offsetTop < window.pageYOffset && a.scrollIntoView({top: 0, behavior: 'smooth'});
     }
   }
 };
@@ -434,9 +636,9 @@ function echoPalette(h=8, s=1) {
 }
 
 function constPNG(ar, z) {
-  Array.from(z).forEach((a) => {
+  for (const a of Array.from(z)) {
     ar.push(a);
-  })
+  }
 }
 
 function reconstPNG(IHDR, arri) {  
@@ -722,8 +924,8 @@ function frame_diff(a, b, i) {
   dim[3] = [d.x[0], d.y[0], d.x[d.x.length-1]-d.x[0]+1, d.y[d.y.length-1]-d.y[0]+1];
 }
 
-var qixmask = document.createElement("canvas");
-var qixmaskc = qixmask.getContext("2d");
+var qixmask = document.createElement('CANVAS');
+var qixmaskc = qixmask.getContext('2d');
 
 function magic_wand(satellite) {
   qixmask.width = c.width;
@@ -1144,7 +1346,10 @@ function readMDP(arri) {
     dl += chunkSize;
   }
 
-  layerlist.innerHTML = "";
+  while (layerlist.firstChild) {
+    layerlist.lastChild.remove()
+  };
+
   const readLayer = (LayerN) => {
     if (LayerN >= layers.length) {
       updatebutton(echolayers, echoMDP);
@@ -1172,93 +1377,119 @@ function readMDP(arri) {
       layerlist.innerHTML += `${LayerN} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.mode}\n`;
     }
 
+    const layerColor = layer.color;
+
     const dim = PAC.unpack(arri.buffer.slice(pos, pos + 4))[0];
     pos += 4;
 
-    const tilemask = document.createElement("canvas");
+    const tilemask = document.createElement('CANVAS');
     tilemask.width = dim;
     tilemask.height = dim;
-    const tilemaskc = tilemask.getContext("2d");
+    const tilemaskc = tilemask.getContext('2d');
 
-    const canvas = document.createElement("canvas");
+    const canvas = document.createElement('CANVAS');
     canvas.width = c.width;
     canvas.height = c.height;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
+
+
+
+    const PNGifiedTile = (callback, interTileN, isMask) => {
+      const header = arri.buffer.slice(pos, pos + offset3);
+      pos += offset3;
+
+      const [x, y, ctype, size] = HeaderStruct.unpack(header);
+      const clean_IDAT = arri.slice(pos, pos + size);
+      pos += size + mod(4-size, 4);
+
+      const data = pako.inflate(clean_IDAT);
+
+      let IHDR = new Array(0);
+      IHDR = IHDR.concat(int32ToAB(dim));
+      IHDR = IHDR.concat(int32ToAB(dim));
+      IHDR = IHDR.concat([0x08, 0x06, 0x00, 0x00, 0x00]); // RGBA
+      IHDR = makeChunkBytes('IHDR', IHDR);
+
+      let fdata = new Array(0);
+      for (const i of Array(dim*4).keys()) {
+        fdata = fdata.concat([0x00]);
+        fdata = fdata.concat(Array.from(data.slice(i*dim*4, (i+1)*dim*4)));
+      }
+
+      const constPNG = reconstPNG(IHDR, pako.deflate(new Uint8Array(fdata)));
+      img = ABtoIMG(ABtoAB(constPNG));
+      img.onload = () => {
+        ctx.drawImage(img, x*dim, y*dim, dim, dim);
+
+        callback(interTileN + 1);
+        // echoIMG(img, name.split('.').slice(0, -1).join('.') + " (tile).png");
+      }
+    }
+
+    const tileRead = (callback, interTileN, isMask) => {
+      const header = arri.buffer.slice(pos, pos + offset3);
+      pos += offset3;
+
+      const [x, y, ctype, size] = HeaderStruct.unpack(header);
+      const clean_IDAT = arri.slice(pos, pos + size);
+      pos += size + mod(4-size, 4);
+
+      const data = pako.inflate(clean_IDAT);
+      const tilemap = tilemaskc.createImageData(dim, dim);
+
+      if (isMask) {
+        for (let n = 0; n < data.length*4; n += 4) {
+          tilemap.data[n] = 0;
+          tilemap.data[n+1] = 0;
+          tilemap.data[n+2] = 0;
+          tilemap.data[n+3] = data[Math.ceil(n/4)];
+        }
+
+        tilemaskc.putImageData(tilemap, 0, 0);
+      } else {
+        for (let n = 0; n < data.length; n += 4) {
+          tilemap.data[n] = data[n+2];
+          tilemap.data[n+1] = data[n+1];
+          tilemap.data[n+2] = data[n];
+          tilemap.data[n+3] = data[n+3];
+        }
+        tilemaskc.putImageData(tilemap, 0, 0);
+      }
+
+      ctx.drawImage(tilemask, x*dim, y*dim, dim, dim);
+      callback(interTileN + 1);
+    }
+
+
 
     //Fi[1] = performance.now();
     const readTile = (TileN) => {
       if (TileN >= tileNum) {
         // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
         layer.canvas = canvas;
-        setTimeout(() => {readLayer(LayerN+1)}, 0);
+        setTimeout(() => {
+          readLayer(LayerN + 1);
+        }, 0);
         return;
       }
-      const header = arri.buffer.slice(pos, pos + offset3);
-      pos += offset3;
 
-      const layerColor = layer.color;
       if (layerColor) {
         const [a, r, g, b] = [layerColor.substring(0, 2), layerColor.substring(2, 4), layerColor.substring(4, 6), layerColor.substring(6, 8)];
         tilemaskc.fillStyle = `#${r}${g}${b}${a}`;
         tilemaskc.fillRect(0, 0, dim, dim);
       }
 
-      const [x, y, ctype, size] = HeaderStruct.unpack(header);
-      const clean_IDAT = arri.slice(pos, pos + size);
-      pos += size + mod(4-size, 4);
-
-      const tilemap = tilemaskc.createImageData(dim, dim);
-      const data = pako.inflate(clean_IDAT);
       switch (layer.type) {
         case '32bpp':
-          if (true) {
-            for (let n = 0; n < data.length; n += 4) {
-              tilemap.data[n] = data[n+2];
-              tilemap.data[n+1] = data[n+1];
-              tilemap.data[n+2] = data[n];
-              tilemap.data[n+3] = data[n+3];
-            }
-            tilemaskc.putImageData(tilemap, 0, 0);
-            ctx.drawImage(tilemask, x*dim, y*dim, dim, dim);
-            readTile(TileN+1);
-          } else {
-            // PNGified tiles
-            let IHDR = new Array(0);
-            IHDR = IHDR.concat(int32ToAB(dim));
-            IHDR = IHDR.concat(int32ToAB(dim));
-            IHDR = IHDR.concat([0x08, 0x06, 0x00, 0x00, 0x00]); // RGBA
-            IHDR = makeChunkBytes('IHDR', IHDR);
-
-            let fdata = new Array(0);
-            for (const i of Array(dim*4).keys()) {
-              fdata = fdata.concat([0x00]);
-              fdata = fdata.concat(Array.from(data.slice(i*dim*4, (i+1)*dim*4)));
-            }
-
-            const constPNG = reconstPNG(IHDR, pako.deflate(new Uint8Array(fdata)));
-            img = ABtoIMG(ABtoAB(constPNG));
-            img.onload = () => {
-              ctx.drawImage(img, x*dim, y*dim, dim, dim);
-              readTile(TileN+1);
-              // echoIMG(img, name.split('.').slice(0, -1).join('.') + " (tile).png");
-            }
-          }
+          tileRead(readTile, TileN);
           break;
         case '8bpp':
         case '1bpp':
         case 'mask':
-          for (let n = 0; n < data.length*4; n += 4) {
-            tilemap.data[n] = 0;
-            tilemap.data[n+1] = 0;
-            tilemap.data[n+2] = 0;
-            tilemap.data[n+3] = data[Math.ceil(n/4)];
-          }
-          tilemaskc.putImageData(tilemap, 0, 0);
-          ctx.drawImage(tilemask, x*dim, y*dim, dim, dim);
-          readTile(TileN+1);
+          tileRead(readTile, TileN, true);
           break;
         default:
-          console.log("illegal");
+          console.log('Illegal');
       }
     }
     readTile(0);
@@ -1268,17 +1499,17 @@ function readMDP(arri) {
 }
 
 function echoMDP() {
-  const canvas2 = document.createElement("canvas");
-  const ctx2 = canvas2.getContext("2d");
+  const canvas2 = document.createElement('CANVAS');
+  const ctx2 = canvas2.getContext('2d');
   canvas2.width = c.width;
   canvas2.height = c.height;
 
   let started = true;
   let visibleformask = false;
-  let usemode = "source-over";
+  let usemode = 'source-over';
   let usealpha = 1;
-  for (const next of layerlist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter((e) => {return e;})) {
-    const seq = next.split(" ");
+  for (const next of layerlist.innerHTML.replace(/\<br\>/g, '\n').split('\n').filter((e) => {return e;})) {
+    const seq = next.split(' ');
     if (!parseInt(seq[1]) || seq[3] == 'folder') {
       visibleformask = false;
       continue;
@@ -1289,15 +1520,15 @@ function echoMDP() {
         if (!visibleformask) {
           continue;
         }
-        const mask = document.createElement("canvas");
+        const mask = document.createElement('CANVAS');
         mask.width = c.width;
         mask.height = c.height;
 
-        const maskcontext = mask.getContext("2d");
+        const maskcontext = mask.getContext('2d');
         maskcontext.drawImage(layers[parseInt(seq[0])].canvas, 0, 0, c.width, c.height);
-        maskcontext.globalCompositeOperation = "source-out";
+        maskcontext.globalCompositeOperation = 'source-out';
         maskcontext.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
-        maskcontext.globalCompositeOperation = "source-over";
+        maskcontext.globalCompositeOperation = 'source-over';
 
         ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
         ctx2.drawImage(mask, 0, 0, mask.width, mask.height);
@@ -1311,7 +1542,7 @@ function echoMDP() {
        
           // reset
           ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
-          context.globalCompositeOperation = "source-over";
+          context.globalCompositeOperation = 'source-over';
           context.globalAlpha = 1;
         } else {
           started = false;
@@ -1331,7 +1562,7 @@ function echoMDP() {
 
   echoCanvas(c);
 
-  updatebutton(makepng, echoIMGfromCanvas [c, name.split('.').slice(0, -1).join('.') + ".png"]);
+  updatebutton(makepng, echoIMGfromCanvas [c, name.split('.').slice(0, -1).join('.') + '.png']);
 }
 
 

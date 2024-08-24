@@ -353,7 +353,7 @@ var FFdown = (e_) => {
   const t = e_.target;
   const a = t.parentNode;
   const rect = t.getBoundingClientRect();
-  if (t.tagName == 'CANVAS') {
+  if (t.tagName === 'CANVAS') {
     const ws = t.width/t.offsetWidth;
     const hs = t.height/t.offsetHeight;
 
@@ -391,25 +391,26 @@ function plaintext(e) {
   document.execCommand('insertHTML', false, text);
 }
 
+function splitlines(e) {
+  return e.innerHTML.replace(/\<br\>/g, '\n').split('\n').filter((x) => x);
+}
+
 function quicklook(e) {
   if (e.target.classList.contains('lazy')) {
     e.preventDefault();
     var t = e.target;
-    var c = {};
 
     var m = new Image();
-    m.src = t.parentNode.getAttribute('href');
     var s = new Image();
+
+    m.src = t.parentNode.getAttribute('href');
     s.src = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0].getAttribute('href');
 
-    c = document.createElement('CANVAS');
     get_dim(m, 3);
-    context = c.getContext('2d');
-    c.width = dim[3][2];
-    c.height = dim[3][3];
+    const ctx = newCanvas(dim[3][2], dim[3][3]);
 
-    if (s.src == m.src) {
-      context.fillRect(...dim[3]);
+    if (s.src === m.src) {
+      ctx.fillRect(...dim[3]);
     } else {
       m.onload = () => {
         fps = 1;
@@ -418,16 +419,13 @@ function quicklook(e) {
       }
     }
 
-    //c = document.createElement("img");
-    //c.setAttribute("src", t.parentNode.getAttribute("href"));
-
-    c.style = cs;
-    c.id = 'quicklook';
-    t.parentNode.appendChild(c);
+    ctx.canvas.style = cs;
+    ctx.canvas.id = 'quicklook';
+    t.parentNode.appendChild(ctx.canvas);
 
     const listener = () => {
       setTimeout(() => {
-        t.parentNode.removeChild(c);
+        t.parentNode.removeChild(ctx.canvas);
       }, 40);
       t.removeEventListener('mouseleave', listener);
     }
@@ -442,24 +440,22 @@ var cf = co + 'max-height: 100vh; max-width: 100vw;';
 var cs = cf;
 
 function lazyload() {
-  var lazyloadImages;
-
-  lazyloadImages = document.querySelectorAll('.lazy');
-  var imageObserver = new IntersectionObserver((entries, observer) => {
-    entries.forEach((e) => {
+  const lazyloadImages = document.querySelectorAll('.lazy');
+  const imageObserver = new IntersectionObserver((entries, observer) => {
+    for (const e of entries) {
       if (e.isIntersecting) {
         const image = e.target;
         image.src = image.dataset.src;
         imageObserver.unobserve(image);
       }
-    });
+    };
   });
 
-  lazyloadImages.forEach((image) => {
-    image.style.height = '200px';
-    image.style.width = 'auto';
-    imageObserver.observe(image);
-  });
+  for (const img of lazyloadImages) {
+    img.style.height = '200px';
+    img.style.width = 'auto';
+    imageObserver.observe(img);
+  };
 }
 
 var Expand = (c, t) => {
@@ -501,7 +497,7 @@ function isImage(ext) {
   ext = ext.toLowerCase()
   if (['jpg', 'jpeg', 'bmp', 'png', 'heic'].includes(ext)) {
     return true;
-  } else if (ext == 'gif') {
+  } else if (ext === 'gif') {
     return 'gif';
   }
 }
@@ -573,6 +569,17 @@ function echoIMG(img, B) {
   stdout.appendChild(dl);
 }
 
+function newCanvas(w, h) {
+  const d = document.createElement('CANVAS').getContext('2d');
+  if (w) {
+    d.width = d.canvas.width = w;
+  }
+  if (h) {
+    d.height = d.canvas.height = h;
+  }
+  return d;
+}
+
 function echoCanvas(c) {
   c.style.maxHeight = "400px";
   echo('');
@@ -594,26 +601,17 @@ function echoIMGfromCanvas(c, B=undefined, ext='png') {
   })
 }
 
-function echoHEIC(image, B) {
-  c = document.createElement("canvas");
-  c.width = image.get_width();
-  c.height = image.get_height();
-  context = c.getContext("2d");
-  image.display(context.createImageData(c.width, c.height), (display_image_data) => {
-    context.putImageData(display_image_data, 0, 0);
-    echoIMGfromCanvas(c, B, 'jpeg');
-  });
-};
-
-function echoPalette(h=8, s=1) {
+function echoPalette(h = 8, s = 1) {
   palette.sort();
-  const c2 = document.createElement("canvas");
-  const context2 = c2.getContext("2d");
-  const w = Math.ceil(palette.length/h);
-  c2.width = w*s;
-  c2.height = h*s;
 
-  const img = context2.createImageData(w, h);
+  const w = Math.ceil(palette.length/h);
+
+  const ctx = newCanvas(w*s, h*s);
+  const ctx2 = newCanvas(ctx.width, ctx.height);
+  ctx2.imageSmoothingEnabled = false;
+  ctx2.scale(s, s);
+
+  const img = ctx.createImageData(w, h);
   const d = img.data;
   for (const [i, p] of palette.entries()) {
     d[i*4] = parseInt(p.slice(0, 2), 16);
@@ -621,17 +619,10 @@ function echoPalette(h=8, s=1) {
     d[i*4+2] = parseInt(p.slice(4, 6), 16);
     d[i*4+3] = 255;
   }
-  context2.putImageData(img, 0, 0);
+  ctx.putImageData(img, 0, 0);
 
-  const c3 = document.createElement("canvas");
-  const context3 = c3.getContext("2d");
-  c3.width = c2.width;
-  c3.height = c2.height;
-
-  context3.imageSmoothingEnabled = false;
-  context3.scale(s, s);
-  context3.drawImage(c2, 0, 0, c3.width, c3.height, 0, 0, c2.width, c2.height);
-  echoIMGfromCanvas(c3);
+  ctx2.drawImage(ctx.canvas, 0, 0, ctx2.width, ctx2.height, 0, 0, ctx.width, ctx.height);
+  echoIMGfromCanvas(ctx2.canvas);
   palette = [];
 }
 
@@ -658,7 +649,7 @@ function reconstPNG(IHDR, arri) {
   return arri;
 }
 
-function canvasToAB(c, ext="png", apngprod=false) {
+function canvasToAB(c, ext = 'png', apngprod = false) {
   return (resolve) => {
     c.toBlob((blob0) => {
       var fr = new FileReader();
@@ -669,7 +660,7 @@ function canvasToAB(c, ext="png", apngprod=false) {
         Fi[2] = performance.now();
         //echo((Fi[2] - Fi[1])/1000 + "s canvasToAB(c)")
         Fi[1] = performance.now();
-        if (ext == "png") {
+        if (ext === 'png') {
           if (decompress) {
             //https://manpages.debian.org/stretch/optipng/optipng.1.en.html
             if (apngprod) {
@@ -737,40 +728,40 @@ function get_dim(image, i) {
   dim[i] = [0, 0, image.width, image.height];
 }
 
-function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=false) {
+function ABtoFrame(arri, callback, interFrameN, fpsm = 1, callback2 = false, filler = false) {
   Fi[1] = performance.now();
   arri = Array.from(arri);
   newframe.arri = arri;
   Fi[2] = performance.now();
   //echo((Fi[2] - Fi[1])/1000 + "s ArrayBuffer")
-  if (callback == undefined) {
+  if (callback === undefined) {
     Fi[3] = performance.now();
 
-    const B = "Frame " + (interFrameN+1);
-    echo(B + " in " + (Fi[3] - Fi[0])/1000 + "s");
+    const B = 'Frame ' + (interFrameN+1);
+    echo(B + ' in ' + (Fi[3] - Fi[0])/1000 + 's');
     document.title = B;
     echoIMG(ABtoIMG(ABtoAB(arri)), name);
 
     if (callback2) {
       callback2(interFrameN + nextFrame);
     } else {
-      document.title = "Make APNG";
+      document.title = 'Make APNG';
       setfps(getfps.value);
     }
-  } else if (interFrameN == undefined) {
-    document.title = "Make APNG";
+  } else if (interFrameN === undefined) {
+    document.title = 'Make APNG';
     //echoIMG(ABtoIMG(ABtoAB(arri)), "Resave as" + ".png");
     toFrame([1000, 1000]);
     callback(0, callback2);
   } else {
     if (filler) {
-      echo("APNGified");
+      echo('APNGified');
     } else {
-      const B = "Frame " + (interFrameN+1);
+      const B = 'Frame ' + (interFrameN + 1);
       echo(B);
       document.title = B;
       if (interecho) {
-        echoIMG(ABtoIMG(ABtoAB(arri)), B + ".png");
+        echoIMG(ABtoIMG(ABtoAB(arri)), B + '.png');
       }
     }
     toFrame([1000/(fps/fpsm), 1000]);
@@ -778,7 +769,7 @@ function ABtoFrame(arri, callback, interFrameN, fpsm=1, callback2=false, filler=
   }
 }
 
-function canvasToFrame(callback, interFrameN, fpsm=1, callback2=false, filler=false) {
+function canvasToFrame(callback, interFrameN, fpsm = 1, callback2 = false, filler = false) {
   Fi[1] = performance.now();
   const promise = new Promise(canvasToAB(c, 'png', true));
   promise.then((arri) => {
@@ -847,35 +838,35 @@ function contour(a) {
 
   for (var i = 0; i < a.length; i += 4) {
     a[i+3] = 255;
-    if(a[i] == 0 && a[i+1] == 0 && a[i+2] == 0){
+    if (a[i] === 0 && a[i+1] === 0 && a[i+2] === 0) {
       a[i] = 0;
       a[i+1] = 0;
       a[i+2] = 0;
-    } else if(a[i] > 12 || a[i+1] > 12 || a[i+2] > 12){
+    } else if (a[i] > 12 || a[i+1] > 12 || a[i+2] > 12) {
       a[i] = 255;
       a[i+1] = 255;
       a[i+2] = 255;
-    } else if(a[i] > 10 || a[i+1] > 10 || a[i+2] > 10){
+    } else if (a[i] > 10 || a[i+1] > 10 || a[i+2] > 10) {
       a[i] = r[5];
       a[i+1] = g[5];
       a[i+2] = b[5];
-    } else if(a[i] > 8 || a[i+1] > 8 || a[i+2] > 8){
+    } else if (a[i] > 8 || a[i+1] > 8 || a[i+2] > 8) {
       a[i] = r[4];
       a[i+1] = g[4];
       a[i+2] = b[4];
-    } else if(a[i] > 6 || a[i+1] > 6 || a[i+2] > 6){
+    } else if (a[i] > 6 || a[i+1] > 6 || a[i+2] > 6) {
       a[i] = r[3];
       a[i+1] = g[3];
       a[i+2] = b[3];
-    } else if(a[i] > 4 || a[i+1] > 4 || a[i+2] > 4){
+    } else if (a[i] > 4 || a[i+1] > 4 || a[i+2] > 4) {
       a[i] = r[2];
       a[i+1] = g[2];
       a[i+2] = b[2];
-    } else if(a[i] > 2 || a[i+1] > 2 || a[i+2] > 2){
+    } else if (a[i] > 2 || a[i+1] > 2 || a[i+2] > 2) {
       a[i] = r[1];
       a[i+1] = g[1];
       a[i+2] = b[1];
-    } else if(a[i] > 0 || a[i+1] > 0 || a[i+2] > 0){
+    } else if (a[i] > 0 || a[i+1] > 0 || a[i+2] > 0) {
       a[i] = r[0];
       a[i+1] = g[0];
       a[i+2] = b[0];
@@ -884,13 +875,13 @@ function contour(a) {
 }
 
 function detect() {
-  seqFrameN = framelist.innerHTML.split("\n").filter((el) => {return el;});
+  seqFrameN = splitlines(framelist);
   c.width = dim[1][2];
   c.height = dim[1][3];
   dim[3] = [...dim[1]];
   if (seqFrameN.length > 1) {
-    if (fps == 0) {
-      echo("Bad FPS");
+    if (fps === 0) {
+      echo('Bad FPS');
     } else {
       apngdiff(framearray[seqFrameN[0]-1][0], framearray[seqFrameN[1]-1][0], seqFrameN.length === 3 ? framearray[seqFrameN[2]-1][0] : false);
     }
@@ -905,7 +896,7 @@ function frame_diff(a, b, i) {
   for (const y of Array(dim[i][3]).keys()) {
     const o = (y+1)*dim[i][2];
     for (let x=(o-dim[i][2])*4; x<o*4; x+=4) {
-      if (b[x+3] !== 0 && a[x+3] == 255 && a[x] == b[x] && a[x+1] == b[x+1] && a[x+2] == b[x+2]) {
+      if (b[x+3] !== 0 && a[x+3] === 255 && a[x] === b[x] && a[x+1] === b[x+1] && a[x+2] === b[x+2]) {
         b[x+3] = 0;
       } else {
         d.x.push((x/4)+dim[i][2]-o);
@@ -924,23 +915,23 @@ function frame_diff(a, b, i) {
   dim[3] = [d.x[0], d.y[0], d.x[d.x.length-1]-d.x[0]+1, d.y[d.y.length-1]-d.y[0]+1];
 }
 
-var qixmask = document.createElement('CANVAS');
-var qixmaskc = qixmask.getContext('2d');
+const qixmask = newCanvas();
 
 function magic_wand(satellite) {
-  qixmask.width = c.width;
-  qixmask.height = c.height;
-  const qixmap = qixmaskc.createImageData(c.width, c.height);
+  qixmask.width = qixmask.canvas.width = c.width;
+  qixmask.height = qixmask.canvas.height = c.height;
+
+  const qixmap = qixmask.createImageData(c.width, c.height);
   const color = context.getImageData(0, 0, c.width, c.height);
 
-  const n = satellite[0]+satellite[1]*qixmask.width;
+  const n = satellite[0] + satellite[1] * qixmask.width;
   const rgba = color.data.slice(n*4, n*4+4);
 
   const monstermap = new Uint8Array(c.width * c.height);
   let pixels = 0;
 
   for (const n of Array(c.width * c.height).keys()) {
-    if (color.data.slice(n*4, n*4+4).every((r, i) => {return r === rgba[i];})) {
+    if (color.data.slice(n*4, n*4+4).every((r, i) => r === rgba[i])) {
     //if (qixmap.data[n*4+3] === 255) {
       monstermap[n] = 1;
     } else {
@@ -971,8 +962,8 @@ function magic_wand(satellite) {
     }
   }
 
-  qixmaskc.putImageData(qixmap, 0, 0);
-  echoCanvas(qixmask);
+  qixmask.putImageData(qixmap, 0, 0);
+  echoCanvas(qixmask.canvas);
 }
 
 function draw(x, i) {
@@ -1194,8 +1185,8 @@ const lut = le => ({
   s: c=>[1,c,o=>({u:v=>str(v,o,c), p:(v,s)=>rts(v,o,c,s.slice(0,c    ) )})],
   p: c=>[1,c,o=>({u:v=>pst(v,o,c), p:(v,s)=>tsp(v,o,c,s.slice(0,c - 1) )})]
 })
-const errbuf = new RangeError("Structure larger than remaining buffer")
-const errval = new RangeError("Not enough values for structure")
+const errbuf = new RangeError("Structure larger than remaining buffer");
+const errval = new RangeError("Not enough values for structure");
 function struct(format) {
   let fns = [], size = 0, m = rechk.exec(format)
   if (!m) { throw new RangeError("Invalid format string") }
@@ -1213,7 +1204,9 @@ function struct(format) {
     if (arrb.byteLength < offs + size) { throw errbuf }
     const v = new DataView(arrb, offs)
     new Uint8Array(arrb, offs, size).fill(0)
-    fns.forEach((f, i) => f.p(v, values[i]))
+    for (const [f, i] of fns) {
+      f.p(v, values[i]);
+    };
   }
   const pack = (...values) => {
     let b = new ArrayBuffer(size)
@@ -1308,19 +1301,16 @@ function readMDP(arri) {
   c.height = Mdiapp.getAttribute("height");
 
   layers = [];
-  const layerelements = Mdiapp.getElementsByTagName("Layers")[0].getElementsByTagName("Layer");
+  const layerelements = Mdiapp.getElementsByTagName('Layers')[0].getElementsByTagName('Layer');
   for (const e of layerelements) {
-    const layer = {};
-    layer.bin = e.getAttribute("bin");
-    layer.type = e.getAttribute("type");
-    if (e.getAttribute('masking') == 'true') {
-      layer.type = "mask";
-    }
-    layer.mode = e.getAttribute("mode");
-    layer.color = e.getAttribute("color");
-    layer.alpha = Math.ceil(e.getAttribute('alpha')/255*100)/100;
-    layer.visible = e.getAttribute('visible') == 'true' ? 1 : 0;
-    layer.mode = toCanvasMode(e.getAttribute("mode"));
+    const layer = newCanvas(c.width, c.height); 
+    layer.bin = e.getAttribute('bin');
+    layer.type = e.getAttribute('masking') === 'true' ? 'mask' : e.getAttribute('type');
+    layer.mode = e.getAttribute('mode');
+    layer.color = e.getAttribute('color');
+    layer.alpha = Math.ceil(e.getAttribute('alpha') / 255 * 100) / 100;
+    layer.visible = e.getAttribute('visible') === 'true';
+    layer.mode = toCanvasMode(e.getAttribute('mode'));
     layers.push(layer);
   }
 
@@ -1359,7 +1349,7 @@ function readMDP(arri) {
     const layer = layers[LayerN];
     //Fi[0] = performance.now();
 
-    if (layer.type == "folder") {
+    if (layer.type === 'folder') {
       setTimeout(() => {readLayer(LayerN+1)}, 1000);
     };
 
@@ -1371,7 +1361,7 @@ function readMDP(arri) {
       setTimeout(() => {readLayer(LayerN+1)}, 1000);
     }
 
-    if (layer.type == 'mask') {
+    if (layer.type === 'mask') {
       layerlist.innerHTML += `${LayerN} ${layer.visible} ${layer.alpha} ${layer.type}\n`;
     } else {
       layerlist.innerHTML += `${LayerN} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.mode}\n`;
@@ -1382,17 +1372,7 @@ function readMDP(arri) {
     const dim = PAC.unpack(arri.buffer.slice(pos, pos + 4))[0];
     pos += 4;
 
-    const tilemask = document.createElement('CANVAS');
-    tilemask.width = dim;
-    tilemask.height = dim;
-    const tilemaskc = tilemask.getContext('2d');
-
-    const canvas = document.createElement('CANVAS');
-    canvas.width = c.width;
-    canvas.height = c.height;
-    const ctx = canvas.getContext('2d');
-
-
+    const tilemask = newCanvas(dim, dim);
 
     const PNGifiedTile = (callback, interTileN, isMask) => {
       const header = arri.buffer.slice(pos, pos + offset3);
@@ -1419,7 +1399,7 @@ function readMDP(arri) {
       const constPNG = reconstPNG(IHDR, pako.deflate(new Uint8Array(fdata)));
       img = ABtoIMG(ABtoAB(constPNG));
       img.onload = () => {
-        ctx.drawImage(img, x*dim, y*dim, dim, dim);
+        layer.drawImage(img, x*dim, y*dim, dim, dim);
 
         callback(interTileN + 1);
         // echoIMG(img, name.split('.').slice(0, -1).join('.') + " (tile).png");
@@ -1435,7 +1415,7 @@ function readMDP(arri) {
       pos += size + mod(4-size, 4);
 
       const data = pako.inflate(clean_IDAT);
-      const tilemap = tilemaskc.createImageData(dim, dim);
+      const tilemap = tilemask.createImageData(dim, dim);
 
       if (isMask) {
         for (let n = 0; n < data.length*4; n += 4) {
@@ -1445,7 +1425,7 @@ function readMDP(arri) {
           tilemap.data[n+3] = data[Math.ceil(n/4)];
         }
 
-        tilemaskc.putImageData(tilemap, 0, 0);
+        tilemask.putImageData(tilemap, 0, 0);
       } else {
         for (let n = 0; n < data.length; n += 4) {
           tilemap.data[n] = data[n+2];
@@ -1453,10 +1433,10 @@ function readMDP(arri) {
           tilemap.data[n+2] = data[n];
           tilemap.data[n+3] = data[n+3];
         }
-        tilemaskc.putImageData(tilemap, 0, 0);
+        tilemask.putImageData(tilemap, 0, 0);
       }
 
-      ctx.drawImage(tilemask, x*dim, y*dim, dim, dim);
+      layer.drawImage(tilemask.canvas, x*dim, y*dim, dim, dim);
       callback(interTileN + 1);
     }
 
@@ -1466,7 +1446,6 @@ function readMDP(arri) {
     const readTile = (TileN) => {
       if (TileN >= tileNum) {
         // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
-        layer.canvas = canvas;
         setTimeout(() => {
           readLayer(LayerN + 1);
         }, 0);
@@ -1475,8 +1454,8 @@ function readMDP(arri) {
 
       if (layerColor) {
         const [a, r, g, b] = [layerColor.substring(0, 2), layerColor.substring(2, 4), layerColor.substring(4, 6), layerColor.substring(6, 8)];
-        tilemaskc.fillStyle = `#${r}${g}${b}${a}`;
-        tilemaskc.fillRect(0, 0, dim, dim);
+        tilemask.fillStyle = `#${r}${g}${b}${a}`;
+        tilemask.fillRect(0, 0, dim, dim);
       }
 
       switch (layer.type) {
@@ -1499,18 +1478,16 @@ function readMDP(arri) {
 }
 
 function echoMDP() {
-  const canvas2 = document.createElement('CANVAS');
-  const ctx2 = canvas2.getContext('2d');
-  canvas2.width = c.width;
-  canvas2.height = c.height;
+  const ctx = newCanvas(c.width, c.height);
 
   let started = true;
   let visibleformask = false;
   let usemode = 'source-over';
   let usealpha = 1;
-  for (const next of layerlist.innerHTML.replace(/\<br\>/g, '\n').split('\n').filter((e) => {return e;})) {
-    const seq = next.split(' ');
-    if (!parseInt(seq[1]) || seq[3] == 'folder') {
+
+  for (const next of splitlines(layerlist)) {
+    const seq = next.split(/ +/);
+    if (seq[1] === 'false' || seq[3] === 'folder') {
       visibleformask = false;
       continue;
     }
@@ -1520,28 +1497,25 @@ function echoMDP() {
         if (!visibleformask) {
           continue;
         }
-        const mask = document.createElement('CANVAS');
-        mask.width = c.width;
-        mask.height = c.height;
+        const mask = newCanvas(c.width, c.height);
 
-        const maskcontext = mask.getContext('2d');
-        maskcontext.drawImage(layers[parseInt(seq[0])].canvas, 0, 0, c.width, c.height);
-        maskcontext.globalCompositeOperation = 'source-out';
-        maskcontext.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
-        maskcontext.globalCompositeOperation = 'source-over';
+        mask.drawImage(layers[parseInt(seq[0])].canvas, 0, 0, c.width, c.height);
+        mask.globalCompositeOperation = 'source-out';
+        mask.drawImage(ctx.canvas, 0, 0, ctx.width, ctx.height);
+        mask.globalCompositeOperation = 'source-over';
 
-        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
-        ctx2.drawImage(mask, 0, 0, mask.width, mask.height);
+        ctx.clearRect(0, 0, ctx.width, ctx.height);
+        ctx.drawImage(mask.canvas, 0, 0, mask.width, mask.height);
         break;
       default:
         visibleformask = true;
         if (!started) {
           context.globalCompositeOperation = usemode;
           context.globalAlpha = usealpha;
-          context.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
+          context.drawImage(ctx.canvas, 0, 0, ctx.width, ctx.height);
        
           // reset
-          ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+          ctx.clearRect(0, 0, ctx.width, ctx.height);
           context.globalCompositeOperation = 'source-over';
           context.globalAlpha = 1;
         } else {
@@ -1551,14 +1525,14 @@ function echoMDP() {
         usealpha = parseFloat(seq[2]);
         usemode = seq[4];
 
-        ctx2.drawImage(layers[parseInt(seq[0])].canvas, 0, 0, c.width, c.height);
+        ctx.drawImage(layers[parseInt(seq[0])].canvas, 0, 0, c.width, c.height);
         break;
     }
   }
 
   context.globalCompositeOperation = usemode;
   context.globalAlpha = usealpha;
-  context.drawImage(canvas2, 0, 0, canvas2.width, canvas2.height);
+  context.drawImage(ctx.canvas, 0, 0, ctx.width, ctx.height);
 
   echoCanvas(c);
 
@@ -1574,9 +1548,9 @@ function fromGIF(arri) {
   let pos = GIF89a_signature.length;
 
   const IHDR = [];
-  arri.slice(pos, pos + 7).forEach((a) => {
+  for (const a of arri.slice(pos, pos + 7)) {
     IHDR.push(a);
-  })
+  };
 
   gif.width = IHDR[0] + (IHDR[1] << 8);
   gif.height = IHDR[2] + (IHDR[3] << 8);
@@ -1595,9 +1569,9 @@ function fromGIF(arri) {
   if (packed_field & 0b10000000) {
     let colors = [];
     for (const n of Array(color_counter).keys()) {
-      arri.slice(pos, pos + 3).forEach((a) => {
+      for (const a of arri.slice(pos, pos + 3)) {
         IHDR.push(a);
-      })
+      };
       pos += 3;
 
       colors.push([IHDR[IHDRpos], IHDR[IHDRpos+1], IHDR[IHDRpos+2]]);
@@ -1613,9 +1587,9 @@ function fromGIF(arri) {
         gif.frames.push(frame);
 
         const fcTL = [];
-        arri.slice(pos, pos + 9).forEach((a) => {
+        for (const a of arri.slice(pos, pos + 9)) {
           fcTL.push(a);
-        })
+        };
         pos += 9;
         let fcTLpos = 9;
 
@@ -1636,9 +1610,9 @@ function fromGIF(arri) {
         if (fcTLbuffer.localColorTable) {
           let colors = [];
           for (const n of Array(color_counter).keys()) {
-            arri.slice(pos, pos + 3).forEach((a) => {
+            for (const a of arri.slice(pos, pos + 3)) {
               fcTL.push(a);
-            })
+            };
             pos += 3;
 
             colors.push([fcTL[fcTLpos], fcTL[fcTLpos+1], fcTL[fcTLpos+2]]);
@@ -1653,9 +1627,9 @@ function fromGIF(arri) {
         while (size !== 0) {
           size = arri[pos++];
           clean_IDAT.push(size);
-          arri.slice(pos, pos + size).forEach((a) => {
+          for (const a of arri.slice(pos, pos + size)) {
             clean_IDAT.push(a);
-          })
+          };
           pos += size;
         }
 
@@ -1703,9 +1677,9 @@ function fromGIF(arri) {
         const nextByte = arri[pos++];
         if (nextByte === 0xF9) { // Graphic Control Extension
           GCe = [];
-          arri.slice(pos, pos + 6).forEach((a) => {
+          for (const a of arri.slice(pos, pos + 6)) {
             GCe.push(a);
-          })
+          }
           pos += 6; // Assuming Graphic Control Extension size is always 4, then a terminator
 
           const packed_field = GCe[1]; // disposal method
@@ -1789,19 +1763,19 @@ function fromAPNG(arri) {
 
   eachChunk(arri, inapng);
   apng.frames.push(frame);
-  apng.frames.forEach((frame) => {
+  for (const frame of apng.frames) {
     IHDR.set(int32ToAB(frame.width), 0); // modify IHDR to have new width
     IHDR.set(int32ToAB(frame.height), 4); // modify IHDR to have new height
 
     constPNG(frame.arri, PNG_signature);
     constPNG(frame.arri, makeChunkBytes('IHDR', IHDR)); // recalc crc32
-    frame.IDATs.forEach((IDAT) => {
+    for (const IDAT of frame.IDATs) {
       constPNG(frame.arri, makeChunkBytes('IDAT', IDAT));
-    });
+    };
     constPNG(frame.arri, IEND);
 
     frame.IDATs = [];
-  });
+  };
   return apng;
 }
 
@@ -1811,7 +1785,7 @@ function eachChunk(arri, callback) {
   const dv = new DataView(arri.buffer);
   let offset = 8;
   let type, arr;
-  while (arr !== false && type != 'IEND' && offset < arri.length) {
+  while (arr !== false && type !== 'IEND' && offset < arri.length) {
     const len = dv.getUint32(offset);
     type = readString(arri.subarray(offset + 4, offset + 8));
     arr = callback(type, arri, offset, len);
@@ -1943,10 +1917,10 @@ function toFrame(fps, bp=[0, 1]) {
   Fi[2] = performance.now();
   //echo((Fi[2] - Fi[1])/1000 + "s toFrame()")
   Fi[3] = performance.now();
-  echo("in " + (Fi[3] - Fi[0])/1000 + "s", 1)
+  echo('in ' + (Fi[3] - Fi[0])/1000 + 's', 1)
 }
 
-function makeAPNG(interFrameN, callback=false) {
+function makeAPNG(interFrameN, callback = false) {
   newAPNG.push(new Uint8Array(IEND));
 
   let acTL = new Array(0);
@@ -1964,11 +1938,11 @@ function makeAPNG(interFrameN, callback=false) {
 
   //echoPalette();
   echoIMG(ABtoIMG(newAPNG), name.split('.').slice(0, -1).join('.') + " (apng).png");
-  document.title = "Make APNG";
+  document.title = 'Make APNG';
   setfps(getfps.value);
   newAPNG = [];
-  if (callback){
-    callback(interFrameN-1)
+  if (callback) {
+    callback(interFrameN - 1);
   }
 }
 
@@ -1992,7 +1966,7 @@ function crc32(arri, start=0, len=0) {
 }
 
 function crop() {
-  if(dim[3][0] == undefined){
+  if (dim[3][0] === undefined) {
     dim[3] = [0, 0, 1, 1];
     c.width = 1;
     c.height = 1;
@@ -2007,7 +1981,7 @@ function crop() {
 
 function frameSaver(interFrameN, i) {
   Fi[1] = performance.now();
-  if (interFrameN == 0) {
+  if (interFrameN === 0) {
     frameBuffer[0] = context.getImageData(...dim[i]);
   } else {
     frameBuffer[1] = context.getImageData(...dim[i]);
@@ -2094,16 +2068,16 @@ var nextFrame = 1;
 var firstFrame = true;
 var fpsm = 1;
 
-function compileframes(multi=true, dea=false) {
+function compileframes(multi = true, deap = false) {
   newAPNG = [];
-  seqFrameN = framelist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter((e) => {return e;});
+  seqFrameN = splitlines(framelist);
   var lastFrameN;
 
   firstFrame = true;
   fpsm = 1;
   const updateFrame = (interFrameN, fpsm) => {
-    if (interFrameN+1 == seqFrameN.length) {
-      if (1 == seqFrameN.length) {
+    if (interFrameN + 1 === seqFrameN.length) {
+      if (seqFrameN.length === 1) {
         name = framearray[seqFrameN[interFrameN]-1][1];
         fps = 1;
         canvasToFrame(staticAPNG, 0, 1);
@@ -2111,8 +2085,8 @@ function compileframes(multi=true, dea=false) {
         canvasToFrame(makeAPNG, interFrameN, fpsm);
       }
     } else {
-      if(fps == 0){
-        echo("Bad fps");
+      if (fps === 0) {
+        echo('Bad fps');
       } else {
         canvasToFrame(delayFrame, interFrameN, fpsm);
       }
@@ -2153,28 +2127,28 @@ function compileframes(multi=true, dea=false) {
     } else {
       name = framearray[seqFrameN[interFrameN]-1][1];
       fps = 1;
-      if (interFrameN+1 == seqFrameN.length) {
-        canvasToFrame(dea?undefined:staticAPNG, interFrameN, fpsm);
+      if (interFrameN + 1 === seqFrameN.length) {
+        canvasToFrame(deap ? undefined : staticAPNG, interFrameN, fpsm);
       } else {
-        canvasToFrame(dea?undefined:staticAPNG, interFrameN, fpsm, delayFrame);
+        canvasToFrame(deap ? undefined : staticAPNG, interFrameN, fpsm, delayFrame);
       }
     }
   }
 
   const delayFrame = (interFrameN) => {
-    if (interFrameN == seqFrameN.length) {
+    if (interFrameN === seqFrameN.length) {
       readFrame(interFrameN-1, fpsm);
     } else {
-      if (interFrameN == 0) {
+      if (interFrameN === 0) {
         if (!bg) {
           get_dim(framearray[seqFrameN[interFrameN]-1][0], 1);
         }
         lastFrameN = seqFrameN[0];
         delayFrame(interFrameN+1);
       } else {
-        if (lastFrameN == seqFrameN[interFrameN]) {
+        if (lastFrameN === seqFrameN[interFrameN]) {
           fpsm += 1;
-          echo("Frame " + interFrameN + " (delay)");
+          echo('Frame ' + interFrameN + ' (delay)');
           delayFrame(interFrameN+1);
         } else {
           lastFrameN = seqFrameN[interFrameN];
@@ -2191,49 +2165,51 @@ function compileframes(multi=true, dea=false) {
 
 function compileapngs() {
   newAPNG = [];
-  seqAPNG = apnglist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter((e) => {return e;});
+  seqAPNG = splitlines(apnglist);
   const reuse = [false, false, false]; // pos, dim, arri
   const readFile = (interAPNG) => {
     Fi[0] = performance.now();
     Fi[1] = performance.now();
-    if(interAPNG == seqAPNG.length){
+
+    if (interAPNG === seqAPNG.length) {
       makeAPNG();
       return;
     }
-    let frames = apngarray[seqAPNG[interAPNG]-1].frames;
+
+    const frames = apngarray[seqAPNG[interAPNG]-1].frames;
     const readFrame = (interFrameN) => {
-      if (interFrameN == frames.length) {
+      if (interFrameN === frames.length) {
         return;
       }
-      let frame = frames[interFrameN];
+      const frame = frames[interFrameN];
       let bp = [frame.disposeOp, frame.blendOp];
       //echo((frame.denominator/frame.numerator) + "fps")
       dim[3] = [frame.left, frame.top, frame.width, frame.height];
 
+      const next = 'Frame ' + interFrameN + ' of APNG ' + seqAPNG[interAPNG];
       const toAPNG = (arri) => {
         newframe.arri = arri;
         reuse[0] = seqAPNG[interAPNG];
         document.title = next;
         echo(next);
         if (interecho) {
-          echoIMG(img, next + ".png");
+          echoIMG(img, next + '.png');
         }
         toFrame([frame.numerator, frame.denominator], bp);
-        if (interFrameN+1 == frames.length) {
+        if (interFrameN + 1 === frames.length) {
           readFile(interAPNG+1);
         } else {
           readFrame(interFrameN+1);
         }
       }
 
-      let next = "Frame " + interFrameN + " of APNG " + seqAPNG[interAPNG];
       arri = frame.arri;
       img = ABtoIMG(ABtoAB(arri));
       img.onload = () => {
         Fi[0] = performance.now();
         Fi[1] = performance.now();
-        if (interFrameN == 0) {
-          if (interAPNG == 0) {
+        if (interFrameN === 0) {
+          if (interAPNG === 0) {
             get_dim(img, 4);
             if (dim[4][2] < maxres[2] || dim[4][3] < maxres[3]) {
               echo("APNG " + seqAPNG[interAPNG] + " did not accommodate max dimension.<br>First APNG must have the highest dimension.");
@@ -2245,7 +2221,7 @@ function compileapngs() {
             frameSaver(0, 4);
             toAPNG(arri);
           } else {
-            if (reuse[0] == seqAPNG[interAPNG] && reuse[1]) {
+            if (reuse[0] === seqAPNG[interAPNG] && reuse[1]) {
               dim[3] = reuse[1];
               toAPNG(reuse[2]);
             } else {
@@ -2255,7 +2231,7 @@ function compileapngs() {
               const promise = new Promise(canvasToAB(c, 'png', true));
               promise.then((arri) => {
                 arri = Array.from(arri);
-                if (reuse[0] == seqAPNG[interAPNG]) {
+                if (reuse[0] === seqAPNG[interAPNG]) {
                   reuse[1] = dim[3];
                   reuse[2] = arri;
                 } else {
@@ -2284,20 +2260,21 @@ function compileapngs() {
 
 function echoAPNG() {
   const frames = [];
-  seqAPNG = apnglist.innerHTML.replace(/\<br\>/g, "\n").split("\n").filter((e) => {return e;});
+  seqAPNG = splitlines(apnglist);
+
   const readFile = (interAPNG, resolve) => {
-    if (interAPNG == seqAPNG.length) {
+    if (interAPNG === seqAPNG.length) {
       return resolve(true);
     }
 
-    let raw_frames = apngarray[seqAPNG[interAPNG]-1].frames
+    const raw_frames = apngarray[seqAPNG[interAPNG]-1].frames;
     const readFrame = (interFrameN) => {
-      let frame = raw_frames[interFrameN];
+      const frame = raw_frames[interFrameN];
       dim[3] = [frame.left, frame.top, frame.width, frame.height];
       img = ABtoIMG(ABtoAB(frame.arri))
       img.onload = () => {
-        if (interFrameN == 0) {
-          if (interAPNG == 0) {
+        if (interFrameN === 0) {
+          if (interAPNG === 0) {
             get_dim(img, 4);
             c.width = dim[4][2];
             c.height = dim[4][3];
@@ -2311,28 +2288,27 @@ function echoAPNG() {
           frames.push([img, [...dim[3]], [frame.disposeOp, frame.denominator, frame.numerator]]);
         }
 
-        if (interFrameN+1 == raw_frames.length) {
-          readFile(interAPNG+1, resolve);
+        if (interFrameN + 1 === raw_frames.length) {
+          readFile(interAPNG + 1, resolve);
         } else {
-          readFrame(interFrameN+1);
+          readFrame(interFrameN + 1);
         }
       }
     }
     readFrame(0);
-  }
+  };
+
   const promise = new Promise((resolve) => {
     readFile(0, resolve);
-  })
+  });
+
   promise.then(() => {
     let n = 0;
     let historical_timeStamp = [];
     let vfps = 0;
 
     let lastOp = 0;
-    const canvas = document.createElement('canvas');
-    canvas.width = c.width;
-    canvas.height = c.height;
-    const ctx = canvas.getContext('2d');
+    const ctx = newCanvas(c.width, c.height);
 
     const update = (timeStamp) => {
       if (timeStamp) {
@@ -2373,11 +2349,7 @@ function echoAPNG() {
 }
 
 function editframelist() {
-  framelist.innerHTML = "";
-
-  for (const i of Array(framearray.length).keys()) {
-    framelist.innerHTML += i+1 + "\n";
-  }
+  framelist.textContent = [...Array(framearray.length).keys()].map((n) => n + 1).join('\n');
 
   updatebutton(makeapng, compileframes);
   updatebutton(emphdiff, detect);
@@ -2386,11 +2358,7 @@ function editframelist() {
 }
 
 function editapnglist() {
-  apnglist.innerHTML = "";
-
-  for (const i of Array(apngarray.length).keys()) {
-    apnglist.innerHTML += i+1 + "\n";
-  }
+  apnglist.textContent = [...Array(apngarray.length).keys()].map((n) => n + 1).join('\n');
 
   updatebutton(mergeapng, compileapngs);
   updatebutton(echoapng, echoAPNG);
@@ -2400,7 +2368,7 @@ function readframes(filelist) {
   filelist = Array.from(filelist).sort((a,b) => a.name > b.name);
 
   const readFile = (i) => {
-    if (i == filelist.length) {
+    if (i === filelist.length) {
       return;
     }
 
@@ -2410,7 +2378,7 @@ function readframes(filelist) {
       arri = new Uint8Array(fr.result);
       img = ABtoIMG([arri]);
       img.onload = () => {
-        if (i == 0 && !framearray.length){
+        if (i === 0 && !framearray.length){
           get_dim(img, 0);
           if (!bg) {
             bigres(0);
@@ -2418,10 +2386,10 @@ function readframes(filelist) {
           name = filelist[0].name;
         }
         framearray.push([img, filelist[i].name]);
-        if (i+1 == filelist.length) {
+        if (i + 1 === filelist.length) {
           editframelist();
         } else {
-          readFile(i+1);
+          readFile(i + 1);
         }
       }
     }
@@ -2465,7 +2433,7 @@ function readapng(filelist) {
           }
         }
 
-        if (i+1 == filelist.length) {
+        if (i + 1 === filelist.length) {
           editapnglist();
         } else {
           readFile(i+1);
@@ -2666,17 +2634,18 @@ function loaded() {
 var filel = ["File", "Diff", "File 1", "File 2", "🦊"];
 var ut = 0;
 
-new URLSearchParams(window.location.search).forEach(function (val, key) {
-  if (!val) {
-    if (Number(key)) {
-      ut = key;
-    } else if (key == "🦦") {
+const thisurl = new URLSearchParams(window.location.search);
+for (const [v, k] of thisurl) {
+  if (!v) {
+    if (Number(k)) {
+      ut = k;
+    } else if (k === "🦦") {
       filel = ["❨'▾'❩", "❨ ꊱ ❩", "❨ 1 ❩", "❨ 2 ❩", "🦦"];
     } else {
-      filel[4] = key;
+      filel[4] = k;
     }
   }
-});
+};
 
 function newtip(y, z){
   const d = document.createElement("div");
@@ -2692,8 +2661,8 @@ var framearray = [];
 var apngarray = [];
 var decompress = false;
 var Fi = [0, 0, 0, 0];
-var c = document.createElement("canvas");
-var context = c.getContext("2d"); // { willReadFrequently: true }
+var c = document.createElement('canvas');
+var context = c.getContext('2d'); // { willReadFrequently: true }
 var frameBuffer = [false, false, false, false];
 var dim = [false, false, false, false, false]; // framearray[0]'s dim, main_dim, bg_dim, make_dim, compileapngs()
 var maxres = [0, 0, 1, 1];
@@ -2792,9 +2761,9 @@ const button = (c, B, callback=echo, args=[]) => {
 };
 
 const updatebutton = (e, callback, args=[]) => {
-  e.removeEventListener("click", e.listeners[0]);
-  e.classList = "next";
-  e.addEventListener("click", () => {
+  e.removeEventListener('click', e.listeners[0]);
+  e.classList = 'next';
+  e.addEventListener('click', () => {
     callback(...args);
   });
 };

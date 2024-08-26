@@ -330,7 +330,7 @@ canvas {
   float: right;
 }
 
-#touchloc, #touchlocm {
+#touchloc, #touchloc_dot {
   display: none;
   pointer-events: none;
   z-index: 4;
@@ -354,7 +354,7 @@ canvas {
   border-style: solid;
 }
 
-#touchlocm {
+#touchloc_dot {
   background-color: #ffffff;
 }
 
@@ -538,6 +538,17 @@ function ABtoAB(ab) {
   return [new Uint8Array(ab)];
 }
 
+function newCanvas(w, h) {
+  const d = document.createElement('CANVAS').getContext('2d');
+  if (w) {
+    d.width = d.canvas.width = w;
+  }
+  if (h) {
+    d.height = d.canvas.height = h;
+  }
+  return d;
+}
+
 function canvasToAB(c, ext = 'png') {
   return function(resolve) {
     c.toBlob((blob0) => {
@@ -564,24 +575,21 @@ canvas.height = document.documentElement.clientHeight;
 const context = canvas.getContext('2d');
 context.imageSmoothingEnabled = false;
 
-const shader = document.createElement('canvas');
-shader.width = canvas.width
-shader.height = canvas.height;
-const shaderc = shader.getContext('2d');
-shaderc.imageSmoothingEnabled = false;
-shaderc.fillStyle = '#fff';
-shaderc.fillRect(0, 0, shader.width, shader.height);
+const shader = newCanvas(canvas.width, canvas.height);
+shader.imageSmoothingEnabled = false;
+shader.fillStyle = '#fff';
+shader.fillRect(0, 0, shader.width, shader.height);
 
 for (const n of Array(shader.width).keys()) {
-  shaderc.fillStyle = ['rgba(255, 0, 0, 0.2)', 'rgba(0, 255, 0, 0.2)', 'rgba(0, 0, 255, 0.2)'][n%3];
-  shaderc.fillRect(n, 0, 1, shader.height);
+  shader.fillStyle = ['rgba(255, 0, 0, 0.2)', 'rgba(0, 255, 0, 0.2)', 'rgba(0, 0, 255, 0.2)'][n%3];
+  shader.fillRect(n, 0, 1, shader.height);
 }
 
 //for (const c of Array(shader.width).keys()) {
 //  for (const r of Array(shader.height).keys()) {
-//    //shaderc.fillStyle = ['rgba(255, 0, 0, 0.2)', 'rgba(0, 255, 0, 0.2)', 'rgba(0, 0, 255, 0.2)'][Math.floor(Math.random()*3)];
-//    shaderc.fillStyle = `rgba(0, 0, 0, ${Math.random()/5})`;
-//    shaderc.fillRect(c, r, 1, 1);
+//    //shader.fillStyle = ['rgba(255, 0, 0, 0.2)', 'rgba(0, 255, 0, 0.2)', 'rgba(0, 0, 255, 0.2)'][Math.floor(Math.random()*3)];
+//    shader.fillStyle = `rgba(0, 0, 0, ${Math.random()/5})`;
+//    shader.fillRect(c, r, 1, 1);
 //  }
 //}
 
@@ -718,8 +726,8 @@ movingflower.addEventListener('load', () => {
 
 const silhouette = new Image();
 silhouette.addEventListener('load', () => {
-  qixmask.width = silhouette.width/2/qixsc;
-  qixmask.height = silhouette.height/2/qixsc;
+  qixmask.width = qixmask.canvas.width = silhouette.width/2/qixsc;
+  qixmask.height = qixmask.canvas.height = silhouette.height/2/qixsc;
   reveal.src = 'flower.jpg';
 });
 
@@ -859,21 +867,18 @@ function starcolor() {
 }
 
 function starmask(color, img) {
-  const mask = document.createElement('canvas');
-  mask.width = alpha.width;
-  mask.height = alpha.height;
-  const maskcontext = mask.getContext('2d');
+  const mask = newCanvas(alpha.width, alpha.height);
 
   if (img) {
-    maskcontext.drawImage(img, 0, 0);
+    mask.drawImage(img, 0, 0);
   } else {
-    maskcontext.drawImage(alpha, 0, 0);
-    maskcontext.globalCompositeOperation = "source-in";
-    maskcontext.fillStyle = color || starcolor();
-    maskcontext.fillRect(0, 0, mask.width, mask.height);
+    mask.drawImage(alpha, 0, 0);
+    mask.globalCompositeOperation = "source-in";
+    mask.fillStyle = color || starcolor();
+    mask.fillRect(0, 0, mask.width, mask.height);
   }
 
-  return mask;
+  return mask.canvas;
 }
 
 function new_stars() {
@@ -1061,66 +1066,61 @@ heartloc[9][7][1] += 1;
 function new_card(next, suit) {
   let flip = false;
 
-  const acard = document.createElement("canvas");
-  const acardc = acard.getContext('2d');
-  acard.width = 71;
-  acard.height = 96;
+  const acard = newCanvas(71, 96);
+  const sym = newCanvas();
 
-  const sym = document.createElement("canvas");
-  const symc = sym.getContext('2d');
-
-  acardc.drawImage(cards['card0'], 0, 0, acard.width, acard.height);
+  acard.drawImage(cards['card0'], 0, 0, acard.width, acard.height);
   if (next === 0 && suit === 2) {
     // Spade A
-    sym.width = 39;
-    sym.height = 39;
-    symc.clearRect(0, 0, sym.width, sym.height);
-    symc.drawImage(cards['sym'], -132, 0, 171, 60);
-    acardc.drawImage(sym, 17, 25, 39, 39);
+    sym.width = sym.canvas.width = 39;
+    sym.height = sym.canvas.height = 39;
+    sym.clearRect(0, 0, sym.width, sym.height);
+    sym.drawImage(cards['sym'], -132, 0, 171, 60);
+    acard.drawImage(sym.canvas, 17, 25, 39, 39);
   } else if (next >= 10) {
-    sym.width = 47;
-    sym.height = 74;
-    symc.clearRect(0, 0, sym.width, sym.height);
-    symc.drawImage(cards['mon'], -47*suit, -74*(next-10), 188, 222);
-    acardc.drawImage(sym, 12, 11, 47, 74);
+    sym.width = sym.canvas.width = 47;
+    sym.height = sym.canvas.height = 74;
+    sym.clearRect(0, 0, sym.width, sym.height);
+    sym.drawImage(cards['mon'], -47*suit, -74*(next-10), 188, 222);
+    acard.drawImage(sym.canvas, 12, 11, 47, 74);
   } else {
-    sym.width = 15;
-    sym.height = 15;
-    symc.clearRect(0, 0, sym.width, sym.height);
-    symc.drawImage(cards['sym'], -22, -15*suit, 171, 60);
+    sym.width = sym.canvas.width = 15;
+    sym.height = sym.canvas.height = 15;
+    sym.clearRect(0, 0, sym.width, sym.height);
+    sym.drawImage(cards['sym'], -22, -15*suit, 171, 60);
     for (const symloc of [cloverloc, diamondloc, spadeloc, heartloc][suit][next]) {
       if (symloc[1] > 33 && !flip) {
-        symc.clearRect(0, 0, sym.width, sym.height);
-        symc.translate(sym.width, sym.height);
-        symc.scale(-1, -1);
-        symc.drawImage(cards['sym'], -22, -15*suit, 171, 60);
+        sym.clearRect(0, 0, sym.width, sym.height);
+        sym.translate(sym.width, sym.height);
+        sym.scale(-1, -1);
+        sym.drawImage(cards['sym'], -22, -15*suit, 171, 60);
         flip = true;
       }
-      acardc.drawImage(sym, symloc[0]+15, symloc[1]+10, 15, 15);
+      acard.drawImage(sym.canvas, symloc[0]+15, symloc[1]+10, 15, 15);
     }
   }
-  symc.setTransform(1,0,0,1,0,0);
+  sym.setTransform(1,0,0,1,0,0);
   flip = false;
 
   const x = 37 + 12*(next%8);
   const y = 15*Math.floor(next/8) + 30*(suit%2);
 
-  sym.width = 12;
-  sym.height = 14;
-  symc.clearRect(0, 0, sym.width, sym.height);
-  symc.drawImage(cards['sym'], -x, -y, 171, 60);
-  acardc.drawImage(sym, 2, 4, 12, 14);
-  symc.clearRect(0, 0, sym.width, sym.height);
-  symc.translate(sym.width, sym.height);
-  symc.scale(-1, -1);
-  symc.drawImage(cards['sym'], -x, -y, 171, 60);
-  acardc.drawImage(sym, 57, 78, 12, 14);
-  symc.setTransform(1,0,0,1,0,0);
+  sym.width = sym.canvas.width = 12;
+  sym.height = sym.canvas.height = 14;
+  sym.clearRect(0, 0, sym.width, sym.height);
+  sym.drawImage(cards['sym'], -x, -y, 171, 60);
+  acard.drawImage(sym.canvas, 2, 4, 12, 14);
+  sym.clearRect(0, 0, sym.width, sym.height);
+  sym.translate(sym.width, sym.height);
+  sym.scale(-1, -1);
+  sym.drawImage(cards['sym'], -x, -y, 171, 60);
+  acard.drawImage(sym.canvas, 57, 78, 12, 14);
+  sym.setTransform(1,0,0,1,0,0);
 
-  sym.width = 11;
-  sym.height = 11;
-  symc.clearRect(0, 0, sym.width, sym.height);
-  symc.drawImage(cards['sym'], -11*(next >= 10 ? 1 : 0), -15*suit, 171, 60);
+  sym.width = sym.canvas.width = 11;
+  sym.height = sym.canvas.height = 11;
+  sym.clearRect(0, 0, sym.width, sym.height);
+  sym.drawImage(cards['sym'], -11*(next >= 10 ? 1 : 0), -15*suit, 171, 60);
   const ms = {'x':3, 'y':18};
   if (suit === 1) {
     // Diamond
@@ -1138,15 +1138,15 @@ function new_card(next, suit) {
     ms.x = 2;
     ms.y = 17;
   }
-  acardc.drawImage(sym, ms.x, ms.y, 11, 11);
-  symc.clearRect(0, 0, sym.width, sym.height);
-  symc.translate(sym.width, sym.height);
-  symc.scale(-1, -1);
-  symc.drawImage(cards['sym'], -11*(next >= 10 ? 1: 0), -15*suit, 171, 60);
-  symc.setTransform(1,0,0,1,0,0);
-  acardc.drawImage(sym, 60-ms.x, 85-ms.y, 11, 11);
+  acard.drawImage(sym.canvas, ms.x, ms.y, 11, 11);
+  sym.clearRect(0, 0, sym.width, sym.height);
+  sym.translate(sym.width, sym.height);
+  sym.scale(-1, -1);
+  sym.drawImage(cards['sym'], -11*(next >= 10 ? 1: 0), -15*suit, 171, 60);
+  sym.setTransform(1,0,0,1,0,0);
+  acard.drawImage(sym.canvas, 60-ms.x, 85-ms.y, 11, 11);
 
-  return acard;
+  return acard.canvas;
 }
 
 function splitmix32(a) {
@@ -1185,7 +1185,7 @@ function new_deck() {
   }
 
   slots = Array(12+cheatslots);
-  for (const pos of [...Array(13+cheatslots).keys()]){
+  for (const pos of [...Array(13+cheatslots).keys()]) {
     slots[pos] = [[], []];
   };
 
@@ -1193,7 +1193,7 @@ function new_deck() {
   for (const pos of [...Array(7).keys()]) {
     used += pos-1;
     slots[pos+5][1].push(deck[pos+ncard-7]);
-    for (const p of [...Array(pos).keys()]){
+    for (const p of [...Array(pos).keys()]) {
       slots[pos+5][0].push(deck[used+ncard-27+p]);
     }
   }
@@ -1241,16 +1241,12 @@ function readcard(callback, interFrameN) {
     // optional hue
     for (const [pos, card] of Object.keys(cards).entries()) {
       break;
-      const hue = document.createElement("canvas");
-      hue.width = cardsize[0];
-      hue.height = cardsize[1];
-      const huec = hue.getContext('2d');
-      huec.filter = "brightness(0.6) contrast(3) saturate(2.5) hue-rotate(130deg)";
+      const hue = newCanvas(...cardsize);
+      hue.filter = 'brightness(0.6) contrast(3) saturate(2.5) hue-rotate(130deg)';
       if (['deck', 'undo', 'undo3', 'slot', 'computer'].includes(card)) {
-        huec.clearRect(0, 0 , ...cardsize);
-        huec.drawImage(cards[card], 0, 0, ...cardsize);
-        cards[card] = hue;
-        //context.drawImage(cards[card], pos*100, 0, ...cardsize);
+        hue.clearRect(0, 0 , hue.width, hue.height);
+        hue.drawImage(cards[card], 0, 0, hue.width, hue.height);
+        cards[card] = hue.canvas;
       }
     }
 
@@ -1346,12 +1342,8 @@ function winsol() {
   winid = setTimeout(update, 1000);
 }
 
-var invert = document.createElement('canvas');
-invert.width = cardsize[0];
-invert.height = Math.floor(cardsize[1]/2);
-
-var ice = invert.getContext('2d');
-ice.imageSmoothingEnabled = false;
+var invert = newCanvas(cardsize[0], Math.floor(cardsize[1]/2));
+invert.imageSmoothingEnabled = false;
 
 function drawcross(x, y) {
   context.strokeStyle = "#00FF00";
@@ -1395,7 +1387,7 @@ function sol() {
     //context.arc(coord, gap.y*2 + (debugcomputer ? 3+cardsize[1]*1/2 : 0), 2, 0, Math.PI*2);
     //context.stroke();
 
-    context.drawImage(invert, gap.x*8 + cardsize[0]*7, gap.y + (debugcomputer ? cardsize[1]/2 : 0), invert.width, invert.height);
+    context.drawImage(invert.canvas, gap.x*8 + cardsize[0]*7, gap.y + (debugcomputer ? cardsize[1]/2 : 0), invert.width, invert.height);
   }
 
   if (drawn-1-(draw.last+drawn)%drawn && draw.draw < draw.last+drawn && draw.cycle) {
@@ -1997,28 +1989,26 @@ var pickcard = () => {
       pos = -cardsize[1]/2;
     }
 
-    if (ice.filter) {
-      ice.filter = 'invert(1)';
-      ice.globalCompositeOperation = 'source-over';
-      ice.clearRect(0, 0, invert.width, invert.height);
-      ice.drawImage(cards['computer'], 0, pos, ...cardsize);
+    if (invert.filter) {
+      invert.filter = 'invert(1)';
+      invert.globalCompositeOperation = 'source-over';
+      invert.clearRect(0, 0, invert.width, invert.height);
+      invert.drawImage(cards['computer'], 0, pos, ...cardsize);
     } else {
-      ice.globalCompositeOperation = 'source-over';
-      ice.clearRect(0, 0, invert.width, invert.height);
+      invert.globalCompositeOperation = 'source-over';
+      invert.clearRect(0, 0, invert.width, invert.height);
+      invert.drawImage(cards['computer'], 0, pos, ...cardsize);
+      invert.globalCompositeOperation = 'difference';
+      invert.fillStyle = 'white';
+      invert.fillRect(0, 0, invert.width, invert.height);
+
+      const ice = newCanvas(invert.width, invert.height);
       ice.drawImage(cards['computer'], 0, pos, ...cardsize);
-      ice.globalCompositeOperation = 'difference';
-      ice.fillStyle = 'white';
+      ice.globalCompositeOperation = 'source-in';
+      ice.fillStyle = 'black';
       ice.fillRect(0, 0, invert.width, invert.height);
-      let invert2 = document.createElement('canvas');
-      let ice2 = invert2.getContext('2d');
-      invert2.width = invert.width;
-      invert2.height = invert.height;
-      ice2.drawImage(cards['computer'], 0, pos, ...cardsize);
-      ice2.globalCompositeOperation = 'source-in';
-      ice2.fillStyle = 'black';
-      ice2.fillRect(0, 0, invert.width, invert.height);
-      ice.globalCompositeOperation = 'destination-in';
-      ice.drawImage(invert2, 0, 0, invert.width, invert.height);
+      invert.globalCompositeOperation = 'destination-in';
+      invert.drawImage(ice.canvas, 0, 0, invert.width, invert.height);
     }
 
     sol();
@@ -2049,7 +2039,7 @@ var pickcard = () => {
       mousepos.x >= gap.x*(pos+1) + cardsize[0]*pos &&
       mousepos.x < gap.x*(pos+1) + cardsize[0]*(pos+1) &&
       mousepos.y >= gap.y*2 + cardsize[1]*1 &&
-      mousepos.y < gap.y*2 + cardsize[1]*2 + 3*scale*slots[pos+5][0].length + 15*scale*slots[pos+5][1].length
+      mousepos.y < gap.y*2 + cardsize[1]*2 + 3*scale*slots[pos+5][0].length + 15*scale*slots[pos+5][1].length + (slots[pos+5][1].length > 0 ? -15 : 0)
     ) {
       if (slots[pos+5][1].length) {
         const depth = Math.min(Math.floor(Math.max(mousepos.y - (gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length), 0) / 15 / scale), slots[pos+5][1].length-1);
@@ -2266,95 +2256,6 @@ var releasecard = () => {
   return;
 }
 
-
-var ZOOKd = null;
-const FFdown = (e_) => {
-  mousec.down = 1;
-
-  if (!isTouch || e_.touches.length === 1) {
-    mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft : e_.x;
-    mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop : e_.y;
-  }
-
-  if (isTouch && e_.touches.length === 1) {
-    clearTimeout(fader);
-    const sc = window.visualViewport.scale;
-    const size = 3 / sc;
-    const border = 1 / sc;
-
-    touchloc.style.display = 'block';
-    touchlocm.style.display = 'block';
-
-    touchloc.style.animation = 'none';
-    touchlocm.style.animation = 'none';
-
-    touchloc.style.width = size + 'px';
-    touchloc.style.height = size + 'px';
-    touchlocm.style.width = size + 'px';
-    touchlocm.style.height = size + 'px';
-
-    touchloc.style.top = mousepos.y - border + 'px';
-    touchloc.style.left = mousepos.x - border + 'px';
-    touchlocm.style.top = mousepos.y + 'px';
-    touchlocm.style.left = mousepos.x + 'px';
-
-    touchloc.style.borderWidth = border + 'px';
-  }
-
-  graphdraw(e_);
-  leverdraw(e_);
-
-  if (e_.target.classList.contains('poppy') || e_.target.parentNode.classList.contains('poppy') || isTouch && e_.touches.length > 1) {
-    ZOOKd = true;
-    if (solitaire && dragcard) {
-      rubberband();
-      dragcard = false;
-    }
-  } else {
-    ZOOKd = false;
-    if (solitaire) {
-      pickcard();
-    }
-  }
-}
-
-var fader = null;
-const FFup = (e_) => {
-  mousec.down = 0;
-
-  if (e_ && !ZOOKd) {
-    if (!e_.target.parentNode.classList.contains('poppy') && poppy.style.display !== 'none') {
-      poppy.style.display = 'none';
-    }
-
-    if (dialogbox.style.display != 'none') {
-      dialogbox.style.display = 'none';
-    }
-
-    if (isTouch && e_.touches.length === 0) {
-      touchloc.style.animation = '';
-      touchlocm.style.animation = '';
-      fader = setTimeout(() => {
-        touchloc.style.display = 'none';
-        touchlocm.style.display = 'none';
-      }, 900);
-    }
-  }
-
-  leverdrawing = false;
-  graphdrawing = false;
-
-  if (e_) {
-    e_.preventDefault();
-  }
-
-  if (solitaire) {
-    releasecard();
-  }
-}
-
-
-
 function imawake() {
   if ((solitaire || qix || glyph) && !stopscreensaver) {
     stopscreensaver = true;
@@ -2385,15 +2286,43 @@ function imawake() {
 
 var crosshint, givehint;
 var hints = 1;
+var fader = null;
+var ZOOKd = null;
 
+const FFdown = (e_) => {
+  mousec.down = 1;
 
+  if (!isTouch || e_.touches.length === 1) {
+    mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft : e_.x;
+    mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop : e_.y;
+  }
+
+  cursordraw(e_);
+  graphdraw(e_);
+  leverdraw(e_);
+
+  cursordrawing = true;
+
+  if (e_.target.classList.contains('poppy') || e_.target.parentNode.classList.contains('poppy') || isTouch && e_.touches.length > 1) {
+    ZOOKd = true;
+    if (solitaire && dragcard) {
+      rubberband();
+      dragcard = false;
+    }
+  } else {
+    ZOOKd = false;
+    if (solitaire) {
+      pickcard();
+    }
+  }
+}
 
 const FFmove = (e_) => {
   clearTimeout(idlecursor);
   idlecursor = setTimeout(() => {
-    canvas.style.cursor = "none";
+    canvas.style.cursor = 'none';
   }, 1500);
-  canvas.style.cursor = "default";
+  canvas.style.cursor = 'default';
   imawake();
 
   if (e_) {
@@ -2402,17 +2331,10 @@ const FFmove = (e_) => {
       mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft : e_.x;
       mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop : e_.y;
     }
-
-    if (isTouch) {
-      //clearTimeout(fader);
-      //const sc = window.visualViewport.scale;
-      touchlocm.style.top = mousepos.y + 'px';
-      touchlocm.style.left = mousepos.x + 'px';
-    }
+    cursordraw(e_);
+    graphdraw(e_);
+    leverdraw(e_);
   }
-
-  graphdraw(e_);
-  leverdraw(e_);
 
   if (solitaire && !winanim) {
     if (
@@ -2455,6 +2377,35 @@ const FFmove = (e_) => {
   }
 }
 
+const FFup = (e_) => {
+  mousec.down = 0;
+
+  cursordrawing = false;
+  graphdrawing = false;
+  leverdrawing = false;
+
+  if (e_) {
+    if (!ZOOKd) {
+      if (!e_.target.parentNode.classList.contains('poppy') && poppy.style.display !== 'none') {
+        poppy.style.display = 'none';
+      }
+      if (dialogbox.style.display != 'none') {
+        dialogbox.style.display = 'none';
+      }
+    }
+
+    cursordraw(e_, true);
+  }
+
+  if (e_) {
+    e_.preventDefault();
+  }
+
+  if (solitaire) {
+    releasecard();
+  }
+}
+
 
 
 var rightc = (e_) => {
@@ -2494,8 +2445,6 @@ function typeOf(obj) {
 var DOMwriter = null;
 var winsoln = 0;
 var morescr, options, seed, seednow, staropt, graph, graphdot, graphstat, lever, leverdot, leverstat;
-var graphdrawing = false;
-var leverdrawing = false;
 
 function winningcookie() {
   const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
@@ -2510,16 +2459,61 @@ function savestar() {
   //no expiry would allow the cookie to be automatically deleted upon browser exit.
 }
 
+var cursordrawing = false;
+var graphdrawing = false;
+var leverdrawing = false;
+
+function cursordraw(e, end) {
+  if (isTouch) {
+    const sc = window.visualViewport.scale;
+    const size = 3 / sc;
+    const border = 1 / sc;
+    const center = size / 2;
+    if (!cursordrawing && e.touches.length === 1) {
+      clearTimeout(fader);
+
+      touchloc.style.display = 'block';
+      touchloc.style.animation = 'none';
+      touchloc.style.width = size + 'px';
+      touchloc.style.height = size + 'px';
+      touchloc.style.top = mousepos.y - border - center + 'px';
+      touchloc.style.left = mousepos.x - border - center + 'px';
+      touchloc.style.borderWidth = border + 'px';
+
+      touchloc_dot.style.display = 'block';
+      touchloc_dot.style.animation = 'none';
+      touchloc_dot.style.width = size + 'px';
+      touchloc_dot.style.height = size + 'px';
+    }
+
+    touchloc_dot.style.top = mousepos.y - center + 'px';
+    touchloc_dot.style.left = mousepos.x - center + 'px';
+
+    if (end && e.touches.length === 0) {
+      touchloc.style.animation = '';
+      touchloc_dot.style.animation = '';
+      fader = setTimeout(() => {
+        touchloc.style.display = 'none';
+        touchloc_dot.style.display = 'none';
+      }, 900);
+    }
+  }
+}
+
 function graphdraw(e) {
   if (graphdrawing) {
     const rect = graph.getBoundingClientRect();
-    const x = Math.min(Math.floor((isTouch ? e.touches[0].clientX : e.clientX) - rect.left)-1, 200);
-    const y = Math.min(Math.floor((isTouch ? e.touches[0].clientY : e.clientY) - rect.top)-2, 200);
-    graphdot.style.left = x - 2 + "px";
-    graphdot.style.top = y - 3 + "px";
-    star.life = parseFloat((10.75 - x/20).toFixed(2));
-    star.x = (200-y)+1;
-    star.y = Math.ceil(((200-y)+1)/star.r);
+    const where = {
+      x: Math.floor((isTouch ? e.touches[0].clientX : e.clientX) - rect.left),
+      y: Math.floor((isTouch ? e.touches[0].clientY : e.clientY) - rect.top),
+    };
+    const x = Math.min(where.x - 2, 200);
+    const y = Math.min(where.y - 2, 200);
+    graphdot.style.left = x - 2 + 'px';
+    graphdot.style.top = y - 3 + 'px';
+    star.life = parseFloat((10.75 - x / 20).toFixed(2));
+    star.x = (200 - y) + 1;
+    star.y = Math.ceil((200 - y + 1) / star.r);
     graphstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
   }
 }
@@ -2527,52 +2521,48 @@ function graphdraw(e) {
 function leverdraw(e) {
   if (leverdrawing) {
     const rect = lever.getBoundingClientRect();
-    let x = parseInt(((Math.floor((isTouch ? e.touches[0].clientX : e.clientX) - rect.left))/10))*10;
-    x = Math.min(x, 200);
-    // x = Math.max(x, 0);
-    leverdot.style.left = 4 + x + "px";
-    star.accelerate = (200-x) / 25;
-    star.delay = 60*fps.vfps;
+    const coarse = 10;
+    const where_x = Math.floor((isTouch ? e.touches[0].clientX : e.clientX) - rect.left);
+    const x = Math.min(parseInt((where_x - 1) / coarse) * coarse, 200);
+    leverdot.style.left = 4 + x + 'px';
+    star.accelerate = (200 - x) / 25;
+    star.delay = 60 * fps.vfps;
     leverstat.innerHTML = `Accelerate: ${star.accelerate}s`;
   }
 }
 
 function updatestat() {
-  graphdot.style.left = 200-star.life*20+13 + "px";
-  graphdot.style.top = 200-star.x-2 + "px";
+  graphdot.style.left = 200 - star.life * 20 + 13 + 'px';
+  graphdot.style.top = 200 - star.x - 2 + 'px';
   graphstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
-  leverdot.style.left = 204 - star.accelerate * 25 + "px";
+  leverdot.style.left = 204 - star.accelerate * 25 + 'px';
   leverstat.innerHTML = `Accelerate: ${star.accelerate}s`;
 }
 
 
 const qixsc = 1;
 //var qixmap = new Array(200*200).fill(0);
-var qixmask = document.createElement('canvas');
-var qixmaskc = qixmask.getContext('2d');
-qixmask.width = 960/qixsc;
-qixmask.height = 618/qixsc;
-var qixmap = null; // qixmaskc.createImageData(qixmask.width, qixmask.height);
+var qixmask = newCanvas();
+
+var qixmap = null; // qixmask.createImageData(qixmask.width, qixmask.height);
 var qixpos, qixpos2, qix_tails, qixline;
 
-var glyphm = document.createElement('canvas');
-var glyphmc = glyphm.getContext('2d');
-var glyphc = document.createElement('canvas');
-var glyphcc = glyphc.getContext('2d');
+var glyphm = newCanvas();
+var glyphc = newCanvas();
 var glyph_shift = 1;
 
 var glyphimg = new Image();
 glyphimg.src = 'SOL/glyph.png';
 glyphimg.addEventListener('load', () => {
-  glyphm.width = glyphimg.width;
-  glyphm.height = glyphimg.height;
-  glyphc.width = 16*59;
-  glyphc.height = 16*38;
+  glyphm.width = glyphm.canvas.width = glyphimg.width;
+  glyphm.height = glyphm.canvas.height = glyphimg.height;
+  glyphc.width = glyphc.canvas.width = 16*59;
+  glyphc.height = glyphc.canvas.height = 16*38;
 
-  glyphmc.drawImage(glyphimg, 0, 0);
-  glyphmc.globalCompositeOperation = 'source-in';
-  glyphmc.fillStyle = '#0f0';
-  glyphmc.fillRect(0, 0, glyphimg.width, glyphimg.height);
+  glyphm.drawImage(glyphimg, 0, 0);
+  glyphm.globalCompositeOperation = 'source-in';
+  glyphm.fillStyle = '#0f0';
+  glyphm.fillRect(0, 0, glyphimg.width, glyphimg.height);
 });
 
 function new_glyph(clear) {
@@ -2583,7 +2573,7 @@ function new_glyph(clear) {
   keyboard.style.display = 'inline-block';
 
   if (clear) {
-    glyphcc.clearRect(0, 0, glyphc.width, glyphc.height);
+    glyphc.clearRect(0, 0, glyphc.width, glyphc.height);
     glyph_cursor = 0;
     glyph_row = 0;
   }
@@ -2613,7 +2603,7 @@ function glyph_update(code) {
       glyph_cursor = 58;
     }
 
-    glyphcc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
+    glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
   }
 
   if (code === 'Enter') {
@@ -2626,7 +2616,7 @@ function glyph_update(code) {
   }
 
   if (code === 'Space') {
-    glyphcc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
+    glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
 
     // cursor jump
     if (glyph_cursor > 57) {
@@ -2641,12 +2631,17 @@ function glyph_update(code) {
     }
   }
 
-  if (code.startsWith('Key')) {
-    const pos = 16 * 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').indexOf(code.at(-1));
-    const des = 16 * glyph_shift;
+  if (code.startsWith('Digit') || code.startsWith('Key')) {
+    let charset = '0123456789';
+    let des = 0;
+    if (code.startsWith('Key')) {
+      charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      des = 16 * glyph_shift;
+    }
+    const pos = 16 * charset.split('').indexOf(code.at(-1));
 
-    glyphcc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
-    glyphcc.drawImage(glyphm, pos, des, 16, 16, 16 * glyph_cursor, 16 * glyph_row, 16, 16);
+    glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
+    glyphc.drawImage(glyphm.canvas, pos, des, 16, 16, 16 * glyph_cursor, 16 * glyph_row, 16, 16);
 
     // cursor jump
     if (glyph_cursor > 57) {
@@ -2698,8 +2693,8 @@ function new_qix() {
   //  qixmap.data[n*4+3] = 255;
   //}
 
-  qixmaskc.drawImage(silhouette, 0, 0, silhouette.width, silhouette.height, 0, 0, qixmask.width, qixmask.height);
-  qixmap = qixmaskc.getImageData(0, 0, qixmask.width, qixmask.height);
+  qixmask.drawImage(silhouette, 0, 0, silhouette.width, silhouette.height, 0, 0, qixmask.width, qixmask.height);
+  qixmap = qixmask.getImageData(0, 0, qixmask.width, qixmask.height);
   clearSq(center[0]-9, center[1]-9, 19, 19);
   clearSq(center[0]-8, center[1]-8, 17, 17, 0); // 128 for semi-translucent
   clearSq(0, 0, qixmask.width, 0);
@@ -2760,7 +2755,7 @@ function qixscan() {
       qixupdate();
     }, 1500);
   }
-  qixmaskc.putImageData(qixmap, 0, 0);
+  qixmask.putImageData(qixmap, 0, 0);
 }
 
 function clearSq(x, y, w, h, co = 0) {
@@ -2775,7 +2770,7 @@ function clearSq(x, y, w, h, co = 0) {
       qixmap.data[ii + r+j*4] = co;
     }
   }
-  qixmaskc.putImageData(qixmap, 0, 0);
+  qixmask.putImageData(qixmap, 0, 0);
 }
 
 function stixpath(nx, land) {
@@ -3049,7 +3044,7 @@ function qixupdate() {
   context.fillRect(0, 0, canvas.width, canvas.height);
 
   context.drawImage(reveal, 0, 0, reveal.width, reveal.height, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
-  context.drawImage(qixmask, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
+  context.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
 
   if (stopscreensaver) {
     requestAnimationFrame(qixupdate);
@@ -3555,7 +3550,7 @@ ${x}px ${y+18}px)`;
         savestar();
       });
     };
-    poppy.append(newmenu('Nostalgia FPS', listener, 15));
+    poppy.append(newmenu('20 FPS', listener, 15));
     poppy.append(newmenu('Unrestricted FPS', listener));
   } else {
     poppy.append(unlock(['Unrestricted FPS (', ')'], 16));
@@ -3733,17 +3728,13 @@ function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
 }
 
 function windo(win) {
-  const mask = document.createElement('canvas');
-  mask.width = 95;
-  mask.height = 95;
+  const mask = newCanvas(95, 95);
+  mask.fillStyle = "#088";
+  mask.drawImage(win, 0, 0);
+  mask.globalCompositeOperation = "source-in";
+  mask.fillRect(0, 0, 95, 95);
  
-  let maskcontext = mask.getContext('2d');
-  maskcontext.fillStyle = "#088";
-  maskcontext.drawImage(win, 0, 0);
-  maskcontext.globalCompositeOperation = "source-in";
-  maskcontext.fillRect(0, 0, 95, 95);
- 
-  let promise = new Promise(canvasToAB(mask, 'png'))
+  let promise = new Promise(canvasToAB(mask.canvas, 'png'))
   promise.then(function(arri){
     const a = ABtoAB(arri);
     const wind = document.getElementsByClassName("windo");
@@ -4067,12 +4058,12 @@ window.addEventListener('load', () => {
   //});
 
   document.body.appendChild(canvas);
-  shaderscr.appendChild(shader);
+  shaderscr.appendChild(shader.canvas);
 
   const glyphscr = document.createElement('DIV');
   glyphscr.id = 'glyphscr';
   document.body.appendChild(glyphscr);
-  glyphscr.appendChild(glyphc);
+  glyphscr.appendChild(glyphc.canvas);
 
   dim.x = Math.floor(canvas.width/2)
   dim.y = Math.floor(canvas.height/2);
@@ -4103,7 +4094,7 @@ window.addEventListener('load', () => {
 <div id='stdout'>Output:</div>
 <div class='poppy' id='poppy'></div>
 <div id='touchloc'></div>
-<div id='touchlocm'></div>
+<div id='touchloc_dot'></div>
 <div id='dialogbox'><div id='close'>&times;</div><div id='dialog'></div></div>
 <div id='keyboard'></div>
 </body>

@@ -1378,7 +1378,7 @@ function readMDP(arri) {
       const header = arri.buffer.slice(pos, pos + offset3);
       pos += offset3;
 
-      const [x, y, ctype, size] = HeaderStruct.unpack(header);
+      const [x, y, compression_type, size] = HeaderStruct.unpack(header);
       const clean_IDAT = arri.slice(pos, pos + size);
       pos += size + mod(4-size, 4);
 
@@ -1392,32 +1392,82 @@ function readMDP(arri) {
 
       let fdata = new Array(0);
       for (const i of Array(dim*4).keys()) {
-        fdata = fdata.concat([0x00]);
+        fdata = fdata.concat([0x00]); // filter-method scanline bytes
         fdata = fdata.concat(Array.from(data.slice(i*dim*4, (i+1)*dim*4)));
       }
 
       const constPNG = reconstPNG(IHDR, pako.deflate(new Uint8Array(fdata)));
-      img = ABtoIMG(ABtoAB(constPNG));
+      const img = ABtoIMG(ABtoAB(constPNG));
       img.onload = () => {
         layer.drawImage(img, x*dim, y*dim, dim, dim);
 
         callback(interTileN + 1);
         // echoIMG(img, name.split('.').slice(0, -1).join('.') + " (tile).png");
       }
+    };
+
+    const dataToLayer = (data, callback, interTileN, x, y) => {
+      if (false) {
+        // BGRA to RGBA tilemap
+        const tilemap = tilemask.createImageData(dim, dim);
+        for (let n = 0; n < data.length; n += 4) {
+          tilemap.data[n] = data[n+2];
+          tilemap.data[n+1] = data[n+1];
+          tilemap.data[n+2] = data[n];
+          tilemap.data[n+3] = data[n+3];
+        }
+        tilemask.putImageData(tilemap, 0, 0);
+      } else {
+        // BGRA to RGBA then passthrough
+        for (let n = 0; n < data.length; n += 4) {
+          const r = data[n];
+          data[n] = data[n + 2];
+          data[n + 2] = r;
+        }
+        tilemask.putImageData(new ImageData(new Uint8ClampedArray(data), dim, dim), 0, 0);
+      }
+
+      layer.drawImage(tilemask.canvas, x*dim, y*dim, dim, dim);
+      callback(interTileN + 1);
     }
+
+    const tileReadStreams = (callback, interTileN, isMask) => {
+      const header = arri.buffer.slice(pos, pos + offset3);
+      pos += offset3;
+
+      const [x, y, compression_type, size] = HeaderStruct.unpack(header);
+      const clean_IDAT = arri.slice(pos, pos + size);
+      pos += size + mod(4-size, 4);
+
+      if (false) {
+        // datastream (broken)
+        const blob = new Blob(clean_IDAT);
+
+        const decompressor = new DecompressionStream('deflate-raw');
+        const decompressedStream = blob.stream().pipeThrough(decompressor);
+        const response = new Response(decompressedStream);
+        response.blob().then((data) => {
+          dataToLayer(data, callback, interTileN, x, y);
+        });
+      } else {
+        // pako
+        const data = pako.inflate(clean_IDAT);
+        dataToLayer(data, callback, interTileN, x, y);
+      }
+    };
 
     const tileRead = (callback, interTileN, isMask) => {
       const header = arri.buffer.slice(pos, pos + offset3);
       pos += offset3;
 
-      const [x, y, ctype, size] = HeaderStruct.unpack(header);
+      const [x, y, compression_type, size] = HeaderStruct.unpack(header);
       const clean_IDAT = arri.slice(pos, pos + size);
       pos += size + mod(4-size, 4);
 
       const data = pako.inflate(clean_IDAT);
-      const tilemap = tilemask.createImageData(dim, dim);
 
       if (isMask) {
+        const tilemap = tilemask.createImageData(dim, dim);
         for (let n = 0; n < data.length*4; n += 4) {
           tilemap.data[n] = 0;
           tilemap.data[n+1] = 0;
@@ -1426,19 +1476,12 @@ function readMDP(arri) {
         }
 
         tilemask.putImageData(tilemap, 0, 0);
+        layer.drawImage(tilemask.canvas, x*dim, y*dim, dim, dim);
+        callback(interTileN + 1);
       } else {
-        for (let n = 0; n < data.length; n += 4) {
-          tilemap.data[n] = data[n+2];
-          tilemap.data[n+1] = data[n+1];
-          tilemap.data[n+2] = data[n];
-          tilemap.data[n+3] = data[n+3];
-        }
-        tilemask.putImageData(tilemap, 0, 0);
+        dataToLayer(data, callback, interTileN, x, y);
       }
-
-      layer.drawImage(tilemask.canvas, x*dim, y*dim, dim, dim);
-      callback(interTileN + 1);
-    }
+    };
 
 
 
@@ -2332,10 +2375,10 @@ function echoAPNG() {
           if (lastOp === 0) {
             ctx.drawImage(c, 0, 0, c.width, c.height);
           } else if (lastOp === 1) {
-            context.drawImage(canvas, 0, 0, canvas.width, canvas.height);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(ctx.canvas, 0, 0, ctx.width, ctx.height);
+            ctx.clearRect(0, 0, ctx.width, ctx.height);
           } else if (lastOp === 2) {
-            context.drawImage(canvas, 0, 0, canvas.width, canvas.height);
+            context.drawImage(ctx.canvas, 0, 0, ctx.width, ctx.height);
           }
           lastOp = frames[n][2][0];
 
@@ -2409,7 +2452,7 @@ function readapng(filelist) {
       arri = new Uint8Array(fr.result);
       img = ABtoIMG([arri])
       img.onload = () => {
-        const isAPNG = false;
+        let isAPNG = false;
         const isGIF = false;
         if (Array.prototype.some.call(PNG_signature, (b, i) => {
           return b !== arri[i];

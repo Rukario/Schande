@@ -627,7 +627,11 @@ function starry(vmsec) {
     if (!star.accelerate) {
       star.delay = fps.vfps;
     } else if (isFinite(star.delay)) {
-      star.delay = star.delay / (1 + fps.msec / (star.accelerate*200));
+      //const easeout = fps.msec / 1000 / (star.accelerate*fps.vfps/star.delay);
+      const easein = fps.msec / (star.accelerate*200);
+      // what easeinout might be? <- ideal
+      star.delay = star.delay / (1 + easein);
+      //result.innerHTML = star.delay.toFixed(3) + ' ' + easein.toFixed(3) + ' ' + easeout.toFixed(3);
     } else {
       star.delay = 60*fps.vfps;
     }
@@ -842,8 +846,12 @@ function new_screensaver() {
 
 const xlight = ['#f00', '#f90', '#390', '#06f', '#90c'];
 const xnatur = ['#fdd', '#f90', '#940', '#766', '#000', '#90c'];
+const oldstars = [
+  '#F0F8F8', '#D0E0D0', '#A8B8A8', '#709080', '#587070', '#406048', '#182818',
+  '#F8D868', '#E8A840', '#D04828', '#881008',
+  '#B0E8F8', '#78A0F8', '#5848D8', '#2810A8',
+];
 const wincolor = ['#000000', '#00FF00', '#008080', '#808080', '#A6CAF0', '#C0DCC0', '#800000', '#F60000', '#800080', '#00007F', '#808000', '#FFFBF0', '#C0C0C0', '#710071', '#008000'];
-const winpride = ['#e00', '#f80', '#840', '#ff0', '#0b0', '#0bf', '#00f', '#80b', '#000', '#fff', '#f8b'];
 
 function starcolor() {
   let hex = null;
@@ -862,10 +870,10 @@ function starcolor() {
         Math.floor(4 + Math.random()*12).toString(16),
       ];
       return '#' + hex.join('');
-    case 3:
-      return winpride[Math.floor(Math.random() * winpride.length)];
     case 2:
       return wincolor[Math.floor(Math.random() * wincolor.length)];
+    case 1:
+      return oldstars[Math.floor(Math.random() * oldstars.length)];
     default:
       return '#fff';
   }
@@ -3374,9 +3382,9 @@ ${x}px ${y+18}px)`;
 
   if (winsoln >= 24) {
     morescr.append(newmenu('Flying Windows 24-bit',    listener, [4,      75,   'win95.png', true,   95,  95,    1, 4, false]));
-    morescr.append(newmenu('Flying Windows pride',     listener, [3,      75,   'win95.png', true,   95,  95,    1, 4, false]));
+    morescr.append(newmenu('Star Fox',                 listener, [1,      100,  false,       false,   6,   12, 1.50, 0, false]));
     morescr.append(newmenu('8000 colorful stars',      listener, [4,      8000, false,       false,   4,   4, 1.25, 0, false]));
-    morescr.append(newmenu('Surreal Xmas memory',      listener, ['xmas', 800,  'light.png', true,  190, 190, 1.25, 4, "#072700"]));
+    morescr.append(newmenu('Surreal Xmas',             listener, ['xmas', 800,  'light.png', true,  190, 190, 1.25, 4, "#072700"]));
     morescr.append(newmenu('Deep nature',              listener, ['natu', 800,  'petal.png', true,  190, 190, 1.25, 4, "#170b00"]));
     morescr.append(newmenu('2000 flying Windows',      listener, [4,      2000, 'win95.png', true,   95,  95, 1.25, 4, false]));
 

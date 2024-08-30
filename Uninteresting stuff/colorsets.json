@@ -1062,6 +1062,13 @@
   "Irish Cream Assimilation":[1376],
   "Irish Cream Unity Green":[1377],
 
+  "Shape colors":true,
+  "Pumpkin Spice":[1484, "???", 0, 0],
+  "Blush":[1489, "???", 0, 0],
+  "Rarity":[1491, "???", 0, 0],
+  "Blue Sky":[1492, "???", 0, 0],
+  "Bamboo":[1493, "???", 0, 0],
+
   "Rideable colors (✨ = exclusive to rideables)":true,
   "Flint's Rideable Natural":[1308],
   "Flint's Rideable Signature":[1309],

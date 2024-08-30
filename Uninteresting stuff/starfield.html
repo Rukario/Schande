@@ -28,7 +28,6 @@ canvas {
 }
 
 #shaderscr {
-  display: none;
   position: absolute;
   z-index: 2;
   pointer-events: none;
@@ -481,6 +480,7 @@ const star = {
 };
 
 const scr = {
+  img: true,
   density: 75,
   frustum: 0.8 + 0.4,
   color: 2,
@@ -505,8 +505,6 @@ var busyclick = false;
 
 var ccolor = '#000';
 var lastcolor = '#000';
-
-var useimg = true;
 
 
 function echo(B, b) {
@@ -575,15 +573,23 @@ canvas.height = document.documentElement.clientHeight;
 const context = canvas.getContext('2d');
 context.imageSmoothingEnabled = false;
 
-const shader = newCanvas(canvas.width, canvas.height);
+const asRetina = window.devicePixelRatio || 1;
+const shader = newCanvas(canvas.width * asRetina, canvas.height * asRetina);
+shader.canvas.style.width = canvas.width + 'px';
+shader.canvas.style.height = canvas.height + 'px';
 shader.imageSmoothingEnabled = false;
-shader.fillStyle = '#fff';
-shader.fillRect(0, 0, shader.width, shader.height);
 
-for (const n of Array(shader.width).keys()) {
-  shader.fillStyle = ['rgba(255, 0, 0, 0.2)', 'rgba(0, 255, 0, 0.2)', 'rgba(0, 0, 255, 0.2)'][n%3];
-  shader.fillRect(n, 0, 1, shader.height);
-}
+//for (const n of Array(shader.width).keys()) {
+//  shader.fillStyle = ['rgba(255, 0, 0, 0.5)', 'rgba(0, 255, 0, 0.5)', 'rgba(0, 0, 255, 0.5)'][n%3];
+//  shader.fillRect(n, 0, 1, shader.height);
+//}
+//
+//for (const n of Array(shader.height).keys()) {
+//  if (n % 3 === 0) {
+//    shader.fillStyle = 'rgba(0, 0, 0, 0.5)';
+//    shader.fillRect(0, n, shader.width, 1);
+//  }
+//}
 
 //for (const c of Array(shader.width).keys()) {
 //  for (const r of Array(shader.height).keys()) {
@@ -693,7 +699,7 @@ function starry(vmsec) {
       //}
 
       const dot_pos = [Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y];
-      if (useimg) {
+      if (scr.img) {
         //maskcontext.fillStyle = ishtar[3];
         //maskcontext.drawImage(alpha, 0, 0);
         //maskcontext.globalCompositeOperation = "source-in";
@@ -765,7 +771,7 @@ function movingphoto() {
 
   for (let y = 0; y < canvas.height; y += movingflower.height) {
     for (let x = currentFrame; x < canvas.width; x += movingflower.width) {
-      context.drawImage(movingflower, x, y);
+      context.drawImage(movingflower, x, y, movingflower.width, movingflower.height);
     }
   }
 
@@ -835,6 +841,7 @@ function new_screensaver() {
 }
 
 const xlight = ['#f00', '#f90', '#390', '#06f', '#90c'];
+const xnatur = ['#fdd', '#f90', '#940', '#766', '#000', '#90c'];
 const wincolor = ['#000000', '#00FF00', '#008080', '#808080', '#A6CAF0', '#C0DCC0', '#800000', '#F60000', '#800080', '#00007F', '#808000', '#FFFBF0', '#C0C0C0', '#710071', '#008000'];
 const winpride = ['#e00', '#f80', '#840', '#ff0', '#0b0', '#0bf', '#00f', '#80b', '#000', '#fff', '#f8b'];
 
@@ -859,8 +866,6 @@ function starcolor() {
       return winpride[Math.floor(Math.random() * winpride.length)];
     case 2:
       return wincolor[Math.floor(Math.random() * wincolor.length)];
-    case 'xmas':
-      return xlight[Math.floor(Math.random() * xlight.length)];
     default:
       return '#fff';
   }
@@ -873,7 +878,7 @@ function starmask(color, img) {
     mask.drawImage(img, 0, 0);
   } else {
     mask.drawImage(alpha, 0, 0);
-    mask.globalCompositeOperation = "source-in";
+    mask.globalCompositeOperation = 'source-in';
     mask.fillStyle = color || starcolor();
     mask.fillRect(0, 0, mask.width, mask.height);
   }
@@ -883,21 +888,30 @@ function starmask(color, img) {
 
 function new_stars() {
   stars = [];
-  if (scr.color === 'xmas') {
+  if (['xmas', 'natu'].includes(scr.color)) {
     const variant = (i, img) => {
       for (const n of Array(parseInt(i)).keys()) {
         newstar(img);
       }
     }
 
+    const xarray = (() => {
+      switch (scr.color) {
+        case 'xmas':
+          return xlight;
+        case 'natu':
+          return xnatur;
+      }
+    })();
+
     const foliage = new Image();
     foliage.src = 'spruce.png';
     foliage.addEventListener('load', () => {
-      canvasToFrame(starmask(false, foliage), variant, scr.density/xlight.length*(xlight.length-1));
+      canvasToFrame(starmask(false, foliage), variant, scr.density/xarray.length*(xarray.length-1));
     });
 
-    for (const color of xlight) {
-      canvasToFrame(starmask(color), variant, scr.density/xlight.length/xlight.length);
+    for (const color of xarray) {
+      canvasToFrame(starmask(color), variant, scr.density/xarray.length/xarray.length);
     }
 
     new_screensaver();
@@ -915,7 +929,7 @@ function new_stars() {
       readcard(variant, i);
     }
     variant(0);
-  } else if (useimg) {
+  } else if (scr.img) {
     const variant = (i, img) => {
       if (img) {
         newstar(img);
@@ -1280,7 +1294,7 @@ function winsol() {
   solcomputer = false;
   winanim = true;
   const flycards = [];
-  const gravity = {'x':0, 'y':1};
+  const gravity = {x: 0, y: 1};
   const kinecticloss = 0.85;
   let i = 0;
 
@@ -1323,7 +1337,7 @@ function winsol() {
         flycard.y = ground - cardsize[1];
         flycard.yvel = -flycard.yvel*kinecticloss;
       }
-      context.drawImage(cards[flycard["card"]], flycard.x, flycard.y, ...cardsize);
+      context.drawImage(cards[flycard['card']], flycard.x, flycard.y, ...cardsize);
     }
     if (flycard.x < -cardsize[0] || flycard.x > canvas.width) {
       clearTimeout(idlescreensaver);
@@ -1346,7 +1360,7 @@ var invert = newCanvas(cardsize[0], Math.floor(cardsize[1]/2));
 invert.imageSmoothingEnabled = false;
 
 function drawcross(x, y) {
-  context.strokeStyle = "#00FF00";
+  context.strokeStyle = '#00FF00';
   context.lineWidth = 2;
   context.beginPath();
   context.arc(x, y, 8, 0, Math.PI*2);
@@ -1368,10 +1382,10 @@ function sol() {
     imawake();
   }
 
-  context.fillStyle = "#003D00"; // "#130733"
+  context.fillStyle = '#003D00'; // "#130733"
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  context.fillStyle = "#007D00"; // "#260f66"
+  context.fillStyle = '#007D00'; // "#260f66"
   context.fillRect(0, 0, ...solsize);
 
   context.drawImage(cards['deck'], gap.x, gap.y, ...cardsize);
@@ -1493,7 +1507,7 @@ function sol() {
   if (givehint) {
     // Draw preview
     let y = 400 + gap.y;
-    context.fillStyle = "rgba(0, 0, 0, 0.75)";
+    context.fillStyle = 'rgba(0, 0, 0, 0.75)';
 
     // Cycle
     for (const [n, card] of slots[0][1].entries()) {
@@ -1664,7 +1678,14 @@ function computerplaysol(forhint) {
       const y = gap.y*2 + cardsize[1] + depth*15*scale + 3*scale*slots[pos][0].length;
       drawhint(hint, x, y, x, y);
       if (!forhint) {
-        dragcard = {'x':x, 'y':y, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[pos], 'draw':depth};
+        dragcard = {
+          x: x,
+          y: y,
+          dx: mousepos.x,
+          dy: mousepos.y,
+          slot: slots[pos],
+          draw: depth,
+        };
         setTimeout(FFup, computerspeed*3);
       }
       return;
@@ -1684,7 +1705,13 @@ function computerplaysol(forhint) {
       const y = gap.y*1 + cardsize[1]*0 + repeat + depth*scale;
       drawhint(hint, x, y, x, y);
       if (!forhint) {
-        dragcard = {'x':x, 'y':y, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slots[0]};
+        dragcard = {
+          x: x,
+          y: y,
+          dx: mousepos.x,
+          dy: mousepos.y,
+          slot: slots[0],
+        };
         setTimeout(FFup, computerspeed*3);
       }
       return;
@@ -1723,7 +1750,13 @@ function computerplaysol(forhint) {
         const des = place > 4 ? 1 : 0;
         drawhint([hint, hint2, hint3, hint4][o], x, y, gap.x*(place-(5*des)+1) + cardsize[0]*(place-(5*des)), gap.y*(des+1) + cardsize[1]*des + 3*scale*slo[0].length);
         if (!forhint) {
-          dragcard = {'x':x, 'y':y, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slo};
+          dragcard = {
+            x: x,
+            y: y,
+            dx: mousepos.x,
+            dy: mousepos.y,
+            slot: slo,
+          };
           if(!isdeck) {
             dragcard['draw'] = 0;
           }
@@ -2429,8 +2462,8 @@ var rightc = (e_) => {
       : e_.y,
     document.documentElement.clientHeight - poppy.clientHeight,
   );
-  poppy.style.left = `${x > 0 ? x : 0}px`;
-  poppy.style.top = `${y > 0 ? y : 0}px`;
+  poppy.style.left = (x > 0 ? x : 0) + 'px';
+  poppy.style.top = (y > 0 ? y : 0) + 'px';
 
   ZOOKd = true;
   e_.preventDefault();
@@ -2444,7 +2477,7 @@ function typeOf(obj) {
 
 var DOMwriter = null;
 var winsoln = 0;
-var morescr, options, seed, seednow, staropt, graph, graphdot, graphstat, lever, leverdot, leverstat;
+var morescr, options, seed, seednow, staropt, fpsopt, graph, graphdot, graphstat, lever, leverdot, leverstat;
 
 function winningcookie() {
   const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
@@ -2474,18 +2507,19 @@ function cursordraw(e, end) {
 
       touchloc.style.display = 'block';
       touchloc.style.animation = 'none';
-      touchloc.style.width = size + 'px';
-      touchloc.style.height = size + 'px';
       touchloc.style.top = mousepos.y - border - center + 'px';
       touchloc.style.left = mousepos.x - border - center + 'px';
-      touchloc.style.borderWidth = border + 'px';
 
       touchloc_dot.style.display = 'block';
       touchloc_dot.style.animation = 'none';
-      touchloc_dot.style.width = size + 'px';
-      touchloc_dot.style.height = size + 'px';
     }
 
+    touchloc.style.width = size + 'px';
+    touchloc.style.height = size + 'px';
+    touchloc.style.borderWidth = border + 'px';
+
+    touchloc_dot.style.width = size + 'px';
+    touchloc_dot.style.height = size + 'px';
     touchloc_dot.style.top = mousepos.y - center + 'px';
     touchloc_dot.style.left = mousepos.x - center + 'px';
 
@@ -3053,6 +3087,16 @@ function qixupdate() {
 
 
 
+const inputcell = (B, w = '86px') => {
+  const d = document.createElement('INPUT');
+  d.type = 'text';
+  d.style.width = w;
+  d.placeholder = B;
+  d.style.margin = '2px 20px';
+  d.style.display = 'block';
+  return d;
+}
+
 function makemenu() {
   while (poppy.firstChild) {
     poppy.lastChild.remove();
@@ -3070,6 +3114,9 @@ function makemenu() {
 
   staropt = document.createElement('DIV');
   staropt.classList = 'poppy right';
+
+  fpsopt = document.createElement('DIV');
+  fpsopt.classList = 'poppy right';
 
   const newmenu = (name, listener, args, arrow) => {
     const e = document.createElement('DIV');
@@ -3090,23 +3137,23 @@ function makemenu() {
         e.append(a);
       }
     } else {
-      e.style.borderTop = "1px solid #848484";
-      e.style.borderBottom = "1px solid #fff";
+      e.style.borderTop = '1px solid #848484';
+      e.style.borderBottom = '1px solid #fff';
     }
 
     return e;
   };
 
   const unlock = (m, n, arrow) => {
-    const e = document.createElement("DIV");
+    const e = document.createElement('DIV');
     e.textContent = m.join(n-winsoln);
-    e.style.margin = "0 20px";
-    e.style.color = "#848484";
-    e.style.textShadow = "1px 1px #fff";
+    e.style.margin = '0 20px';
+    e.style.color = '#848484';
+    e.style.textShadow = '1px 1px #fff';
 
     if (arrow) {
-      const a = document.createElement("DIV");
-      a.classList = "poppyarrow";
+      const a = document.createElement('DIV');
+      a.classList = 'poppyarrow';
       e.append(a);
     }
 
@@ -3155,15 +3202,6 @@ function makemenu() {
       }
     });
   };
-
-  const inputcell = (B) => {
-    const d = document.createElement('INPUT');
-    d.type = 'text';
-    d.placeholder = B;
-    d.style.margin = "2px 20px";
-    d.style.display = "block";
-    return d;
-  }
 
   listener = (e, arg) => {
     e.addEventListener(tc, () => {
@@ -3305,7 +3343,7 @@ ${x}px ${y+18}px)`;
 
       scr.color = args[0];
       scr.density = args[1];
-      useimg = args[3];
+      scr.img = args[3];
       star.x = args[4];
       star.y = args[5];
       star.r = star.x/star.y;
@@ -3339,6 +3377,7 @@ ${x}px ${y+18}px)`;
     morescr.append(newmenu('Flying Windows pride',     listener, [3,      75,   'win95.png', true,   95,  95,    1, 4, false]));
     morescr.append(newmenu('8000 colorful stars',      listener, [4,      8000, false,       false,   4,   4, 1.25, 0, false]));
     morescr.append(newmenu('Surreal Xmas memory',      listener, ['xmas', 800,  'light.png', true,  190, 190, 1.25, 4, "#072700"]));
+    morescr.append(newmenu('Deep nature',              listener, ['natu', 800,  'petal.png', true,  190, 190, 1.25, 4, "#170b00"]));
     morescr.append(newmenu('2000 flying Windows',      listener, [4,      2000, 'win95.png', true,   95,  95, 1.25, 4, false]));
 
     if (winsoln >= 64) {
@@ -3367,7 +3406,7 @@ ${x}px ${y+18}px)`;
         glyphscr.style.display = 'none';
 
         solitaire = false;
-        hint.style.display = 'block';
+        hint.style.display = 'none';
         hintb.style.display = 'none';
 
         sideways = true;
@@ -3414,9 +3453,9 @@ ${x}px ${y+18}px)`;
   listener = (e, arg) => {
     e.addEventListener(tc, () => {
       if (arg === 2) {
-        ccolor = "rgba(0, 0, 0, 0)";
+        ccolor = 'rgba(0, 0, 0, 0)';
       } else if (arg) {
-        ccolor = "rgba(0, 0, 0, 0.1)";
+        ccolor = 'rgba(0, 0, 0, 0.1)';
       } else {
         ccolor = lastcolor;
       }
@@ -3530,7 +3569,7 @@ ${x}px ${y+18}px)`;
       result.style.display = fps.display && !solitaire ? 'block' : 'none';
     });
   };
-  poppy.append(newmenu('Display FPS', listener));
+  fpsopt.append(newmenu('Display stats', listener));
 
   if (winsoln >= 16) {
     listener = (e, arg) => {
@@ -3545,16 +3584,24 @@ ${x}px ${y+18}px)`;
           fps.msec = 1000 / fps.hz;
         }
         startTime = performance.now();
-        star.delay = 60*fps.vfps;
+        star.delay = 60 * fps.vfps;
         frameCount = 0;
         savestar();
       });
     };
-    poppy.append(newmenu('20 FPS', listener, 15));
-    poppy.append(newmenu('Unrestricted FPS', listener));
+    fpsopt.append(newmenu('2.5 FPS', listener, 2.5));
+    fpsopt.append(newmenu('5 FPS', listener, 5));
+    fpsopt.append(newmenu('10 FPS', listener, 10));
+    fpsopt.append(newmenu('15 FPS', listener, 15));
+    fpsopt.append(newmenu('20 FPS', listener, 20));
+    fpsopt.append(newmenu('30 FPS', listener, 30));
+    fpsopt.append(newmenu('60 FPS', listener, 60));
+    fpsopt.append(newmenu('Unrestricted', listener));
   } else {
-    poppy.append(unlock(['Unrestricted FPS (', ')'], 16));
+    fpsopt.append(unlock(['Unrestricted (', ')'], 16));
   }
+
+  poppy.append(newmenu('FPS', submenu, false, fpsopt));
 }
 
 var glyph_cursor = 0;

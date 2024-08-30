@@ -566,7 +566,7 @@ var FFup = () => {
 
 function plaintext(e) {
   e.preventDefault();
-  const text = e.clipboardData.getData('text/plain').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const text = e.clipboardData.getData('text/plain').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   document.execCommand('insertHTML', false, text);
 }
 
@@ -583,12 +583,13 @@ function isUTF8(ext) {
 
 function echo(B, b) {
   if (!b) {
-    B = "<br>" + B;
+    B = '<br>' + B;
   } else {
-    B = " " + B;
+    B = ' ' + B;
   }
-  stdout.insertAdjacentHTML("beforeend", B);
-  stdout.style.display = "inline-block";
+
+  stdout.insertAdjacentHTML('beforeend', B);
+  stdout.style.display = 'inline-block';
 }
 
 function edit() {
@@ -596,34 +597,39 @@ function edit() {
   const pos = sel.getRangeAt(0);
   const preCaretRange = pos.cloneRange();
   where = preCaretRange.getBoundingClientRect();
-  cursor_focus.style.left = Math.max(0, window.scrollX + where.left - 100) + "px";
-  cursor_focus.style.top = Math.max(0, window.scrollY + where.top - 200) + "px";
+  cursor_focus.style.left = Math.max(0, window.scrollX + where.left - 100) + 'px';
+  cursor_focus.style.top = Math.max(0, window.scrollY + where.top - 200) + 'px';
 
-  if (cursor_focus.offsetTop+200 < window.pageYOffset || cursor_focus.offsetTop+200 > window.pageYOffset+window.innerHeight || cursor_focus.offsetLeft+100 < window.pageXOffset || cursor_focus.offsetLeft+100 > window.pageXOffset+window.innerWidth) {
-    cursor_focus.scrollIntoView({top: 0, behavior: "smooth", inline:"start"})
+  if (
+    cursor_focus.offsetTop + 200 < window.pageYOffset ||
+    cursor_focus.offsetTop + 200 > window.pageYOffset + window.innerHeight ||
+    cursor_focus.offsetLeft + 100 < window.pageXOffset ||
+    cursor_focus.offsetLeft + 100 > window.pageXOffset + window.innerWidth
+  ) {
+    cursor_focus.scrollIntoView({top: 0, behavior: 'smooth', inline: 'start'})
   }
 
   if (!(document.title.includes(' *'))) {
     document.title = document.title + ' *';
-    local_backtip.style.display = "none";
+    local_backtip.style.display = 'none';
   }
 }
 
 function menu() {
-  document.body.className = "menu";
-  dimm.style.display = "block";
-  dim.style.display = "none";
+  document.body.className = 'menu';
+  dimm.style.display = 'block';
+  dim.style.display = 'none';
 }
 
 function exitmenu() {
-  document.body.className = "exitmenu hljs";
-  dimm.style.display = "none";
-  dim.style.display = "block";
+  document.body.className = 'exitmenu hljs';
+  dimm.style.display = 'none';
+  dim.style.display = 'block';
 }
 
 function rename() {
-  var newtitle = prompt("Use Save Text shortcut or Save button to save the document with this file name.", document.title.replace(" *", ""));
-  if (newtitle){
+  var newtitle = prompt('Use Save Text shortcut or Save button to save the document with this file name.', document.title.replace(' *', ''));
+  if (newtitle) {
     document.title = newtitle;
   }
 }
@@ -639,27 +645,21 @@ function dehljs() {
 }
 
 function dedup() {
-  var dirty = editor.textContent.split("\n");
-  clean = []
-  for(var i=0;i<dirty.length;i++){
-    if(dirty[i] && clean.indexOf(dirty[i])<0){
-      clean.push(dirty[i]);
-    } else {
-      clean.push("");
-    }
+  clean = [];
+  for (const line of editor.textContent.split('\n')) {
+    clean.push(line && clean.indexOf(line) < 0 ? line : '');
   }
-  new_editor(clean.join("\n"));
+  new_editor(clean.join('\n'));
 };
 
 function denew() {
-  var dirty = editor.textContent.split("\n");
   clean = [];
-  for(var i=0;i<dirty.length;i++){
-    if(dirty[i]){
-      clean.push(dirty[i]);
+  for (const line of editor.textContent.split('\n')) {
+    if (line) {
+      clean.push(line);
     }
   }
-  new_editor(clean.join("\n"));
+  new_editor(clean.join('\n'));
 }
 
 function detab() {
@@ -670,7 +670,7 @@ function decode() {
   try {
     new_editor(decodeURIComponent(editor.textContent));
   } catch {
-    alert("The percent sign in this document appears malformed and has killed decoder!");
+    alert('The percent sign in this document appears malformed and has killed decoder!');
   }
 }
 
@@ -679,17 +679,19 @@ function del(c) {
 }
 
 function deamp() {
-  let t = document.createElement("textarea");
+  const t = document.createElement('textarea');
   t.innerHTML = editor.textContent;
   new_editor(t.value);
 }
 
 function deuni(e) {
-  return e.replace(/\\u[\dA-F]{4}/gi, function(match){return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));})
+  return e.replace(/\\u[\dA-F]{4}/gi, (match) => {
+    return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));
+  });
 }
 
 function unraw(str) {
-  return str.replace(/\\[0-9]|\\['"\bfnrtv]|\\x[0-9a-f]{2}|\\u[0-9a-f]{4}|\\u\{[0-9a-f]+\}|\\./ig, match => {
+  return str.replace(/\\[0-9]|\\['"\bfnrtv]|\\x[0-9a-f]{2}|\\u[0-9a-f]{4}|\\u\{[0-9a-f]+\}|\\./ig, (match) => {
     switch (match[1]) {
       case "'":
       case "\"":
@@ -759,47 +761,56 @@ function fraktur() {
 
 function save() {
   var sav = new Blob([editor.textContent], {type: "application/octet-stream"});
-  var a = document.createElement("a");
+  var a = document.createElement('A');
   a.href = URL.createObjectURL(sav);
-  a.download = document.title.replace(" *", "");
+  a.download = document.title.replace(' *', '');
   a.click();
 }
 
 function toRelic() {
-  const tc = document.getElementById("editor_relic").textContent;
-  const isAsked = document.getElementById("locatoon_relic").classList.contains("previous");
-  const isFile2 = document.getElementById("pickerdiff_relic").classList.contains("previous")
-  const name = document.title.replace(" *", "");
-  const d = {"stderr1":false, "stderr2":false, "ask":isAsked, "dir":"", "name":"", "body":""};
+  const tc = document.getElementById('editor_relic').textContent;
+  const isAsked = document.getElementById('locatoon_relic').classList.contains('previous');
+  const isFile2 = document.getElementById('pickerdiff_relic').classList.contains('previous');
+  const name = document.title.replace(' *', '');
+  const d = {
+    stderr1: false,
+    stderr2: false,
+    ask: isAsked,
+    dir: '',
+    name: '',
+    body: '',
+  };
+
   if (isFile2) {
-    d["stderr1"] = "Cannot save while File 2 is active!";
-    d["stderr2"] = "Please switch to File 1 before saving.";
+    d.stderr1 = 'Cannot save while File 2 is active!';
+    d.stderr2 = 'Please switch to File 1 before saving.';
   } else {
-    var b = tc.split('\n', 4).join("\n");
+    const b = tc.split('\n', 4).join('\n');
     for (const dir of dirs) {
-      n = dir.split(" for ");
-      nn = n[1].split(" ");
-      var rx = new RegExp(nn[0], 'g');
+      n = dir.split(' for ');
+      nn = n[1].split(' ');
+      let rx = new RegExp(nn[0], 'g');
       if (name.match(rx)) {
         rx = new RegExp(nn[1], 'g')
         if (b.match(rx)) {
-          d["dir"] = n[0];
+          d.dir = n[0];
           break;
         };
       };
     };
-    d["name"] = name;
-    d["body"] = tc;
+    d.name = name;
+    d.body = tc;
   }
+
   document.body.textContent = JSON.stringify(d);
 }
 
 function locatoon(a) {
-  if (saver.classList.contains("previous")) {
-    saver.classList.remove("previous");
+  if (saver.classList.contains('previous')) {
+    saver.classList.remove('previous');
     saver.innerHTML = saver.dataset.htmlOriginal;
   } else {
-    saver.classList.add("previous");
+    saver.classList.add('previous');
     saver.dataset.htmlOriginal = saver.innerHTML;
     saver.innerHTML = a;
   }
@@ -849,15 +860,25 @@ function diff() {
   }
 }
 
+const Fi = {
+  start: performance.now(),
+  inter: 0,
+  end: 0,
+};
+
 function position() {
-  ti[1] = window.visualViewport.offsetTop;
-  if (performance.now() > ti[0]+100) {
-    ti[2] = ti[1];
+  Fi.inter = window.visualViewport.offsetTop;
+
+  if (performance.now() > Fi.start + 34) {
+    Fi.end = Fi.inter;
   } else {
-    setTimeout(() => {ti[2] = ti[1]}, 16.66);
+    setTimeout(() => {
+      Fi.end = Fi.inter;
+    }, 16.66);
   }
-  ti[0] = performance.now();
-  toolbar.style.top = Math.trunc(((ti[1]*2) - ti[2])/10)*10 + "px";
+
+  Fi.start = performance.now();
+  toolbar.style.top = Math.trunc(((Fi.inter * 2) - Fi.end)/10)*10 + 'px';
 }
 
 function opendiff(file) {
@@ -902,14 +923,14 @@ const fileup = (c, B, gimme=false) => {
   return b;
 };
 
-const button = (c, B, callback=echo, args=[]) => {
-  const d = document.createElement("DIV");
+const button = (c, B, callback = echo, args = []) => {
+  const d = document.createElement('DIV');
   d.classList = c;
   d.innerHTML = B;
   const left = () => {
     callback(...args);
   }
-  d.addEventListener("click", left);
+  d.addEventListener('click', left);
 
   if (!d.listeners) {
     d.listeners = [];
@@ -920,43 +941,46 @@ const button = (c, B, callback=echo, args=[]) => {
   return d;
 };
 
-const editcell = (B, vis="inline-block") => {
-  const d = document.createElement("DIV");
-  d.classList = "editor";
+const editcell = (B, vis = 'inline-block') => {
+  const d = document.createElement('DIV');
+  d.classList = 'editor';
   d.style.display = vis;
-  d.setAttribute("contenteditable", "plaintext-only");
+  d.setAttribute('contenteditable', 'plaintext-only');
   d.spellcheck = false;
   d.innerHTML = B;
   document.body.appendChild(d);
   return d;
 }
 
-const inputcell = (B, w="86px") => {
-  const d = document.createElement("INPUT");
-  d.classList = "next";
-  d.type = "text";
+const inputcell = (B, w = '86px') => {
+  const d = document.createElement('INPUT');
+  d.classList = 'next';
+  d.type = 'text';
   d.style.width = w;
   d.placeholder = B;
-  DOMwriter.appendChild(d);
   return d;
 }
 
-function new_editor(utf8="<br>", hex=false) {
-  if (stdout.style.display == "inline-block") {
+function new_editor(utf8 = '<br>', hex = false) {
+  if (stdout.style.display === 'inline-block') {
     return;
   }
 
-  document.body.innerHTML = "";
+  while (document.body.firstChild) {
+    document.body.lastChild.remove();
+  }
   document.body.className = "exitmenu hljs";
 
   new_stdout();
 
   if (hex) {
-    utf8 = Array.from(utf8.slice(0, 1024), (a) => {return a.toString(16).toUpperCase().padStart(2, '0')}).join(' ').replace(/(.{48})/g, "$1\n");
+    utf8 = Array.from(utf8.slice(0, 1024), (a) => {
+      return a.toString(16).toUpperCase().padStart(2, '0')
+    }).join(' ').replace(/(.{48})/g, "$1\n");
     name = "1024 bytes.txt";
     document.title = name;
   } else {
-    if (utf8 != "<br>") {
+    if (utf8 !== "<br>") {
       if (!bigdoc && canihljs) {
         utf8 = hyperlink(hljs.highlightAuto(utf8).value);
       } else {
@@ -990,8 +1014,10 @@ function new_editor(utf8="<br>", hex=false) {
   DOMwriter.appendChild(destructive);
   DOMwriter.insertAdjacentHTML("beforeend", " or ");
   rep = inputcell("Replace...");
+  DOMwriter.appendChild(rep);
   DOMwriter.insertAdjacentHTML("beforeend", "→");
   torep = inputcell("none");
+  DOMwriter.appendChild(torep);
   button("next", "where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗", fraktur);
   DOMwriter.insertAdjacentHTML("beforeend", ") (can't be undone)");
   toolbar.appendChild(DOMwriter);
@@ -1004,6 +1030,7 @@ function new_editor(utf8="<br>", hex=false) {
   downwithme = button("next downwithme", "👄", relbar, ['🫦']);
   button("next", filel[4] + " -(Destructive tools)", menu);
   calc = inputcell("Calculator", "116px");
+  DOMwriter.appendChild(calc);
 
   /* color picker */
   const label = document.createElement("LABEL");
@@ -1048,9 +1075,9 @@ function new_editor(utf8="<br>", hex=false) {
     "Links only",
     "De-highlight (until empty text replacement)"
   ].entries()) {
-    const option = document.createElement("option");
+    const option = new Option();
     option.value = n;
-    option.innerHTML = o;
+    option.textContent = o;
     destructive.appendChild(option);
   };
 
@@ -1065,7 +1092,7 @@ function new_editor(utf8="<br>", hex=false) {
     editor.removeEventListener("click", left);
   }
 
-  if (utf8 != "<br>" && ut) {
+  if (utf8 !== '<br>' && ut) {
     tooltip.style.display = "inline-block";
     tooltip.innerHTML = "The clipboard is updated with page source, paste to view!";
     editor.addEventListener("click", left);
@@ -1242,16 +1269,14 @@ function new_editor(utf8="<br>", hex=false) {
     }
   });
 
-  rep.addEventListener("keyup", (e) => {
-    const { keyCode } = e;
-    if (keyCode === 13) {
+  rep.addEventListener('keyup', (e) => {
+    if (e.code === 'Enter') {
       replace();
     }
   });
 
-  torep.addEventListener("keyup", (e) => {
-    const { keyCode } = e;
-    if (keyCode === 13) {
+  torep.addEventListener('keyup', (e) => {
+    if (e.code === 'Enter') {
       replace();
     }
   });
@@ -1263,7 +1288,6 @@ var hljs = false;
 var canihljs = false;
 var bigdoc = false;
 var aczo28 = true;
-var Fi = [performance.now(), 0, 0];
 var filel = ["File", "Diff", "File 1", "File 2", "🦦"];
 var ut = 0;
 var easter = "next";
@@ -1283,7 +1307,6 @@ const new_stdout = () => {
 }
 
 window.onload = () => {
-  document.title = 'New Text.txt';
   if (document.body.dataset.launched) {
     toRelic();
     return;
@@ -1291,14 +1314,15 @@ window.onload = () => {
     document.body.dataset.launched = true;
   }
 
+  document.title = 'New Text.txt';
   new_stdout();
 
-  let scale = "26px";
-  let adju = "128%";
+  let scale = '26px';
+  let adju = '128%';
 
   if (window.screen.width > 800) {
-    scale = "14px";
-    adju = "none";
+    scale = '14px';
+    adju = 'none';
     aczo28 = false;
   }
 
@@ -1310,11 +1334,11 @@ window.onload = () => {
     if (!val) {
       if (Number(key)) {
         ut = key;
-      } else if (key == "🦦") {
+      } else if (key === '🦦') {
         if (aczo28) {
-          easter = "next aczo aczo28";
+          easter = 'next aczo aczo28';
         } else {
-          easter = "next aczo";
+          easter = 'next aczo';
         }
         filel = ["❨'▾'❩", "❨ ꊱ ❩", "❨ 1 ❩", "❨ 2 ❩", "🦦"];
       } else {
@@ -1325,20 +1349,25 @@ window.onload = () => {
 
   new_editor();
 
-  const s = document.createElement("script");
-  s.src = "highlight.min.js"/* + Date.now()*/;
+  const s = document.createElement('SCRIPT');
+  s.src = 'highlight.min.js'/* + Date.now()*/;
   document.body.appendChild(s);
-  s.onload = () => {
+
+  s.addEventListener('load', () => {
     canihljs = true;
-  };
-  s.onerror = () => {
+  });
+
+  s.addEventListener('error', () => {
     newtip(filel[4] + " -(Highlight)", "Download and extract highlight.min.js from <a href='https://highlightjs.org/download/' target='_blank'>highlight.js download page</a> directly next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.");
-  };
+  });
 
   if (sharp[1]) {
-    newtip(filel[4] + " -(Uninitiated CSS)", "Download and extract \"" + sharp[0] + "\" (if that's spelled correctly) from <a href='https://highlightjs.org/download/' target='_blank'>highlight.js download page</a> directly next to HTML then reload this page");
+    newtip(filel[4] + ' -(Uninitiated CSS)', 'Download and extract "' + sharp[0] + "\" (if that's spelled correctly) from <a href='https://highlightjs.org/download/' target='_blank'>highlight.js download page</a> directly next to HTML then reload this page");
   }
 }
 
-</script></head><body class="exitmenu">1. Set up and run Schande.bat for its HTTP server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a>
-2. Take me to Schande.bat, then launch <a href="http://127.0.0.1:8886/New Text.html">http://127.0.0.1:8886/New Text.html</a></body></html>
+</script>
+</head>
+<body class='exitmenu'>1. Set up and run Schande.bat for its HTTP server from <a href='https://github.com/Rukario/Schande'>https://github.com/Rukario/Schande</a>
+2. Take me to Schande.bat, then launch <a href='http://127.0.0.1:8886/New Text.html'>http://127.0.0.1:8886/New Text.html</a></body>
+</html>

@@ -563,7 +563,7 @@ function canvasToAB(c, ext = 'png') {
 function canvasToFrame(mask, callback, interFrameN) {
   let promise = new Promise(canvasToAB(mask, 'png'));
   promise.then(function(arri) {
-    callback(interFrameN + 1, ABtoIMG(ABtoAB(arri)));
+    callback(interFrameN, ABtoIMG(ABtoAB(arri)));
   });
 }
 
@@ -863,13 +863,13 @@ function starcolor() {
         Math.floor(Math.random()*16).toString(16),
       ];
       return '#' + hex.join('');
-    case 4:
-      hex = [
-        Math.floor(4 + Math.random()*12).toString(16),
-        Math.floor(4 + Math.random()*12).toString(16),
-        Math.floor(4 + Math.random()*12).toString(16),
-      ];
-      return '#' + hex.join('');
+    //case 4:
+    //  hex = [
+    //    Math.floor(4 + Math.random()*12).toString(16),
+    //    Math.floor(4 + Math.random()*12).toString(16),
+    //    Math.floor(4 + Math.random()*12).toString(16),
+    //  ];
+    //  return '#' + hex.join('');
     case 2:
       return wincolor[Math.floor(Math.random() * wincolor.length)];
     case 1:
@@ -897,8 +897,8 @@ function starmask(color, img) {
 function new_stars() {
   stars = [];
   if (['xmas', 'natu'].includes(scr.color)) {
-    const variant = (i, img) => {
-      for (const n of Array(parseInt(i)).keys()) {
+    const variant = (ntimes, img) => {
+      for (const n of Array(parseInt(ntimes)).keys()) {
         newstar(img);
       }
     }
@@ -915,42 +915,65 @@ function new_stars() {
     const foliage = new Image();
     foliage.src = 'spruce.png';
     foliage.addEventListener('load', () => {
-      canvasToFrame(starmask(false, foliage), variant, scr.density/xarray.length*(xarray.length-1));
+      const ntimes = scr.density / xarray.length * (xarray.length - 1);
+      canvasToFrame(starmask(false, foliage), variant, ntimes);
     });
 
     for (const color of xarray) {
-      canvasToFrame(starmask(color), variant, scr.density/xarray.length/xarray.length);
+      const ntimes = scr.density / xarray.length / xarray.length;
+      canvasToFrame(starmask(color), variant, ntimes);
     }
 
     new_screensaver();
   } else if (scr.color === 'card') {
-    const variant = (i, img) => {
+    const variant = (interFrameN, img) => {
       if (img) {
         newstar(img);
       }
 
-      if (i === scr.density) {
+      if (interFrameN === scr.density) {
         new_screensaver();
         return;
       }
 
-      readcard(variant, i);
+      readcard(variant, interFrameN + 1);
     }
     variant(0);
   } else if (scr.img) {
-    const variant = (i, img) => {
-      if (img) {
-        newstar(img);
+    if (scr.color === 4 && scr.density > 125) {
+      const variant = (ntimes, img) => {
+        for (const n of Array(ntimes).keys()) {
+          newstar(img);
+        }
       }
 
-      if (i === scr.density) {
-        new_screensaver();
-        return;
+      const ntimes = Math.ceil(scr.density / 125);
+      for (const r of Array(5).keys()) {
+        const rr = (r * 3 + 1).toString(16);
+        for (const g of Array(5).keys()) {
+          const gg = (g * 3 + 1).toString(16);
+          for (const b of Array(5).keys()) {
+            const color = '#' + rr + gg + (b * 3 + 1).toString(16);
+            canvasToFrame(starmask(color), variant, ntimes);
+          }
+        }
       }
-
-      canvasToFrame(starmask(), variant, i);
+      new_screensaver();
+    } else {
+      const variant = (interFrameN, img) => {
+        if (img) {
+          newstar(img);
+        }
+      
+        if (interFrameN === scr.density) {
+          new_screensaver();
+          return;
+        }
+      
+        canvasToFrame(starmask(), variant, interFrameN + 1);
+      }
+      variant(0);
     }
-    variant(0);
   } else {
     for (const n of Array(scr.density).keys()) {
       newstar(starcolor());
@@ -1236,7 +1259,7 @@ function readcard(callback, interFrameN) {
     } else {
       new_deck();
     }
-    callback(interFrameN + 1);
+    callback(interFrameN);
     return;
   };
 
@@ -1292,7 +1315,7 @@ function readcard(callback, interFrameN) {
       new_deck();
     }
 
-    callback(interFrameN + 1);
+    callback(interFrameN);
   }).catch((reason) => {
     console.log(reason);
   })
@@ -3577,7 +3600,7 @@ ${x}px ${y+18}px)`;
       result.style.display = fps.display && !solitaire ? 'block' : 'none';
     });
   };
-  fpsopt.append(newmenu('Display stats', listener));
+  poppy.append(newmenu('Display FPS', listener));
 
   if (winsoln >= 16) {
     listener = (e, arg) => {
@@ -3606,7 +3629,7 @@ ${x}px ${y+18}px)`;
     fpsopt.append(newmenu('60 FPS', listener, 60));
     fpsopt.append(newmenu('Unrestricted', listener));
   } else {
-    fpsopt.append(unlock(['Unrestricted (', ')'], 16));
+    fpsopt.append(unlock(['FPS (', ')'], 16));
   }
 
   poppy.append(newmenu('FPS', submenu, false, fpsopt));

@@ -3405,11 +3405,13 @@ ${x}px ${y+18}px)`;
 
   if (winsoln >= 24) {
     morescr.append(newmenu('Flying Windows 24-bit',    listener, [4,      75,   'win95.png', true,   95,  95,    1, 4, false]));
+    morescr.append(newmenu('2000 flying Windows',      listener, [4,      2000, 'win95.png', true,   95,  95, 1.25, 4, false]));
+    morescr.append(newmenu());
     morescr.append(newmenu('Star Fox',                 listener, [1,      100,  false,       false,   6,   12, 1.50, 0, false]));
     morescr.append(newmenu('8000 colorful stars',      listener, [4,      8000, false,       false,   4,   4, 1.25, 0, false]));
+    morescr.append(newmenu());
     morescr.append(newmenu('Surreal Xmas',             listener, ['xmas', 800,  'light.png', true,  190, 190, 1.25, 4, "#072700"]));
     morescr.append(newmenu('Deep nature',              listener, ['natu', 800,  'petal.png', true,  190, 190, 1.25, 4, "#170b00"]));
-    morescr.append(newmenu('2000 flying Windows',      listener, [4,      2000, 'win95.png', true,   95,  95, 1.25, 4, false]));
 
     if (winsoln >= 64) {
       morescr.append(newmenu('Flying cards',           listener, ['card', 2,    false,       true, 71*2, 96*2, 1.25, 4, false]));

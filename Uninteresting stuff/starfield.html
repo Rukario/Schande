@@ -1256,9 +1256,9 @@ function splitmix32(a) {
   }
 }
 
-function crapndom() {
-  return crypto.getRandomValues(new Uint32Array(1))[0].toString(36);
-}
+//function crapndom() {
+//  return crypto.getRandomValues(new Uint32Array(1))[0].toString(36);
+//}
 
 function new_deck() {
   draw = {'draw':-1, 'last':-1, 'cycle':true};
@@ -1272,7 +1272,7 @@ function new_deck() {
   var breakseal = [...factorysealed];
   ncard = breakseal.length;
 
-  const alphaseed = seed.value !== '' ? seed.value.replace(/\W/g, '') : crapndom();
+  const alphaseed = seed.value !== '' ? seed.value.replace(/\W/g, '') : Math.random().toString(36).slice(2);
   seednow.value = alphaseed;
   const s = parseInt(alphaseed, 36) / Math.pow(36, alphaseed.length).toString(10).slice(2);
   const rand = splitmix32(s);

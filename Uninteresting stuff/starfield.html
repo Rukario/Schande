@@ -261,7 +261,7 @@ canvas {
 }
 
 #result, #stdout, #glyphscr {
-  white-space: pre;
+  white-space: pre-wrap;
   display: none;
   color: #0f0;
   font-family: courier;
@@ -4189,8 +4189,13 @@ window.addEventListener('load', () => {
     }
 
     if (ck.indexOf('star=') === 0) {
-      starcookie = true;
-      change_stars(JSON.parse(decodeURIComponent(ck.substring('star='.length, ck.length))));
+      const str = decodeURIComponent(ck.substring('star='.length, ck.length));
+      try {
+        change_stars(JSON.parse(str));
+        starcookie = true;
+      } catch (e) {
+        echo('Corrupted cookie string, please choose a star and refresh the page');
+      };
     }
 
     if (ck.indexOf('vfps=') === 0) {

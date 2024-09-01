@@ -600,9 +600,9 @@ shader.imageSmoothingEnabled = false;
 //}
 
 var idlecursor = false;
-var idlescreensaver = false;
-var busyscreensaver = false;
-var stopscreensaver = false;
+var idlescr = false;
+var busyscr = false;
+var stopscr = true;
 var sideways = false;
 var stars = [];
 var frameCount = 0;
@@ -639,37 +639,71 @@ function starry(vmsec) {
     star.delay = (1000 / vmsec).toFixed(2);
   }
 
-  const driftx = (mousepos.x-dim.x)/(200/scr.levitate)/(fps.vfps/60)/star.life-(mousepos.x-rubbermouse.x)/scr.friction.x*scr.drift;
-  const drifty = (mousepos.y-dim.y)/(200/scr.levitate)/(fps.vfps/60)/star.life-(mousepos.y-rubbermouse.y)/scr.friction.y*scr.drift;
+  const drift = {
+    x: (mousepos.x - dim.x) / (200 / scr.levitate) / (fps.vfps / 60) / star.life - (mousepos.x - rubbermouse.x) / scr.friction.x * scr.drift,
+    y: (mousepos.y - dim.y) / (200 / scr.levitate) / (fps.vfps / 60) / star.life - (mousepos.y - rubbermouse.y) / scr.friction.y * scr.drift,
+  }
 
   context.fillStyle = ccolor;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  for (const ishtar of stars) {
+  const bound = {
+    x: -star.x / 2,
+    y: -star.y / 2,
+    dx: star.x / 2,
+    dy: star.y / 2,
+  };
+
+  if (scr.glide) {
+    bound.x += Math.min(mousepos.x - canvas.width, -dim.x);
+    bound.y += Math.min(mousepos.y - canvas.height, -dim.y);
+    bound.dx += Math.max(mousepos.x, dim.x);
+    bound.dy += Math.max(mousepos.y, dim.y);
+  } else {
+    bound.x += -dim.x;
+    bound.y += -dim.y;
+    bound.dx += dim.x;
+    bound.dy += dim.y;
+  }
+
+  let channel = stars.length;
+  if (scr.color === 4 && stars.length > 125) {
+    channel = stars.length / 125 * 5;
+  }
+
+  for (const [n, ishtar] of stars.entries()) {
+    //const horizon = n / channel % 5 / 5;
+    const horizon = Math.random();
+
+    //const scanline = n % channel / channel;
+    const scanline = Math.random();
+
     if (ishtar[0] === 0) {
-      ishtar[1] = (Math.random()-0.5)*canvas.width*scr.frustum + (scr.glide ? (mousepos.x-dim.x)/scr.friction.x : 0);
-      ishtar[2] = (Math.random()-0.5)*canvas.height*scr.frustum + (scr.glide ? (mousepos.y-dim.y)/scr.friction.y : 0);
-      //ishtar[1] = Math.floor(canvas.width/6) + Math.floor(Math.random()*canvas.width/1.5);
-      //ishtar[2] = Math.floor(canvas.height/6) + Math.floor(Math.random()*canvas.height/1.5);
+      ishtar[1] = (horizon - 0.5) * canvas.width * scr.frustum + (scr.glide ? (mousepos.x - dim.x) / scr.friction.x : 0);
+      ishtar[2] = (scanline - 0.5) * canvas.height * scr.frustum + (scr.glide ? (mousepos.y - dim.y) / scr.friction.y : 0);
+      //ishtar[1] = Math.floor(canvas.width / 6) + Math.floor(Math.random() * canvas.width / 1.5);
+      //ishtar[2] = Math.floor(canvas.height / 6) + Math.floor(Math.random() * canvas.height / 1.5);
       //ishtar[3] = scr.color ? `rgb(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)})` : '#fff';
     }
+
     if (scr.glide) {
-      ishtar[1] -= driftx;
-      ishtar[2] -= drifty;
+      ishtar[1] -= drift.x;
+      ishtar[2] -= drift.y;
     }
+
     const speli = star.speed * star.life;
     const dot = {
-      x: Math.ceil(ishtar[0]/(speli/star.x)),
-      y: Math.ceil(ishtar[0]/(speli/star.y)),
+      x: Math.ceil(ishtar[0] / (speli / star.x)),
+      y: Math.ceil(ishtar[0] / (speli / star.y)),
     };
-    const sx = (ishtar[1]+(scr.fly?(mousepos.x-dim.x)/6:0))/(speli-ishtar[0])*speli + (scr.glide?ishtar[0]*star.speed/star.life*(-(mousepos.x-dim.x)/(900*scr.friction.x)):0);
-    const sy = (ishtar[2]+(scr.fly?(mousepos.y-dim.x)/6:0))/(speli-ishtar[0])*speli + (scr.glide?ishtar[0]*star.speed/star.life*(-(mousepos.y-dim.y)/(900*scr.friction.y)):0);
+    const sx = (ishtar[1] + (scr.fly ? (mousepos.x - dim.x) / 6 : 0)) / (speli - ishtar[0]) * speli + (scr.glide ? ishtar[0] * star.speed / star.life * (-(mousepos.x - dim.x) / (900 * scr.friction.x)) : 0);
+    const sy = (ishtar[2] + (scr.fly ? (mousepos.y - dim.x) / 6 : 0)) / (speli - ishtar[0]) * speli + (scr.glide ? ishtar[0] * star.speed / star.life * (-(mousepos.y - dim.y) / (900 * scr.friction.y)) : 0);
 
     if (
-      sx < (scr.glide?Math.min(mousepos.x-canvas.width,-dim.x):-dim.x)-star.x/2 ||
-      sy < (scr.glide?Math.min(mousepos.y-canvas.height,-dim.y):-dim.y)-star.y/2 ||
-      sx > (scr.glide?Math.max(mousepos.x,dim.x):dim.x)+star.x/2 ||
-      sy > (scr.glide?Math.max(mousepos.y,dim.y):dim.y)+star.y/2 ||
+      sx < bound.x ||
+      sy < bound.y ||
+      sx > bound.dx ||
+      sy > bound.dy ||
       ishtar[0] > speli
     ) {
       ishtar[0] = 0;
@@ -702,7 +736,7 @@ function starry(vmsec) {
       //  ishtar[0] += 1;
       //}
 
-      const dot_pos = [Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y];
+      const dot_pos = [Math.ceil(sx + dim.x - dot.x / 2), Math.ceil(sy + dim.y - dot.y / 2), dot.x, dot.y];
       if (scr.img) {
         //maskcontext.fillStyle = ishtar[3];
         //maskcontext.drawImage(alpha, 0, 0);
@@ -789,7 +823,7 @@ function screensaver(resolve) {
   let frameThen = then = performance.now();
   let fps_increase = 0;
   const update = () => {
-    if (stopscreensaver) {
+    if (stopscr) {
       return resolve(true);
     }
     requestAnimationFrame(update);
@@ -826,6 +860,25 @@ function screensaver(resolve) {
   update();
 }
 
+function change_stars(args) {
+  scr.color = args[0];
+  scr.density = args[1];
+  scr.img = args[3];
+  star.x = args[4];
+  star.y = args[5];
+  star.r = star.x/star.y;
+  star.life = args[6];
+  star.accelerate = args[7];
+  ccolor = args[8] || '#000';
+  lastcolor = args[8] || '#000';
+
+  if (args[2]) {
+    alpha.src = args[2];
+  } else {
+    new_stars();
+  }
+}
+
 function new_screensaver() {
   keyboard.style.display = 'none';
   glyphscr.style.display = 'none';
@@ -836,9 +889,9 @@ function new_screensaver() {
   hint4.style.display = 'none';
   hintb.style.display = 'none';
 
-  Promise.all([busyscreensaver]).then(() => {
-    stopscreensaver = false;
-    busyscreensaver = new Promise((resolve) => {
+  Promise.all([busyscr]).then(() => {
+    stopscr = false;
+    busyscr = new Promise((resolve) => {
       screensaver(resolve);
     });
   });
@@ -1371,12 +1424,12 @@ function winsol() {
       context.drawImage(cards[flycard['card']], flycard.x, flycard.y, ...cardsize);
     }
     if (flycard.x < -cardsize[0] || flycard.x > canvas.width) {
-      clearTimeout(idlescreensaver);
+      clearTimeout(idlescr);
       i++;
     }
     if (i === ncard) {
       setTimeout(resize, 4000);
-      idlescreensaver = setTimeout(() => {
+      idlescr = setTimeout(() => {
         new_screensaver();
       }, 4000);
       return;
@@ -1462,7 +1515,7 @@ function sol() {
         speaker("No more face-down cards or cards to draw means you've won for Solitaire with draw 3 cards. You can restart the solitaire now that you have earned the winning point.")
       }
       winsoln += drawn === 1 ? 1 : drawn+1;
-      winningcookie();
+      savestar('winsol=', winsoln);
       makemenu();
     }
   }
@@ -2321,8 +2374,8 @@ var releasecard = () => {
 }
 
 function imawake() {
-  if ((solitaire || qix || glyph) && !stopscreensaver) {
-    stopscreensaver = true;
+  if ((solitaire || qix || glyph) && !stopscr) {
+    stopscr = true;
 
     if (solitaire) {
       hintb.style.display = 'block';
@@ -2342,8 +2395,8 @@ function imawake() {
     }
   }
 
-  clearTimeout(idlescreensaver);
-  idlescreensaver = setTimeout(() => {
+  clearTimeout(idlescr);
+  idlescr = setTimeout(() => {
     new_screensaver();
   }, 60000);
 };
@@ -2510,16 +2563,10 @@ var DOMwriter = null;
 var winsoln = 0;
 var morescr, options, seed, seednow, staropt, fpsopt, graph, graphdot, graphstat, lever, leverdot, leverstat;
 
-function winningcookie() {
+function savestar(str, args) {
   const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
-  document.cookie = "winsol=" + encodeURIComponent(winsoln) + "; expires=" + expires + "; path=/; SameSite=Strict;";
-  //no expiry would allow the cookie to be automatically deleted upon browser exit.
-}
-
-function savestar() {
-  const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
-  const cookiestring = "what could star options be"; //staroptions
-  document.cookie = "star=" + encodeURIComponent(cookiestring) + "; expires=" + expires + "; path=/; SameSite=Strict;";
+  const cookiestring = JSON.stringify(args); //staroptions
+  document.cookie = str + encodeURIComponent(cookiestring) + "; expires=" + expires + "; path=/; SameSite=Strict;";
   //no expiry would allow the cookie to be automatically deleted upon browser exit.
 }
 
@@ -2812,7 +2859,7 @@ function qixscan() {
     setTimeout(() => {
       stopqix = true;
       winsoln += 1;
-      winningcookie();
+      savestar('winsol=', winsoln);
       makemenu();
     }, 0);
     setTimeout(() => {
@@ -3111,7 +3158,7 @@ function qixupdate() {
   context.drawImage(reveal, 0, 0, reveal.width, reveal.height, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
   context.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
 
-  if (stopscreensaver) {
+  if (stopscr) {
     requestAnimationFrame(qixupdate);
   }
 };
@@ -3236,7 +3283,7 @@ function makemenu() {
 
   listener = (e, arg) => {
     e.addEventListener(tc, () => {
-      stopscreensaver = true;
+      stopscr = true;
       keyboard.style.display = 'none';
 
       qix = false;
@@ -3269,7 +3316,7 @@ function makemenu() {
   if (winsoln >= 5) {
     listener = (e) => {
       e.addEventListener(tc, () => {
-        stopscreensaver = true;
+        stopscr = true;
 
         if (qix) {
           stopqix = true;
@@ -3303,7 +3350,7 @@ ${x+2}px ${y+18}px,
 ${x}px ${y+18}px)`;
 
         hintb.style.display = 'none';
-        stopscreensaver = true;
+        stopscr = true;
         qixscr.style.display = 'none';
         qixscr2.style.display = 'none';
 
@@ -3346,7 +3393,7 @@ ${x}px ${y+18}px)`;
   listener = (e) => {
     e.addEventListener(tc, () => {
       winsoln = 0;
-      winningcookie();
+      savestar('winsol=', winsoln);
       makemenu();
     });
   };
@@ -3357,7 +3404,7 @@ ${x}px ${y+18}px)`;
   // screensaver
   listener = (e, args) => {
     e.addEventListener(tc, () => {
-      stopscreensaver = true;
+      stopscr = true;
       keyboard.style.display = 'none';
 
       qix = false;
@@ -3372,27 +3419,12 @@ ${x}px ${y+18}px)`;
 
       sideways = false;
 
-      scr.color = args[0];
-      scr.density = args[1];
-      scr.img = args[3];
-      star.x = args[4];
-      star.y = args[5];
-      star.r = star.x/star.y;
-      star.life = args[6];
-      star.accelerate = args[7];
-      ccolor = args[8] || '#000';
-      lastcolor = args[8] || '#000';
-
-      if (args[2]) {
-        alpha.src = args[2];
-      } else {
-        new_stars();
-      }
+      change_stars(args);
 
       if (graphdot) {
         updatestat();
       }
-      savestar();
+      savestar('star=', args);
     });
   };
   poppy.append(newmenu('Flying Windows',               listener, [2,      75,   'win95.png', true,   95,  95,    1, 4, false]));
@@ -3427,7 +3459,7 @@ ${x}px ${y+18}px)`;
   if (winsoln >= 16) {
     listener = (e) => {
       e.addEventListener(tc, () => {
-        stopscreensaver = true;
+        stopscr = true;
 
         keyboard.style.display = 'none';
 
@@ -3473,7 +3505,7 @@ ${x}px ${y+18}px)`;
         keyboard.style.display = 'none';
         qixscr.style.display = 'none';
         qixscr2.style.display = 'none';
-        stopscreensaver = true;
+        stopscr = true;
         drawn = 1;
         readcard(sol);
       }
@@ -3509,7 +3541,7 @@ ${x}px ${y+18}px)`;
         scr.fly = scr.glide || !scr.fly;
         scr.glide = false;
       }
-      savestar();
+      //savestar();
     });
   };
   if (winsoln >= 32) {
@@ -3605,7 +3637,7 @@ ${x}px ${y+18}px)`;
   poppy.append(newmenu('Display FPS', listener));
 
   if (winsoln >= 16) {
-    listener = (e, arg) => {
+    listener = (e, arg = 0) => {
       e.addEventListener(tc, () => {
         if (arg) {
           fps.throttle = true;
@@ -3619,7 +3651,7 @@ ${x}px ${y+18}px)`;
         startTime = performance.now();
         star.delay = 60 * fps.vfps;
         frameCount = 0;
-        savestar();
+        savestar('vfps=', arg);
       });
     };
     fpsopt.append(newmenu('2.5 FPS', listener, 2.5));
@@ -4111,12 +4143,38 @@ window.addEventListener('load', () => {
   //});
   //poppy.appendChild(e);
 
+  const glyphscr = document.createElement('DIV');
+  glyphscr.id = 'glyphscr';
+  document.body.appendChild(glyphscr);
+  glyphscr.appendChild(glyphc.canvas);
+
   const cookies = document.cookie.split(';');
   for (const cookie of cookies) {
     const ck = cookie.trimStart();
-    if (ck.indexOf('winsol=') == 0) {
+    if (ck.indexOf('winsol=') === 0) {
       winsoln = parseInt(decodeURIComponent(ck.substring('winsol='.length, ck.length)));
     }
+
+    if (ck.indexOf('star=') === 0) {
+      change_stars(JSON.parse(decodeURIComponent(ck.substring('star='.length, ck.length))));
+    }
+
+    if (ck.indexOf('vfps=') === 0) {
+      vfps = parseInt(decodeURIComponent(ck.substring('vfps='.length, ck.length)));
+      if (vfps) {
+        fps.throttle = true;
+        fps.vfps = vfps;
+        fps.msec = 1000 / vfps;
+      } else {
+        fps.throttle = false;
+        fps.vfps = fps.hz;
+        fps.msec = 1000 / fps.hz;
+      }
+    }
+  }
+
+  if (stopscr) {
+    alpha.src = 'win95.png';
   }
 
   makemenu();
@@ -4140,19 +4198,12 @@ window.addEventListener('load', () => {
   document.body.appendChild(canvas);
   shaderscr.appendChild(shader.canvas);
 
-  const glyphscr = document.createElement('DIV');
-  glyphscr.id = 'glyphscr';
-  document.body.appendChild(glyphscr);
-  glyphscr.appendChild(glyphc.canvas);
-
   dim.x = Math.floor(canvas.width/2)
   dim.y = Math.floor(canvas.height/2);
   mousepos.x = dim.x;
   mousepos.y = dim.y;
   scr.friction.x = Math.ceil(canvas.width/canvas.height);
   scr.friction.y = Math.ceil(canvas.height/canvas.width);
-
-  alpha.src = 'win95.png';
 
   const close = document.getElementById('close');
   close.addEventListener('click', () => {

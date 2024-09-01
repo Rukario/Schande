@@ -602,7 +602,7 @@ shader.imageSmoothingEnabled = false;
 var idlecursor = false;
 var idlescr = false;
 var busyscr = false;
-var stopscr = true;
+var stopscr = false;
 var sideways = false;
 var stars = [];
 var frameCount = 0;
@@ -3439,16 +3439,20 @@ ${x}px ${y+18}px)`;
     morescr.append(newmenu('Flying Windows 24-bit',    listener, [4,      75,   'win95.png', true,   95,  95,    1, 4, false]));
     morescr.append(newmenu('2000 flying Windows',      listener, [4,      2000, 'win95.png', true,   95,  95, 1.25, 4, false]));
     morescr.append(newmenu());
-    morescr.append(newmenu('Star Fox',                 listener, [1,      100,  false,       false,   6,   12, 1.50, 0, false]));
+    if (winsoln >= 88) {
+      morescr.append(newmenu('Star Fox',                 listener, [1,      100,  false,       false,   6,   12, 1.50, 0, false]));
+    } else {
+      morescr.append(unlock(['Star Fox (', ')'], 88))
+    }
     morescr.append(newmenu('8000 colorful stars',      listener, [4,      8000, false,       false,   4,   4, 1.25, 0, false]));
     morescr.append(newmenu());
     morescr.append(newmenu('Surreal Xmas',             listener, ['xmas', 800,  'light.png', true,  190, 190, 1.25, 4, "#072700"]));
     morescr.append(newmenu('Deep nature',              listener, ['natu', 800,  'petal.png', true,  190, 190, 1.25, 4, "#170b00"]));
 
-    if (winsoln >= 64) {
+    if (winsoln >= 100) {
       morescr.append(newmenu('Flying cards',           listener, ['card', 2,    false,       true, 71*2, 96*2, 1.25, 4, false]));
     } else {
-      morescr.append(unlock(['Flying cards (', ')'], 64))
+      morescr.append(unlock(['Flying cards (', ')'], 100))
     }
 
     poppy.append(newmenu('More stars', submenu, false, morescr));
@@ -4149,6 +4153,7 @@ window.addEventListener('load', () => {
   glyphscr.appendChild(glyphc.canvas);
 
   const cookies = document.cookie.split(';');
+  let starcookie = false;
   for (const cookie of cookies) {
     const ck = cookie.trimStart();
     if (ck.indexOf('winsol=') === 0) {
@@ -4156,6 +4161,7 @@ window.addEventListener('load', () => {
     }
 
     if (ck.indexOf('star=') === 0) {
+      starcookie = true;
       change_stars(JSON.parse(decodeURIComponent(ck.substring('star='.length, ck.length))));
     }
 
@@ -4173,7 +4179,7 @@ window.addEventListener('load', () => {
     }
   }
 
-  if (stopscr) {
+  if (!starcookie) {
     alpha.src = 'win95.png';
   }
 

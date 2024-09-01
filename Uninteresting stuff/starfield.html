@@ -607,7 +607,7 @@ var stopscr = false;
 var sideways = false;
 var stars = [];
 var frameCount = 0;
-var startTime;
+var scrTime, startTime;
 
 
 
@@ -623,7 +623,7 @@ function newstar(ishtar) {
 
 function starry(vmsec) {
   if (vmsec > (1000 / star.delay) + 60/fps.vfps) {
-    startTime = performance.now();
+    scrTime = performance.now();
     frameCount = 0;
     if (!star.accelerate) {
       star.delay = fps.vfps;
@@ -820,9 +820,11 @@ function movingphoto() {
   }
 }
 
+const fps_history_slots = 10;
 function screensaver(resolve) {
   let frameThen = then = performance.now();
   let fps_increase = 0;
+  let fpshistory = [];
   const update = () => {
     if (stopscr) {
       return resolve(true);
@@ -831,20 +833,33 @@ function screensaver(resolve) {
     fps_increase++;
 
     const frameNow = now = performance.now();
-    const sinceStart = now - startTime;
+    const sinceStart = now - scrTime;
+    const msec = now - startTime;
+    fpshistory.unshift(msec);
+
     if (frameNow >= frameThen) {
       frameThen = frameNow + 1000;
       fps.hz = fps_increase > 70 ? 120 : 60;
-      const sec = (Math.round(sinceStart / 1000 * 100) / 100).toFixed(2).padStart(3, '0');
-      const simfps = fps_increase.toFixed(2).padStart(3, '0');
-      result.innerHTML = `Uninterrupted for ${sec} seconds @ ${simfps} fps`;
       fps_increase = 0;
+    }
+
+    if (fpshistory.length > fps_history_slots) {
+      const sec = (Math.round(msec / 1000 * 100) / 100).toFixed(2).padStart(3, '0');
+      const fps_last = fpshistory.pop();
+      const fps_display = Math.floor(1000 * fps_history_slots / (msec - fps_last)).toFixed(2).padStart(3, '0');
+      //const fps_display = fps_increase.toFixed(2).padStart(3, '0');
+      result.innerHTML = `Uninterrupted for ${sec} seconds @ ${fps_display} fps`;
     }
 
     const elapsed = now - then;
     if (!fps.throttle || elapsed > fps.msec) {
       then = now - (elapsed % fps.msec);
       const vmsec = (sinceStart || fps.msec) / ++frameCount;
+
+      if (vmsec > fps.msec * 2) {
+        startTime = performance.now();
+      }
+
       if (sideways) {
         movingphoto(vmsec);
       } else {
@@ -852,6 +867,7 @@ function screensaver(resolve) {
       }
     }
   };
+  scrTime = performance.now();
   startTime = performance.now();
   if (!sideways) {
     star.delay = 60*fps.vfps;
@@ -3664,7 +3680,7 @@ ${x}px ${y+18}px)`;
           fps.vfps = fps.hz;
           fps.msec = 1000 / fps.hz;
         }
-        startTime = performance.now();
+        scrTime = performance.now();
         star.delay = 60 * fps.vfps;
         frameCount = 0;
         savestar('vfps=', arg);

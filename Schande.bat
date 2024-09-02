@@ -6158,8 +6158,8 @@ def torrent_get(fp=""):
             # os.system("apk add transmission-cli")
             # os.system("apk del transmission-daemon")
             # os.system("apk del transmission-cli")
-            os.system("apk add transmission-daemon --repository=https://dl-cdn.alpinelinux.org/alpine/v3.17/community")
-            os.system("apk add transmission-cli --repository=https://dl-cdn.alpinelinux.org/alpine/v3.17/community")
+            os.system("apk add transmission-daemon --repository=https://dl-cdn.alpinelinux.org/alpine/v3.16/community")
+            os.system("apk add transmission-cli --repository=https://dl-cdn.alpinelinux.org/alpine/v3.16/community")
         daemon = "transmission-daemon"
         remote = "transmission-remote"
         if not task["httpserver"]:

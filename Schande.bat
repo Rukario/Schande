@@ -5971,7 +5971,7 @@ def uninstdaemon(el):
 
 def start_remote(remote):
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
-    keys = [*"0123456789", "All", *"dfsglmkrei"]
+    keys = [*"0123456789", "All", *"dfsglmkurei"]
     pos = 0
     sel = 14
     remove = []
@@ -6030,7 +6030,7 @@ def start_remote(remote):
             if uninstdaemon(el):
                 return
             continue
-        elif el == 21:
+        elif el == 22:
             echo("", 1)
             buffer = "cancel"
             while True:
@@ -6066,9 +6066,9 @@ def start_remote(remote):
                 switch = "STOP"
             elif el == 15:
                 switch = "START"
-            elif el == 19:
-                switch = "REMOVE, (A)ll"
             elif el == 20:
+                switch = "REMOVE, (A)ll"
+            elif el == 21:
                 switch = "VIEW file list"
             echo("", 1)
         else:
@@ -6162,7 +6162,7 @@ def torrent_get(fp=""):
     if sys.platform == "win32":
         daemon = "C:/Program Files/Transmission/transmission-daemon.exe"
         remote = "C:/Program Files/Transmission/transmission-remote.exe"
-        if not os.path.exists(daemon):
+        if not os.path.exists(daemon) or not os.path.exists(remote):
             echo(" Download and install Transmission x64 for Windows in default location from https://github.com/transmission/transmission/releases and then try again.", 0, 1)
             return
     elif sys.platform == "linux":

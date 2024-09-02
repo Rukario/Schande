@@ -1738,7 +1738,8 @@ ${ddx}px ${dy}px)`;
   }
 }
 
-var moved = false;
+let moved = false;
+const vector = false;
 function computerplaysol(forhint) {
   imawake();
   drawhint(hint2);
@@ -1783,7 +1784,13 @@ function computerplaysol(forhint) {
       slots[pos+5][0] = slots[pos+5][0].slice(0, -1);
       slots[pos+5][1].push(card);
       snapshot();
-      sol();
+
+      if (vector) {
+        clearTimeout(readycomputer);
+        readycomputer = setTimeout(computerplaysol, computerspeed);
+      } else {
+        sol();
+      }
     }
     return;
   };
@@ -1793,22 +1800,38 @@ function computerplaysol(forhint) {
     const des = pos > 4 ? 1 : 0;
     const depth = slots[pos][1].length-1;
     const card = slots[pos][1][depth];
-    if (!moved && (parseInt(card[1], 16) === 1 || foundations.some((f) => {const fca = f[0][1].at(-1); return card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16)+1}))) {
-      const x = gap.x*(pos-(5*des)+1) + cardsize[0]*(pos-(5*des));
-      const y = gap.y*2 + cardsize[1] + depth*15*scale + 3*scale*slots[pos][0].length;
-      drawhint(hint, x, y, x, y);
-      if (!forhint) {
-        dragcard = {
-          x: x,
-          y: y,
-          dx: mousepos.x,
-          dy: mousepos.y,
-          slot: slots[pos],
-          draw: depth,
-        };
-        setTimeout(FFup, computerspeed*3);
+    if (!moved) {
+      if (
+        parseInt(card[1], 16) === 1 ||
+        foundations.some((f) => {
+          const fca = f[0][1].at(-1);
+          return card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16) + 1;
+        })
+      ) {
+        const x = gap.x*(pos-(5*des)+1) + cardsize[0]*(pos-(5*des));
+        const y = gap.y*2 + cardsize[1] + depth*15*scale + 3*scale*slots[pos][0].length;
+        drawhint(hint, x, y, x, y);
+        if (!forhint) {
+          if (vector) {
+            slots[pos][1] = slots[pos][1].slice(0, -1);
+            slots[1][1].push(card);
+            snapshot();
+            clearTimeout(readycomputer);
+            readycomputer = setTimeout(computerplaysol, computerspeed);
+          } else {
+            dragcard = {
+              x: x,
+              y: y,
+              dx: mousepos.x,
+              dy: mousepos.y,
+              slot: slots[pos],
+              draw: depth,
+            };
+            setTimeout(FFup, computerspeed*3);
+          }
+        }
+        return;
       }
-      return;
     }
   }
 
@@ -1818,23 +1841,31 @@ function computerplaysol(forhint) {
 
     // Deck to Foundation
     const card = deck.at(-1);
-    if(!moved && (parseInt(card[1], 16) === 1 || foundations.some((f) => {const fca = f[0][1].at(-1); return card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16)+1}))) {
-      const depth = Math.min(drawn, deck.length)-1;
-      const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
-      const x = gap.x*2 + cardsize[0]*1 + repeat*2 + depth*scale*14;
-      const y = gap.y*1 + cardsize[1]*0 + repeat + depth*scale;
-      drawhint(hint, x, y, x, y);
-      if (!forhint) {
-        dragcard = {
-          x: x,
-          y: y,
-          dx: mousepos.x,
-          dy: mousepos.y,
-          slot: slots[0],
-        };
-        setTimeout(FFup, computerspeed*3);
+    if (!moved) {
+      if (
+        parseInt(card[1], 16) === 1 ||
+        foundations.some((f) => {
+          const fca = f[0][1].at(-1);
+          return card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16)+1;
+        })
+      ) {
+        const depth = Math.min(drawn, deck.length)-1;
+        const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
+        const x = gap.x*2 + cardsize[0]*1 + repeat*2 + depth*scale*14;
+        const y = gap.y*1 + cardsize[1]*0 + repeat + depth*scale;
+        drawhint(hint, x, y, x, y);
+        if (!forhint) {
+          dragcard = {
+            x: x,
+            y: y,
+            dx: mousepos.x,
+            dy: mousepos.y,
+            slot: slots[0],
+          };
+          setTimeout(FFup, computerspeed*3);
+        }
+        return;
       }
-      return;
     }
   }
 
@@ -1857,6 +1888,7 @@ function computerplaysol(forhint) {
         }
       }
     }
+
     if (vectors.length) {
       if (vectors.length > 1) {
         console.log("Alternative card movement available! Piles with face-down cards have priority but not necessarily top priority since empty slot could be reserved for King card with face-down cards.");
@@ -1902,7 +1934,7 @@ function computerplaysol(forhint) {
     //hintb.style.display = "block";
     drawhint(hint, x, y, x, y);
     if (!forhint) {
-      setTimeout(()=> {
+      setTimeout(() => {
         drawx();
         sol();
       }, computerspeed);
@@ -1934,7 +1966,13 @@ function computerplaysol(forhint) {
 
                   if (!forhint) {
                     drawx();
-                    dragcard = {'x':x, 'y':y, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':slo};
+                    dragcard = {
+                      x: x,
+                      y: y,
+                      dx: mousepos.x,
+                      dy: mousepos.y,
+                      slot: slo,
+                    };
                     dragcard['draw'] = n+1;
                     console.log('That was a special move!');
                     setTimeout(FFup, computerspeed*3);
@@ -1970,7 +2008,13 @@ function computerplaysol(forhint) {
                 moved = true;
                 if (!forhint) {
                   drawx();
-                  dragcard = {'x':x, 'y':y, 'dx':mousepos.x, 'dy':mousepos.y, 'slot':fslo};
+                  dragcard = {
+                    x: x,
+                    y: y,
+                    dx: mousepos.x,
+                    dy: mousepos.y,
+                    slot: fslo,
+                  };
                   dragcard['draw'] = fslo[1].length-1;
                   console.log("moved", fca, "to", ca);
                   setTimeout(FFup, computerspeed*3);

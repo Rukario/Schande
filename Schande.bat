@@ -820,10 +820,26 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
                     files.append(f' {ut}  <a href="{link}">{label}</a>')
             buffer = '\n'.join(dirs + files)
 
-            style = """html,body{white-space:pre; background-color:#10100c; color:#088; font-family:courier; font-size:14px;}
-a{color:#cb7; text-decoration:none;}
-a:visited{color:#efdfa8;}
-h2 {margin:4px;}"""
+            style = """body {
+  white-space: pre;
+  background-color: #10100c;
+  color: #088;
+  font-family: courier;
+  font-size: 14px;
+}
+
+a {
+  color: #cb7;
+  text-decoration: none;
+}
+
+a:visited {
+  color: #efdfa8;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 4px;
+}"""
 
             htmldata = f"""<!DOCTYPE html>
 <html>
@@ -3506,7 +3522,7 @@ def new_html(builder, htmlname, listurls='', pattern=[[], []], imgsize=200):
 <meta charset="UTF-8"/>
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="user-scalable=0">
-""" + f"<title>{htmlname}</title>" + """
+""" + f"<title>{htmlname}</title>" + r"""
 <style>
 body {
   background-color: #10100c;
@@ -3946,7 +3962,7 @@ function opensav(sav="Schande.sav") {
   xhr.onreadystatechange = function() {
     if (xhr.readyState === 4) {
       if (xhr.status !== 404 && xhr.responseText) {
-        savdata[sav] = xhr.responseText.split("\\n").slice(1);
+        savdata[sav] = xhr.responseText.split("\n").slice(1);
         if (sav == "Schande.savx") {
           readschande();
           lazyload();
@@ -4028,7 +4044,7 @@ function plaintext(elem, e) {
 
 function echo(B, b) {
   if (!b) {
-    stdout.innerHTML += "\\n" + B;
+    stdout.innerHTML += "\n" + B;
   } else {
     stdout.innerHTML += " " + B;
   }
@@ -4722,10 +4738,10 @@ function registerFilter(filterNode, op_text, bar) {
 }
 
 function rebuildFilter(filterNode, f, bar) {
-  const farray = f.match(/(?:\\\\.|[^"])+|^/g);
+  const farray = f.match(/(?:\\.|[^"])+|^/g);
   // Quote delimiter
   for (const [n, t] of farray.entries()) {
-    const text = t.replaceAll(/\\\\(.)/g, '$1');
+    const text = t.replaceAll(/\\(.)/g, '$1');
     // Backslash delimiter
     if (n % 2) {
       // quoted
@@ -6138,12 +6154,12 @@ def torrent_get(fp=""):
             return
     elif sys.platform == "linux":
         if not os.path.exists("/usr/bin/transmission-daemon") or not os.path.exists("/usr/bin/transmission-remote"):
-            os.system("apk add transmission-daemon")
-            os.system("apk add transmission-cli")
+            # os.system("apk add transmission-daemon")
+            # os.system("apk add transmission-cli")
             # os.system("apk del transmission-daemon")
             # os.system("apk del transmission-cli")
-            # os.system("apk add transmission-daemon --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community")
-            # os.system("apk add transmission-cli --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community")
+            os.system("apk add transmission-daemon --repository=https://dl-cdn.alpinelinux.org/alpine/v3.17/community")
+            os.system("apk add transmission-cli --repository=https://dl-cdn.alpinelinux.org/alpine/v3.17/community")
         daemon = "transmission-daemon"
         remote = "transmission-remote"
         if not task["httpserver"]:

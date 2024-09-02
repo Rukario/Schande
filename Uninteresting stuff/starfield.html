@@ -612,10 +612,13 @@ var scrTime, startTime;
 
 
 function newstar(ishtar) {
+  const horizon = Math.random();
+  const scanline = Math.random();
+
   const speli = star.speed * star.life;
   const age = Math.random() * speli % (0.66 * speli);
-  const x = ((Math.random() - 0.5) * canvas.width * scr.frustum / speli) * (speli - age);
-  const y = ((Math.random() - 0.5) * canvas.height * scr.frustum / speli) * (speli - age);
+  const x = ((horizon - 0.5) * canvas.width * scr.frustum / speli) * (speli - age);
+  const y = ((scanline - 0.5) * canvas.height * scr.frustum / speli) * (speli - age);
   stars.push([age, x, y, ishtar]);
 }
 
@@ -643,6 +646,11 @@ function starry(vmsec) {
   const drift = {
     x: (mousepos.x - dim.x) / (200 / scr.levitate) / (fps.vfps / 60) / star.life - (mousepos.x - rubbermouse.x) / scr.friction.x * scr.drift,
     y: (mousepos.y - dim.y) / (200 / scr.levitate) / (fps.vfps / 60) / star.life - (mousepos.y - rubbermouse.y) / scr.friction.y * scr.drift,
+  }
+
+  const off = {
+    x: scr.fly ? (mousepos.x - dim.x) / 5 : 0,
+    y: scr.fly ? (mousepos.y - dim.x) / 5 : 0,
   }
 
   context.fillStyle = ccolor;
@@ -673,10 +681,10 @@ function starry(vmsec) {
   }
 
   for (const [n, ishtar] of stars.entries()) {
-    //const horizon = n / channel % 5 / 5;
+    //const horizon = Math.floor(n / channel) % 5 / 5 + Math.random() / 5;
     const horizon = Math.random();
 
-    //const scanline = n % channel / channel;
+    //const scanline = n % channel / channel + Math.random() / channel;
     const scanline = Math.random();
 
     if (ishtar[0] === 0) {
@@ -697,8 +705,8 @@ function starry(vmsec) {
       x: Math.ceil(ishtar[0] / (speli / star.x)),
       y: Math.ceil(ishtar[0] / (speli / star.y)),
     };
-    const sx = (ishtar[1] + (scr.fly ? (mousepos.x - dim.x) / 6 : 0)) / (speli - ishtar[0]) * speli + (scr.glide ? ishtar[0] * star.speed / star.life * (-(mousepos.x - dim.x) / (900 * scr.friction.x)) : 0);
-    const sy = (ishtar[2] + (scr.fly ? (mousepos.y - dim.x) / 6 : 0)) / (speli - ishtar[0]) * speli + (scr.glide ? ishtar[0] * star.speed / star.life * (-(mousepos.y - dim.y) / (900 * scr.friction.y)) : 0);
+    const sx = (ishtar[1] + off.x) / (speli - ishtar[0]) * speli + (scr.glide ? ishtar[0] * star.speed / star.life * (-(mousepos.x - dim.x) / (900 * scr.friction.x)) : 0);
+    const sy = (ishtar[2] + off.y) / (speli - ishtar[0]) * speli + (scr.glide ? ishtar[0] * star.speed / star.life * (-(mousepos.y - dim.y) / (900 * scr.friction.y)) : 0);
 
     if (
       sx < bound.x ||

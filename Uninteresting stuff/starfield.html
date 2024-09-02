@@ -490,6 +490,7 @@ const scr = {
   levitate: 1,
   drift: 1, //0.66
   friction: {x: 2, y: 2},
+  paint: false,
 }
 
 var solitaire = false;
@@ -624,28 +625,28 @@ function newstar(ishtar) {
 
 
 
-function starry(vmsec) {
-  if (vmsec > (1000 / star.delay) + 60/fps.vfps) {
+function starry(vmsec, msec, vfps) {
+  if (vmsec > (1000 / star.delay) + 60/vfps) {
     scrTime = performance.now();
     frameCount = 0;
     if (!star.accelerate) {
-      star.delay = fps.vfps;
+      star.delay = vfps;
     } else if (isFinite(star.delay)) {
-      //const easeout = fps.msec / 1000 / (star.accelerate*fps.vfps/star.delay);
-      const easein = fps.msec / (star.accelerate*200);
+      //const easeout = msec / 1000 / (star.accelerate*vfps/star.delay);
+      const easein = msec / (star.accelerate*200);
       // what easeinout might be? <- ideal
       star.delay = star.delay / (1 + easein);
       //result.innerHTML = star.delay.toFixed(3) + ' ' + easein.toFixed(3) + ' ' + easeout.toFixed(3);
     } else {
-      star.delay = 60*fps.vfps;
+      star.delay = 60*vfps;
     }
   } else {
     star.delay = (1000 / vmsec).toFixed(2);
   }
 
   const drift = {
-    x: (mousepos.x - dim.x) / (200 / scr.levitate) / (fps.vfps / 60) / star.life - (mousepos.x - rubbermouse.x) / scr.friction.x * scr.drift,
-    y: (mousepos.y - dim.y) / (200 / scr.levitate) / (fps.vfps / 60) / star.life - (mousepos.y - rubbermouse.y) / scr.friction.y * scr.drift,
+    x: (mousepos.x - dim.x) / (200 / scr.levitate) / (vfps / 60) / star.life - (mousepos.x - rubbermouse.x) / scr.friction.x * scr.drift,
+    y: (mousepos.y - dim.y) / (200 / scr.levitate) / (vfps / 60) / star.life - (mousepos.y - rubbermouse.y) / scr.friction.y * scr.drift,
   }
 
   const off = {
@@ -870,8 +871,13 @@ function screensaver(resolve) {
 
       if (sideways) {
         movingphoto(vmsec);
+      } else if (scr.paint) {
+        const hztrail = Math.round(480/fps.vfps);
+        for (const nth of Array(hztrail).keys()) {
+          starry(1000/480, 1000/(480*(480/fps.vfps)), 480*(480/fps.vfps));
+        }
       } else {
-        starry(vmsec);
+        starry(vmsec, fps.msec, fps.vfps);
       }
     }
   };
@@ -886,6 +892,7 @@ function screensaver(resolve) {
 }
 
 function change_stars(args) {
+  scr.paint = false;
   scr.color = args[0];
   scr.density = args[1];
   scr.img = args[3];
@@ -1558,7 +1565,7 @@ function sol() {
       award(24, "New screensaver: More stars");
       award(32, "New mode: Fly");
       award(64, "New mode: Glide\n\nNew option: Star speed");
-      award(88, "New screensaver: Star Fox");
+      award(88, "New screensaver: Star Fox\n\nNew mode: Hyperspace");
       award(100, "New screensaver: Flying cards");
     }
   }
@@ -3607,22 +3614,6 @@ ${x}px ${y+18}px)`;
   //poppy.append(newmenu('Sol computer Solve!', listener, true));
   //poppy.append(newmenu('Sol computer Debug', listener));
 
-  // paint
-  listener = (e, arg) => {
-    e.addEventListener(tc, () => {
-      if (arg === 2) {
-        ccolor = 'rgba(0, 0, 0, 0)';
-      } else if (arg) {
-        ccolor = 'rgba(0, 0, 0, 0.1)';
-      } else {
-        ccolor = lastcolor;
-      }
-    });
-  };
-  //poppy.append(newmenu('Clear', listener, 0));
-  //poppy.append(newmenu('Ghost', listener, 1));
-  //poppy.append(newmenu('Paint', listener, 2));
-
   poppy.append(newmenu());
 
   listener = (e, arg) => {
@@ -3717,6 +3708,29 @@ ${x}px ${y+18}px)`;
   } else {
     poppy.append(unlock(['Glide (', ')'], 64));
     poppy.append(unlock(['Star speed (', ')'], 64, true));
+  }
+
+  // paint
+  listener = (e, arg) => {
+    e.addEventListener(tc, () => {
+      if (arg === 2 && scr.paint !== 2) {
+        scr.paint = 2;
+        ccolor = 'rgba(0, 0, 0, 0)';
+      } else if (arg === 1 && scr.paint !== 1) {
+        scr.paint = 1;
+        ccolor = 'rgba(0, 0, 0, 0.1)';
+      } else {
+        scr.paint = 0;
+        ccolor = lastcolor;
+      }
+    });
+  };
+  //poppy.append(newmenu('Clear', listener, 0));
+  //poppy.append(newmenu('Ghost', listener, 1));
+  if (winsoln >= 88) {
+    poppy.append(newmenu('Hyperspace', listener, 2));
+  } else {
+    poppy.append(unlock(['Hyperspace (', ')'], 88));
   }
 
   poppy.append(newmenu());

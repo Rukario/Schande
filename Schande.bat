@@ -5959,6 +5959,14 @@ def killdaemon(el):
     task["transmission"] = False
     return True
 
+def uninstdaemon(el):
+    if el < 0:
+        echo(f"Press U twice in fast sequence to uninstall Transmission and return to main menu.", 1, 1)
+        return
+    if sys.platform == "linux":
+        os.system("apk del transmission-daemon")
+        os.system("apk del transmission-cli")
+    return True
 
 
 def start_remote(remote):
@@ -5975,12 +5983,13 @@ def start_remote(remote):
    > Finished torrent will stop automatically, start a finished torrent to seed indefinitely.
   > Press L, M to re/(L)ist all items or return to torrent (M)anager/(M)ain menu.
    > Press K to kill transmission-daemon and return to main menu.
+   > Press U to uninstall Transmission and return to main menu.
 
  Key listener (torrent management):
   > Press R, E, I to (R)emove torrent, view fil(E)s of selected torrent, or (I)nput new torrent.""", 0, 2)
     while True:
         if task["transmission"]:
-            el = input(f"Select TORRENT by number to {switch}: {f'{pos/10:g}' if pos else ''}", keys if sel == 19 else keys[:10] + keys[11:], double="lk")
+            el = input(f"Select TORRENT by number to {switch}: {f'{pos/10:g}' if pos else ''}", keys if sel == 19 else keys[:10] + keys[11:], double="lku")
             if not sel == 19 and abs(el) > 10:
                 el += 1 if el > 0 else -1
         else:
@@ -6015,6 +6024,10 @@ def start_remote(remote):
             return
         elif el in [18, -18]:
             if killdaemon(el):
+                return
+            continue
+        elif el in [19, -19]:
+            if uninstdaemon(el):
                 return
             continue
         elif el == 21:
@@ -6154,15 +6167,18 @@ def torrent_get(fp=""):
             return
     elif sys.platform == "linux":
         if not os.path.exists("/usr/bin/transmission-daemon") or not os.path.exists("/usr/bin/transmission-remote"):
-            # os.system("apk del transmission-daemon")
-            # os.system("apk del transmission-cli")
-            getdae = "apk add transmission-daemon --repository=https://dl-cdn.alpinelinux.org/alpine/v3.16/community"
-            getcli = "apk add transmission-cli --repository=https://dl-cdn.alpinelinux.org/alpine/v3.16/community"
-            # getdae = "apk add transmission-daemon"
-            # getcli = "apk add transmission-cli"
-            echo(getdae, 0, 1)
+            el = input("Install Transmission (E)dge (C)urrent e(X)it", "ecx")
+            if el == 1:
+                getdae = "apk add transmission-daemon --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community"
+                getcli = "apk add transmission-cli --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community"
+            elif el == 2:
+                getdae = "apk add transmission-daemon"
+                getcli = "apk add transmission-cli"
+            else:
+                return
+            echo(f"{tcolorb}{getdae}{tcolorx}", 0, 1)
             os.system(getdae)
-            echo(getcli, 0, 1)
+            echo(f"{tcolorb}{getcli}{tcolorx}", 0, 1)
             os.system(getcli)
         daemon = "transmission-daemon"
         remote = "transmission-remote"

@@ -6154,12 +6154,16 @@ def torrent_get(fp=""):
             return
     elif sys.platform == "linux":
         if not os.path.exists("/usr/bin/transmission-daemon") or not os.path.exists("/usr/bin/transmission-remote"):
-            # os.system("apk add transmission-daemon")
-            # os.system("apk add transmission-cli")
             # os.system("apk del transmission-daemon")
             # os.system("apk del transmission-cli")
-            os.system("apk add transmission-daemon --repository=https://dl-cdn.alpinelinux.org/alpine/v3.16/community")
-            os.system("apk add transmission-cli --repository=https://dl-cdn.alpinelinux.org/alpine/v3.16/community")
+            getdae = "apk add transmission-daemon --repository=https://dl-cdn.alpinelinux.org/alpine/v3.16/community"
+            getcli = "apk add transmission-cli --repository=https://dl-cdn.alpinelinux.org/alpine/v3.16/community"
+            # getdae = "apk add transmission-daemon"
+            # getcli = "apk add transmission-cli"
+            echo(getdae, 0, 1)
+            os.system(getdae)
+            echo(getcli, 0, 1)
+            os.system(getcli)
         daemon = "transmission-daemon"
         remote = "transmission-remote"
         if not task["httpserver"]:

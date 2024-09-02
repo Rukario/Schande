@@ -975,9 +975,14 @@ function starmask(color, img) {
 function new_stars() {
   stars = [];
   if (['xmas', 'natu'].includes(scr.color)) {
+    let remainder = scr.density;
     const variant = (ntimes, img) => {
       for (const n of Array(parseInt(ntimes)).keys()) {
         newstar(img);
+      }
+      remainder -= ntimes;
+      if (!remainder) {
+        new_screensaver();
       }
     }
 
@@ -1001,8 +1006,6 @@ function new_stars() {
       const ntimes = scr.density / xarray.length / xarray.length;
       canvasToFrame(starmask(color), variant, ntimes);
     }
-
-    new_screensaver();
   } else if (scr.color === 'card') {
     const variant = (interFrameN, img) => {
       if (img) {
@@ -1019,9 +1022,14 @@ function new_stars() {
     variant(0);
   } else if (scr.img) {
     if (scr.color === 4 && scr.density > 125) {
+      let remainder = scr.density;
       const variant = (ntimes, img) => {
         for (const n of Array(ntimes).keys()) {
           newstar(img);
+        }
+        remainder -= ntimes;
+        if (!remainder) {
+          new_screensaver();
         }
       }
 
@@ -1036,7 +1044,6 @@ function new_stars() {
           }
         }
       }
-      new_screensaver();
     } else {
       const variant = (interFrameN, img) => {
         if (img) {
@@ -2259,8 +2266,6 @@ var pickcard = () => {
     }
   }
 
-  imawake();
-
   if (dragcard) {
     let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
     let des = 0;
@@ -2454,31 +2459,33 @@ var releasecard = () => {
 }
 
 function imawake() {
-  if ((solitaire || qix || glyph) && !stopscr) {
-    stopscr = true;
+  if (solitaire || qix || glyph) {
+    if (!stopscr) {
+      stopscr = true;
 
-    if (solitaire) {
-      hintb.style.display = 'block';
-      if (!winanim) {
-        sol();
+      if (solitaire) {
+        hintb.style.display = 'block';
+        if (!winanim) {
+          sol();
+        }
+      }
+
+      if (qix) {
+        keyboard.style.display = 'inline-block';
+        qixupdate();
+      }
+
+      if (glyph) {
+        hint.style.display = 'block';
+        new_glyph();
       }
     }
 
-    if (qix) {
-      keyboard.style.display = 'inline-block';
-      qixupdate();
-    }
-
-    if (glyph) {
-      hint.style.display = 'block';
-      new_glyph();
-    }
+    clearTimeout(idlescr);
+    idlescr = setTimeout(() => {
+      new_screensaver();
+    }, 60000);
   }
-
-  clearTimeout(idlescr);
-  idlescr = setTimeout(() => {
-    new_screensaver();
-  }, 60000);
 };
 
 var crosshint, givehint;
@@ -2993,7 +3000,6 @@ function stixpath(nx, land) {
 }
 
 function qixstep() {
-  imawake();
   const speed = qixsc*60/fps.hz;
   const step = {
     x: (Keypress.KeyD || Keypress.ArrowRight ? speed : 0) + (Keypress.KeyA || Keypress.ArrowLeft ? -speed : 0),
@@ -3499,6 +3505,9 @@ ${x}px ${y+18}px)`;
 
       sideways = false;
 
+      clearTimeout(idlescr);
+      idlescr = false;
+
       change_stars(args);
 
       if (graphdot) {
@@ -3526,8 +3535,8 @@ ${x}px ${y+18}px)`;
     }
     morescr.append(newmenu('8000 colorful stars',      listener, [4,      8000, false,       false,   4,   4, 1.25, 0, false]));
     morescr.append(newmenu());
-    morescr.append(newmenu('Surreal Xmas',             listener, ['xmas', 800,  'light.png', true,  190, 190, 1.25, 4, "#072700"]));
-    morescr.append(newmenu('Deep nature',              listener, ['natu', 800,  'petal.png', true,  190, 190, 1.25, 4, "#170b00"]));
+    morescr.append(newmenu('Surreal Xmas',             listener, ['xmas', xlight.length*160,  'light.png', true,  190, 190, 1.25, 4, "#072700"]));
+    morescr.append(newmenu('Deep nature',              listener, ['natu', xnatur.length*120,  'petal.png', true,  190, 190, 1.25, 4, "#170b00"]));
 
     if (winsoln >= 100) {
       morescr.append(newmenu('Flying cards',           listener, ['card', 2,    false,       true, 71*2, 96*2, 1.25, 4, false]));
@@ -3768,6 +3777,7 @@ function pressed(code, location, down) {
   }
 
   if (down) {
+    imawake();
     KeypressX[code][location].childNodes[0].classList.add('pressed');
     KeypressX[code][location].classList.add('pressed');
     Keypress[code] = true;

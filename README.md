@@ -14,19 +14,26 @@ Download and serve files, you define how are they downloaded and sorted!
            \          /     '-==\}/
             '--------'
 ```
-Any good OS with Python 3 installed will work. iOS/iPadOS: get iSH Shell app from https://apps.apple.com/us/app/ish-shell/id1436902243 then enter `apk add py3-pip` and then `mount -t ios . /mnt` and select your favorite location for Schande.bat. MacOS need one more step after installing Python: open Terminal and enter `open /Applications/Python\ 3.9/Install\ Certificates.command`
 
-1. Save <a href="https://github.com/Rukario/Schande/raw/main/Schande.bat">Schande.bat</a> to your favorite location where you want to download files to, change the file extension back to .bat if it's in something else.
-    - iOS isn't showing file extensions and has no normal means to change it on iOS. It can be renamed back to Schande.bat by executing this command on iSH: `mv /mnt/Schande.bat.txt /mnt/Schande.bat`
+1. Any good OS with Python 3 installed will work.
+    - iOS/iPadOS: get iSH Shell app from [AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)
+        - Pirates: Get the latest x86 Miniroot 3.17 from https://alpinelinux.org/releases/ import into iSH Shell by cogwheel icon > Filesystems > Import 
+        - All: Then enter `apk add py3-pip` and then `mount -t ios . /mnt` and select your favorite location for Schande.bat.
+    - MacOS need one more step after installing Python: open Terminal and enter `open /Applications/Python\ 3.9/Install\ Certificates.command`
 
-2. Follow one for your system:
+2. Save <a href="https://github.com/Rukario/Schande/raw/main/Schande.bat">Schande.bat</a> to your favorite location where you want to download files to, change the file extension back to `.bat` if it's in something else.
+    - iOS: Files app > ellipsis icon > View Options > Show All Filename Extensions
+    - Windows: File explorer > View > Show > File name extensions
+    - Other OS: YMMV
+
+3. Follow one for your system:
     - Windows: Double click on it and read the CLI message.
     - Linux/MacOS (Terminal): `python3 -x /drag/n/drop/Schande.bat`
     - iOS/iPadOS (iSH Shell app): `python3 -x /mnt/Schande.bat`
 
-3. Schande.bat on first run will create a new file: Schande.cd, open it in your favorite text editor to edit rules, refer to the premade Schande.cd for inspiration.
+4. Schande.bat on first run will create a new file: Schande.cd, open it in your favorite text editor to edit rules, refer to the premade Schande.cd for inspiration.
 
-4.
+5.
     - Paranoids: h(E)lp
     - Braves: (I)nput
     - Pirates: open torrent (M)anager

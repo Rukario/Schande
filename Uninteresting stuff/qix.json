@@ -1,0 +1,12 @@
+[
+  {
+    "downscale": 2,
+    "reveal": "flower.jpg",
+    "silhouette": "silhouette.png"
+  },
+  {
+    "downscale": 4,
+    "reveal": "flower.jpg",
+    "silhouette": "silhouette.png"
+  }
+]

@@ -415,7 +415,7 @@ canvas {
     clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
   }
   
-  .leverbar {
+  .bar {
     border-top: 2px solid #848484;
     border-left: 2px solid #848484;
     border-bottom: 2px solid #fff;
@@ -465,6 +465,31 @@ canvas {
 
 </style>
 <script>
+function opendb(file, callback) {
+  const xhr = new XMLHttpRequest();
+  let isTainted = true;
+  xhr.overrideMimeType('application/json');
+  xhr.open('GET', file, true);
+  xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
+  xhr.send();
+  xhr.onreadystatechange = () => {
+    isTainted = false;
+    if (xhr.readyState === 4) {
+      if (xhr.status !== 404 && xhr.responseText) {
+        callback(JSON.parse(xhr.responseText));
+      } else if (xhr.responseText) {
+        local_tooltip.style.display = 'inline-block';
+        local_tooltip.textContent = '⚠';
+        local_tooltip.dataset.tooltip = file + ' not found! (404 error)';
+      } else {
+        local_tooltip.style.display = 'inline-block';
+        local_tooltip.textContent = '⚠';
+        local_tooltip.dataset.tooltip = "couldn't access " + file + '! (non-404 error)';
+      }
+    }
+  }
+}
+
 const fps = {
   throttle: true,
   vfps: 15,
@@ -551,6 +576,7 @@ function newCanvas(w, h) {
   if (h) {
     d.height = d.canvas.height = h;
   }
+  d.imageSmoothingEnabled = false;
   return d;
 }
 
@@ -766,9 +792,10 @@ movingflower.addEventListener('load', () => {
 
 const silhouette = new Image();
 silhouette.addEventListener('load', () => {
-  qixmask.width = qixmask.canvas.width = silhouette.width/2/qixsc;
-  qixmask.height = qixmask.canvas.height = silhouette.height/2/qixsc;
-  reveal.src = 'flower.jpg';
+  const qg = qixgallery[qixsel];
+  qixmask.width = qixmask.canvas.width = silhouette.width/qixsc/qg.downscale;
+  qixmask.height = qixmask.canvas.height = silhouette.height/qixsc/qg.downscale;
+  reveal.src = qg.reveal;
 });
 
 const reveal = new Image();
@@ -950,13 +977,38 @@ function starcolor() {
   }
 }
 
-function starmask(color, img) {
-  const mask = newCanvas(alpha.width, alpha.height);
+function starmask(color, img, branch) {
+  const mask = newCanvas();
 
   if (img) {
+    mask.width = mask.canvas.width = img.width;
+    mask.height = mask.canvas.height = img.height;
     mask.drawImage(img, 0, 0);
+
+    //mask.width = mask.canvas.width = img.width*2;
+    //mask.height = mask.canvas.height = img.height*2;
+    //mask.imageSmoothingEnabled = false;
+    //
+    //mask.translate(img.width, img.height);
+    //
+    //const fol = newCanvas(img.width, img.height);
+    //fol.drawImage(img, 0, 0);
+    //fol.globalCompositeOperation = 'source-in';
+    //mask.rotate(360 / 2 / branch * Math.PI / 180);
+    //
+    //for (const nth of Array(branch).keys()) {
+    //  fol.fillStyle = color[nth % color.length];
+    //  fol.fillRect(0, 0, fol.width, fol.height);
+    //
+    //  mask.drawImage(fol.canvas, -fol.width/2, -fol.height, fol.width, fol.height);
+    //  mask.rotate(360 / branch * Math.PI / 180);
+    //}
+    //mask.setTransform(1, 0, 0, 1, 0, 0);
   } else {
+    mask.width = mask.canvas.width = alpha.width;
+    mask.height = mask.canvas.height = alpha.height;
     mask.drawImage(alpha, 0, 0);
+
     mask.globalCompositeOperation = 'source-in';
     mask.fillStyle = color || starcolor();
     mask.fillRect(0, 0, mask.width, mask.height);
@@ -989,10 +1041,12 @@ function new_stars() {
     })();
 
     const foliage = new Image();
+    //foliage.src = 'foliage.png';
     foliage.src = 'spruce.png';
     foliage.addEventListener('load', () => {
       const ntimes = scr.density / xarray.length * (xarray.length - 1);
-      canvasToFrame(starmask(false, foliage), variant, ntimes);
+      //['#033201', '#0E600C', '#033201', '#233A0D', '#065001', '#0E600C']
+      canvasToFrame(starmask(null, foliage, 15), variant, ntimes);
     });
 
     for (const color of xarray) {
@@ -2744,13 +2798,13 @@ function updatestat() {
   //easestat2.innerHTML = `Ease: ${star.accelerate}s`;
 }
 
+var qixgallery = null;
+var qixsel = 0;
 const qixsc = 1;
 //var qixmap = new Array(200*200).fill(0);
 var qixmask = newCanvas();
-
 var qixmap = null; // qixmask.createImageData(qixmask.width, qixmask.height);
 var qixpos, qixpos2, qix_tails, qixline;
-
 var glyphm = newCanvas();
 var glyphc = newCanvas();
 var glyph_shift = 1;
@@ -3343,7 +3397,7 @@ function makemenu() {
     e.classList = 'lever';
 
     DOMwriter = document.createElement('DIV');
-    DOMwriter.classList = 'leverbar';
+    DOMwriter.classList = 'bar';
     e.appendChild(DOMwriter);
 
     e.addEventListener('mousedown', (e_) => {
@@ -3470,7 +3524,14 @@ function makemenu() {
         hint.style.display = 'none';
         hintb.style.display = 'none';
 
-        silhouette.src = 'silhouette.png';
+        if (!qixgallery) {
+          opendb('qix.json', (x) => {
+            qixgallery = x;
+            silhouette.src = qixgallery[qixsel].silhouette;
+          });
+        } else {
+          silhouette.src = qixgallery[qixsel].silhouette;
+        };
       });
     };
     poppy.append(newmenu('Qix', listener));
@@ -3913,6 +3974,7 @@ for (const [n, k] of '←↑→↓'.split('').entries()) {
 
 const Keypress = Object.fromEntries(Object.keys(registerk).map((k) => [k, false]));
 
+var yeet, yeetCode;
 function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
   for (const ks of keycaps) {
     for (const k of ks){
@@ -3931,42 +3993,72 @@ function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
       }
       keycap.appendChild(cap);
 
-      const x = Object.keys(registerk).find(kx => registerk[kx] === k);
+      const code = Object.keys(registerk).find(kx => registerk[kx] === k);
+      keycap.dataset.code = code;
 
-      if (KeypressX[x]) {
-        KeypressX[x].push(keycap);
+      if (KeypressX[code]) {
+        KeypressX[code].push(keycap);
       } else {
-        KeypressX[x] = [keycap];
+        KeypressX[code] = [keycap];
       }
 
-      const location = KeypressX[x].length === 1 ? 0 : KeypressX[x].length;
+      const location = KeypressX[code].length === 1 ? 0 : KeypressX[code].length;
       if (isTouch) {
         keycap.addEventListener('touchstart', (e) => {
           e.preventDefault();
-          pressed(x, location, true);
+          yeet = keycap.getBoundingClientRect();
+          yeetCode = code;
+          pressed(yeetCode, 0, true);
+        });
+        keycap.addEventListener('touchmove', (e) => {
+          e.preventDefault();
+
+          const x = e.touches[0].clientX;
+          const y = e.touches[0].clientY;
+
+          const t = document.elementFromPoint(x, y);
+          const newCode = t.dataset.code;
+          if (!newCode) {
+            return;
+          }
+          const rect = t.getBoundingClientRect();
+          if (Keypress[yeetCode]) {
+            if (
+              x < yeet.left ||
+              x > yeet.right ||
+              y < yeet.top ||
+              y > yeet.bottom
+            ) {
+              pressed(yeetCode, 0, false);
+            }
+          } else if (!Keypress[newCode]) {
+            yeet = rect;
+            yeetCode = newCode;
+            pressed(newCode, 0, true);
+          }
         });
         keycap.addEventListener('touchend', (e) => {
           e.preventDefault();
-          pressed(x, location, false);
+          pressed(yeetCode, 0, false);
         });
       } else {
         keycap.addEventListener('mousedown', (e) => {
           e.preventDefault();
-          pressed(x, location, true);
+          pressed(code, location, true);
         });
         keycap.addEventListener('mouseenter', (e) => {
           if (mousec.down) {
             e.preventDefault();
-            pressed(x, location, true);
+            pressed(code, location, true);
           }
         });
         keycap.addEventListener('mouseleave', (e) => {
           e.preventDefault();
-          pressed(x, location, false);
+          pressed(code, location, false);
         });
         keycap.addEventListener('mouseup', (e) => {
           e.preventDefault();
-          pressed(x, location, false);
+          pressed(code, location, false);
         });
       }
       socket.appendChild(keycap);

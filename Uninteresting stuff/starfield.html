@@ -363,7 +363,7 @@ canvas {
   display: none;
 }
 
-.graph {
+.graphboard {
   position: relative;
   top: 7px;
   margin: 0 4px 14px;
@@ -377,48 +377,52 @@ canvas {
   background-image:
     linear-gradient(to right, #000 1px, transparent 1px),
     linear-gradient(to bottom, #000 1px, transparent 1px);
-}
 
-.graphdot {
-  background: #00f;
-  position: relative;
-  width: 5px;
-  height: 5px;
-  pointer-events: none;
-}
-
-.leverdot {
-  background: #fff;
-  border-top: 6px solid #fff;
-  border-left: 6px solid #fff;
-  border-right: 6px solid #848484;
-  height: 18px;
-  top: 243px;
-  left: 4px;
-
-  &::before {
-    content: '';
-    top: -4px;
-    left: -4px;
-    background: #c0c0c0;
-    width: 8px;
-    height: 20px;
+  .dot {
+    background: #00f;
+    position: relative;
+    width: 5px;
+    height: 5px;
+    pointer-events: none;
   }
 }
 
-.leverdot, .leverdot:before {
-  pointer-events: none;
-  position: absolute;
-  clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
-}
+.lever {
+  padding: 10px 0;
+  position: relative;
 
-.leverbar {
-  border-top: 2px solid #848484;
-  border-left: 2px solid #848484;
-  border-bottom: 2px solid #fff;
-  border-right: 2px solid #fff;
-  width: 208px;
-  pointer-events: none;
+  .dot {
+    background: #fff;
+    border-top: 6px solid #fff;
+    border-left: 6px solid #fff;
+    border-right: 6px solid #848484;
+    height: 18px;
+    top: 0;
+  
+    &::before {
+      content: '';
+      top: -4px;
+      left: -4px;
+      background: #c0c0c0;
+      width: 8px;
+      height: 20px;
+    }
+  }
+  
+  .dot, .dot:before {
+    pointer-events: none;
+    position: absolute;
+    clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
+  }
+  
+  .leverbar {
+    border-top: 2px solid #848484;
+    border-left: 2px solid #848484;
+    border-bottom: 2px solid #fff;
+    border-right: 2px solid #fff;
+    width: 208px;
+    pointer-events: none;
+  }
 }
 
 .poppywin {
@@ -491,6 +495,7 @@ const scr = {
   drift: 1, //0.66
   friction: {x: 2, y: 2},
   paint: false,
+  easeout: true,
 }
 
 var solitaire = false;
@@ -612,15 +617,18 @@ var scrTime, startTime;
 
 
 
-function newstar(ishtar) {
+function newstar(img, color) {
   const horizon = Math.random();
   const scanline = Math.random();
-
   const speli = star.speed * star.life;
   const age = Math.random() * speli % (0.66 * speli);
-  const x = ((horizon - 0.5) * canvas.width * scr.frustum / speli) * (speli - age);
-  const y = ((scanline - 0.5) * canvas.height * scr.frustum / speli) * (speli - age);
-  stars.push([age, x, y, ishtar]);
+  stars.push({
+    boost: age,
+    x: ((horizon - 0.5) * canvas.width * scr.frustum / speli) * (speli - age),
+    y: ((scanline - 0.5) * canvas.height * scr.frustum / speli) * (speli - age),
+    canvas: img,
+    color: color,
+  });
 }
 
 
@@ -632,13 +640,15 @@ function starry(vmsec, msec, vfps) {
     if (!star.accelerate) {
       star.delay = vfps;
     } else if (isFinite(star.delay)) {
-      //const easeout = msec / 1000 / (star.accelerate*vfps/star.delay);
-      const easein = msec / (star.accelerate*200);
-      // what easeinout might be? <- ideal
-      star.delay = star.delay / (1 + easein);
-      //result.innerHTML = star.delay.toFixed(3) + ' ' + easein.toFixed(3) + ' ' + easeout.toFixed(3);
+      if (scr.easeout) {
+        const easeout = msec / (vfps * 50) / (star.accelerate * 50 / star.delay);
+        star.delay = star.delay / (1 + easeout);
+      } else {
+        const easein = msec / (star.accelerate * 200);
+        star.delay = star.delay / (1 + easein);
+      }
     } else {
-      star.delay = 60*vfps;
+      star.delay = 60 * vfps;
     }
   } else {
     star.delay = (1000 / vmsec).toFixed(2);
@@ -682,84 +692,60 @@ function starry(vmsec, msec, vfps) {
   }
 
   for (const [n, ishtar] of stars.entries()) {
-    //const horizon = Math.floor(n / channel) % 5 / 5 + Math.random() / 5;
-    const horizon = Math.random();
+    if (ishtar.boost === 0) {
+      //const horizon = Math.floor(n / channel) % 5 / 5 + Math.random() / 5;
+      const horizon = Math.random();
 
-    //const scanline = n % channel / channel + Math.random() / channel;
-    const scanline = Math.random();
+      //const scanline = n % channel / channel + Math.random() / channel;
+      const scanline = Math.random();
 
-    if (ishtar[0] === 0) {
-      ishtar[1] = (horizon - 0.5) * canvas.width * scr.frustum + (scr.glide ? (mousepos.x - dim.x) / scr.friction.x : 0);
-      ishtar[2] = (scanline - 0.5) * canvas.height * scr.frustum + (scr.glide ? (mousepos.y - dim.y) / scr.friction.y : 0);
-      //ishtar[1] = Math.floor(canvas.width / 6) + Math.floor(Math.random() * canvas.width / 1.5);
-      //ishtar[2] = Math.floor(canvas.height / 6) + Math.floor(Math.random() * canvas.height / 1.5);
-      //ishtar[3] = scr.color ? `rgb(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)})` : '#fff';
+      ishtar.x = (horizon - 0.5) * canvas.width * scr.frustum + (scr.glide ? (mousepos.x - dim.x) / scr.friction.x : 0);
+      ishtar.y = (scanline - 0.5) * canvas.height * scr.frustum + (scr.glide ? (mousepos.y - dim.y) / scr.friction.y : 0);
     }
 
     if (scr.glide) {
-      ishtar[1] -= drift.x;
-      ishtar[2] -= drift.y;
+      ishtar.x -= drift.x;
+      ishtar.y -= drift.y;
     }
 
     const speli = star.speed * star.life;
     const dot = {
-      x: Math.ceil(ishtar[0] / (speli / star.x)),
-      y: Math.ceil(ishtar[0] / (speli / star.y)),
+      x: Math.ceil(ishtar.boost / (speli / star.x)),
+      y: Math.ceil(ishtar.boost / (speli / star.y)),
     };
-    const sx = (ishtar[1] + off.x) / (speli - ishtar[0]) * speli + (scr.glide ? ishtar[0] * star.speed / star.life * (-(mousepos.x - dim.x) / (900 * scr.friction.x)) : 0);
-    const sy = (ishtar[2] + off.y) / (speli - ishtar[0]) * speli + (scr.glide ? ishtar[0] * star.speed / star.life * (-(mousepos.y - dim.y) / (900 * scr.friction.y)) : 0);
+    const sx = (ishtar.x + off.x) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(mousepos.x - dim.x) / (900 * scr.friction.x)) : 0);
+    const sy = (ishtar.y + off.y) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(mousepos.y - dim.y) / (900 * scr.friction.y)) : 0);
+
+    if (false) {
+      if (ishtar.x < dim.x) {
+        ishtar.x -= (dim.x / ishtar.x - 1) * (1 + ishtar.boost / 5);
+      } else {
+        ishtar.x += (dim.x / (canvas.width - ishtar.x) - 1) * (1 + ishtar.boost / 5);
+      }
+      
+      if (ishtar.y < dim.y) {
+        ishtar.y -= (dim.y / ishtar.y - 1) * (1 + ishtar.boost / 5);
+      } else {
+        ishtar.y += (dim.y / (canvas.height - ishtar.y) - 1)*(1 + ishtar.boost / 5);
+      }
+    }
 
     if (
       sx < bound.x ||
       sy < bound.y ||
       sx > bound.dx ||
       sy > bound.dy ||
-      ishtar[0] > speli
+      ishtar.boost > speli
     ) {
-      ishtar[0] = 0;
+      ishtar.boost = 0;
     } else {
-      ishtar[0] += star.speed / star.delay;
-
-      //if (ishtar[1] < dim.x) {
-      //  ishtar[1] -= ((dim.x/ishtar[1])-1)*(1+ishtar[0]/5);
-      //} else {
-      //  ishtar[1] += ((dim.x/(canvas.width-ishtar[1]))-1)*(1+ishtar[0]/5);
-      //}
-      //
-      //if (ishtar[2] < dim.y) {
-      //  ishtar[2] -= ((dim.y/ishtar[2])-1)*(1+ishtar[0]/5);
-      //} else {
-      //  ishtar[2] += ((dim.y/(canvas.height-ishtar[2]))-1)*(1+ishtar[0]/5);
-      //}
-      //
-      //context.fillRect(Math.ceil(ishtar[1]), Math.ceil(ishtar[2]), dot.x, dot.y);
-      //
-      //if (
-      //  ishtar[1] < 0 ||
-      //  ishtar[2] < 0 ||
-      //  ishtar[1] > canvas.width ||
-      //  ishtar[2] > canvas.height ||
-      //  ishtar[0] > speli
-      //) {
-      //  ishtar[0] = 0;
-      //} else {
-      //  ishtar[0] += 1;
-      //}
+      ishtar.boost += star.speed / star.delay;
 
       const dot_pos = [Math.ceil(sx + dim.x - dot.x / 2), Math.ceil(sy + dim.y - dot.y / 2), dot.x, dot.y];
-      if (scr.img) {
-        //maskcontext.fillStyle = ishtar[3];
-        //maskcontext.drawImage(alpha, 0, 0);
-        //maskcontext.globalCompositeOperation = "source-in";
-        //maskcontext.fillRect(0, 0, star.x, star.y);
-        //context.drawImage(mask, Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
-
-        //context.fillStyle = ishtar[3];
-        //context.fillRect(Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
-        //context.drawImage(alpha, Math.ceil(sx + dim.x - dot.x/2), Math.ceil(sy + dim.y - dot.y/2), dot.x, dot.y);
-        context.drawImage(ishtar[3], ...dot_pos);
+      if (ishtar.canvas) {
+        context.drawImage(ishtar.canvas, ...dot_pos);
       } else {
-        context.fillStyle = ishtar[3];
+        context.fillStyle = ishtar.color;
         context.fillRect(...dot_pos);
       }
     }
@@ -1068,7 +1054,7 @@ function new_stars() {
     }
   } else {
     for (const n of Array(scr.density).keys()) {
-      newstar(starcolor());
+      newstar(null, starcolor());
     }
     new_screensaver();
   }
@@ -2509,10 +2495,10 @@ const FFdown = (e_) => {
   }
 
   cursordraw(e_);
+  cursordrawing = true;
+
   graphdraw(e_);
   leverdraw(e_);
-
-  cursordrawing = true;
 
   if (e_.target.classList.contains('poppy') || e_.target.parentNode.classList.contains('poppy') || isTouch && e_.touches.length > 1) {
     ZOOKd = true;
@@ -2542,6 +2528,7 @@ const FFmove = (e_) => {
       mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft : e_.x;
       mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop : e_.y;
     }
+
     cursordraw(e_);
     graphdraw(e_);
     leverdraw(e_);
@@ -2655,7 +2642,8 @@ function typeOf(obj) {
 
 var DOMwriter = null;
 var winsoln = 0;
-var morescr, options, seed, seednow, staropt, fpsopt, graph, graphdot, graphstat, lever, leverdot, leverstat;
+var morescr, options, seed, seednow, staropt, fpsopt
+var pixelctrl, pixelstat, easectrl, easestat, easectrl2, easestat2;
 
 function savestar(str, args) {
   const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
@@ -2708,43 +2696,53 @@ function cursordraw(e, end) {
 
 function graphdraw(e) {
   if (graphdrawing) {
-    const rect = graph.getBoundingClientRect();
+    const t = graphdrawing.target;
+    const rect = t.getBoundingClientRect();
     const where = {
       x: Math.floor((isTouch ? e.touches[0].clientX : e.clientX) - rect.left),
       y: Math.floor((isTouch ? e.touches[0].clientY : e.clientY) - rect.top),
     };
     const x = Math.min(where.x - 2, 200);
     const y = Math.min(where.y - 2, 200);
-    graphdot.style.left = x - 2 + 'px';
-    graphdot.style.top = y - 3 + 'px';
+    const dots = t.querySelectorAll('.dot');
+    dots[0].style.left = x - 2 + 'px';
+    dots[0].style.top = y - 3 + 'px';
+
     star.life = parseFloat((10.75 - x / 20).toFixed(2));
     star.x = (200 - y) + 1;
     star.y = Math.ceil((200 - y + 1) / star.r);
-    graphstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
+    pixelstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
   }
 }
 
 function leverdraw(e) {
   if (leverdrawing) {
-    const rect = lever.getBoundingClientRect();
+    const t = leverdrawing.target;
+    const rect = t.getBoundingClientRect();
     const coarse = 10;
     const where_x = Math.floor((isTouch ? e.touches[0].clientX : e.clientX) - rect.left);
     const x = Math.min(parseInt((where_x - 1) / coarse) * coarse, 200);
-    leverdot.style.left = 4 + x + 'px';
+    const dots = t.querySelectorAll('.dot');
+    dots[0].style.left = x + 'px';
+
     star.accelerate = (200 - x) / 25;
     star.delay = 60 * fps.vfps;
-    leverstat.innerHTML = `Accelerate: ${star.accelerate}s`;
+    easestat.innerHTML = `Accelerate: ${star.accelerate}s`;
+    //easestat2.innerHTML = `Ease: ${star.accelerate}s`;
   }
 }
 
 function updatestat() {
-  graphdot.style.left = 200 - star.life * 20 + 13 + 'px';
-  graphdot.style.top = 200 - star.x - 2 + 'px';
-  graphstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
-  leverdot.style.left = 204 - star.accelerate * 25 + 'px';
-  leverstat.innerHTML = `Accelerate: ${star.accelerate}s`;
-}
+  pixelctrl.style.left = 200 - star.life * 20 + 13 + 'px';
+  pixelctrl.style.top = 200 - star.x - 2 + 'px';
+  pixelstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
 
+  easectrl.style.left = 200 - star.accelerate * 25 + 'px';
+  easestat.innerHTML = `Accelerate: ${star.accelerate}s`;
+
+  //easectrl2.style.left = 200 - star.accelerate * 25 + 'px';
+  //easestat2.innerHTML = `Ease: ${star.accelerate}s`;
+}
 
 const qixsc = 1;
 //var qixmap = new Array(200*200).fill(0);
@@ -3315,6 +3313,56 @@ function makemenu() {
     return e;
   };
 
+  const newgraph = () => {
+    const e = document.createElement('DIV');
+    e.classList = 'graphboard';
+
+    pixelctrl = document.createElement('DIV');
+    pixelctrl.classList = 'dot';
+    e.appendChild(pixelctrl);
+
+    e.addEventListener('mousedown', (e_) => {
+      graphdrawing = e_;
+    });
+    e.addEventListener('touchstart', (e_) => {
+      graphdrawing = e_;
+      FFmove(e_);
+    });
+    e.addEventListener('touchmove', (e_) => {
+      FFmove(e_);
+    });
+    e.addEventListener('touchend', (e_) => {
+      FFup(e_);
+    });
+
+    return e;
+  }
+
+  const newlever = () => {
+    const e = document.createElement('DIV');
+    e.classList = 'lever';
+
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.classList = 'leverbar';
+    e.appendChild(DOMwriter);
+
+    e.addEventListener('mousedown', (e_) => {
+      leverdrawing = e_;
+    });
+    e.addEventListener('touchstart', (e_) => {
+      leverdrawing = e_;
+      FFmove(e_);
+    });
+    e.addEventListener('touchmove', (e_) => {
+      FFmove(e_);
+    });
+    e.addEventListener('touchend', (e_) => {
+      FFup(e_);
+    });
+
+    return e;
+  }
+
   const unlock = (m, n, arrow) => {
     const e = document.createElement('DIV');
     e.textContent = m.join(n-winsoln);
@@ -3517,7 +3565,7 @@ ${x}px ${y+18}px)`;
 
       change_stars(args);
 
-      if (graphdot) {
+      if (pixelctrl) {
         updatestat();
       }
       savestar('star=', args);
@@ -3644,66 +3692,45 @@ ${x}px ${y+18}px)`;
       } else if (star.life + w >= 0.75) {
         star.life = parseInt((star.life + w)*4)/4;
       }
-      graphdot.style.left = -star.life * 20 + 200 + 13 + 'px';
-      graphstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
+      pixelctrl.style.left = -star.life * 20 + 200 + 13 + 'px';
+      pixelstat.innerHTML = `Pixel: ${star.x}px Life: ${star.life}s`;
     });
 
     poppy.append(newmenu('Star speed', submenu, false, staropt));
 
-    graph = document.createElement('DIV');
-    graph.classList = 'graph';
+    graph = newgraph();
     staropt.appendChild(graph);
 
-    graphstat = document.createElement('DIV');
-    staropt.appendChild(graphstat);
-    graphdot = document.createElement('DIV');
-    graphdot.classList = 'graphdot';
-    graph.appendChild(graphdot);
+    pixelstat = document.createElement('DIV');
+    staropt.appendChild(pixelstat);
 
-    graph.addEventListener('mousedown', () => {
-      graphdrawing = true;
-    });
-    graph.addEventListener('touchstart', (e) => {
-      graphdrawing = true;
-      FFmove(e);
-    });
-    graph.addEventListener('touchmove', (e) => {
-      FFmove(e);
-    });
-    graph.addEventListener('touchend', (e) => {
-      FFup(e);
-    });
 
-    lever = document.createElement('DIV');
-    lever.style.padding = '10px 0';
 
-    DOMwriter = document.createElement('DIV');
-    DOMwriter.classList = 'leverbar';
-    lever.appendChild(DOMwriter);
+    DOMwriter = newlever();
+    staropt.appendChild(DOMwriter);
 
-    leverstat = document.createElement('DIV');
-    leverdot = document.createElement('DIV');
-    leverdot.classList = 'leverdot';
+    easectrl = document.createElement('DIV');
+    easectrl.classList = 'dot';
+    DOMwriter.appendChild(easectrl);
 
-    staropt.appendChild(lever);
-    staropt.appendChild(leverstat);
-    staropt.appendChild(leverdot);
+    easestat = document.createElement('DIV');
+    staropt.appendChild(easestat);
+
+
+
+    //DOMwriter = newlever();
+    //staropt.appendChild(DOMwriter);
+    //
+    //easectrl2 = document.createElement('DIV');
+    //easectrl2.classList = 'dot';
+    //DOMwriter.appendChild(easectrl2);
+    //
+    //easestat2 = document.createElement('DIV');
+    //staropt.appendChild(easestat2);
+
+
 
     updatestat();
-
-    lever.addEventListener('mousedown', () => {
-      leverdrawing = true;
-    });
-    lever.addEventListener('touchstart', (e) => {
-      leverdrawing = true;
-      FFmove(e);
-    });
-    lever.addEventListener('touchmove', (e) => {
-      FFmove(e);
-    });
-    lever.addEventListener('touchend', (e) => {
-      FFup(e);
-    });
 
   } else {
     poppy.append(unlock(['Glide (', ')'], 64));

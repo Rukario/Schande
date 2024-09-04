@@ -2871,7 +2871,7 @@ function new_glyph(clear) {
 
 function glyph_update(code) {
   const jump = () => {
-    if (glyph_cursor > 57) {
+    if (glyph_cursor > 39) {
       if (glyph_row > 36) {
         glyph_row = 0;
       } else {
@@ -2886,7 +2886,7 @@ function glyph_update(code) {
   if (code.startsWith('Arrow')) {
     const x = (code === 'ArrowLeft' ? -1 : 0) + (code === 'ArrowRight' ? 1 : 0);
     const y = (code === 'ArrowUp' ? -1 : 0) + (code === 'ArrowDown' ? 1 : 0);
-    if (glyph_cursor + x >= 0 && glyph_cursor + x < 59) {
+    if (glyph_cursor + x >= 0 && glyph_cursor + x < 41) {
       glyph_cursor += x;
     }
     if (glyph_row + y >= 0 && glyph_row + y < 38) {
@@ -2897,7 +2897,7 @@ function glyph_update(code) {
       glyph_cursor -= 1;
     } else if (glyph_row) {
       glyph_row -= 1;
-      glyph_cursor = 58;
+      glyph_cursor = 40;
     }
 
     glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);

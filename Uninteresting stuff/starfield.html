@@ -20,6 +20,8 @@ body {
   font-family: Helvetica, Arial, Sans-Serif;
   -webkit-user-select: none;
   overflow: hidden;
+  display: flex;
+  justify-content: center;
 }
 
 canvas {
@@ -818,7 +820,7 @@ const reveal = new Image();
 reveal.addEventListener('load', () => {
   qixscr.style.display = 'block';
   qixscr2.style.display = 'block';
-  keyboard.style.display = 'inline-block';
+  keyboard.style.display = isTouch ? 'inline-block' : 'none';
   new_qix();
   qixupdate();
 });

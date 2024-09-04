@@ -20,8 +20,8 @@ body {
   font-family: Helvetica, Arial, Sans-Serif;
   -webkit-user-select: none;
   overflow: hidden;
-  display: flex;
-  justify-content: center;
+  //display: flex;
+  //justify-content: center;
 }
 
 canvas {
@@ -34,6 +34,19 @@ canvas {
   z-index: 2;
   pointer-events: none;
   mix-blend-mode: multiply;
+}
+
+.editor {
+  position: absolute;
+  padding: 8px;
+  min-width: calc(100% - 18px);
+  min-height: 12px;
+  line-height: calc(1em - 10.6px);
+  white-space: pre-wrap;
+  color: #0f0;
+  font-family: courier;
+  font-size: 26.6px;
+  z-index: 5;
 }
 
 #keyboard {
@@ -806,7 +819,7 @@ picturetomove.addEventListener('load', () => {
 
 const silhouette = new Image();
 silhouette.addEventListener('load', () => {
-  const qg = qixgallery[qixsel];
+  const qg = qixdb.gallery[qixsel];
   qixmask.width = qixmask.canvas.width = silhouette.width/qg.downscale/qixsc;
   qixmask.height = qixmask.canvas.height = silhouette.height/qg.downscale/qixsc;
   qixmask.imageSmoothingEnabled = false;
@@ -2536,11 +2549,12 @@ function imawake() {
       }
 
       if (qix) {
-        keyboard.style.display = 'inline-block';
+        keyboard.style.display = isTouch ? 'inline-block' : 'none';
         qixupdate();
       }
 
       if (glyph) {
+        keyboard.style.display = 'inline-block';
         hint.style.display = 'block';
         new_glyph();
       }
@@ -2816,13 +2830,12 @@ function updatestat() {
   //easestat2.innerHTML = `Ease: ${star.accelerate}s`;
 }
 
-var qixgallery = null;
+var qixdb = null;
 var qixsel = 0;
 const qixsc = 2;
-//var qixmap = new Array(200*200).fill(0);
 var qixmask = newCanvas();
 var spoiler = newCanvas();
-var qixmap = null; // qixmask.createImageData(qixmask.width, qixmask.height);
+var qixmap = null;
 var qixpos, qixpos2, qix_tails, qixline;
 var glyphm = newCanvas();
 var glyphc = newCanvas();
@@ -2848,8 +2861,8 @@ function new_glyph(clear) {
 
   glyphscr.style.display = 'block';
   keyboard.style.display = 'inline-block';
-
   if (clear) {
+    editor.textContent = '';
     glyphc.clearRect(0, 0, glyphc.width, glyphc.height);
     glyph_cursor = 0;
     glyph_row = 0;
@@ -2857,47 +2870,9 @@ function new_glyph(clear) {
 }
 
 function glyph_update(code) {
-  if (code.startsWith('Arrow')) {
-    const x = (code === 'ArrowLeft' ? -1 : 0) + (code === 'ArrowRight' ? 1 : 0);
-    const y = (code === 'ArrowUp' ? -1 : 0) + (code === 'ArrowDown' ? 1 : 0);
-    if (glyph_cursor + x >= 0 && glyph_cursor + x < 59) {
-      glyph_cursor += x;
-    }
-    if (glyph_row + y >= 0 && glyph_row + y < 38) {
-      glyph_row += y;
-    }
-  }
-
-  if (['ShiftLeft', 'ShiftRight'].includes(code)) {
-    glyph_shift = 2;
-  }
-
-  if (code === 'Backspace') {
-    if (glyph_cursor) {
-      glyph_cursor -= 1;
-    } else if (glyph_row) {
-      glyph_row -= 1;
-      glyph_cursor = 58;
-    }
-
-    glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
-  }
-
-  if (code === 'Enter') {
-    if (glyph_row > 36) {
-      glyph_row = 0;
-    } else {
-      glyph_row += 1;
-    }
-    glyph_cursor = 0;
-  }
-
-  if (code === 'Space') {
-    glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
-
-    // cursor jump
+  const jump = () => {
     if (glyph_cursor > 57) {
-      if (glyph_row > 36) { 
+      if (glyph_row > 36) {
         glyph_row = 0;
       } else {
         glyph_row += 1;
@@ -2908,7 +2883,39 @@ function glyph_update(code) {
     }
   }
 
-  if (code.startsWith('Digit') || code.startsWith('Key')) {
+  if (code.startsWith('Arrow')) {
+    const x = (code === 'ArrowLeft' ? -1 : 0) + (code === 'ArrowRight' ? 1 : 0);
+    const y = (code === 'ArrowUp' ? -1 : 0) + (code === 'ArrowDown' ? 1 : 0);
+    if (glyph_cursor + x >= 0 && glyph_cursor + x < 59) {
+      glyph_cursor += x;
+    }
+    if (glyph_row + y >= 0 && glyph_row + y < 38) {
+      glyph_row += y;
+    }
+  } else if (code === 'Backspace') {
+    if (glyph_cursor) {
+      glyph_cursor -= 1;
+    } else if (glyph_row) {
+      glyph_row -= 1;
+      glyph_cursor = 58;
+    }
+
+    glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
+  } else if (code === 'Enter') {
+    editor.textContent += '\n';
+    if (glyph_row > 36) {
+      glyph_row = 0;
+    } else {
+      glyph_row += 1;
+    }
+    glyph_cursor = 0;
+  } else if (code === 'Space') {
+    editor.textContent += ' ';
+    glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
+
+    jump();
+  } else if (code.startsWith('Digit') && glyph_shift === 1 || code.startsWith('Key')) {
+    editor.textContent += ' ';
     let charset = '0123456789';
     let des = 0;
     if (code.startsWith('Key')) {
@@ -2920,16 +2927,12 @@ function glyph_update(code) {
     glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
     glyphc.drawImage(glyphm.canvas, pos, des, 16, 16, 16 * glyph_cursor, 16 * glyph_row, 16, 16);
 
-    // cursor jump
-    if (glyph_cursor > 57) {
-      if (glyph_row > 36) {
-        glyph_row = 0;
-      } else {
-        glyph_row += 1;
-      }
-      glyph_cursor = 0;
-    } else {
-      glyph_cursor += 1;
+    jump();
+  } else {
+    let key = registerk[code][1];
+    if (key) {
+      editor.textContent += key[glyph_shift-1];
+      jump();
     }
   }
 
@@ -3332,6 +3335,17 @@ function qixupdate() {
 
 
 
+const neweditor = (B = '<br>', v = true) => {
+  const d = document.createElement('DIV');
+  d.classList = 'editor';
+  d.style.display = v ? 'inline-block' : 'none';
+  d.setAttribute('contenteditable', 'plaintext-only');
+  d.spellcheck = false;
+  d.innerHTML = B;
+  document.body.appendChild(d);
+  return d;
+}
+
 const inputcell = (B, w = '86px') => {
   const d = document.createElement('INPUT');
   d.type = 'text';
@@ -3547,13 +3561,13 @@ function makemenu() {
         hint.style.display = 'none';
         hintb.style.display = 'none';
 
-        if (!qixgallery) {
+        if (!qixdb) {
           opendb('qix.json', (x) => {
-            qixgallery = x;
-            silhouette.src = qixgallery[qixsel].silhouette;
+            qixdb = x;
+            silhouette.src = qixdb.gallery[qixsel].silhouette;
           });
         } else {
-          silhouette.src = qixgallery[qixsel].silhouette;
+          silhouette.src = qixdb.gallery[qixsel].silhouette;
         };
       });
     };
@@ -3910,7 +3924,11 @@ function pressed(code, location, down) {
     Keypress[code] = true;
 
     // glyph stuff
-    if (glyph) {
+
+
+    if (['ShiftLeft', 'ShiftRight', 'CapsLock'].includes(code)) {
+      glyph_shift = 2;
+    } else if (glyph && code) {
       glyph_update(code);
     }
   } else {
@@ -3919,7 +3937,7 @@ function pressed(code, location, down) {
     Keypress[code] = false;
 
     // glyph stuff
-    if (['ShiftLeft', 'ShiftRight'].includes(code)) {
+    if (['ShiftLeft', 'ShiftRight', 'CapsLock'].includes(code)) {
       glyph_shift = 1;
     }
   }
@@ -3942,62 +3960,62 @@ function FFkeyup(e) {
 const KeypressX = {};
 
 const registerk = {
-  AltLeft: 'Alt',
-  AltRight: 'Alt',
-  BracketLeft: '[ {',
-  BracketRight: '] }',
-  Backquote: '` ~',
-  Backslash: '\\ |',
-  Backspace: 'Backspace',
-  CapsLock: 'Caps Lock',
-  Comma: ', \<',
-  ControlLeft: 'Ctrl',
-  ControlRight: 'Ctrl',
-  Enter: 'Enter',
-  Equal: '= +',
-  Escape: 'Esc',
-  MetaRight: 'Win',
-  MetaLeft: 'Win',
-  Minus: '- _',
-  Period: '. \>',
-  Quote: '\' "',
-  Semicolon: '; :',
-  ShiftLeft: 'Shift',
-  ShiftRight: 'Shift',
-  Slash: '/ ?',
-  Space: 'Space',
-  Tab: 'Tab',
+  AltLeft: ['Alt', null],
+  AltRight: ['Alt', null],
+  BracketLeft: ['[ {', '[{'],
+  BracketRight: ['] }', ']}'],
+  Backquote: ['` ~', '`~'],
+  Backslash: ['\\ |', '\\|'],
+  Backspace: ['Backspace', null],
+  CapsLock: ['Caps Lock', null],
+  Comma: [', \<', ',\<'],
+  ControlLeft: ['Ctrl', null],
+  ControlRight: ['Ctrl', null],
+  Enter: ['Enter', '\n'],
+  Equal: ['= +', '=+'],
+  Escape: ['Esc', null],
+  MetaRight: ['Win', null],
+  MetaLeft: ['Win', null],
+  Minus: ['- _', '-_'],
+  Period: ['. \>', '.\>'],
+  Quote: ['\' "', '\'"'],
+  Semicolon: ['; :', ';:'],
+  ShiftLeft: ['Shift', null],
+  ShiftRight: ['Shift', null],
+  Slash: ['/ ?', '/?'],
+  Space: ['Space', ' '],
+  Tab: ['Tab', null],
 
-  PrintScreen: 'PrtSc',
-  ScrollLock: 'ScrLk',
-  Pause: 'Pause',
+  PrintScreen: ['PrtSc', null],
+  ScrollLock: ['ScrLk', null],
+  Pause: ['Pause', null],
 
-  Insert: 'Ins',
-  Home: 'Home',
-  PageUp: 'PgUp',
+  Insert: ['Ins', null],
+  Home: ['Home', null],
+  PageUp: ['PgUp', null],
 
-  Delete: 'Del',
-  End: 'End',
-  PageDown: 'PgDn',
+  Delete: ['Del', null],
+  End: ['End', null],
+  PageDown: ['PgDn', null],
 };
 
 for (const k of ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12']) {
-  registerk[k] = k;
+  registerk[k] = [k, null];
 }
 
 for (const [n, k] of ['0 )', '1 !', '2 @', '3 #', '4 $', '5 %', '6 ^', '7 &', '8 *', '9 ('].entries()) {
-  registerk['Digit' + n] = k;
+  registerk['Digit' + n] = [k, k.replace(/ +/, '')];
 }
 
 for (const k of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')) {
-  registerk['Key' + k] = k;
+  registerk['Key' + k] = [k, k];
 }
 
 for (const [n, k] of '←↑→↓'.split('').entries()) {
-  registerk['Arrow' + ['Left', 'Up', 'Right', 'Down'][n]] = k;
+  registerk['Arrow' + ['Left', 'Up', 'Right', 'Down'][n]] = [k, null];
 }
 
-const Keypress = Object.fromEntries(Object.keys(registerk).map((k) => [k, false]));
+const Keypress = Object.fromEntries(Object.keys(registerk).map((k) => [k[0], false]));
 
 var yeet, yeetCode, dontyeetWASD;
 function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
@@ -4018,7 +4036,7 @@ function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
       }
       keycap.appendChild(cap);
 
-      const code = Object.keys(registerk).find(kx => registerk[kx] === k);
+      const code = Object.keys(registerk).find(kx => registerk[kx][0] === k);
       keycap.dataset.code = code;
 
       if (KeypressX[code]) {
@@ -4175,7 +4193,8 @@ function createkeyboard() {
   f5 = keysocket(24, 0, 'calc(32% - 46px)');
   f9 = keysocket(0, 0, 'calc(32% - 46px)');
   alphakeys = keysocket(0, 12, 'calc(100% - 6px)');
-  keydiv([esc, f1, f5, f9, null, alphakeys], 0, '779px');
+  shamefurbar = keysocket(0, 12, 'calc(100% - 6px)');
+  keydiv([esc, f1, f5, f9, null, alphakeys, null, shamefurbar], 0, '779px');
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
@@ -4240,6 +4259,12 @@ function createkeyboard() {
   drawkeyboard(DOMwriter, [['Win']], 43, 'keycap2', true);
   drawkeyboard(DOMwriter, [['Fn']], 43, 'keycap2');
   drawkeyboard(DOMwriter, [['Ctrl']], 43, 'keycap2');
+
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  shamefurbar.appendChild(DOMwriter);
+
+  drawkeyboard(DOMwriter, [['Shamefur bar']], '100%');
 
 
 
@@ -4354,6 +4379,8 @@ function resize() {
 window.addEventListener('load', () => {
   result.style.display = fps.display ? 'block' : 'none';
   document.title = 'Starfield';
+
+  editor = neweditor();
 
   createkeyboard();
 

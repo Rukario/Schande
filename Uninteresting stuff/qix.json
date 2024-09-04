@@ -1,12 +1,22 @@
-[
-  {
-    "downscale": 1,
-    "reveal": "spoiler.png",
-    "silhouette": "silhouette.png"
-  },
-  {
-    "downscale": 2,
-    "reveal": "spoiler.png",
-    "silhouette": "silhouette.png"
-  }
-]
+{
+  "monsters": [
+    {
+      "species":"diamond"
+    },
+    {
+      "species":"square"
+    }
+  ],
+  "gallery": [
+    {
+      "downscale": 1,
+      "reveal": "spoiler.png",
+      "silhouette": "silhouette.png"
+    },
+    {
+      "downscale": 2,
+      "reveal": "spoiler.png",
+      "silhouette": "silhouette.png"
+    }
+  ]
+}

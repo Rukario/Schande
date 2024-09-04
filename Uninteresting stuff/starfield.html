@@ -797,16 +797,20 @@ alpha.addEventListener('load', () => {
   new_stars();
 });
 
-const movingflower = new Image();
-movingflower.addEventListener('load', () => {
+const picturetomove = new Image();
+picturetomove.addEventListener('load', () => {
   new_screensaver();
 });
 
 const silhouette = new Image();
 silhouette.addEventListener('load', () => {
   const qg = qixgallery[qixsel];
-  qixmask.width = qixmask.canvas.width = silhouette.width/qixsc/qg.downscale;
-  qixmask.height = qixmask.canvas.height = silhouette.height/qixsc/qg.downscale;
+  qixmask.width = qixmask.canvas.width = silhouette.width/qg.downscale/qixsc;
+  qixmask.height = qixmask.canvas.height = silhouette.height/qg.downscale/qixsc;
+  qixmask.imageSmoothingEnabled = false;
+  spoiler.width = spoiler.canvas.width = silhouette.width/qg.downscale;
+  spoiler.height = spoiler.canvas.height = silhouette.height/qg.downscale;
+  spoiler.imageSmoothingEnabled = false;
   reveal.src = qg.reveal;
 });
 
@@ -842,15 +846,15 @@ function movingphoto() {
   //  canvas.height // dHeight
   //);
 
-  for (let y = 0; y < canvas.height; y += movingflower.height) {
-    for (let x = currentFrame; x < canvas.width; x += movingflower.width) {
-      context.drawImage(movingflower, x, y, movingflower.width, movingflower.height);
+  for (let y = 0; y < canvas.height; y += picturetomove.height) {
+    for (let x = currentFrame; x < canvas.width; x += picturetomove.width) {
+      context.drawImage(picturetomove, x, y, picturetomove.width, picturetomove.height);
     }
   }
 
   currentFrame = currentFrame + 960/fps.vfps;
   if (currentFrame > 0) {
-    currentFrame = currentFrame - movingflower.width;
+    currentFrame = currentFrame - picturetomove.width;
   }
 }
 
@@ -2812,9 +2816,10 @@ function updatestat() {
 
 var qixgallery = null;
 var qixsel = 0;
-const qixsc = 1;
+const qixsc = 2;
 //var qixmap = new Array(200*200).fill(0);
 var qixmask = newCanvas();
+var spoiler = newCanvas();
 var qixmap = null; // qixmask.createImageData(qixmask.width, qixmask.height);
 var qixpos, qixpos2, qix_tails, qixline;
 var glyphm = newCanvas();
@@ -2956,17 +2961,16 @@ function new_qix() {
     y: 0,
   };
 
-  //for (const n of Array(qixmap.data.length/4).keys()) {
-  //  qixmap.data[n*4] = 24;
-  //  qixmap.data[n*4+1] = 8;
-  //  qixmap.data[n*4+2] = 64;
-  //  qixmap.data[n*4+3] = 255;
-  //}
-
-  qixmask.drawImage(silhouette, 0, 0, silhouette.width, silhouette.height, 0, 0, qixmask.width, qixmask.height);
   qixmap = qixmask.getImageData(0, 0, qixmask.width, qixmask.height);
+  for (const n of Array(qixmap.data.length/4).keys()) {
+    qixmap.data[n*4] = 0;
+    qixmap.data[n*4+1] = 0;
+    qixmap.data[n*4+2] = 0;
+    qixmap.data[n*4+3] = 255;
+  }
+
   clearSq(center[0]-9, center[1]-9, 19, 19);
-  clearSq(center[0]-8, center[1]-8, 17, 17, 0); // 128 for semi-translucent
+  clearSq(center[0]-8, center[1]-8, 17, 17, 128); // 128 for semi-translucent
   clearSq(0, 0, qixmask.width, 0);
   clearSq(0, 0, 0, qixmask.height);
   clearSq(0, qixmask.height-1, qixmask.width, 0);
@@ -3009,7 +3013,7 @@ function qixscan() {
   for (const [n, pixel] of monstermap.entries()) {
     if (pixel) {
       pixels++;
-      qixmap.data[n*4+3] = 0; // 128 for semi-translucent
+      qixmap.data[n*4+3] = 128; // 128 for semi-translucent
     }
   }
 
@@ -3030,14 +3034,14 @@ function qixscan() {
 
 function clearSq(x, y, w, h, co = 0) {
   const ww = qixmask.width;
-  const yh = h>0 ? [y,h+1] : [y+h,-h+1];
-  const xw = w>0 ? [x,w+1] : [x+w,-w+1];
-  const d = ww*yh[0]*4;
-  const r = xw[0]*4;
+  const yh = h > 0 ? [y, h + 1] : [y + h, -h + 1];
+  const xw = w > 0 ? [x, w + 1] : [x + w, -w + 1];
+  const d = ww * yh[0] * 4;
+  const r = xw[0] * 4;
   for (const i of Array(yh[1]).keys()) {
-    const ii = d+ww*i*4 + 3;
+    const ii = d + ww * i * 4 + 3;
     for (const j of Array(xw[1]).keys()) {
-      qixmap.data[ii + r+j*4] = co;
+      qixmap.data[ii + r + j * 4] = co;
     }
   }
   qixmask.putImageData(qixmap, 0, 0);
@@ -3059,9 +3063,9 @@ function stixpath(nx, land) {
 
   const stix = qix_tails.at(-1);
   if (qixline.d === 'x' && qixline.x === x) {
-    stix[3] = y-stix[1];
+    stix[3] = y - stix[1];
   } else if (qixline.y === y) {
-    stix[2] = x-stix[0];
+    stix[2] = x - stix[0];
   } else {
     qix_tails.push([x, y, 0, 0]);
     qixline.x = x;
@@ -3311,9 +3315,13 @@ function qixupdate() {
 
   context.fillStyle = '#000';
   context.fillRect(0, 0, canvas.width, canvas.height);
-
   context.drawImage(reveal, 0, 0, reveal.width, reveal.height, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
-  context.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
+  spoiler.clearRect(0, 0, spoiler.width, spoiler.height);
+  spoiler.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
+  spoiler.globalCompositeOperation = 'source-in';
+  spoiler.drawImage(silhouette, 0, 0, spoiler.width, spoiler.height);
+  spoiler.globalCompositeOperation = 'source-over';
+  context.drawImage(spoiler.canvas, 0, 0, spoiler.width, spoiler.height);
 
   if (stopscr) {
     requestAnimationFrame(qixupdate);
@@ -3524,6 +3532,7 @@ function makemenu() {
     listener = (e) => {
       e.addEventListener(tc, () => {
         stopscr = true;
+        winanim = false;
 
         if (qix) {
           stopqix = true;
@@ -3551,6 +3560,7 @@ function makemenu() {
     listener = (e) => {
       e.addEventListener(tc, () => {
         solitaire = false;
+        winanim = false;
         glyph = true;
         qix = false;
 
@@ -3697,7 +3707,7 @@ ${x}px ${y+18}px)`;
 
         sideways = true;
     
-        movingflower.src = 'flower.jpg';
+        picturetomove.src = 'flower.jpg';
       });
     };
     poppy.append(newmenu('Moving photo', listener));
@@ -4036,10 +4046,11 @@ function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
 
           const t = document.elementFromPoint(x, y);
           const newCode = t.dataset.code;
-          if (!newCode) {
-            return;
-          }
-          if (dontyeetWASD && 'WASD'.split('').every((k) => 'Key' + k !== newCode)) {
+          if (
+            !newCode ||
+            dontyeetWASD &&
+            'WASD'.split('').every((k) => 'Key' + k !== newCode)
+          ) {
             return;
           }
           const rect = t.getBoundingClientRect();
@@ -4090,18 +4101,18 @@ function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
 
 function windo(win) {
   const mask = newCanvas(95, 95);
-  mask.fillStyle = "#088";
+  mask.fillStyle = '#088';
   mask.drawImage(win, 0, 0);
-  mask.globalCompositeOperation = "source-in";
+  mask.globalCompositeOperation = 'source-in';
   mask.fillRect(0, 0, 95, 95);
  
   let promise = new Promise(canvasToAB(mask.canvas, 'png'))
   promise.then(function(arri){
     const a = ABtoAB(arri);
-    const wind = document.getElementsByClassName("windo");
+    const wind = document.getElementsByClassName('windo');
     for (const win of wind) {
-      const img = document.createElement("img");
-      img.style.height = "10px";
+      const img = document.createElement('IMG');
+      img.style.height = '10px';
       //img.style.imageRendering = "pixelated";
       img.src = ABtoURL(a);
       win.innerHTML = img.outerHTML;

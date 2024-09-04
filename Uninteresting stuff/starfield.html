@@ -150,6 +150,13 @@ canvas {
     border-left: 10px solid #14a;
     border-right: 10px solid #14a;
     border-bottom: 11px solid #039;
+
+    &.wasd {
+      border-top: 5px solid #642;
+      border-left: 10px solid #531;
+      border-right: 10px solid #531;
+      border-bottom: 11px solid #321;
+    }
   }
 
   .face {
@@ -165,6 +172,11 @@ canvas {
     &.pressed {
       color: #fff;
       background: #36c;
+
+      &.wasd {
+        color: #fff;
+        background: #963;
+      }
     }
   }
 }
@@ -3880,8 +3892,9 @@ function pressed(code, location, down) {
 
   if (down) {
     imawake();
-    KeypressX[code][location].childNodes[0].classList.add('pressed');
-    KeypressX[code][location].classList.add('pressed');
+    const cl = dontyeetWASD ? ['pressed', 'wasd'] : ['pressed'];
+    KeypressX[code][location].childNodes[0].classList.add(...cl);
+    KeypressX[code][location].classList.add(...cl);
     Keypress[code] = true;
 
     // glyph stuff
@@ -3889,8 +3902,8 @@ function pressed(code, location, down) {
       glyph_update(code);
     }
   } else {
-    KeypressX[code][location].childNodes[0].classList.remove('pressed');
-    KeypressX[code][location].classList.remove('pressed');
+    KeypressX[code][location].childNodes[0].classList.remove('pressed', 'wasd');
+    KeypressX[code][location].classList.remove('pressed', 'wasd');
     Keypress[code] = false;
 
     // glyph stuff
@@ -3974,7 +3987,7 @@ for (const [n, k] of '←↑→↓'.split('').entries()) {
 
 const Keypress = Object.fromEntries(Object.keys(registerk).map((k) => [k, false]));
 
-var yeet, yeetCode;
+var yeet, yeetCode, dontyeetWASD;
 function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
   for (const ks of keycaps) {
     for (const k of ks){
@@ -4008,6 +4021,11 @@ function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
           e.preventDefault();
           yeet = keycap.getBoundingClientRect();
           yeetCode = code;
+          if ('WASD'.split('').some((k) => 'Key' + k === yeetCode)) {
+            dontyeetWASD = true;
+          } else {
+            dontyeetWASD = false;
+          }
           pressed(yeetCode, 0, true);
         });
         keycap.addEventListener('touchmove', (e) => {
@@ -4021,17 +4039,21 @@ function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
           if (!newCode) {
             return;
           }
+          if (dontyeetWASD && 'WASD'.split('').every((k) => 'Key' + k !== newCode)) {
+            return;
+          }
           const rect = t.getBoundingClientRect();
           if (Keypress[yeetCode]) {
             if (
-              x < yeet.left ||
-              x > yeet.right ||
-              y < yeet.top ||
-              y > yeet.bottom
+              x < Math.floor(yeet.left) ||
+              x > Math.ceil(yeet.right) ||
+              y < Math.floor(yeet.top) ||
+              y > Math.ceil(yeet.bottom)
             ) {
               pressed(yeetCode, 0, false);
             }
-          } else if (!Keypress[newCode]) {
+          }
+          if (!Keypress[newCode]) {
             yeet = rect;
             yeetCode = newCode;
             pressed(newCode, 0, true);

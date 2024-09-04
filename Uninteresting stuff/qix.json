@@ -1,11 +1,11 @@
 [
   {
-    "downscale": 2,
+    "downscale": 1,
     "reveal": "spoiler.png",
     "silhouette": "silhouette.png"
   },
   {
-    "downscale": 4,
+    "downscale": 2,
     "reveal": "spoiler.png",
     "silhouette": "silhouette.png"
   }

@@ -4269,12 +4269,13 @@ function createkeyboard() {
 
 
   // TKL
-  if (false) {
+  if (window.screen.width > 800) {
     keyboard.style.maxWidth = '944px';
     homekeys2 = keysocket(0, 0, 'calc(100% - 6px)');
     homekeys = keysocket(0, 12, 'calc(100% - 6px)');
     arrows = keysocket(0, 44, 'calc(100% - 6px)');
-    keydiv([homekeys2, null, homekeys, null, arrows], 6, '159px');
+    shamefurbar2 = keysocket(0, 12, 'calc(100% - 6px)');
+    keydiv([homekeys2, null, homekeys, null, arrows, null, shamefurbar2], 6, '159px');
 
 
 
@@ -4322,6 +4323,14 @@ function createkeyboard() {
     arrows.appendChild(DOMwriter);
 
     drawkeyboard(DOMwriter, ['←', '↓', '→'], 31, 'keycap2');
+
+
+
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.classList = 'keysocketrow';
+    shamefurbar2.appendChild(DOMwriter);
+
+    drawkeyboard(DOMwriter, [['Shamefur bar']], '100%');
   }
 
 

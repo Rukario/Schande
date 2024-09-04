@@ -4188,6 +4188,7 @@ function createkeyboard() {
 
 
 
+  // catastrophe viewports
   esc = keysocket(44, 0, 'calc(5% + 12px)');
   f1 = keysocket(24, 0, 'calc(32% - 46px)');
   f5 = keysocket(24, 0, 'calc(32% - 46px)');
@@ -4268,7 +4269,7 @@ function createkeyboard() {
 
 
 
-  // TKL
+  // TKL for small viewports
   if (window.screen.width > 800) {
     keyboard.style.maxWidth = '944px';
     homekeys2 = keysocket(0, 0, 'calc(100% - 6px)');
@@ -4334,44 +4335,55 @@ function createkeyboard() {
   }
 
 
-  // Full
-  if (false) {
+
+  // Full for unrestricted viewports
+  if (window.screen.width > 1169) {
+    keyboard.style.maxWidth = '1169px';
     numpad2 = keysocket();
     numpad = keysocket(0, 12);
-    keydiv([numpad2, null, numpad], 6);
+    shamefurbar3 = keysocket(0, 12, 'calc(100% - 6px)');
+    keydiv([numpad2, null, numpad, null, shamefurbar3], 6);
 
-    drawkeyboard(numpad2, [['Cal', 'Mute', 'Dec', 'Inc']], null, 'keycap2');
-    drawkeyboard(numpad, [['Num'], '/', '*', '-'], null, 'keycap2');
-
-    DOMwriter = document.createElement('BR');
-    numpad.appendChild(DOMwriter);
-
-    drawkeyboard(numpad, ['7', '8', '9']);
-
-    drawkeyboard(numpad, [['+']], null, 'keycap2');
-    //const numplus = KeypressX['Plus'][0];
-    //numplus.childNodes[0].style.height = '84px';
-    //numplus.style.float = 'right';
+    drawkeyboard(numpad2, [['Cal', 'Mute', 'Dec', 'Inc']], 31, 'keycap2');
+    drawkeyboard(numpad, [['Num'], '/', '*', '-'], 31, 'keycap2');
 
     DOMwriter = document.createElement('BR');
     numpad.appendChild(DOMwriter);
 
-    drawkeyboard(numpad, ['4', '5', '6']);
+    drawkeyboard(numpad, ['7', '8', '9'], 31);
+
+    drawkeyboard(numpad, [['+']], 31, 'keycap2');
+    const numplus = KeypressX['undefined'][14];
+    numplus.childNodes[0].style.height = '84px';
+    numplus.style.float = 'right';
 
     DOMwriter = document.createElement('BR');
     numpad.appendChild(DOMwriter);
 
-    drawkeyboard(numpad, ['1', '2', '3',]);
-    drawkeyboard(numpad, [['Enter']], null, 'keycap2');
-    //const numenter = KeypressX['Enter'][1];
-    //numenter.childNodes[0].style.height = '84px';
-    //numenter.style.float = 'right';
+    drawkeyboard(numpad, ['4', '5', '6'], 31);
 
     DOMwriter = document.createElement('BR');
     numpad.appendChild(DOMwriter);
 
-    drawkeyboard(numpad, ['0'], 80);
-    drawkeyboard(numpad, ['.']);
+    drawkeyboard(numpad, ['1', '2', '3'], 31);
+    drawkeyboard(numpad, [['Enter']], 31, 'keycap2');
+    const numenter = KeypressX['Enter'][1];
+    numenter.childNodes[0].style.height = '84px';
+    numenter.style.float = 'right';
+
+    DOMwriter = document.createElement('BR');
+    numpad.appendChild(DOMwriter);
+
+    drawkeyboard(numpad, ['0'], 84);
+    drawkeyboard(numpad, ['.'], 31);
+
+
+
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.classList = 'keysocketrow';
+    shamefurbar3.appendChild(DOMwriter);
+
+    drawkeyboard(DOMwriter, [['Shamefur bar']], '100%');
   }
 }
 

@@ -11,6 +11,18 @@
   --color-keyboard: #fff;
   --color-keysocket: #6c7074;
   --color-keyborder: color-mix(in srgb, var(--color-keyboard), var(--color-keysocket));
+
+  --small: inline-block;
+  --med: none;
+  --large: none;
+
+  @media (width >= 960px) {
+    --med: inline-block;
+  }
+
+  @media (width >= 1185px) {
+    --large: inline-block;
+  }
 }
 
 body {
@@ -51,6 +63,15 @@ canvas {
 #keyboard {
   width: calc(100% - 16px);
   max-width: 780px;
+
+  @media (width >= 960px) {
+    max-width: 944px;
+  }
+
+  @media (width >= 1185px) {
+    max-width: 1169px;
+  }
+
   display: none;
   position: absolute;
   bottom: 0px;
@@ -153,7 +174,15 @@ canvas {
   border-style: solid;
   border-radius: 3px;
 
-  @media (width < 800px) {
+  .face {
+    color: #088;
+
+    &.pressed, &.wasd {
+      color: #fff;
+    }
+  }
+
+  @media (width < 796px) {
     border-top-width: 4px;
     border-left-width: 6px;
     border-right-width: 6px;
@@ -163,7 +192,7 @@ canvas {
     }
   }
 
-  @media (width >= 800px) {
+  @media (width >= 796px) {
     border-top-width: 5px;
     border-left-width: 10px;
     border-right-width: 10px;
@@ -175,8 +204,6 @@ canvas {
 }
 
 .keycap {
-  background: #c4c2bb;
-
   border-color: #a4a29b;
   border-top-color: #c4c2bb;
   border-bottom-color: #989692;
@@ -185,43 +212,38 @@ canvas {
     border-color: #14a;
     border-top-color: #25b;
     border-bottom-color: #039;
+  }
 
-    &.wasd {
-      border-color: #531;
-      border-top-color: #642;
-      border-bottom-color: #321;
-    }
+  &.wasd {
+    border-color: #531;
+    border-top-color: #642;
+    border-bottom-color: #321;
   }
 
   .face {
     background: #dddad7;
     min-width: 16px;
-    color: #088;
     margin: -3px;
     padding: 2px;
     border-radius: 4px;
     pointer-events: none;
   
     &.pressed {
-      color: #fff;
       background: #36c;
+    }
 
-      &.wasd {
-        color: #fff;
-        background: #963;
-      }
+    &.wasd {
+      background: #a63;
     }
   }
 }
 
 .keycap2 {
-  background: #9d9ba0;
-
   border-color: #8d8b90;
   border-top-color: #a4a2a0;
   border-bottom-color: #817e84;
 
-  &.pressed {
+  &.pressed, &.wasd {
     border-color: #44a;
     border-top-color: #55b;
     border-bottom-color: #339;
@@ -230,13 +252,11 @@ canvas {
   .face {
     background: #b6b4b9;
     min-width: 16px;
-    color: #088;
     margin: -3px;
     padding: 2px;
     border-radius: 4px;
   
-    &.pressed {
-      color: #fff;
+    &.pressed, &.wasd {
       background: #66c;
     }
   }
@@ -3922,7 +3942,7 @@ var glyph_cursor = 0;
 var glyph_row = 0;
 function pressed(code, location, down) {
   if (location) {
-    location -= 1;
+    location = 0;
   }
 
   if (KeypressX[code]) {
@@ -3934,9 +3954,9 @@ function pressed(code, location, down) {
 
   if (down) {
     imawake();
-    const cl = dontyeetWASD ? ['pressed', 'wasd'] : ['pressed'];
-    KeypressX[code][location].childNodes[0].classList.add(...cl);
-    KeypressX[code][location].classList.add(...cl);
+    const cl = dontyeetWASD ? 'wasd' : 'pressed';
+    KeypressX[code][location].childNodes[0].classList.add(cl);
+    KeypressX[code][location].classList.add(cl);
     Keypress[code] = true;
 
     // glyph stuff
@@ -3987,6 +4007,7 @@ const registerk = {
   Comma: [', \<', ',\<'],
   ControlLeft: ['Ctrl', null],
   ControlRight: ['Ctrl', null],
+  ContextMenu: ['CM', null],
   Enter: ['Enter', '\n'],
   Equal: ['= +', '=+'],
   Escape: ['Esc', null],
@@ -4013,6 +4034,18 @@ const registerk = {
   Delete: ['Del', null],
   End: ['End', null],
   PageDown: ['PgDn', null],
+
+  VolumeMute: ['Mute', null],
+  VolumeUp: ['Inc', null],
+  VolumeDown: ['Dec', null],
+
+  NumLock: ['Num', null],
+  NumpadDecimal: ['.', '.'],
+  NumpadDivide: ['/', '/'],
+  NumpadMultiply: ['*', '*'],
+  NumpadSubtract: ['-', '-'],
+  NumpadAdd: ['+', '+'],
+  NumpadEnter: ['Enter', '\n'],
 };
 
 for (const k of ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12']) {
@@ -4025,6 +4058,10 @@ for (const [n, k] of ['0 )', '1 !', '2 @', '3 #', '4 $', '5 %', '6 ^', '7 &', '8
 
 for (const k of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')) {
   registerk['Key' + k] = [k, k];
+}
+
+for (const n of Array(10).keys()) {
+  registerk['Numpad' + n] = [''+n, ''+n];
 }
 
 for (const [n, k] of '←↑→↓'.split('').entries()) {
@@ -4113,10 +4150,23 @@ function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
       } else {
         keycap.addEventListener('mousedown', (e) => {
           e.preventDefault();
-          pressed(code, location, true);
+          yeetCode = code;
+          if ('WASD'.split('').some((k) => 'Key' + k === yeetCode)) {
+            dontyeetWASD = true;
+          } else {
+            dontyeetWASD = false;
+          }
+          pressed(yeetCode, location, true);
         });
         keycap.addEventListener('mouseenter', (e) => {
           if (mousec.down) {
+            if (
+              !code ||
+              dontyeetWASD &&
+              'WASD'.split('').every((k) => 'Key' + k !== code)
+            ) {
+              return;
+            }
             e.preventDefault();
             pressed(code, location, true);
           }
@@ -4127,6 +4177,7 @@ function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
         });
         keycap.addEventListener('mouseup', (e) => {
           e.preventDefault();
+          dontyeetWASD = false;
           pressed(code, location, false);
         });
       }
@@ -4159,9 +4210,9 @@ function windo(win) {
 var esc, f1, f5, f9, alphakeys, homekeys2, homekeys, arrows, numpad2, numpad;
 
 function createkeyboard() {
-  const keydiv = (sockets, left, w) => {
+  const keydiv = (sockets, left, w, v = 'var(--small)') => {
     const d = document.createElement('DIV');
-    d.style.display = 'inline-block';
+    d.style.display = v;
 
     if (left) {
       d.style.marginLeft = left + 'px';
@@ -4293,121 +4344,115 @@ function createkeyboard() {
 
 
   // TKL for small viewports
-  if (window.screen.width > 800) {
-    keyboard.style.maxWidth = '944px';
-    homekeys2 = keysocket(0, 0, 'calc(100% - 6px)');
-    homekeys = keysocket(0, 12, 'calc(100% - 6px)');
-    arrows = keysocket(0, 44, 'calc(100% - 6px)');
-    shamefurbar2 = keysocket(0, 12, 'calc(100% - 6px)');
-    keydiv([homekeys2, null, homekeys, null, arrows, null, shamefurbar2], 6, '159px');
+  homekeys2 = keysocket(0, 0, 'calc(100% - 6px)');
+  homekeys = keysocket(0, 12, 'calc(100% - 6px)');
+  arrows = keysocket(0, 44, 'calc(100% - 6px)');
+  shamefurbar2 = keysocket(0, 12, 'calc(100% - 6px)');
+  keydiv([homekeys2, null, homekeys, null, arrows, null, shamefurbar2], 6, '159px', 'var(--med)');
 
 
 
-    DOMwriter = document.createElement('DIV');
-    DOMwriter.classList = 'keysocketrow';
-    homekeys2.appendChild(DOMwriter);
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  homekeys2.appendChild(DOMwriter);
 
-    drawkeyboard(DOMwriter, [['PrtSc', 'ScrLk', 'Pause']], 31, 'keycap2');
-
-
-
-    DOMwriter = document.createElement('DIV');
-    DOMwriter.classList = 'keysocketrow';
-    homekeys.appendChild(DOMwriter);
-
-    drawkeyboard(DOMwriter, [['Ins', 'Home', 'PgUp']], 31, 'keycap2');
-
-    DOMwriter = document.createElement('DIV');
-    DOMwriter.classList = 'keysocketrow';
-    homekeys.appendChild(DOMwriter);
-
-    drawkeyboard(DOMwriter, [['Del', 'End', 'PgDn']], 31, 'keycap2');
-
-
-    DOMwriter = document.createElement('DIV');
-    DOMwriter.classList = 'keysocketrow';
-    arrows.appendChild(DOMwriter);
-
-    let plate = document.createElement('DIV');
-    plate.innerHTML = '&nbsp;';
-    plate.classList = 'plate right';
-    DOMwriter.appendChild(plate);
-
-    drawkeyboard(DOMwriter, ['↑'], 31, 'keycap2');
-
-    plate = document.createElement('DIV');
-    plate.innerHTML = '&nbsp;';
-    plate.classList = 'plate left';
-    DOMwriter.appendChild(plate);
+  drawkeyboard(DOMwriter, [['PrtSc', 'ScrLk', 'Pause']], 31, 'keycap2');
 
 
 
-    DOMwriter = document.createElement('DIV');
-    DOMwriter.classList = 'keysocketrow';
-    arrows.appendChild(DOMwriter);
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  homekeys.appendChild(DOMwriter);
 
-    drawkeyboard(DOMwriter, ['←', '↓', '→'], 31, 'keycap2');
+  drawkeyboard(DOMwriter, [['Ins', 'Home', 'PgUp']], 31, 'keycap2');
+
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  homekeys.appendChild(DOMwriter);
+
+  drawkeyboard(DOMwriter, [['Del', 'End', 'PgDn']], 31, 'keycap2');
+
+
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  arrows.appendChild(DOMwriter);
+
+  let plate = document.createElement('DIV');
+  plate.innerHTML = '&nbsp;';
+  plate.classList = 'plate right';
+  DOMwriter.appendChild(plate);
+
+  drawkeyboard(DOMwriter, ['↑'], 31, 'keycap2');
+
+  plate = document.createElement('DIV');
+  plate.innerHTML = '&nbsp;';
+  plate.classList = 'plate left';
+  DOMwriter.appendChild(plate);
 
 
 
-    DOMwriter = document.createElement('DIV');
-    DOMwriter.classList = 'keysocketrow';
-    shamefurbar2.appendChild(DOMwriter);
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  arrows.appendChild(DOMwriter);
 
-    drawkeyboard(DOMwriter, [['Shamefur bar']], '100%');
-  }
+  drawkeyboard(DOMwriter, ['←', '↓', '→'], 31, 'keycap2');
+
+
+
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  shamefurbar2.appendChild(DOMwriter);
+
+  drawkeyboard(DOMwriter, [['Shamefur bar']], '100%');
 
 
 
   // Shamefur dispray arr keys for unrestricted viewports
-  if (window.screen.width > 1169) {
-    keyboard.style.maxWidth = '1169px';
-    numpad2 = keysocket();
-    numpad = keysocket(0, 12);
-    shamefurbar3 = keysocket(0, 12, 'calc(100% - 6px)');
-    keydiv([numpad2, null, numpad, null, shamefurbar3], 6);
+  numpad2 = keysocket();
+  numpad = keysocket(0, 12);
+  shamefurbar3 = keysocket(0, 12, 'calc(100% - 6px)');
+  keydiv([numpad2, null, numpad, null, shamefurbar3], 6, null, 'var(--large)');
 
-    drawkeyboard(numpad2, [['Cal', 'Mute', 'Dec', 'Inc']], 31, 'keycap2');
-    drawkeyboard(numpad, [['Num'], '/', '*', '-'], 31, 'keycap2');
+  drawkeyboard(numpad2, [['Cal', 'Mute', 'Dec', 'Inc']], 31, 'keycap2');
+  drawkeyboard(numpad, [['Num'], '/', '*', '-'], 31, 'keycap2');
 
-    DOMwriter = document.createElement('BR');
-    numpad.appendChild(DOMwriter);
+  DOMwriter = document.createElement('BR');
+  numpad.appendChild(DOMwriter);
 
-    drawkeyboard(numpad, ['7', '8', '9'], 31);
+  drawkeyboard(numpad, ['7', '8', '9'], 31);
 
-    drawkeyboard(numpad, [['+']], 31, 'keycap2');
-    const numplus = KeypressX['undefined'][14];
-    numplus.childNodes[0].style.height = '84px';
-    numplus.style.float = 'right';
+  drawkeyboard(numpad, [['+']], 31, 'keycap2');
+  let key = KeypressX['NumpadAdd'][0];
+  key.childNodes[0].style.height = '84px';
+  key.style.float = 'right';
 
-    DOMwriter = document.createElement('BR');
-    numpad.appendChild(DOMwriter);
+  DOMwriter = document.createElement('BR');
+  numpad.appendChild(DOMwriter);
 
-    drawkeyboard(numpad, ['4', '5', '6'], 31);
+  drawkeyboard(numpad, ['4', '5', '6'], 31);
 
-    DOMwriter = document.createElement('BR');
-    numpad.appendChild(DOMwriter);
+  DOMwriter = document.createElement('BR');
+  numpad.appendChild(DOMwriter);
 
-    drawkeyboard(numpad, ['1', '2', '3'], 31);
-    drawkeyboard(numpad, [['Enter']], 31, 'keycap2');
-    const numenter = KeypressX['Enter'][1];
-    numenter.childNodes[0].style.height = '84px';
-    numenter.style.float = 'right';
+  drawkeyboard(numpad, ['1', '2', '3'], 31);
+  drawkeyboard(numpad, [['Enter']], 31, 'keycap2');
+  key = KeypressX['Enter'][1];
+  key.childNodes[0].style.height = '84px';
+  key.style.float = 'right';
 
-    DOMwriter = document.createElement('BR');
-    numpad.appendChild(DOMwriter);
+  DOMwriter = document.createElement('BR');
+  numpad.appendChild(DOMwriter);
 
-    drawkeyboard(numpad, ['0'], 84);
-    drawkeyboard(numpad, ['.'], 31);
+  drawkeyboard(numpad, ['0'], 84);
+  drawkeyboard(numpad, ['.'], 31);
 
 
 
-    DOMwriter = document.createElement('DIV');
-    DOMwriter.classList = 'keysocketrow';
-    shamefurbar3.appendChild(DOMwriter);
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  shamefurbar3.appendChild(DOMwriter);
 
-    drawkeyboard(DOMwriter, [['Shamefur bar']], '100%');
-  }
+  drawkeyboard(DOMwriter, [['Shamefur bar']], '100%');
 }
 
 function resize() {

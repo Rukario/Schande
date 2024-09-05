@@ -3679,7 +3679,7 @@ input[type='text'] {
   line-height: 1.6;
 }
 
-.cell, .listurls {
+.cell, #alllinks {
   background-color: #1c1a19;
   border: none;
   border-radius: 12px;
@@ -3786,13 +3786,13 @@ input[type='text'] {
   vertical-align: top;
 }
 
-.carbon, .time, .cell, .listurls, .files, .edits {
+.carbon, .time, .cell, #alllinks, .files, .edits {
   padding: 8px;
   margin: 6px;
   word-wrap: break-word;
 }
 
-.listurls {
+#alllinks {
   white-space: pre-wrap;
   padding-right: 32px;
 }
@@ -4634,25 +4634,6 @@ function preview(e) {
   }
 }
 
-function showDivs(n) {
-  const nodes = document.querySelectorAll('.listurls');
-  if (n > nodes.length) {
-    slideIndex = 1;
-  }
-
-  if (n < 1) {
-    slideIndex = nodes.length;
-  }
-
-  for (const node of nodes) {
-    node.style.display = 'none';
-  }
-
-  nodes[slideIndex-1].style.display = 'block';
-  const expandImg = document.getElementById('expandedImg');
-  expandImg.parentElement.style.display = 'inline-block';
-}
-
 function resizeImg(n) {
   for (const node of document.querySelectorAll('.lazy')) {
     if (n === 'auto') {
@@ -5120,6 +5101,7 @@ function readschande() {
 
 function readpart(part) {
   const ignored = ignore.value.toLowerCase().split(' ');
+  let linksinthishtml = false;
   for (const key of Object.keys(part)) {
     const cell = document.createElement('DIV');
     cell.classList = 'cell';
@@ -5193,14 +5175,14 @@ Keywords: ${afterkeys}`;
     }
 
     const html = part[key].html;
-    if (html.length) {
+    if (html.length > 0) {
       const pm = document.createElement('DIV');
       pm.classList = 'postMessage';
 
       let new_container = [false, false];
       let subcell;
       for (const h of html) {
-        if (h.length == 2) {
+        if (h.length === 2) {
           if (new_container[0]) {
             subcell = document.createElement('DIV');
             subcell.classList = 'carbon';
@@ -5231,6 +5213,34 @@ Keywords: ${afterkeys}`;
         }
       }
 
+      const links = [];
+      for (const link of pm.getElementsByTagName('A')) {
+        unmolestedhref = link.getAttribute('href');
+        const a = document.createElement('A');
+
+        if (!link.href.startsWith(dir)) {
+          link.classList.add('external');
+          link.target = '_blank';
+
+          a.classList.add('external');
+          a.target = '_blank';
+        }
+
+        a.href = unmolestedhref;
+        a.textContent = unmolestedhref;
+
+        links.push(a);
+        links.push(document.createElement('BR'));
+      }
+
+      if (links.length > 0) {
+        linksinthishtml = true;
+        const a = document.createElement('A');
+        a.href = '#' + key;
+        a.textContent = '#' + key;
+        alllinks.append('# From ', a, ' :: ', keywords[0], document.createElement('BR'), ...links, document.createElement('BR'));
+      }
+
       cell.appendChild(pm);
     } else if (!part[key].files) {
       const edits = document.createElement('DIV');
@@ -5242,11 +5252,8 @@ Keywords: ${afterkeys}`;
     document.body.appendChild(cell);
   }
 
-  for (const link of document.getElementsByTagName('a')) {
-    if (!link.href.startsWith(dir)) {
-      link.classList.add('external');
-      link.target = '_blank';
-    }
+  if (!linksinthishtml) {
+    alllinks.textContent = 'Maybe in another page.';
   }
 
   lazyload();
@@ -5258,13 +5265,12 @@ Keywords: ${afterkeys}`;
   <div style='height: 20px;'></div>
   <div class="container" style="display:none;">
     <button class='dark' onclick="this.parentElement.style.display = 'none'">&times;</button>
-    <div class='listurls'>Maybe in another page.</div>
-    <img id="expandedImg">
+    <div id='alllinks'></div>
   </div>
   <div style='height: 10px;'></div>
 
   <div style="background:#0c0c0c; height:20px; border-radius: 0 0 12px 0; position:fixed; padding:6px; top:0px; z-index:1;">
-    <button class="next" onclick="showDivs(slideIndex = 1)">Links in this HTML</button>
+    <button class="next" onclick="alllinks.parentElement.style.display = 'inline-block'">Links in this HTML</button>
     <button class="next" onclick="resizeImg('{imgsize}px')">1x</button>
     <button class="next" onclick="resizeImg('{imgsize*2}px')">2x</button>
     <button class="next" onclick="resizeImg('{imgsize*4}px')">4x</button>

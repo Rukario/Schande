@@ -774,7 +774,7 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             self.handle_one_request()
 
     def AUTH(self, ondisk):
-        if self.qs == HTTPserver:
+        if self.qs.startswith(HTTPserver):
             return True
         buffer = ondisk.replace("/", "\\")
         echo(f"""{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorz("CCCCCC")}{buffer}{tcolorx} use {tcolorg}?{HTTPserver}{tcolorx} query string to authorize this connection.""", 0, 1)
@@ -863,11 +863,11 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             else:
                 echo(f'{s} not found', 0, 1)
                 pattern = [[], []]
-            htmldata = new_html("", "Gallery", "", pattern).encode(enc, 'surrogateescape')
+            htmldata = new_html(pattern).encode(enc, 'surrogateescape')
         elif os.path.exists(f"{ondisk}/{batchname}.savx"):
             echo('found savx', 0, 1)
             pattern = [[], []]
-            htmldata = new_html("", "Schande", "", pattern).encode(enc, 'surrogateescape')
+            htmldata = new_html(pattern).encode(enc, 'surrogateescape')
 
         if not htmldata:
             try:
@@ -2396,13 +2396,18 @@ def new_driver():
             "Page.addScriptToEvaluateOnNewDocument",
             {
                 "source": """
-                    let objectToInspect = window,
-                        result = [];
-                    while(objectToInspect !== null) 
-                    { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
-                      objectToInspect = Object.getPrototypeOf(objectToInspect); }
-                    result.forEach(p => p.match(/.+_.+_(Array|Promise|Symbol)/ig)
-                                        &&delete window[p])
+                    let objectToInspect = window;
+                    let result = [];
+
+                    while (objectToInspect !== null) {
+                      result = result.concat(Object.getOwnPropertyNames(objectToInspect));
+                      objectToInspect = Object.getPrototypeOf(objectToInspect);
+                    }
+
+                    for (const p of result) {
+                      p.match(/.+_.+_(Array|Promise|Symbol)/ig);
+                      delete window[p];
+                    }
                     """
             },
         )
@@ -3466,7 +3471,7 @@ def whsm(file):
 
 
 def ph(file):
-    dctii = cv2.dct(numpy.float32(Image.open(file).convert("L").resize((64, 64), Resampling.LANCZOS)))[:12,:12]
+    dctii = cv2.dct(numpy.float32(Image.open(file).convert("L").resize((64, 64), Image.Resampling.LANCZOS)))[:12,:12]
     return format(int(''.join(str(b) for b in 1*(dctii > numpy.median(dctii)).flatten()), 2), 'x')
 
 
@@ -3513,7 +3518,15 @@ def scanthread(filelist, filevs, savwrite):
 def tosav(fp, filevs=""):
     fp = fp.replace("\\", "/")
     savread = opensav(sav)
-    savwrite = open(sav, 'ab')
+    if len(savread) == 0:
+        savwrite = open(sav, 'ab')
+        savwrite.write(bytes(f'{batchdir}\n', 'utf-8'))
+    else:
+        savwrite = open(sav, 'ab')
+        firstline = savread.splitlines()[0]
+        if not batchdir == firstline:
+            echo(f"{batchdir} {firstline} Wrong SAV", 0, 1)
+            return
     filelist = []
     error[0] = []
     title("Top directory")
@@ -3590,13 +3603,12 @@ def container(ondisk, label=''):
 
 
 
-def new_html(builder, htmlname, listurls='', pattern=[[], []], imgsize=200):
-    return """<!DOCTYPE html>
+def new_html(pattern=[[], []], imgsize=200):
+    return r"""<!DOCTYPE html>
 <html>
 <meta charset="UTF-8"/>
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="user-scalable=0">
-""" + f"<title>{htmlname}</title>" + r"""
 <style>
 body {
   background-color: #10100c;
@@ -3943,112 +3955,113 @@ function send(b, e) {
 function lazykeys() {
   const xhr = new XMLHttpRequest();
   var partObserver = new IntersectionObserver(function(parts, observer) {
-    parts.forEach(function(e) {
+    for (const e of parts) {
       if (e.isIntersecting) {
         var t = e.target;
-        var d = document.createElement("div");
-        d.classList.add("nextword");
-        d.addEventListener("click", edit_key);
-        if(keywords[t.id]){
-          d.innerHTML = keywords[t.id]
+        var d = document.createElement('DIV');
+        d.classList.add('nextword');
+        d.addEventListener('click', edit_key);
+        if (keywords[t.id]) {
+          d.innerHTML = keywords[t.id];
         } else {
-          d.innerHTML = "+"
+          d.innerHTML = '+';
         }
         t.appendChild(d);
         partObserver.unobserve(t);
       }
-    });
+    }
   });
 
   var lazykey = document.querySelectorAll(".time");
-  lazykey.forEach(function(e) {
-    if(e.style.display !== 'none' && keywords[e.id]){
-      var d = document.createElement("div");
-      d.classList.add("nextword");
-      d.addEventListener("click", edit_key);
-      if(keywords[e.id]){
-        d.innerHTML = keywords[e.id]
+  for (const e of lazykey) {
+    if (e.style.display !== 'none' && keywords[e.id]) {
+      var d = document.createElement('DIV');
+      d.classList.add('nextword');
+      d.addEventListener('click', edit_key);
+
+      if (keywords[e.id]) {
+        d.innerHTML = keywords[e.id];
       } else {
-        d.innerHTML = "+"
+        d.innerHTML = '+';
       }
       e.appendChild(d);
     } else {
       partObserver.observe(e);
     }
-  });
+  }
 }
 
 function loadkeys() {
   const xhr = new XMLHttpRequest();
   var isTainted = true
-  xhr.overrideMimeType("application/json");
-  xhr.open('GET', "keywords.json", true);
-  xhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
+  xhr.overrideMimeType('application/json');
+  xhr.open('GET', 'keywords.json', true);
+  xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
   xhr.send();
-  xhr.onreadystatechange = function() {
+  xhr.onreadystatechange = () => {
     if (xhr.readyState === 4) {
       if (xhr.status !== 404 && xhr.responseText) {
         keywords = JSON.parse(xhr.responseText);
         lazykeys();
       } else if (xhr.responseText){
-        keywords = {}
+        keywords = {};
         lazykeys();
       } else {
-        local_tooltip.style.display = "inline-block";
-        local_tooltip.innerHTML = "⚠";
-        local_tooltip.setAttribute("data-tooltip", "Not loaded on HTTP server: HTTP server is used for custom keywords and interacting with Schande/Save buttons.");
+        local_tooltip.style.display = 'inline-block';
+        local_tooltip.innerHTML = '⚠';
+        local_tooltip.dataset.tooltip = 'Not loaded on HTTP server: HTTP server is used for custom keywords and interacting with Schande/Save buttons.';
       }
     }
-    isTainted = false
+    isTainted = false;
   }
 }
 
 function loadpart() {
   const xhr = new XMLHttpRequest();
-  xhr.overrideMimeType("application/json");
+  xhr.overrideMimeType('application/json');
   xhr.open('GET', partitiondb, true);
-  xhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
+  xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
   xhr.send();
-  xhr.onreadystatechange = function() {
+  xhr.onreadystatechange = () => {
     if (xhr.readyState === 4) {
       if (xhr.status !== 404 && xhr.responseText) {
         readpart(JSON.parse(xhr.responseText));
-      } else if (xhr.responseText){
-        console.log(partitiondb + " not found");
+      } else if (xhr.responseText) {
+        console.log(partitiondb + ' not found');
         lazyload();
         loadkeys();
       } else {
-        local_tooltip.style.display = "inline-block";
-        local_tooltip.innerHTML = "⚠";
-        local_tooltip.setAttribute("data-tooltip", "Not loaded on HTTP server: HTTP server is used for custom keywords and interacting with Schande/Save buttons.");
+        local_tooltip.style.display = 'inline-block';
+        local_tooltip.innerHTML = '⚠';
+        local_tooltip.dataset.tooltip = 'Not loaded on HTTP server: HTTP server is used for custom keywords and interacting with Schande/Save buttons.';
       }
     }
   }
 }
 
 var savdata = {};
-function opensav(sav="Schande.sav") {
+function opensav(sav = 'Schande.sav') {
   const xhr = new XMLHttpRequest();
-  xhr.overrideMimeType("application/octet-stream");
+  xhr.overrideMimeType('application/octet-stream');
   xhr.open('GET', sav, true);
-  xhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
+  xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
   xhr.send();
-  xhr.onreadystatechange = function() {
+  xhr.onreadystatechange = () => {
     if (xhr.readyState === 4) {
       if (xhr.status !== 404 && xhr.responseText) {
-        savdata[sav] = xhr.responseText.split("\n").slice(1);
-        if (sav == "Schande.savx") {
+        savdata[sav] = xhr.responseText.split('\n').slice(1);
+        if (sav == savxdb) {
           readschande();
           lazyload();
         } else {
-          opensav("Schande.savx");
+          opensav(savxdb);
         }
       } else if (xhr.responseText){
-        console.log(`${sav} not found`);
+        console.log(sav + ' not found');
       } else {
-        local_tooltip.style.display = "inline-block";
-        local_tooltip.innerHTML = "⚠";
-        local_tooltip.setAttribute("data-tooltip", "Not loaded on HTTP server: HTTP server is used for custom keywords and interacting with Schande/Save buttons.");
+        local_tooltip.style.display = 'inline-block';
+        local_tooltip.innerHTML = '⚠';
+        local_tooltip.dataset.tooltip = 'Not loaded on HTTP server: HTTP server is used for custom keywords and interacting with Schande/Save buttons.';
       }
     }
   }
@@ -4056,35 +4069,41 @@ function opensav(sav="Schande.sav") {
 
 var key_busy = false;
 function edit_key(e) {
-  function submit_key(){
-    var body = {[t.parentNode.id]:i.value}
-    var b = JSON.stringify({"kind":"keywords", "ondisk":"keywords.json", body})
-    if (i.value){
+  function submit_key() {
+    var body = {[t.parentNode.id]: i.value};
+    var b = JSON.stringify({
+      kind: 'keywords',
+      ondisk: 'keywords.json',
+      body
+    });
+
+    if (i.value) {
       send(b, e);
       t.innerHTML = i.value;
-    } else if (t.innerHTML !== "+"){
+    } else if (t.textContent !== '+'){
       send(b, e);
-      t.innerHTML = "+"
+      t.innerHTML = '+';
     }
+
     t.parentNode.removeChild(i);
-    i.removeEventListener("keyup", read_key);
-    t.style.display = "inline-block";
+    i.removeEventListener('keyup', read_key);
+    t.style.display = 'inline-block';
   }
 
   function read_key(k) {
     if (k.keyCode === 13) {
-      submit_key()
+      submit_key();
       key_busy = false;
     }
   }
 
   if (key_busy){
-    if(e.target.hasAttribute("data-tooltip")){
-      e.target.removeAttribute("data-tooltip")
-      i.focus({preventScroll:true});
-      i.scrollIntoView({block: "start", behavior: "smooth"});
+    if (e.target.dataset.tooltip) {
+      e.target.removeAttribute('data-tooltip');
+      i.focus({preventScroll: true});
+      i.scrollIntoView({block: 'start', behavior: 'smooth'});
     } else {
-      e.target.setAttribute("data-tooltip", "Busy typing another keyword. Click here again to take you there.");
+      e.target.dataset.tooltip = 'Busy typing another keyword. Click here again to take you there.';
       FFmove(e);
       let left = () => {
         e.target.removeAttribute("data-tooltip")
@@ -4095,16 +4114,16 @@ function edit_key(e) {
   } else {
     var t = e.target;
     key_busy = true;
-    i = document.createElement("input");
-    i.setAttribute("type", "text");
-    i.classList.add("nextword");
-    i.placeholder = "Add more keywords..."
-    if (t.innerHTML !== "+"){
+    i = document.createElement('INPUT');
+    i.setAttribute('type', 'text');
+    i.classList.add('nextword');
+    i.placeholder = 'Add more keywords...';
+    if (t.textContent !== '+') {
       i.value = t.innerHTML;
     }
     
-    i.addEventListener("keydown", read_key);
-    t.style.display = "none";
+    i.addEventListener('keydown', read_key);
+    t.style.display = 'none';
     t.parentNode.appendChild(i);
     i.focus();
   }
@@ -4125,19 +4144,19 @@ function echo(B, b) {
 }
 
 var Expand = function(c, t) {
-  if(!c.naturalWidth) {
+  if (!c.naturalWidth) {
     return setTimeout(Expand, 10, c, t);
   }
-  c.style.maxWidth = "100%";
-  c.style.display = "";
-  t.style.display = "none";
-  t.style.opacity = "";
+  c.style.maxWidth = '100%';
+  c.style.display = '';
+  t.style.display = 'none';
+  t.style.opacity = '';
 };
 
-var FFdown = function(e) {
+var FFdown = (e) => {
   var t = e.target;
   var a = t.parentNode;
-  if (t.hasAttribute("data-schande")) {
+  if (t.dataset.schande) {
     var b = JSON.stringify({"kind":t.innerHTML, "ondisk":t.getAttribute("data-schande"), "body":""});
     var d = document.createElement("div");
     a.appendChild(d);
@@ -4870,6 +4889,7 @@ function hidePattern() {
 }
 
 var isTouch, keywords, stdout;
+var savxdb = null;
 var partitiondb = 'partition.json';
 var dir = location.href.substring(0, location.href.lastIndexOf('/')) + "/";
 window.onload = () => {
@@ -4890,77 +4910,80 @@ window.onload = () => {
     stdout.setAttribute("contenteditable", "true");
   }
 
-  if (document.title == "Gallery") {
-    for (const [key, value] of new URLSearchParams(window.location.search)) {
-      if (key.endsWith('.json')) {
-        partitiondb = key;
-      }
-    };
-    loadpart();
-  } else {
+  for (const [key, value] of new URLSearchParams(window.location.search)) {
+    if (key.endsWith('.json')) {
+      partitiondb = key;
+    }
+    if (key.endsWith('.savx')) {
+      savxdb = key;
+    }
+  }
+
+  if (savxdb) {
     opensav();
+  }
+  if (partitiondb) {
+    loadpart();
   }
 }
 
 function lazyload() {
-  var lazyloadImages;
-
-  lazyloadImages = document.querySelectorAll(".lazy");
-  var imageObserver = new IntersectionObserver(function(entries, observer) {
-    entries.forEach(function(e) {
+  const imageObserver = new IntersectionObserver((entries, observer) => {
+    for (const e of entries) {
       if (e.isIntersecting) {
-        var t = e.target;
+        const t = e.target;
         t.src = t.dataset.src;
         imageObserver.unobserve(t);
       }
-    });
+    }
   });
 
-  lazyloadImages.forEach((e) => {
-    e.style.height =""" + f""" "{imgsize}""" + """px";
-    e.style.width = "auto";
+  for (const e of document.querySelectorAll('.lazy')) {
+    e.style.height = """ + f"""'{imgsize}px';""" + """
+    e.style.width = 'auto';
+    e.style.maxWidth = '100%';
     imageObserver.observe(e);
-  });
+  };
 }
 
 function container(ondisk) {
-  const src = document.createElement("DIV");
-  src.classList = "sources";
-  src.style.display = "none";
+  const src = document.createElement('DIV');
+  src.classList = 'sources';
+  src.style.display = 'none';
   src.innerHTML = ondisk;
 
-  const link = ondisk.replace(/#/g, "%23");
-  const d = document.createElement("DIV");
-  d.classList = "frame";
-  if (videofile.some((x) => {return ondisk.toLowerCase().endsWith(x)})) {
-    const v = document.createElement("VIDEO");
+  const link = ondisk.replace(/#/g, '%23');
+  const d = document.createElement('DIV');
+  d.classList = 'frame';
+  if (videofile.some((x) => ondisk.toLowerCase().endsWith(x))) {
+    const v = document.createElement('VIDEO');
     v.height = 200;
-    const s = document.createElement("SOURCE");
+    const s = document.createElement('SOURCE');
     s.src = link;
     v.appendChild(s);
     d.appendChild(v);
     d.appendChild(src);
     return d;
-  } else if (imagefile.some((x) => {return ondisk.toLowerCase().endsWith(x)})) {
-    const a = document.createElement("A");
-    a.classList = "fileThumb";
+  } else if (imagefile.some((x) => ondisk.toLowerCase().endsWith(x))) {
+    const a = document.createElement('A');
+    a.classList = 'fileThumb';
     a.href = link;
-    const img = document.createElement("IMG");
-    img.classList = "lazy";
+    const img = document.createElement('IMG');
+    img.classList = 'lazy';
     img.dataset.src = link;
     a.appendChild(img);
     d.appendChild(a);
     d.appendChild(src);
     return d;
   } else {
-    d.classList = "aqua";
-    d.style.height = "174px";
-    d.style.width = "126px";
+    d.classList = 'aqua';
+    d.style.height = '174px';
+    d.style.width = '126px';
     d.innerHTML = ondisk;
-    const a = document.createElement("A");
+    const a = document.createElement('A');
     a.href = link;
     a.appendChild(d);
-    const b = document.createElement("A");
+    const b = document.createElement('A');
     b.href = link;
     b.innerHTML = "<div class='aqua' style='height:174px;'><i class='aqua' style='border-width:0 3px 3px 0; padding:3px; -webkit-transform: rotate(-45deg); margin-top:82px;'></i></div>";
     a.insertAdjacentHTML('afterend', b);
@@ -4975,29 +4998,29 @@ function label_geistauge(m, s) {
   const sizevs = (parseInt(s[2]) - parseInt(m[2])) / parseInt(m[2]) * 100;
 
   if (m[3] == s[3]) {
-    diff.innerHTML = "Identical";
+    diff.textContent = "Identical";
   } else if (m[0] > s[0] && m[1] > s[1]) {
     diff.style.color = "#ff0000";
-    diff.innerHTML = `${s[0]} x ${s[1]}`;
+    diff.textContent = `${s[0]} x ${s[1]}`;
   } else if (m[0] >= s[0] && m[1] > s[1] || m[0] > s[0] && m[1] <= s[1]) {
     diff.style.color = "#eedd99";
-    diff.innerHTML = "Stretched/Un";
+    diff.textContent = "Stretched/Un";
   } else if (m[0] == s[0] && m[1] == s[1]) {
     diff.style.color = "#ffaa33";
-    diff.innerHTML = "Artifact/Un";
+    diff.textContent = "Artifact/Un";
   } else {
     diff.style.color = "#00ff00";
-    diff.innerHTML = `${s[0]} x ${s[1]}`;
+    diff.textContent = `${s[0]} x ${s[1]}`;
   }
 
   if (sizevs < 0) {
-    percent.style.color = "#66cc66";
-    percent.innerHTML = Math.floor(sizevs*100)/100 + "%";
+    percent.style.color = '#66cc66';
+    percent.textContent = Math.floor(sizevs*100)/100 + '%';
   } else if (sizevs == 0) {
-    percent.innerHTML = "0.00%";
+    percent.textContent = '0.00%';
   } else {
-    percent.style.color = "#cc6666";
-    percent.innerHTML = Math.floor(sizevs*100)/100 + "%";
+    percent.style.color = '#cc6666';
+    percent.textContent = Math.floor(sizevs*100)/100 + '%';
   }
 
   label.appendChild(diff);
@@ -5007,9 +5030,9 @@ function label_geistauge(m, s) {
 }
 
 function readschande() {
-  const savread = savdata["Schande.sav"]
-  const savxread = savdata["Schande.savx"]
-  // savread.split(" ", 1)[1];
+  const savread = savdata['Schande.sav'];
+  const savxread = savdata['Schande.savx'];
+  // savread.split(' ', 1)[1];
   // sort the sav by ondisk
 
   const new_savread = [];
@@ -5072,7 +5095,7 @@ function readschande() {
       }
 
       const d = container(file2);
-      d.appendChild(document.createElement("BR"));
+      d.appendChild(document.createElement('BR'));
       d.appendChild(label_geistauge(whsm_m, whsm_s));
       comparable.push(d);
     }
@@ -5082,7 +5105,7 @@ function readschande() {
       div.classList = "container";
 
       const d = container(file);
-      d.appendChild(document.createElement("BR"));
+      d.appendChild(document.createElement('BR'));
       d.insertAdjacentHTML('beforeend', `${whsm_m[0]} x ${whsm_m[1]}`);
       div.appendChild(d);
 
@@ -5096,36 +5119,36 @@ function readschande() {
 }
 
 function readpart(part) {
-  const ignored = ignore.value.toLowerCase().split(" ");
+  const ignored = ignore.value.toLowerCase().split(' ');
   for (const key of Object.keys(part)) {
-    const cell = document.createElement("DIV");
-    cell.classList = "cell";
+    const cell = document.createElement('DIV');
+    cell.classList = 'cell';
 
-    const keywords = part[key]["keywords"];
+    const keywords = part[key].keywords;
     const partkeytitle = document.createElement('H2');
 
     if (keywords && keywords[0]) {
       partkeytitle.innerHTML = keywords[0];
     } else {
       partkeytitle.innerHTML = `ꍯ Part ${key} ꍯ`;
-      partkeytitle.style.color = "#666;"
+      partkeytitle.style.color = '#666';
     }
 
-    if (key == "0") {
-      if (part[key]["stray_files"]) {
-        partkeytitle.innerHTML = "Unsorted";
-        cell.innerHTML = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really strays.";
-      } else if (!part[key]["html"]) {
+    if (key === '0') {
+      if (part[key].stray_files) {
+        partkeytitle.textContent = 'Unsorted';
+        cell.textContent = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really strays.";
+      } else if (!part[key].html) {
         continue;
       }
     }
 
-    if (ignored.some((x) => {return x && keywords[0].includes(x)})) {
-      cell.style.display = "none";
+    if (ignored.some((x) => x && keywords[0].includes(x))) {
+      cell.style.display = 'none';
     }
 
     if (keywords.length > 1) {
-      const timestamp = keywords[1] ? keywords[1] : 'No timestamp';
+      const timestamp = keywords[1] || 'No timestamp';
       let afterkeys = 'None';
       if (keywords.length > 2) {
         const fullkeys = [];
@@ -5134,7 +5157,7 @@ function readpart(part) {
             fullkeys.push(x);
           }
         }
-        afterkeys = fullkeys.join(", ");
+        afterkeys = fullkeys.join(', ');
       }
       const tsx = document.createElement('DIV');
       tsx.classList = 'time';
@@ -5146,33 +5169,33 @@ Keywords: ${afterkeys}`;
     }
     cell.appendChild(partkeytitle);
 
-    if (part[key]["files"].length) {
-      const fs = document.createElement("DIV");
-      fs.classList = "files";
+    if (part[key].files.length) {
+      const fs = document.createElement('DIV');
+      fs.classList = 'files';
 
-      for (const file of part[key]["files"]) {
+      for (const file of part[key].files) {
         fs.appendChild(container(file));
       }
 
       cell.appendChild(fs);
     }
 
-    if (part[key]["stray_files"]) {
-      const edits = document.createElement("DIV");
-      edits.classList = "edits";
+    if (part[key].stray_files) {
+      const edits = document.createElement('DIV');
+      edits.classList = 'edits';
 
-      for (const file of part[key]["stray_files"]) {
+      for (const file of part[key].stray_files) {
         edits.appendChild(container(file));
       }
 
-      edits.insertAdjacentHTML('beforeend', "<br><br>File(s) not on server");
+      edits.insertAdjacentHTML('beforeend', '<br><br>File(s) not on server');
       cell.appendChild(edits);
     }
 
-    const html = part[key]["html"];
+    const html = part[key].html;
     if (html.length) {
-      const pm = document.createElement("DIV");
-      pm.classList = "postMessage";
+      const pm = document.createElement('DIV');
+      pm.classList = 'postMessage';
 
       let new_container = [false, false];
       let subcell;
@@ -5193,7 +5216,7 @@ Keywords: ${afterkeys}`;
 
         } else if (new_container[1]) {
           if (new_container[0]) {
-            subcell = document.createElement("DIV");
+            subcell = document.createElement('DIV');
             subcell.classList = 'carbon';
             new_container[0] = false;
           } else {
@@ -5209,10 +5232,10 @@ Keywords: ${afterkeys}`;
       }
 
       cell.appendChild(pm);
-    } else if (!part[key]["files"]) {
-      const edits = document.createElement("DIV");
-      edits.classList = "edits";
-      edits.innerHTML = "Rebuild HTML with a different login/tier may be required to view";
+    } else if (!part[key].files) {
+      const edits = document.createElement('DIV');
+      edits.classList = 'edits';
+      edits.innerHTML = 'Rebuild HTML with a different login/tier may be required to view';
       cell.appendChild(edits);
     }
 
@@ -5221,8 +5244,8 @@ Keywords: ${afterkeys}`;
 
   for (const link of document.getElementsByTagName('a')) {
     if (!link.href.startsWith(dir)) {
-      link.classList.add("external");
-      link.target = "_blank";
+      link.classList.add('external');
+      link.target = '_blank';
     }
   }
 
@@ -5234,7 +5257,7 @@ Keywords: ${afterkeys}`;
   <div class='dark close_button cursor_tooltip' id='tooltip'></div>
   <div style='height: 20px;'></div>
   <div class="container" style="display:none;">
-    <button class='dark' onclick="this.parentElement.style.display = 'none'">&times;</button>""" + f"""
+    <button class='dark' onclick="this.parentElement.style.display = 'none'">&times;</button>
     <div class='listurls'>Maybe in another page.</div>
     <img id="expandedImg">
   </div>
@@ -5252,14 +5275,14 @@ Keywords: ${afterkeys}`;
     <button class="next" onclick="resizeCell('calc(25% - 35px)')">....</button>
     <button id="fi" class="next" onclick="preview(this)" data-sel="Preview, Preview [ ], Preview 1:1" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel<br>Choose 1:1 mode to enable shift key.">Preview</button>
     <button id="ge" class="next" onclick="previewg(this)" data-sel="Original, vs left, vs left &lt;, vs left &gt;, Find Edge" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
-    <button class="next" onclick="hideDetails(this)">Filename</button>
+    <button class="next" onclick="hideDetails(this)">Filename</button>""" + f"""
     <input class="next" id="search" type="text" oninput="hidePattern();" value='{" ".join(pattern[1])}' placeholder='Search title'>
-    <input class="next" id="ignore" type="text" oninput="hidePattern();" value='{" ".join(pattern[0])}' placeholder='Ignore title'>
+    <input class="next" id="ignore" type="text" oninput="hidePattern();" value='{" ".join(pattern[0])}' placeholder='Ignore title'>""" + """
     <button class="next" onclick="hideParts('.edits')">Edits</button>
     <button class="next" onclick="hideParts()">&times;</button>
     <div class="dark local_tooltip" id="local_tooltip"></div>
     <div class="stdout" id="stdout" style="display:none;" onpaste="plaintext(this, event);" contenteditable="plaintext-only" spellcheck=false></div>
-  </div>{builder}
+  </div>
 </body>
 </html>"""
 
@@ -5385,8 +5408,6 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
         else:
             part["0"].update({"stray_files": unsorted_stray_files})
 
-    # tohtml(subdir, htmlname, part, pattern)
-
     for file in unsorted_stray_files:
         if not file.endswith(tuple(notstray)) and isrej(file, pattern):
             ondisk = f"{subdir}{file}".replace("/", "\\")
@@ -5398,138 +5419,18 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
 
 
 
-def tohtml(subdir, htmlname, part, pattern):
-    builder = []
-    listurls = ""
-
-
-
-    n = 0
-    while True:
-        icon = "icon.png" if not n else f"icon {n}.png"
-        if os.path.exists(f"{subdir}{thumbnail_dir}{icon}"):
-            builder += [f"""<img src="{thumbnail_dir}{icon}" height="100px">"""]
-        else:
-            break
-        n += 1
-    if os.path.exists(page := f"{subdir}{thumbnail_dir}savelink.URL"):
-        with open(page, 'r') as f:
-            builder += [f"""<h2><a href="{f.read().splitlines()[1].replace("URL=", "")}">{htmlname}</a></h2>"""]
-
-
-
-    if sorter["buildthumbnail"]:
-        echo("Building thumbnails . . .")
-
-
-
-    for key in part.keys():
-        keywords = part[key]["keywords"]
-        title = f"<h2>{keywords[0]}</h2>" if keywords and keywords[0] else f"""<h2 style="color:#666;">ꍯ Part {key} ꍯ</h2>"""
-        buffer = ""
-        if key == "0":
-            if "stray_files" in part[key]:
-                title = "<h2>Unsorted</h2>"
-                buffer = "No matching partition found for this files. Either partition IDs are not assigned properly in file names or they're just really strays.\n"
-            elif not part[key]["html"]:
-                continue
-        new_container = False
-        end_container = False
-        if part[key]["visible"]:
-            builder += ["<div class='cell'>"]
-        else:
-            builder += ["<div class='cell' style='display:none;'>"]
-        if len(keywords) > 1:
-            timestamp = keywords[1] if keywords[1] else "No timestamp"
-            afterkeys = ", ".join(f"{x}" for x in keywords[2:] if x) if len(keywords) > 2 else "None"
-            builder += [f"""<div class="time" id="{key}" style="float:right;">Part {key} ꍯ {timestamp}\nKeywords: {afterkeys}</div>"""]
-        builder += [title]
-        if part[key]["files"]:
-            builder += ["""<div class="files">"""]
-            for file in part[key]["files"]:
-                builder += [container(file, f"""<div class="sources">{file}</div>""")]
-            builder += ["</div>"]
-        if "stray_files" in part[key]:
-            builder += ["""<div class="edits">"""]
-            for file in part[key]["stray_files"]:
-                # os.rename(subdir + file, subdir + "Stray files/" + file)
-                builder += [container(file, f"""<div class="sources">{file}</div>""")]
-            builder += ["<br><br>File(s) not on server\n</div>"]
-        if html := part[key]["html"]:
-            for array in html:
-                if len(array) == 2:
-                    if new_container:
-                        buffer += "<div class=\"carbon\">\n"
-                        end_container = True
-                        new_container = False
-                    if array[1]:
-                        buffer += f"""{array[0]}{container(array[1], f'<div class="sources">{array[1]}</div>')}"""
-                    else:
-                        buffer += array[0]
-                elif end_container:
-                    if new_container:
-                        buffer += "<div class=\"carbon\">\n"
-                        new_container = False
-                    else:
-                        new_container = True
-                    buffer += array[0] + "</div>"
-                else:
-                    buffer += array[0]
-                    new_container = True
-            if "<a href=\"" in buffer:
-                urls = buffer.split("<a href=\"")
-                links = ""
-                for link in urls[1:]:
-                    link = link.split("\"", 1)[0]
-                    links += f"""<a href="{link}">{link}</a><br>"""
-                listurls += f"""# From <a href="#{key}">#{key}</a> :: {keywords[0]}<br>{links}\n"""
-            builder += [f"""<div class="postMessage">{buffer}</div>"""]
-        elif not part[key]["files"]:
-            builder += ["<div class=\"edits\">Rebuild HTML with a different login/tier may be required to view</div>"]
-        builder += ["</div>\n"]
-    gallery_is = "created"
-    if os.path.exists(subdir + "gallery.html"):
-        gallery_is = "updated"
-    with open(subdir + "gallery.html", 'wb') as f:
-        f.write(bytes(new_html("\n".join(builder), htmlname, listurls, pattern), "utf-8"))
-    buffer = subdir.replace("/", "\\")
-    print(f" File {gallery_is}: \\{buffer}gallery.html ")
-
-
-
-def label_geistauge(m, s, html=False):
-    if m[3] == s[3]:
-        label = ("<span>" if html else "") + "Identical"
-    elif m[0] > s[0] and m[1] > s[1]:
-        label = ("""<span style="color:#ff0000;">""" if html else tcolorr) + f"{s[0]} x {s[1]}"
-    elif m[0] >= s[0] and m[1] > s[1] or m[0] > s[0] and m[1] <= s[1]:
-        label = ("""<span style="color:#eedd99;">""" if html else tcolor) + "Stretched/Un"
-    elif m[0] == s[0] and m[1] == s[1]:
-        label = ("""<span style="color:#ffaa33;">""" if html else tcoloro) + "Artifact/Un"
-    else:
-        label = ("""<span style="color:#00ff00;">""" if html else tcolorg) + f"{s[0]} x {s[1]}"
-    sizevs = (int(s[2])-int(m[2]))/int(m[2])*100
-    if sizevs < 0:
-        label += f"""</span> <span style="color:#66cc66;">{sizevs:.2f}%</span>""" if html else f" {tcolorg}{sizevs:.2f}%{tcolorx}"
-    elif sizevs == 0:
-        label += ("</span>" if html else tcolorx) + " 0.00%"
-    else:
-        label += f"""</span> <span style="color:#cc6666;">{sizevs:.2f}%</span>""" if html else f" {tcolorr}{sizevs:.2f}%{tcolorx}"
-    return label
-
-
-
 def tohtml_geistauge(delete=False):
     start = time.time()
     echo(f"\n Now compiling duplicates to {batchname} HTML . . . kill this CLI to cancel.", 0, 2)
-    builder = ""
-    counter = 1
+    newsavx = False
     savread = opensav(sav).splitlines()
     savxread = opensav(savx).splitlines()
     if not batchdir == savread[0]:
         echo(f"{batchdir} {savread[0]} Wrong SAV", 0, 1)
         return
-    if not batchdir == savxread[0]:
+    if len(savxread) == 0:
+        savxread += [batchdir]
+    elif not batchdir == savxread[0]:
         echo(f"{batchdir} {savxread[0]} Wrong SAVX", 0, 1)
         return
     savsread = opensav(savs).splitlines()
@@ -5559,7 +5460,6 @@ def tohtml_geistauge(delete=False):
                 Perfectexemption = False
         if Perfectexemption:
             continue
-        comparable = []
         whsm_m = [0, 0, 0, 0]
 
         philist = iter(philist)
@@ -5596,29 +5496,13 @@ def tohtml_geistauge(delete=False):
                     continue
                 else:
                     break
-            comparable += [container(file2, "<br>" + label_geistauge(whsm_m, whsm_s, html=True))]
+            newsavx = True
             if not (file2 := next(philist, None)):
                 break
-        if comparable:
-            builder += f"""<div class="container">
-{container(file, f"<br>{whsm_m[0]} x {whsm_m[1]}")}{"".join(comparable)}</div>
-
-"""
-            counter += 1
-        if counter % 512 == 0:
-            morehtml = htmlfile.replace(".html", f" {int(counter/512)}.html")
-            with open(morehtml, 'wb') as f:
-                f.write(bytes(new_html(builder, batchname), 'utf-8'))
-            echo(f'"{morehtml}" created!', 0, 1)
-            builder = ""
-            counter += 1
-    morehtml = htmlfile.replace(".html", f" {int(counter/512) + 1}.html")
-    with open(morehtml, 'wb') as f:
-        f.write(bytes(new_html(builder, batchname), 'utf-8'))
-    if counter > 1:
+    if newsavx:
         with open(savx, 'wb') as f:
             f.write(bytes("\n".join(savxread), 'utf-8'))
-    echo(f'"{morehtml}" created!\ntotal runtime: {time.time()-start}', 0, 1)
+    echo(f'total runtime: {time.time()-start}', 0, 1)
 
 
 

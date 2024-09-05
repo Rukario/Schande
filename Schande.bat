@@ -1,5 +1,79 @@
 @echo off && goto loaded
 
+"""
+::MacOS:           open /Applications/Python\ 3.10/Install\ Certificates.command
+::Linux/MacOS:     python3 -x /drag/n/drop/the/batchfile
+
+::if MacOS (pip=sudo python3 -m pip) else if Linux (pip=pip3)
+::update pip:      %pip% install --upgrade pip
+::install package: %pip% install name_of_the_missing_package
+
+:loaded
+set color=0e && set stopcolor=06
+color %color%
+set batchfile=%~0
+if %cd:~-1%==\ (set batchdir=%cd%) else (set batchdir=%cd%\)
+set pythondir=%userprofile%\AppData\Local\Programs\Python\
+if exist "%~n0.cd" (set tcd=%~n0.cd&&set TXT=%~dpn0.cd) else if exist "%~n0.txt" (set tcd=%~n0.txt&&set TXT=%~dpn0.txt)
+
+setlocal enabledelayedexpansion
+chcp 65001>nul
+if not "!TXT!"=="" for /f "delims=" %%i in ('findstr /b /i "Python = " "!TXT!"') do set string=%%i&& set string=!string:~9!&& goto check
+:check
+chcp 437>nul
+if not "!string!"=="" (set pythondir=!string!)
+set x=Python 3.10
+set cute=!x:.=!
+set cute=!cute: =!
+set pythondirx=!pythondir!!cute!
+if exist "!pythondirx!\python.exe" (cd /d "!pythondirx!" && color %color%) else (color %stopcolor%
+echo.
+if "!string!"=="" (echo  I can't seem to find \!cute!\python.exe^^! Install !x! in default location please, or edit this batch file.&&echo.&&echo  Download the latest !x!.x from https://www.python.org/downloads/) else (echo  Please fix path to \!cute!\python.exe in "Python =" setting in !tcd!)
+echo.
+echo  I must exit^^!
+pause%>nul
+exit)
+set pythondir=!pythondir:\=\\!
+
+set batchdir=!batchdir:\=\\!
+set filelist=
+if [%1]==[] goto skip
+set n=!cmdcmdline:*%~f0=!
+if ["!n:~2,8!"]==["magnet:?"] set filelist=!n:~2,-1!&&goto skip
+:loop
+set file=%1
+set file=!file:"=!
+set filelist=!filelist!//!file!
+shift
+if not [%1]==[] goto loop
+:skip
+
+if exist Lib\site-packages\ (echo.) else (goto install)
+if exist Lib\site-packages\ (goto start) else (echo.)
+
+:install
+echo  Hold on . . . I need to install the missing packages.
+if exist "Scripts\pip.exe" (echo.) else (color %stopcolor% && echo  PIP.exe doesn't seem to exist . . . Please install Python properly^^! I must exit^^! && pause>nul && exit)
+python -m pip install --upgrade pip
+::Scripts\pip.exe install name_of_the_missing_package
+::Scripts\pip.exe install what_else
+echo.
+pause
+
+:start
+cls
+color %color%
+python.exe -x "!batchfile!" "!filelist!" "!pythondir!" "!batchdir!"
+set filelist=
+color %stopcolor%
+echo.
+echo Restart CLI? Press any key to continue . . .
+pause >nul
+goto start
+"""
+
+
+
 import os, sys, io, ssl, socket, time, json, zlib, inspect, smtplib, hashlib, subprocess, mimetypes
 from datetime import datetime, timedelta
 from fnmatch import fnmatch
@@ -776,7 +850,7 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
         enc = sys.getfilesystemencoding()
         htmldata = False
 
-        if os.path.exists(f"{ondisk}/partition.json"):
+        if os.path.exists(f"{ondisk}/partition.json") or self.qs.endswith(".json"):
             echo('found partition', 0, 1)
             if os.path.exists(s := f"{ondisk}/savelink.URL"):
                 echo(f'found {s}', 0, 1)
@@ -3932,7 +4006,7 @@ function loadkeys() {
 function loadpart() {
   const xhr = new XMLHttpRequest();
   xhr.overrideMimeType("application/json");
-  xhr.open('GET', "partition.json", true);
+  xhr.open('GET', partitiondb, true);
   xhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
   xhr.send();
   xhr.onreadystatechange = function() {
@@ -3940,7 +4014,7 @@ function loadpart() {
       if (xhr.status !== 404 && xhr.responseText) {
         readpart(JSON.parse(xhr.responseText));
       } else if (xhr.responseText){
-        console.log("partition.json not found");
+        console.log(partitiondb + " not found");
         lazyload();
         loadkeys();
       } else {
@@ -4796,6 +4870,7 @@ function hidePattern() {
 }
 
 var isTouch, keywords, stdout;
+var partitiondb = 'partition.json';
 var dir = location.href.substring(0, location.href.lastIndexOf('/')) + "/";
 window.onload = () => {
   document.addEventListener("click", FFclick);
@@ -4816,6 +4891,11 @@ window.onload = () => {
   }
 
   if (document.title == "Gallery") {
+    for (const [key, value] of new URLSearchParams(window.location.search)) {
+      if (key.endsWith('.json')) {
+        partitiondb = key;
+      }
+    };
     loadpart();
   } else {
     opensav();
@@ -6591,77 +6671,3 @@ while True:
         os.system("killall -9 cat")
     echo("", 0, 1)
     ready_input()
-
-
-
-"""
-::MacOS:           open /Applications/Python\ 3.10/Install\ Certificates.command
-::Linux/MacOS:     python3 -x /drag/n/drop/the/batchfile
-
-::if MacOS (pip=sudo python3 -m pip) else if Linux (pip=pip3)
-::update pip:      %pip% install --upgrade pip
-::install package: %pip% install name_of_the_missing_package
-
-:loaded
-set color=0e && set stopcolor=06
-color %color%
-set batchfile=%~0
-if %cd:~-1%==\ (set batchdir=%cd%) else (set batchdir=%cd%\)
-set pythondir=%userprofile%\AppData\Local\Programs\Python\
-if exist "%~n0.cd" (set tcd=%~n0.cd&&set TXT=%~dpn0.cd) else if exist "%~n0.txt" (set tcd=%~n0.txt&&set TXT=%~dpn0.txt)
-
-setlocal enabledelayedexpansion
-chcp 65001>nul
-if not "!TXT!"=="" for /f "delims=" %%i in ('findstr /b /i "Python = " "!TXT!"') do set string=%%i&& set string=!string:~9!&& goto check
-:check
-chcp 437>nul
-if not "!string!"=="" (set pythondir=!string!)
-set x=Python 3.10
-set cute=!x:.=!
-set cute=!cute: =!
-set pythondirx=!pythondir!!cute!
-if exist "!pythondirx!\python.exe" (cd /d "!pythondirx!" && color %color%) else (color %stopcolor%
-echo.
-if "!string!"=="" (echo  I can't seem to find \!cute!\python.exe^^! Install !x! in default location please, or edit this batch file.&&echo.&&echo  Download the latest !x!.x from https://www.python.org/downloads/) else (echo  Please fix path to \!cute!\python.exe in "Python =" setting in !tcd!)
-echo.
-echo  I must exit^^!
-pause%>nul
-exit)
-set pythondir=!pythondir:\=\\!
-
-set batchdir=!batchdir:\=\\!
-set filelist=
-if [%1]==[] goto skip
-set n=!cmdcmdline:*%~f0=!
-if ["!n:~2,8!"]==["magnet:?"] set filelist=!n:~2,-1!&&goto skip
-:loop
-set file=%1
-set file=!file:"=!
-set filelist=!filelist!//!file!
-shift
-if not [%1]==[] goto loop
-:skip
-
-if exist Lib\site-packages\ (echo.) else (goto install)
-if exist Lib\site-packages\ (goto start) else (echo.)
-
-:install
-echo  Hold on . . . I need to install the missing packages.
-if exist "Scripts\pip.exe" (echo.) else (color %stopcolor% && echo  PIP.exe doesn't seem to exist . . . Please install Python properly^^! I must exit^^! && pause>nul && exit)
-python -m pip install --upgrade pip
-::Scripts\pip.exe install name_of_the_missing_package
-::Scripts\pip.exe install what_else
-echo.
-pause
-
-:start
-cls
-color %color%
-python.exe -x "!batchfile!" "!filelist!" "!pythondir!" "!batchdir!"
-set filelist=
-color %stopcolor%
-echo.
-echo Restart CLI? Press any key to continue . . .
-pause >nul
-goto start
-"""

@@ -7,7 +7,6 @@
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="width=675, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
 <style>
-
 :root {
   --color-keyboard: #fff;
   --color-keysocket: #6c7074;
@@ -150,34 +149,53 @@ canvas {
   z-index: 2;
   display: inline-block;
   margin: 1px;
+
+  border-style: solid;
   border-radius: 3px;
+
+  @media (width < 800px) {
+    border-top-width: 4px;
+    border-left-width: 6px;
+    border-right-width: 6px;
+    border-bottom-width: 9px;
+    .face {
+      height: 40px;
+    }
+  }
+
+  @media (width >= 800px) {
+    border-top-width: 5px;
+    border-left-width: 10px;
+    border-right-width: 10px;
+    border-bottom-width: 11px;
+    .face {
+      height: 34px;
+    }
+  }
 }
 
 .keycap {
   background: #c4c2bb;
-  border-top: 5px solid #c4c2bb;
-  border-left: 10px solid #a4a29b;
-  border-right: 10px solid #a4a29b;
-  border-bottom: 11px solid #989692;
+
+  border-color: #a4a29b;
+  border-top-color: #c4c2bb;
+  border-bottom-color: #989692;
 
   &.pressed {
-    border-top: 5px solid #25b;
-    border-left: 10px solid #14a;
-    border-right: 10px solid #14a;
-    border-bottom: 11px solid #039;
+    border-color: #14a;
+    border-top-color: #25b;
+    border-bottom-color: #039;
 
     &.wasd {
-      border-top: 5px solid #642;
-      border-left: 10px solid #531;
-      border-right: 10px solid #531;
-      border-bottom: 11px solid #321;
+      border-color: #531;
+      border-top-color: #642;
+      border-bottom-color: #321;
     }
   }
 
   .face {
     background: #dddad7;
     min-width: 16px;
-    height: 34px;
     color: #088;
     margin: -3px;
     padding: 2px;
@@ -198,22 +216,20 @@ canvas {
 
 .keycap2 {
   background: #9d9ba0;
-  border-top: 5px solid #a4a2a0;
-  border-left: 10px solid #8d8b90;
-  border-right: 10px solid #8d8b90;
-  border-bottom: 11px solid #817e84;
+
+  border-color: #8d8b90;
+  border-top-color: #a4a2a0;
+  border-bottom-color: #817e84;
 
   &.pressed {
-    border-top: 5px solid #55b;
-    border-left: 10px solid #44a;
-    border-right: 10px solid #44a;
-    border-bottom: 11px solid #339;
+    border-color: #44a;
+    border-top-color: #55b;
+    border-bottom-color: #339;
   }
 
   .face {
     background: #b6b4b9;
     min-width: 16px;
-    height: 34px;
     color: #088;
     margin: -3px;
     padding: 2px;
@@ -4189,33 +4205,40 @@ function createkeyboard() {
 
 
   // catastrophe viewports
-  esc = keysocket(44, 0, 'calc(5% + 12px)');
-  f1 = keysocket(24, 0, 'calc(32% - 46px)');
-  f5 = keysocket(24, 0, 'calc(32% - 46px)');
-  f9 = keysocket(0, 0, 'calc(32% - 46px)');
-  alphakeys = keysocket(0, 12, 'calc(100% - 6px)');
   shamefurbar = keysocket(0, 12, 'calc(100% - 6px)');
-  keydiv([esc, f1, f5, f9, null, alphakeys, null, shamefurbar], 0, '779px');
 
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.classList = 'keysocketrow';
-  esc.appendChild(DOMwriter);
-  drawkeyboard(DOMwriter, [['Esc']], null, 'keycap2');
+  if (window.screen.width > 800) {
+    esc = keysocket(44, 0, 'calc(5% + 12px)');
+    f1 = keysocket(24, 0, 'calc(32% - 46px)');
+    f5 = keysocket(24, 0, 'calc(32% - 46px)');
+    f9 = keysocket(0, 0, 'calc(32% - 46px)');
+    alphakeys = keysocket(0, 12, 'calc(100% - 6px)');
+    keydiv([esc, f1, f5, f9, null, alphakeys, null, shamefurbar], 0, '779px');
 
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.classList = 'keysocketrow';
-  f1.appendChild(DOMwriter);
-  drawkeyboard(DOMwriter, [['F1', 'F2', 'F3', 'F4']], 31);
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.classList = 'keysocketrow';
+    esc.appendChild(DOMwriter);
+    drawkeyboard(DOMwriter, [['Esc']], null, 'keycap2');
 
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.classList = 'keysocketrow';
-  f5.appendChild(DOMwriter);
-  drawkeyboard(DOMwriter, [['F5', 'F6', 'F7', 'F8']], 31, 'keycap2');
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.classList = 'keysocketrow';
+    f1.appendChild(DOMwriter);
+    drawkeyboard(DOMwriter, [['F1', 'F2', 'F3', 'F4']], 31);
 
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.classList = 'keysocketrow';
-  f9.appendChild(DOMwriter);
-  drawkeyboard(DOMwriter, [['F9', 'F10', 'F11', 'F12']], 31);
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.classList = 'keysocketrow';
+    f5.appendChild(DOMwriter);
+    drawkeyboard(DOMwriter, [['F5', 'F6', 'F7', 'F8']], 31, 'keycap2');
+
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.classList = 'keysocketrow';
+    f9.appendChild(DOMwriter);
+    drawkeyboard(DOMwriter, [['F9', 'F10', 'F11', 'F12']], 31);
+  } else {
+    //bigger face
+    alphakeys = keysocket(0, 0, 'calc(100% - 6px)');
+    keydiv([alphakeys, null, shamefurbar], 0, '779px');
+  }
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
@@ -4336,7 +4359,7 @@ function createkeyboard() {
 
 
 
-  // Full for unrestricted viewports
+  // Shamefur dispray arr keys for unrestricted viewports
   if (window.screen.width > 1169) {
     keyboard.style.maxWidth = '1169px';
     numpad2 = keysocket();

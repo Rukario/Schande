@@ -3620,18 +3620,18 @@ body {
 
 a {
   color: #6cb /*efdfa8*/;
-}
 
-a:visited {
-  color: #bfe;
-}
+  &:visited {
+    color: #bfe;
+  }
 
-.external {
-  color: #db6;
-}
+  &.external {
+    color: #db6;
 
-.external: visited{
-  color: #ed9;
+    &:visited {
+      color: #ed9;
+    }
+  }
 }
 
 img {
@@ -3650,8 +3650,10 @@ button {
   padding: 1px 4px;
 }
 
-[contenteditable]:focus, input:focus {
-  outline: none;
+[contenteditable], input {
+  &:focus {
+    outline: none;
+  }
 }
 
 input[type='text'] {

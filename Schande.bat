@@ -886,10 +886,11 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
                 ut = f" {os.path.getmtime(fullname):.7f}" if ntime else "&gt;"
                 if os.path.isdir(fullname):
                     label = "\\" + label + "\\"
-                    gallery = ""
-                    if os.path.exists(fullname + "/gallery.html"):
-                        gallery = f' - <a href="{link}/gallery.html">gallery.html</a>'
-                    dirs.append(f' {ut} <a href="{link}/">{label}</a>{gallery}')
+                    parts = ""
+                    for partfn in ["partition.json", "partition A.json", "partition B.json", "partition C.json", "Schande.savx"]:
+                        if os.path.exists(fullname + "/" + partfn):
+                            parts += f' - <a href="{link}/?{partfn}">{partfn}</a>'
+                    dirs.append(f' {ut} <a href="{link}/">{label}</a>{parts}')
                 elif os.path.isfile(fullname):
                     files.append(f' {ut}  <a href="{link}">{label}</a>')
             buffer = '\n'.join(dirs + files)

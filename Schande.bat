@@ -97,7 +97,6 @@ batchdir = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
 filelist = []
 schande_filelist = [[], []]
 pythondir = ""
-thumbnail_dir = ""
 
 if len(sys.argv) > 3:
     filelist = list(filter(None, sys.argv[1].replace("\\", "/").split("//")))
@@ -117,10 +116,18 @@ savx = batchname + ".savx"
 textfile = batchname + ".txt"
 
 archivefile = [".7z", ".rar", ".zip"]
-imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png"]
+imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png", ".heic"]
 videofile = [".mkv", ".mp4", ".webm"]
 notstray = ["mediocre.txt", "autosave.txt", "gallery.html", "keywords.json", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
-mute404 = ["favicon.ico", "apple-touch-icon-precomposed.png", "apple-touch-icon.png", "apple-touch-icon-152x152-precomposed.png", "apple-touch-icon-152x152.png", "apple-touch-icon-120x120-precomposed.png", "apple-touch-icon-120x120.png"]
+mute404 = [
+  "favicon.ico",
+  "apple-touch-icon-precomposed.png",
+  "apple-touch-icon.png",
+  "apple-touch-icon-152x152-precomposed.png",
+  "apple-touch-icon-152x152.png",
+  "apple-touch-icon-120x120-precomposed.png",
+  "apple-touch-icon-120x120.png"
+]
 
 alerted = [False]
 busy = [False]*27
@@ -134,7 +141,13 @@ Keypress_buffer = [""]
 Keypress_time = [0, 0, 0]
 Fast_presser = 0.5
 Keypress = [False]*27
-task = {"httpserver":[], "transmission":False, "run":Queue(), "makedirs":set(), "nodirs":set()}
+task = {
+  "httpserver": [],
+  "transmission": False,
+  "run": Queue(),
+  "makedirs": set(),
+  "nodirs": set()
+}
 retries = [0]
 sf = [0]
 
@@ -296,10 +309,11 @@ def help():
  |    key# for title (key1), timestamp (key2) then keywords (key3 each). Without key2+ to go stampless.
  |
  | HTML builder
+ |  "reluctant"       do not update existing partition for HTML builder.
  |  "html ...*..."    pick article from page/partition for HTML builder.
  |    API: pick content for HTML-based pickers.
  |    HTML-based file and name pickers will look through for inline files and clean up articles.
- |    html# for insert mode: newline (html1), inline non-inline files from filelist (+2, unimplemented), hyperlink (+4).
+ |    html# for insert mode: newline (+1), hyperlink (+2).
  |  "icon ...*..."    pick an icon. Incremental "icon#" to pick more icons up to #th.
  |
  | Miscellaneous
@@ -887,7 +901,7 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
                 if os.path.isdir(fullname):
                     label = "\\" + label + "\\"
                     parts = ""
-                    for partfn in ["partition.json", "partition A.json", "partition B.json", "partition C.json", "Schande.savx"]:
+                    for partfn in ["partition.json", "partition A.json", "partition B.json", "partition C.json", "partition D.json", "Schande.savx"]:
                         if os.path.exists(fullname + "/" + partfn):
                             parts += f' - <a href="{link}/?{partfn}">{partfn}</a>'
                     dirs.append(f' {ut} <a href="{link}/">{label}</a>{parts}')
@@ -1146,8 +1160,8 @@ def portkilled(port=8886):
 
 
 cookies = cookiejar.MozillaCookieJar(batchname + "/cookies.txt")
-if os.path.exists(batchname + "/cookies.txt"):
-    cookies.load()
+# if os.path.exists(batchname + "/cookies.txt"):
+#     cookies.load()
 def new_cookie():
     return {'port_specified':False, 'domain_specified':False, 'domain_initial_dot':False, 'path_specified':True, 'version':0, 'port':None, 'path':'/', 'secure':False, 'expires':None, 'comment':None, 'comment_url':None, 'rest':{"HttpOnly": None}, 'rfc2109':False, 'discard':True, 'domain':None, 'name':None, 'value':None}
 
@@ -1275,7 +1289,42 @@ fdate = date.strftime('%Y') + "-" + date.strftime('%m') + "-XX"
 
 
 def new_picker():
-    return {"replace":[], "POST":[], "DELETE":[], "defuse":False, "visit":False, "part":[], "dict":[], "html":[], "icon":[], "links":[], "inlinefirst":True, "expect":[], "dismiss":False, "break":False, "pattern":[[], [], False, False], "message":[], "key":[], "folder":[], "choose":[], "file":[], "file_after":[], "files":False, "name":[], "time":[], "extfix":"", "urlfix":[], "url":[], "pages":[], "paginate":[], "checkpoint":False, "savelink":False, "ready":False}
+    return {
+        "POST": [],
+        "DELETE": [],
+
+        "replace": [],
+        "defuse": False,
+        "visit": False,
+        "reluctant": False,
+        "part": [],
+        "dict": [],
+        "html": [],
+        "icon": [],
+        "links": [],
+        "inlinefirst": True,
+        "expect": [],
+        "dismiss": False,
+        "break": False,
+        "pattern": [[], [], False, False],
+        "message": [],
+        "key": [],
+        "folder": [],
+        "choose": [],
+        "file": [],
+        "file_after": [],
+        "files": False,
+        "name": [],
+        "time": [],
+        "extfix": "",
+        "urlfix": [],
+        "url": [],
+        "pages": [],
+        "paginate": [],
+        "checkpoint": False,
+        "savelink": False,
+        "ready":False
+    }
 
 
 
@@ -1291,6 +1340,8 @@ def add_picker(s, rule):
         s["defuse"] = [True, rule.split(" ", 1)[1]] if " " in rule else [True, False]
     elif rule.startswith("visit"):
         s["visit"] = True
+    elif rule.startswith("reluctant"):
+        s["reluctant"] = True
     elif rule.startswith("part "):
         s["part"] += [rule.split("part ", 1)[1]]
     elif rule.startswith("replace "):
@@ -2213,12 +2264,12 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
     if not filelist:
         if fromhtml["makehtml"]:
             subdir = get_cd("", new_link(fromhtml["page"], fromhtml["folder"], 0), pattern, makedirs)[1]
-            if os.path.exists(p := f"{subdir}{thumbnail_dir}partition.json"):
+            if os.path.exists(p := f"{subdir}partition.json"):
                 with open(p, 'r') as f:
                     p = json.loads(f.read())
             else:
                 p = {}
-            if (part := updatepart(f"{subdir}{thumbnail_dir}partition.json", p, htmlpart, filelist, pattern)):
+            if (part := updatepart(f"{subdir}partition.json", p, htmlpart, filelist, pattern, fromhtml["reluctant"])):
                 new_relics = {}
                 for key in part.keys():
                     part[key].update({"visible": False if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern) else True})
@@ -2250,7 +2301,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
         # Autosave (2/3) and load partition.json
         dir = ondisk.rsplit("/", 1)[0] + "/"
         if not dir in dirs and not dirs.add(dir):
-            if os.path.exists(p := f"{dir}{thumbnail_dir}partition.json"):
+            if os.path.exists(p := f"{dir}partition.json"):
                 with open(p, 'r') as f:
                     htmldirs.update({dir:json.loads(f.read())})
             else:
@@ -2286,17 +2337,17 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
             continue
         # whereami("Compiling parts")
         for icon in fromhtml["icons"]:
-            if not os.path.exists(dir + thumbnail_dir + icon["name"]):
+            if not os.path.exists(dir + icon["name"]):
                 if icon["premade"]:
                     if not icon["premade"] == 2:
-                        overwrite(icon["premade"], dir + thumbnail_dir + icon["name"])
-                elif err := get(icon["link"], dir + thumbnail_dir + icon["name"])[1]:
+                        overwrite(icon["premade"], dir + icon["name"])
+                elif err := get(icon["link"], dir + icon["name"])[1]:
                     echo(f""" Error downloading ({err}): {icon["link"]}""", 0, 1)
                     icon["premade"] = 2
                 else:
-                    icon["premade"] = dir + thumbnail_dir + icon["name"]
+                    icon["premade"] = dir + icon["name"]
             elif not icon["premade"]:
-                icon["premade"] = dir + thumbnail_dir + icon["name"]
+                icon["premade"] = dir + icon["name"]
 
         if page := fromhtml["page"]:
             file = dir + page["name"] + ".URL"
@@ -2307,21 +2358,21 @@ URL={page["link"]}""")
                 buffer = file.replace("/", "\\")
                 echo(f" File created: \\{buffer}", 0, 1)
 
-        if not os.path.exists(dir + thumbnail_dir):
-            os.makedirs(dir + thumbnail_dir)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
 
 
 
         if fromhtml["premade"]:
-            overwrite(f"{dir}{thumbnail_dir}gallery.html", fromhtml["premade"])
+            overwrite(f"{dir}gallery.html", fromhtml["premade"])
         else:
-            if (part := updatepart(f"{dir}{thumbnail_dir}partition.json", htmldirs[dir], htmlpart, filelist, pattern)) or sorter["verifyondisk"]:
+            if (part := updatepart(f"{dir}partition.json", htmldirs[dir], htmlpart, filelist, pattern, fromhtml["reluctant"])) or sorter["verifyondisk"]:
                 new_relics = {}
                 for key in part.keys():
                     part[key].update({"visible": False if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern) else True})
                     new_relics.update({key: part[key]})
                 parttohtml(dir, fromhtml["name"], new_relics, filelist, pattern)
-                # fromhtml["premade"] = f"{dir}{thumbnail_dir}gallery.html"
+                # fromhtml["premade"] = f"{dir}gallery.html"
                 # Developer note: Need to handle editisreal in Autosave (2/3), unimplemented for now.
 
 
@@ -2343,7 +2394,7 @@ URL={page["link"]}""")
         echo("Building thumbnails . . .")
         for dir in htmldirs.keys():
             for file in next(os.walk(dir))[2]:
-                thumbnail = f"{dir}{thumbnail_dir}{ren(file, '_small')}"
+                thumbnail = f"{dir}{ren(file, '_small')}"
                 if not os.path.exists(thumbnail):
                     try:
                         img = Image.open(f"{dir}{file}")
@@ -2471,9 +2522,12 @@ def driver(url):
     Keypress[3] = False
     try:
         for bc in driver_running[0].get_cookies():
-            if "httpOnly" in bc: del bc["httpOnly"]
-            if "expiry" in bc: del bc["expiry"]
-            if "sameSite" in bc: del bc["sameSite"]
+            if "httpOnly" in bc:
+                del bc["httpOnly"]
+            if "expiry" in bc:
+                del bc["expiry"]
+            if "sameSite" in bc:
+                del bc["sameSite"]
             c = new_cookie()
             c.update(bc)
             cookies.set_cookie(cookiejar.Cookie(**c))
@@ -3336,7 +3390,19 @@ def new_p(z):
 
 def new_part(threadn=0):
     new = {threadn:new_p("0")} if threadn else new_p("0")
-    return {"ready":True, "page":"", "name":"", "folder":"", "makehtml":False, "pattern":[[], [], False, False], "icons":[], "inlinefirst":True, "partition":new, "premade":False}
+    return {
+      "ready": True,
+      "page": "",
+      "name": "",
+      "folder": "",
+      "makehtml": False,
+      "pattern": [[], [], False, False],
+      "icons": [],
+      "inlinefirst": True,
+      "reluctant": False,
+      "partition": new,
+      "premade": False
+    }
 
 def new_link(l, n, e):
     return {"link":l, "name":saint(n), "edited":e}
@@ -3417,6 +3483,7 @@ def scrape(startpages):
                 fromhtml = shelf[start]
                 fromhtml["pattern"] = navigator["pickers"][get_pick[0]]["pattern"]
                 fromhtml["inlinefirst"] = pick["inlinefirst"]
+                fromhtml["reluctant"] = pick["reluctant"]
             else:
                 fromhtml = shelf[start]
                 fromhtml["partition"].update({threadn:new_p("0")})
@@ -3592,7 +3659,7 @@ def container(ondisk, label=''):
         return f"""<div class="frame"><video height="200" autoplay><source src="{link}"></video>{label}</div>"""
     elif ondisk.lower().endswith(tuple(imagefile)):
         if sorter["buildthumbnail"]:
-            thumbnail = f"{subdir}{thumbnail_dir}" + ren(link.rsplit("/", 1), "_small")
+            thumbnail = f"{subdir}" + ren(link.rsplit("/", 1), "_small")
         else:
             thumbnail = link
         return f"""<div class="frame"><a class="fileThumb" href="{link}"><img class="lazy" data-src="{thumbnail}"></a>{label}</div>"""
@@ -3757,6 +3824,19 @@ input[type='text'] {
   border: none;
   border-radius: 10px;
   cursor: pointer;
+}
+
+#previewer {
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 1;
+  pointer-events: none;
+
+  &.makefit {
+    max-height: 100vh;
+    max-width: 100vw;
+  }
 }
 
 .sources {
@@ -4094,7 +4174,7 @@ function edit_key(e) {
   }
 
   function read_key(k) {
-    if (k.keyCode === 13) {
+    if (k.code === 'Enter') {
       submit_key();
       key_busy = false;
     }
@@ -4144,6 +4224,17 @@ function echo(B, b) {
   } else {
     stdout.innerHTML += " " + B;
   }
+}
+
+function newCanvas(w, h) {
+  const d = document.createElement('CANVAS').getContext('2d');
+  if (w) {
+    d.width = d.canvas.width = w;
+  }
+  if (h) {
+    d.height = d.canvas.height = h;
+  }
+  return d;
 }
 
 var Expand = function(c, t) {
@@ -4298,18 +4389,18 @@ function Convolute(pixels, weights) {
   var output = Filters.createImageData(w, h);
   var dst = output.data;
 
-  for (var y=0; y<h; y++) {
-    for (var x=0; x<w; x++) {
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
       var sy = y;
       var sx = x;
-      var dstOff = (y*w+x)*4;
-      var r=0, g=0, b=0, a=0;
-      for (var cy=0; cy<side; cy++) {
-        for (var cx=0; cx<side; cx++) {
-          var scy = Math.min(sh-1, Math.max(0, sy + cy - halfSide));
-          var scx = Math.min(sw-1, Math.max(0, sx + cx - halfSide));
-          var srcOff = (scy*sw+scx)*4;
-          var wt = weights[cy*side+cx];
+      var dstOff = (y * w + x) * 4;
+      let [r, g, b, a] = [0, 0, 0, 0];
+      for (var cy = 0; cy < side; cy++) {
+        for (var cx = 0; cx < side; cx++) {
+          var scy = Math.min(sh - 1, Math.max(0, sy + cy - halfSide));
+          var scx = Math.min(sw - 1, Math.max(0, sx + cx - halfSide));
+          var srcOff = (scy * sw + scx) * 4;
+          var wt = weights[cy * side + cx];
           r += src[srcOff] * wt;
           g += src[srcOff+1] * wt;
           b += src[srcOff+2] * wt;
@@ -4326,54 +4417,51 @@ function Convolute(pixels, weights) {
 };
 
 function quicklook(e) {
-  if(e.target.classList.contains("lazy")) {
+  if (e.target.classList.contains('lazy')) {
     e.preventDefault();
     const t = e.target;
-    var c = {};
+    let previewer;
     let isTainted = false;
     if (geistauge) {
-      const s = new Image();
-      s.src = t.parentNode.getAttribute("href");
+      const img = new Image();
+      img.src = t.parentNode.getAttribute('href');
 
-      c = document.createElement("canvas");
-      c.style = cs;
-      c.id = "quicklook";
-      c.width = s.width;
-      c.height = s.height;
-      context = c.getContext("2d");
+      const ctx = newCanvas(img.width, img.height);
+      previewer = ctx.canvas;
+      previewer.id = 'previewer';
+      if (makefit) {
+        previewer.classList = 'makefit';
+      }
 
-      if (geistauge == "edge") {
+      if (geistauge === 'edge') {
         isTainted = true;
-        s.onload = () => {
-          edgediff(s, s.width, s.height, context);
+        img.onload = () => {
+          edgediff(img, ctx);
           isTainted = false;
           delete t.dataset.tooltip;
         }
       } else {
-        const fp = new Image();
-        let p = t.parentNode.parentNode.parentNode.childNodes[1].childNodes[0];
-        if (p == undefined || p.nodeName != "A") {
-          fp.src = s.src;
-        } else {
-          fp.src = p.getAttribute("href");
-        }
-        if (fp.src == s.src) {
-          context.fillRect(0, 0, s.width, s.height);
-        } else {
+        const eldest_sibling = t.parentNode.parentNode.parentNode.childNodes[0];
+        if (eldest_sibling && eldest_sibling.childNodes[0].nodeName === 'A') {
+          const img2 = new Image();
+          img2.src = eldest_sibling.childNodes[0].getAttribute('href');
+
           isTainted = true;
-          s.onload = () => {
-            const cgl = document.createElement("canvas");
-            const gl = cgl.getContext("webgl2");
-            if (geistauge == "reverse") {
-              fp.onload = difference(fp, s.width, s.height, s, context, gl, side=true);
-            } else if (geistauge == "tangerine") {
-              fp.onload = difference(s, s.width, s.height, fp, context, gl, side=true);
+          img.onload = () => {
+            const cgl = document.createElement('CANVAS');
+            const gl = cgl.getContext('webgl2');
+            if (geistauge === 'reverse') {
+              img2.onload = difference(img2, img.width, img.height, img, ctx, gl, side = true);
+            } else if (geistauge === 'tangerine') {
+              img2.onload = difference(img, img.width, img.height, img2, ctx, gl, side = true);
             } else {
-              fp.onload = difference(s, s.width, s.height, fp, context, gl);
+              img2.onload = difference(img, img.width, img.height, img2, ctx, gl);
             }
             isTainted = false;
             delete t.dataset.tooltip;
           }
+        } else {
+          ctx.fillRect(0, 0, img.width, img.height);
         }
       }
 
@@ -4382,34 +4470,38 @@ function quicklook(e) {
           t.dataset.tooltip = `"Edge detect" and "Geistauge" are canvas features and they require Cross-Origin Resource Sharing (CORS)<br>(Google it but tl;dr: Try HTTP server)`;
           FFmove(e);
         }
-      }, 1);
+      }, 0);
 
-      t.parentNode.appendChild(c);
+      t.parentNode.appendChild(previewer);
     } else {
-      c = document.createElement("img");
-      c.style = cs;
-      c.id = "quicklook";
-      c.src = t.parentNode.getAttribute("href");
-      t.parentNode.appendChild(c);
+      previewer = document.createElement('IMG');
+      previewer.id = 'previewer';
+      if (makefit) {
+        previewer.classList = 'makefit';
+      }
+      previewer.src = t.parentNode.getAttribute('href');
+      t.parentNode.appendChild(previewer);
     }
+
     const left = () => {
-      setTimeout (() => {
-        t.parentNode.removeChild(c);
+      setTimeout(() => {
+        t.parentNode.removeChild(previewer);
       }, 40);
-      t.removeEventListener("mouseleave", left);
+      t.removeEventListener('mouseleave', left);
       delete t.dataset.tooltip;
     }
-    t.addEventListener("mouseleave", left);
+
+    t.addEventListener('mouseleave', left);
   }
 }
 
 
 
-function edgediff(s, cw, ch, context) {
-  context.drawImage(s, 0, 0, cw, ch);
-  var grayscale = context.getImageData(0, 0, cw, ch);
+function edgediff(img, ctx) {
+  ctx.drawImage(img, 0, 0, img.width, img.height);
+  var grayscale = ctx.getImageData(0, 0, img.width, img.height);
   var imageData1 = Convolute(grayscale, [-1, -1, -1, -1,  8, -1, -1, -1, -1])
-  context.putImageData(imageData1, 0, 0);
+  ctx.putImageData(imageData1, 0, 0);
 }
 
 
@@ -4488,11 +4580,11 @@ function darkdiff(a, b) {
 
 var rgb, rgb2;
 
-function difference(s, cw, ch, fp, context, gl, side=false) {
-  context.drawImage(s, 0, 0, cw, ch);
-  rgb = context.getImageData(0, 0, cw, ch);
-  context.drawImage(fp, 0, 0, cw, ch);
-  rgb2 = context.getImageData(0, 0, cw, ch);
+function difference(s, cw, ch, fp, ctx, gl, side=false) {
+  ctx.drawImage(s, 0, 0, cw, ch);
+  rgb = ctx.getImageData(0, 0, cw, ch);
+  ctx.drawImage(fp, 0, 0, cw, ch);
+  rgb2 = ctx.getImageData(0, 0, cw, ch);
 
   if (side) {
     darkside(rgb.data, rgb2.data);
@@ -4500,140 +4592,132 @@ function difference(s, cw, ch, fp, context, gl, side=false) {
     darkdiff(rgb.data, rgb2.data);
   }
 
-  context.putImageData(rgb2, 0, 0);
+  ctx.putImageData(rgb2, 0, 0);
 }
 
 var geistauge = false;
-var co = "position:fixed; right:0; top:0; z-index:1; pointer-events:none;"
-var cf = co + "max-height: 100vh; max-width: 100vw;";
-var cs = co;
+var makefit = false;
 var shiftable = false;
-var slideIndex = 1;
-function swap(e) {
-  const t = e.target;
-  let d = document.getElementById("ge");
-  let a = d.dataset.sel.split(", ");
-  if (e.which == 83 && !geistauge) {
-    geistauge = true;
-    d.classList = "previous";
-    d.innerHTML = a[1];
-    t.addEventListener("keyup", function(k) {
-      if(k.which == 83) {
-        d.classList = "next";
-        d.innerHTML = a[0];
-        geistauge = false;
-      }
-    });
-  } else if (e.which == 65 && !geistauge) {
-    geistauge = "reverse";
-    d.classList = "reverse";
-    d.innerHTML = a[2];
-    t.addEventListener("keyup", (k) => {
-      if(k.which == 65) {
-        d.classList = "next";
-        d.innerHTML = a[0];
-        geistauge = false;
-      }
-    });
-  } else if (e.which == 68 && !geistauge) {
-    geistauge = "tangerine";
-    d.classList = "tangerine";
-    d.innerHTML = a[3];
-    t.addEventListener("keyup", (k) => {
-      if(k.which == 68) {
-        d.classList = "next";
-        d.innerHTML = a[0];
-        geistauge = false;
-      }
-    });
-  } else if (e.which == 87 && !geistauge) {
-    geistauge = "edge";
-    d.classList = "edge";
-    d.innerHTML = a[4];
-    t.addEventListener("keyup", (k) => {
-      if(k.which == 87) {
-        d.classList = "next";
-        d.innerHTML = a[0];
-        geistauge = false;
-      }
-    });
-  } else if (e.which == 16 && shiftable) {
-    cs = cf;
-    let tc = document.getElementById("quicklook");
-    if (tc) {
-      tc.style = cs;
+
+function FFkeydown(e) {
+  const a = ge.dataset.sel.split(', ');
+  const { code } = e;
+
+  if (code === 'KeyS') {
+    if (!geistauge) {
+      geistauge = true;
+      ge.classList = 'previous';
+      ge.innerHTML = a[1];
     }
-    let d = document.getElementById("fi");
-    let a = d.dataset.sel.split(", ");
-    d.classList = "previous";
-    d.innerHTML = a[1];
-    document.addEventListener("mouseover", quicklook);
-    t.addEventListener("keyup", (k) => {
-      if (k.which == 16 && shiftable) {
-        d.classList = "tangerine";
-        d.innerHTML = a[2];
-        cs = co
-        let tc = document.getElementById("quicklook");
-        if (tc) {
-          tc.style = cs;
-        }
+  } else if (code === 'KeyA') {
+    if (!geistauge) {
+      geistauge = 'reverse';
+      ge.classList = 'reverse';
+      ge.innerHTML = a[2];
+    }
+  } else if (code === 'KeyD') {
+    if (!geistauge) {
+      geistauge = 'tangerine';
+      ge.classList = 'tangerine';
+      ge.innerHTML = a[3];
+    }
+  } else if (code === 'KeyW') {
+    if (!geistauge) {
+      geistauge = 'edge';
+      ge.classList = 'edge';
+      ge.innerHTML = a[4];
+    }
+  } else if (['ShiftLeft', 'ShiftRight'].includes(code)) {
+    if (shiftable) {
+      makefit = true;
+      const previewer = document.getElementById('previewer');
+      if (previewer) {
+        previewer.classList = 'makefit';
       }
-    });
-  }
-}
 
-document.addEventListener("keydown", swap);
-
-function previewg(e) {
-  let a = e.dataset.sel.split(", ");
-  if (e.classList.contains("next")) {
-    e.classList = "previous";
-    e.innerHTML = a[1];
-    geistauge = true;
-  } else if (e.classList.contains("previous")) {
-    e.classList = "reverse";
-    e.innerHTML = a[2];
-    geistauge = "reverse";
-  } else if (e.classList.contains("reverse")) {
-    e.classList = "tangerine";
-    e.innerHTML = a[3];
-    geistauge = "tangerine";
-  } else if (e.classList.contains("tangerine")) {
-    e.classList = "edge";
-    e.innerHTML = a[4];
-    geistauge = "edge";
+      const a2 = fi.dataset.sel.split(', ');
+      fi.classList = 'previous';
+      fi.innerHTML = a2[1];
+    }
   } else {
-    e.classList = "next";
-    e.innerHTML = a[0];
-    geistauge = false;
+    console.log('Stray keydown', code);
   }
 }
+
+function FFkeyup(e) {
+  const a = ge.dataset.sel.split(', ');
+  const { code } = e;
+
+  if (['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(code)) {
+    ge.classList = 'next';
+    ge.innerHTML = a[0];
+    geistauge = false;
+  } else if (['ShiftLeft', 'ShiftRight'].includes(code)) {
+    if (shiftable) {
+      makefit = false;
+      const previewer = document.getElementById('previewer');
+      if (previewer) {
+        previewer.removeAttribute('class');
+      }
+
+      const a2 = fi.dataset.sel.split(', ');
+      fi.classList = 'tangerine';
+      fi.innerHTML = a2[2];
+    }
+  } else {
+    console.log('Stray keyup', code);
+  }
+}
+
+document.addEventListener('keydown', FFkeydown);
+document.addEventListener('keyup', FFkeyup);
 
 function preview(e) {
-  let a = e.dataset.sel.split(", ");
-  if (e.classList.contains("next")) {
-    e.classList = "previous";
+  const a = e.dataset.sel.split(', ');
+
+  if (e.classList.contains('next')) {
+    e.classList = 'previous';
     e.innerHTML = a[1];
-    document.addEventListener("mouseover", quicklook);
+    document.addEventListener('mouseover', quicklook);
     shiftable = false;
-    cs = cf
-  } else if (e.classList.contains("previous")) {
-    e.classList = "tangerine";
+    makefit = true;
+  } else if (e.classList.contains('previous')) {
+    e.classList = 'tangerine';
     e.innerHTML = a[2];
-    cs = co
+    makefit = false;
     shiftable = true;
-  } else if (e.classList.contains("tangerine")) {
-    e.classList = "next";
-    e.innerHTML = a[0];
-    cs = co
-    document.removeEventListener("mouseover", quicklook);
-    shiftable = false;
   } else {
-    e.classList = "next";
+    e.classList = 'next';
     e.innerHTML = a[0];
-    cs = co
-    document.removeEventListener("mouseover", quicklook);
+    makefit = false;
+    document.removeEventListener('mouseover', quicklook);
     shiftable = false;
+  }
+}
+
+function previewg(e) {
+  const a = e.dataset.sel.split(', ');
+
+  if (e.classList.contains('next')) {
+    e.classList = 'previous';
+    e.innerHTML = a[1];
+    geistauge = true;
+  } else if (e.classList.contains('previous')) {
+    e.classList = 'reverse';
+    e.innerHTML = a[2];
+    geistauge = 'reverse';
+  } else if (e.classList.contains('reverse')) {
+    e.classList = 'tangerine';
+    e.innerHTML = a[3];
+    geistauge = 'tangerine';
+  } else if (e.classList.contains('tangerine')) {
+    e.classList = 'edge';
+    e.innerHTML = a[4];
+    geistauge = 'edge';
+  } else {
+    e.classList = 'next';
+    e.innerHTML = a[0];
+    geistauge = false;
   }
 }
 
@@ -5312,7 +5396,7 @@ def hyperlink(html):
 
 
 
-def updatepart(partfile, relics, htmlpart, filelist, pattern):
+def updatepart(partfile, relics, htmlpart, filelist, pattern, reluctant):
     if "0" in htmlpart and not htmlpart["0"]["html"] and not htmlpart["0"]["files"]:
         del htmlpart["0"]
 
@@ -5338,7 +5422,9 @@ def updatepart(partfile, relics, htmlpart, filelist, pattern):
                         filelist += [[0, file, 0, stray_key]]
                 else:
                     break
-            if not relics[key]["html"] == new_relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
+            if reluctant:
+                part.update({key:relics[key]})
+            elif not relics[key]["html"] == new_relics[key]["html"] or not relics[key]["keywords"] == new_relics[key]["keywords"]:
                 new_stray_files = list(set(relics[key]["files"]).difference(new_relics[key]["files"]))
                 if "stray_files" in relics[key]:
                     new_stray_files += relics[key]["stray_files"]
@@ -6196,7 +6282,7 @@ def read_input(fp):
         if fp.endswith("partition.json"):
             subdir = fp.rsplit("/", 1)[0] + "/"
             htmlname = fp.rsplit("/", 2)[-2]
-            if os.path.exists(p := f"{subdir}{thumbnail_dir}savelink.URL"):
+            if os.path.exists(p := f"{subdir}savelink.URL"):
                 with open(p, 'r') as f:
                     page = f.read().splitlines()[1].replace("URL=", "")
             else:

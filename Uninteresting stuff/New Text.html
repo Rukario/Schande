@@ -2,6 +2,8 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="white">
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="user-scalable=0">
 <style>
@@ -10,6 +12,10 @@
   color-scheme: light dark;
 
   --color-bg: Canvas;
+  --color-bg: #2d0710;
+
+  --color-fg: CanvasText;
+  --color-fg: #f45;
 }
 
 body {
@@ -38,10 +44,11 @@ body {
   line-height: calc(1em + 2px);
 }
 
-a {
+a, a.next {
+  text-decoration: none;
   color: #ff9449;
 
-  &::visited {
+  &:visited {
     color: #ffc66d;
   }
 }
@@ -78,7 +85,7 @@ h1, h2, h3, h4, h5, h6 {
   margin: -1px;
 }
 
-.blink {
+.pulse {
   animation: bl 1000ms linear infinite;
 }
 
@@ -232,10 +239,12 @@ ul {
 0% 68%
 );
 }
-.aczo28 {
-  bottom: 5px;
-  padding: 10px 7px 11px;
-  width: 44px;
+
+  .aczo28 {
+    bottom: 5px;
+    padding: 10px 7px 11px;
+    width: 44px;
+  }
 }
 
 .bloom {
@@ -297,8 +306,8 @@ ul {
 }
 
 .exitmenu {
-  color: #f45;
-  background-color: #2d0710;
+  color: var(--color-fg);
+  background-color: var(--color-bg);
 }
 
 .stdout {
@@ -509,23 +518,37 @@ var FFdown = (e) => {
 
 document.addEventListener("click", FFdown);
 
+const makelink = (t, c) => {
+  const a = document.createElement('A');
+  a.classList = 'next';
+  a.target = '_blank';
+  a.id = c;
+  a.textContent = t;
+  return a;
+}
+
 var FFup = () => {
   const sel = editor.ownerDocument.defaultView.getSelection();
   const len = sel.toString().length;
-  if (link && link.classList.contains("hyperlink")) {
-    link.classList.remove("blink");
-    cursor_tooltip.style.display = "none";
+  if (link && link.classList.contains('hyperlink')) {
+    link.classList.remove('pulse');
+    cursor_tooltip.style.display = 'none';
   }
   link = sel.anchorNode.parentNode;
   let ans = false;
-  if (link.classList.contains("hyperlink")) {
-    link.classList.add("blink");
+  if (link.classList.contains('hyperlink')) {
+    while (cursor_tooltip.firstChild) {
+      cursor_tooltip.lastChild.remove();
+    }
+
+    link.classList.add('pulse');
     where = link.getBoundingClientRect();
-    cursor_tooltip.style.left = (window.scrollX + where.left + 6) + "px";
-    cursor_tooltip.style.top = (window.scrollY + where.top + (where.top < 60?30:-30)) + "px";
-    cursor_tooltip.classList = "next";
-    cursor_tooltip.innerHTML = "<a href='" + link.innerHTML + "' target='_blank' style='text-decoration:none; font-size:12px; font-family:sans-serif;'>Open</a>";
-    cursor_tooltip.style.display = "inline-block";
+    cursor_tooltip.style.left = (window.scrollX + where.left + 6) + 'px';
+    cursor_tooltip.style.top = (window.scrollY + where.top + (where.top < 60 ? 30 : -30)) + 'px';
+    const a = makelink('Open', 'linkitty');
+    a.href = link.textContent;
+    cursor_tooltip.appendChild(a);
+    cursor_tooltip.style.display = 'inline-block';
   } else if (len > 0 && len < 256){
     if (!updatesel){
       updatesel = window.setInterval(() => {
@@ -539,23 +562,23 @@ var FFup = () => {
     try {
       ans = new Function('return ' + sel.toString().replace(/(\r|\n)/g, ""))().toFixed(10)*1;
     } catch {
-      cursor_tooltip.style.display = "none";
+      cursor_tooltip.style.display = 'none';
     }
   } else {
     window.clearInterval(updatesel);
     updatesel = false;
-    cursor_tooltip.style.display = "none";
+    cursor_tooltip.style.display = 'none';
   }
   if (sel.rangeCount) {
     const pos = sel.getRangeAt(0);
     const preCaretRange = pos.cloneRange();
     if (ans !== false) {
       where = preCaretRange.getBoundingClientRect()
-      cursor_tooltip.style.left = (window.scrollX + where.left) + "px";
-      cursor_tooltip.style.top = (window.scrollY + where.top + 36) + "px";
-      cursor_tooltip.classList = "tangerine cursed";
+      cursor_tooltip.style.left = (window.scrollX + where.left) + 'px';
+      cursor_tooltip.style.top = (window.scrollY + where.top + 36) + 'px';
+      cursor_tooltip.classList = 'tangerine cursed';
       cursor_tooltip.innerHTML = "<span style='font-size:14px;'>" + ans + "</span>";
-      cursor_tooltip.style.display = "inline-block";
+      cursor_tooltip.style.display = 'inline-block';
     };
     preCaretRange.selectNodeContents(editor);
     preCaretRange.setEnd(pos.endContainer, pos.endOffset);
@@ -941,10 +964,10 @@ const button = (c, B, callback = echo, args = []) => {
   return d;
 };
 
-const editcell = (B, vis = 'inline-block') => {
+const neweditor = (B, v = true) => {
   const d = document.createElement('DIV');
   d.classList = 'editor';
-  d.style.display = vis;
+  d.style.display = v ? 'inline-block' : 'none';
   d.setAttribute('contenteditable', 'plaintext-only');
   d.spellcheck = false;
   d.innerHTML = B;
@@ -1081,9 +1104,9 @@ function new_editor(utf8 = '<br>', hex = false) {
     destructive.appendChild(option);
   };
 
-  editor = editcell(utf8);
+  editor = neweditor(utf8);
   editor.id = "editor_relic";
-  editdiff = editcell("<br>", "none");
+  editdiff = neweditor("<br>", false);
 
   let left = () => {
     setTimeout(() => {
@@ -1330,7 +1353,7 @@ window.onload = () => {
   document.body.style.lineHeight = scale;
   document.body.style.webkitTextSizeAdjust = adju;
 
-  new URLSearchParams(window.location.search).forEach((val, key) => {
+  for (const [val, key] of new URLSearchParams(window.location.search)) {
     if (!val) {
       if (Number(key)) {
         ut = key;
@@ -1345,7 +1368,7 @@ window.onload = () => {
         filel[4] = key;
       }
     }
-  });
+  };
 
   new_editor();
 

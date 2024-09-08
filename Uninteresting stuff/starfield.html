@@ -4106,7 +4106,7 @@ function joystick_move() {
   const y = mousepos.y - deadzone.y;
 
   givehint = true;
-  drawhint(hint, deadzone.x - cardsize[0]/2, deadzone.y, mousepos.x - cardsize[0]/2, mousepos.y);
+  drawhint(qixscr, deadzone.x - cardsize[0]/2, deadzone.y, mousepos.x - cardsize[0]/2, mousepos.y);
 
   const ks = [];
   if (Math.abs(x)*2 > Math.abs(y)*3) {
@@ -4245,7 +4245,7 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
         for (const k of yeetCodes) {
           pressed(k);
         }
-        hint.style.display = 'none';
+        qixscr.style.display = 'none';
         pressed(yeetCode);
       });
     } else {
@@ -4301,7 +4301,7 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
         for (const k of yeetCodes) {
           pressed(k);
         }
-        hint.style.display = 'none';
+        qixscr.style.display = 'none';
         pressed(code);
       });
     }

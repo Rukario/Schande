@@ -4198,8 +4198,8 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
         if (joystick) {
           const where = KeypressX[joystick[0]].getBoundingClientRect();
           deadzone = {
-            x: where.left + where.width/2,
-            y: where.bottom,
+            x: where.left + where.width/2 + window.visualViewport.offsetLeft,
+            y: where.bottom + window.visualViewport.offsetTop,
           }
         }
         pressed(yeetCode, true);

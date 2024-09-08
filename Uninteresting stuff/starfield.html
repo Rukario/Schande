@@ -3927,11 +3927,10 @@ ${x}px ${y+18}px)`;
     fpsopt.append(newmenu('30 FPS', listener, 30));
     fpsopt.append(newmenu('60 FPS', listener, 60));
     fpsopt.append(newmenu('Unrestricted', listener));
+    poppy.append(newmenu('FPS', submenu, false, fpsopt));
   } else {
-    fpsopt.append(unlock(['FPS (', ')'], 16));
+    poppy.append(unlock(['FPS (', ')'], 16, true));
   }
-
-  poppy.append(newmenu('FPS', submenu, false, fpsopt));
 }
 
 var glyph_cursor = 0;

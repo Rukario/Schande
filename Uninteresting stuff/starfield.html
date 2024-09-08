@@ -726,12 +726,12 @@ function starry(vmsec, msec, vfps) {
     scrTime = performance.now();
     frameCount = 0;
     if (!star.accelerate) {
-      star.delay = vfps;
+      star.delay = (1000 / vmsec).toFixed(2);
     } else if (isFinite(star.delay)) {
       const easein = msec / (star.accelerate * 200);
       const easeout = msec / (vfps * 50) / (star.accelerate * 50 / star.delay);
       const easeinout = Math.min(easein, easeout);
-      star.delay = star.delay / (1 + easeinout);
+      star.delay = star.delay / (1 + easeinout*(vfps/fps.vfps));
     } else {
       star.delay = 60 * vfps;
     }
@@ -933,7 +933,7 @@ function screensaver(resolve) {
       const fps_last = fpshistory.pop();
       const fps_display = Math.floor(1000 * fps_history_slots / (msec - fps_last)).toFixed(2).padStart(3, '0');
       //const fps_display = fps_increase.toFixed(2).padStart(3, '0');
-      result.innerHTML = `Uninterrupted for ${sec} seconds @ ${fps_display} fps`;
+      result.textContent = `Uninterrupted for ${sec} seconds @ ${fps_display} fps`;
     }
 
     const elapsed = now - then;
@@ -3872,12 +3872,21 @@ ${x}px ${y+18}px)`;
   listener = (e, arg) => {
     e.addEventListener(tc, () => {
       if (arg === 2 && scr.paint !== 2) {
+        if (!scr.paint) {
+          star.delay = star.delay*(480/fps.vfps);
+        }
         scr.paint = 2;
         ccolor = 'rgba(0, 0, 0, 0)';
       } else if (arg === 1 && scr.paint !== 1) {
+        if (!scr.paint) {
+          star.delay = star.delay*(480/fps.vfps);
+        }
         scr.paint = 1;
         ccolor = 'rgba(0, 0, 0, 0.1)';
       } else {
+        if (scr.paint) {
+          star.delay = star.delay/(480/fps.vfps);
+        }
         scr.paint = 0;
         ccolor = lastcolor;
       }

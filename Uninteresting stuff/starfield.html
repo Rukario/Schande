@@ -4207,7 +4207,7 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
       keycap.addEventListener('touchmove', (e) => {
         e.preventDefault();
         FFmove(e);
-        if (joystick && mousec.down) {
+        if (joystick) {
           joystick_move();
         }
         const x = e.touches[0].clientX;

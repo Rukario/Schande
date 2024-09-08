@@ -177,7 +177,7 @@ canvas {
   .face {
     color: #088;
 
-    &.pressed, &.wasd {
+    &.pressed, &.joystick {
       color: #fff;
     }
   }
@@ -214,7 +214,7 @@ canvas {
     border-bottom-color: #039;
   }
 
-  &.wasd {
+  &.joystick {
     border-color: #531;
     border-top-color: #642;
     border-bottom-color: #321;
@@ -232,7 +232,7 @@ canvas {
       background: #36c;
     }
 
-    &.wasd {
+    &.joystick {
       background: #a63;
     }
   }
@@ -243,7 +243,7 @@ canvas {
   border-top-color: #a4a2a0;
   border-bottom-color: #817e84;
 
-  &.pressed, &.wasd {
+  &.pressed, &.joystick {
     border-color: #44a;
     border-top-color: #55b;
     border-bottom-color: #339;
@@ -256,7 +256,7 @@ canvas {
     padding: 2px;
     border-radius: 4px;
   
-    &.pressed, &.wasd {
+    &.pressed, &.joystick {
       background: #66c;
     }
   }
@@ -583,7 +583,6 @@ const scr = {
   drift: 1, //0.66
   friction: {x: 2, y: 2},
   paint: false,
-  easeout: true,
 }
 
 var solitaire = false;
@@ -729,13 +728,10 @@ function starry(vmsec, msec, vfps) {
     if (!star.accelerate) {
       star.delay = vfps;
     } else if (isFinite(star.delay)) {
-      if (scr.easeout) {
-        const easeout = msec / (vfps * 50) / (star.accelerate * 50 / star.delay);
-        star.delay = star.delay / (1 + easeout);
-      } else {
-        const easein = msec / (star.accelerate * 200);
-        star.delay = star.delay / (1 + easein);
-      }
+      const easein = msec / (star.accelerate * 200);
+      const easeout = msec / (vfps * 50) / (star.accelerate * 50 / star.delay);
+      const easeinout = Math.min(easein, easeout);
+      star.delay = star.delay / (1 + easeinout);
     } else {
       star.delay = 60 * vfps;
     }
@@ -2965,7 +2961,7 @@ function glyph_update(code) {
 
     jump();
   } else {
-    let key = registerk[code][1];
+    let key = vCode[code][1];
     if (key) {
       editor.textContent += key[glyph_shift-1];
       jump();
@@ -3940,27 +3936,23 @@ ${x}px ${y+18}px)`;
 
 var glyph_cursor = 0;
 var glyph_row = 0;
-function pressed(code, location, down) {
-  if (location) {
-    location = 0;
-  }
+function pressed(code, down) {
 
   if (KeypressX[code]) {
-    //console.log(code, location, down ? 'down' : 'up', 'registered to', KeypressX[code][location].childNodes[0].innerHTML);
+    //console.log(code, down ? 'down' : 'up', 'registered to', KeypressX[code].childNodes[0].innerHTML);
   } else {
-    console.log(code, location, down ? 'down' : 'up', 'registered to', null);
+    console.log(code, down ? 'down' : 'up', 'registered to', null);
     return;
   }
 
   if (down) {
     imawake();
-    const cl = dontyeetWASD ? 'wasd' : 'pressed';
-    KeypressX[code][location].childNodes[0].classList.add(cl);
-    KeypressX[code][location].classList.add(cl);
+    const cl = joystick ? 'joystick' : 'pressed';
+    KeypressX[code].childNodes[0].classList.add(cl);
+    KeypressX[code].classList.add(cl);
     Keypress[code] = true;
 
     // glyph stuff
-
 
     if (['ShiftLeft', 'ShiftRight', 'CapsLock'].includes(code)) {
       glyph_shift = 2;
@@ -3968,8 +3960,8 @@ function pressed(code, location, down) {
       glyph_update(code);
     }
   } else {
-    KeypressX[code][location].childNodes[0].classList.remove('pressed', 'wasd');
-    KeypressX[code][location].classList.remove('pressed', 'wasd');
+    KeypressX[code].childNodes[0].classList.remove('pressed', 'joystick');
+    KeypressX[code].classList.remove('pressed', 'joystick');
     Keypress[code] = false;
 
     // glyph stuff
@@ -3980,22 +3972,22 @@ function pressed(code, location, down) {
 }
 
 function FFkeydown(e) {
-  const { code, location } = e;
-  if (code !== 'F12') {
-    //e.preventDefault();
+  const { code } = e;
+  if (['F5'].some((c) => c === code)) {
+    e.preventDefault();
   }
-  pressed(code, location, true);
+  pressed(code, true);
 }
 
 function FFkeyup(e) {
-  //e.preventDefault();
-  const { code, location} = e;
-  pressed(code, location);
+  const { code } = e;
+  if (['F5'].some((c) => c === code)) {
+    e.preventDefault();
+  }
+  pressed(code);
 }
 
-const KeypressX = {};
-
-const registerk = {
+const vCode = {
   AltLeft: ['Alt', null],
   AltRight: ['Alt', null],
   BracketLeft: ['[ {', '[{'],
@@ -4003,6 +3995,7 @@ const registerk = {
   Backquote: ['` ~', '`~'],
   Backslash: ['\\ |', '\\|'],
   Backspace: ['Backspace', null],
+  Calculator: ['Cal', null],
   CapsLock: ['Caps Lock', null],
   Comma: [', \<', ',\<'],
   ControlLeft: ['Ctrl', null],
@@ -4011,12 +4004,14 @@ const registerk = {
   Enter: ['Enter', '\n'],
   Equal: ['= +', '=+'],
   Escape: ['Esc', null],
-  MetaRight: ['Win', null],
+  Function: ['Fn', null],
   MetaLeft: ['Win', null],
+  MetaRight: ['Win', null],
   Minus: ['- _', '-_'],
   Period: ['. \>', '.\>'],
   Quote: ['\' "', '\'"'],
   Semicolon: ['; :', ';:'],
+  Shamefur: ['Shamefur bar', null],
   ShiftLeft: ['Shift', null],
   ShiftRight: ['Shift', null],
   Slash: ['/ ?', '/?'],
@@ -4049,140 +4044,132 @@ const registerk = {
 };
 
 for (const k of ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12']) {
-  registerk[k] = [k, null];
+  vCode[k] = [k, null];
 }
 
 for (const [n, k] of ['0 )', '1 !', '2 @', '3 #', '4 $', '5 %', '6 ^', '7 &', '8 *', '9 ('].entries()) {
-  registerk['Digit' + n] = [k, k.replace(/ +/, '')];
+  vCode['Digit' + n] = [k, k.replace(/ +/, '')];
 }
 
 for (const k of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')) {
-  registerk['Key' + k] = [k, k];
+  vCode['Key' + k] = [k, k];
 }
 
 for (const n of Array(10).keys()) {
-  registerk['Numpad' + n] = [''+n, ''+n];
+  vCode['Numpad' + n] = [''+n, ''+n];
 }
 
 for (const [n, k] of '←↑→↓'.split('').entries()) {
-  registerk['Arrow' + ['Left', 'Up', 'Right', 'Down'][n]] = [k, null];
+  vCode['Arrow' + ['Left', 'Up', 'Right', 'Down'][n]] = [k, null];
 }
 
-const Keypress = Object.fromEntries(Object.keys(registerk).map((k) => [k[0], false]));
+const Keypress = Object.fromEntries(Object.keys(vCode).map((k) => [k, false]));
+const KeypressX = {};
+var yeet, yeetCode, joystick;
 
-var yeet, yeetCode, dontyeetWASD;
-function drawkeyboard(socket, keycaps, w, c='keycap', logo) {
-  for (const ks of keycaps) {
-    for (const k of ks){
-      const cap = document.createElement('DIV');
-      cap.textContent = k;
-      cap.classList = 'face';
-      if (logo) {
-        cap.classList.add('windo')
-      }
+function drawkeyboard(socket, codes, w, c='keycap', logo) {
+  for (const code of codes) {
+    const cap = document.createElement('DIV');
+    cap.textContent = vCode[code][0];
+    cap.classList = 'face';
+    if (logo) {
+      cap.classList.add('windo')
+    }
 
-      const keycap = document.createElement('DIV');
-      keycap.classList = c;
-      if (w) {
-        cap.style.width = 'calc(100% + 2px)';
-        keycap.style.width = w + 'px';
-      }
-      keycap.appendChild(cap);
+    const keycap = document.createElement('DIV');
+    keycap.classList = c;
+    if (w) {
+      cap.style.width = 'calc(100% + 2px)';
+      keycap.style.width = w + 'px';
+    }
+    keycap.appendChild(cap);
+    keycap.dataset.code = code;
+    KeypressX[code] = keycap;
 
-      const code = Object.keys(registerk).find(kx => registerk[kx][0] === k);
-      keycap.dataset.code = code;
+    if (isTouch) {
+      keycap.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        yeet = keycap.getBoundingClientRect();
+        yeetCode = code;
+        if ('WASD'.split('').some((k) => 'Key' + k === yeetCode)) {
+          joystick = 'WASD';
+        } else {
+          joystick = false;
+        }
+        pressed(yeetCode, true);
+      });
+      keycap.addEventListener('touchmove', (e) => {
+        e.preventDefault();
 
-      if (KeypressX[code]) {
-        KeypressX[code].push(keycap);
-      } else {
-        KeypressX[code] = [keycap];
-      }
+        const x = e.touches[0].clientX;
+        const y = e.touches[0].clientY;
+        const t = document.elementFromPoint(x, y);
+        const newCode = t.dataset.code;
 
-      const location = KeypressX[code].length === 1 ? 0 : KeypressX[code].length;
-      if (isTouch) {
-        keycap.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          yeet = keycap.getBoundingClientRect();
-          yeetCode = code;
-          if ('WASD'.split('').some((k) => 'Key' + k === yeetCode)) {
-            dontyeetWASD = true;
-          } else {
-            dontyeetWASD = false;
-          }
-          pressed(yeetCode, 0, true);
-        });
-        keycap.addEventListener('touchmove', (e) => {
-          e.preventDefault();
+        if (
+          !newCode ||
+          joystick &&
+          !joystick.split('').some((k) => 'Key' + k === newCode)
+        ) {
+          return;
+        }
 
-          const x = e.touches[0].clientX;
-          const y = e.touches[0].clientY;
-
-          const t = document.elementFromPoint(x, y);
-          const newCode = t.dataset.code;
+        const rect = t.getBoundingClientRect();
+        if (Keypress[yeetCode]) {
           if (
-            !newCode ||
-            dontyeetWASD &&
-            'WASD'.split('').every((k) => 'Key' + k !== newCode)
+            x < Math.floor(yeet.left) ||
+            x > Math.ceil(yeet.right) ||
+            y < Math.floor(yeet.top) ||
+            y > Math.ceil(yeet.bottom)
+          ) {
+            pressed(yeetCode, false);
+          }
+        }
+        if (!Keypress[newCode]) {
+          yeet = rect;
+          yeetCode = newCode;
+          pressed(newCode, true);
+        }
+      });
+      keycap.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        pressed(yeetCode, false);
+      });
+    } else {
+      keycap.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        yeetCode = code;
+        if ('WASD'.split('').some((k) => 'Key' + k === yeetCode)) {
+          joystick = 'WASD';
+        } else {
+          joystick = false;
+        }
+        pressed(yeetCode, true);
+      });
+      keycap.addEventListener('mouseenter', (e) => {
+        if (mousec.down) {
+          if (
+            !code ||
+            joystick &&
+            !joystick.split('').some((k) => 'Key' + k === code)
           ) {
             return;
           }
-          const rect = t.getBoundingClientRect();
-          if (Keypress[yeetCode]) {
-            if (
-              x < Math.floor(yeet.left) ||
-              x > Math.ceil(yeet.right) ||
-              y < Math.floor(yeet.top) ||
-              y > Math.ceil(yeet.bottom)
-            ) {
-              pressed(yeetCode, 0, false);
-            }
-          }
-          if (!Keypress[newCode]) {
-            yeet = rect;
-            yeetCode = newCode;
-            pressed(newCode, 0, true);
-          }
-        });
-        keycap.addEventListener('touchend', (e) => {
           e.preventDefault();
-          pressed(yeetCode, 0, false);
-        });
-      } else {
-        keycap.addEventListener('mousedown', (e) => {
-          e.preventDefault();
-          yeetCode = code;
-          if ('WASD'.split('').some((k) => 'Key' + k === yeetCode)) {
-            dontyeetWASD = true;
-          } else {
-            dontyeetWASD = false;
-          }
-          pressed(yeetCode, location, true);
-        });
-        keycap.addEventListener('mouseenter', (e) => {
-          if (mousec.down) {
-            if (
-              !code ||
-              dontyeetWASD &&
-              'WASD'.split('').every((k) => 'Key' + k !== code)
-            ) {
-              return;
-            }
-            e.preventDefault();
-            pressed(code, location, true);
-          }
-        });
-        keycap.addEventListener('mouseleave', (e) => {
-          e.preventDefault();
-          pressed(code, location, false);
-        });
-        keycap.addEventListener('mouseup', (e) => {
-          e.preventDefault();
-          dontyeetWASD = false;
-          pressed(code, location, false);
-        });
-      }
-      socket.appendChild(keycap);
+          pressed(code, true);
+        }
+      });
+      keycap.addEventListener('mouseleave', (e) => {
+        e.preventDefault();
+        pressed(code, false);
+      });
+      keycap.addEventListener('mouseup', (e) => {
+        e.preventDefault();
+        joystick = false;
+        pressed(code, false);
+      });
     }
+    socket.appendChild(keycap);
   }
 }
 
@@ -4269,22 +4256,22 @@ function createkeyboard() {
     DOMwriter = document.createElement('DIV');
     DOMwriter.classList = 'keysocketrow';
     esc.appendChild(DOMwriter);
-    drawkeyboard(DOMwriter, [['Esc']], null, 'keycap2');
+    drawkeyboard(DOMwriter, ['Escape'], null, 'keycap2');
 
     DOMwriter = document.createElement('DIV');
     DOMwriter.classList = 'keysocketrow';
     f1.appendChild(DOMwriter);
-    drawkeyboard(DOMwriter, [['F1', 'F2', 'F3', 'F4']], 31);
+    drawkeyboard(DOMwriter, ['F1', 'F2', 'F3', 'F4'], 31);
 
     DOMwriter = document.createElement('DIV');
     DOMwriter.classList = 'keysocketrow';
     f5.appendChild(DOMwriter);
-    drawkeyboard(DOMwriter, [['F5', 'F6', 'F7', 'F8']], 31, 'keycap2');
+    drawkeyboard(DOMwriter, ['F5', 'F6', 'F7', 'F8'], 31, 'keycap2');
 
     DOMwriter = document.createElement('DIV');
     DOMwriter.classList = 'keysocketrow';
     f9.appendChild(DOMwriter);
-    drawkeyboard(DOMwriter, [['F9', 'F10', 'F11', 'F12']], 31);
+    drawkeyboard(DOMwriter, ['F9', 'F10', 'F11', 'F12'], 31);
   } else {
     //bigger face
     alphakeys = keysocket(0, 0, 'calc(100% - 6px)');
@@ -4295,51 +4282,71 @@ function createkeyboard() {
   DOMwriter.classList = 'keysocketrow';
   alphakeys.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, [['` ~', '1 !', '2 @', '3 #', '4 $', '5 %', '6 ^', '7 &', '8 *', '9 (', '0 )', '- _', '= +']], 31);
-  drawkeyboard(DOMwriter, [['Backspace']], 88, 'keycap2');
+  let keys = [];
+  for (const k of Array(9).keys()) {
+    keys.push('Digit' + (k + 1));
+  }
+  
+  drawkeyboard(DOMwriter, ['Backquote', ...keys, 'Digit0', 'Minus', 'Equal'], 31);
+  drawkeyboard(DOMwriter, ['Backspace'], 88, 'keycap2');
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
   alphakeys.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, [['Tab']], 58, 'keycap2');
-  drawkeyboard(DOMwriter, ['QWERTYUIOP', ['[ {', '] }']], 31);
-  drawkeyboard(DOMwriter, [['\\ |']], 59);
+  keys = [];
+  for (const k of 'QWERTYUIOP') {
+    keys.push('Key' + k);
+  }
+
+  drawkeyboard(DOMwriter, ['Tab'], 58, 'keycap2');
+  drawkeyboard(DOMwriter, [...keys, 'BracketLeft', 'BracketRight'], 31);
+  drawkeyboard(DOMwriter, ['Backslash'], 59);
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
   alphakeys.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, [['Caps Lock']], 68, 'keycap2');
-  drawkeyboard(DOMwriter, ['ASDFGHJKL', ['; :', '\' "']], 31);
-  drawkeyboard(DOMwriter, [['Enter']], 100, 'keycap2');
+  keys = [];
+  for (const k of 'ASDFGHJKL') {
+    keys.push('Key' + k);
+  }
+
+  drawkeyboard(DOMwriter, ['CapsLock'], 68, 'keycap2');
+  drawkeyboard(DOMwriter, [...keys, 'Semicolon', 'Quote'], 31);
+  drawkeyboard(DOMwriter, ['Enter'], 100, 'keycap2');
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
   alphakeys.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, [['Shift']], 95, 'keycap2');
-  drawkeyboard(DOMwriter, ['ZXCVBNM', [', <', '. >', '/ ?']], 31);
-  drawkeyboard(DOMwriter, [['Shift']], 124, 'keycap2');
+  keys = [];
+  for (const k of 'ZXCVBNM') {
+    keys.push('Key' + k);
+  }
+
+  drawkeyboard(DOMwriter, ['ShiftLeft'], 95, 'keycap2');
+  drawkeyboard(DOMwriter, [...keys, 'Comma', 'Period', 'Slash'], 31);
+  drawkeyboard(DOMwriter, ['ShiftRight'], 124, 'keycap2');
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
   alphakeys.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, [['Ctrl']], 43, 'keycap2');
-  drawkeyboard(DOMwriter, [['Win']], 43, 'keycap2', true);
-  drawkeyboard(DOMwriter, [['Alt']], 43, 'keycap2');
-  drawkeyboard(DOMwriter, [['Space']], 296);
-  drawkeyboard(DOMwriter, [['Alt']], 43, 'keycap2');
-  drawkeyboard(DOMwriter, [['Win']], 43, 'keycap2', true);
-  drawkeyboard(DOMwriter, [['Fn']], 43, 'keycap2');
-  drawkeyboard(DOMwriter, [['Ctrl']], 43, 'keycap2');
+  drawkeyboard(DOMwriter, ['ControlLeft'], 43, 'keycap2');
+  drawkeyboard(DOMwriter, ['MetaLeft'], 43, 'keycap2', true);
+  drawkeyboard(DOMwriter, ['AltLeft'], 43, 'keycap2');
+  drawkeyboard(DOMwriter, ['Space'], 296);
+  drawkeyboard(DOMwriter, ['AltRight'], 43, 'keycap2');
+  drawkeyboard(DOMwriter, ['MetaRight'], 43, 'keycap2', true);
+  drawkeyboard(DOMwriter, ['Function'], 43, 'keycap2');
+  drawkeyboard(DOMwriter, ['ControlRight'], 43, 'keycap2');
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
   shamefurbar.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, [['Shamefur bar']], '100%');
+  drawkeyboard(DOMwriter, ['Shamefur'], '100%');
 
 
 
@@ -4356,7 +4363,7 @@ function createkeyboard() {
   DOMwriter.classList = 'keysocketrow';
   homekeys2.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, [['PrtSc', 'ScrLk', 'Pause']], 31, 'keycap2');
+  drawkeyboard(DOMwriter, ['PrintScreen', 'ScrollLock', 'Pause'], 31, 'keycap2');
 
 
 
@@ -4364,13 +4371,13 @@ function createkeyboard() {
   DOMwriter.classList = 'keysocketrow';
   homekeys.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, [['Ins', 'Home', 'PgUp']], 31, 'keycap2');
+  drawkeyboard(DOMwriter, ['Insert', 'Home', 'PageUp'], 31, 'keycap2');
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
   homekeys.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, [['Del', 'End', 'PgDn']], 31, 'keycap2');
+  drawkeyboard(DOMwriter, ['Delete', 'End', 'PageDown'], 31, 'keycap2');
 
 
   DOMwriter = document.createElement('DIV');
@@ -4382,7 +4389,7 @@ function createkeyboard() {
   plate.classList = 'plate right';
   DOMwriter.appendChild(plate);
 
-  drawkeyboard(DOMwriter, ['↑'], 31, 'keycap2');
+  drawkeyboard(DOMwriter, ['ArrowUp'], 31, 'keycap2');
 
   plate = document.createElement('DIV');
   plate.innerHTML = '&nbsp;';
@@ -4395,7 +4402,7 @@ function createkeyboard() {
   DOMwriter.classList = 'keysocketrow';
   arrows.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, ['←', '↓', '→'], 31, 'keycap2');
+  drawkeyboard(DOMwriter, ['ArrowLeft', 'ArrowDown', 'ArrowRight'], 31, 'keycap2');
 
 
 
@@ -4403,7 +4410,7 @@ function createkeyboard() {
   DOMwriter.classList = 'keysocketrow';
   shamefurbar2.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, [['Shamefur bar']], '100%');
+  drawkeyboard(DOMwriter, ['Shamefur'], '100%');
 
 
 
@@ -4413,38 +4420,38 @@ function createkeyboard() {
   shamefurbar3 = keysocket(0, 12, 'calc(100% - 6px)');
   keydiv([numpad2, null, numpad, null, shamefurbar3], 6, null, 'var(--large)');
 
-  drawkeyboard(numpad2, [['Cal', 'Mute', 'Dec', 'Inc']], 31, 'keycap2');
-  drawkeyboard(numpad, [['Num'], '/', '*', '-'], 31, 'keycap2');
+  drawkeyboard(numpad2, ['Calculator', 'VolumeMute', 'VolumeDown', 'VolumeUp'], 31, 'keycap2');
+  drawkeyboard(numpad, ['NumLock', 'NumpadDivide', 'NumpadMultiply', 'NumpadSubtract'], 31, 'keycap2');
 
   DOMwriter = document.createElement('BR');
   numpad.appendChild(DOMwriter);
 
-  drawkeyboard(numpad, ['7', '8', '9'], 31);
+  drawkeyboard(numpad, ['Numpad7', 'Numpad8', 'Numpad9'], 31);
 
-  drawkeyboard(numpad, [['+']], 31, 'keycap2');
-  let key = KeypressX['NumpadAdd'][0];
+  drawkeyboard(numpad, ['NumpadAdd'], 31, 'keycap2');
+  let key = KeypressX['NumpadAdd'];
   key.childNodes[0].style.height = '84px';
   key.style.float = 'right';
 
   DOMwriter = document.createElement('BR');
   numpad.appendChild(DOMwriter);
 
-  drawkeyboard(numpad, ['4', '5', '6'], 31);
+  drawkeyboard(numpad, ['Numpad4', 'Numpad5', 'Numpad6'], 31);
 
   DOMwriter = document.createElement('BR');
   numpad.appendChild(DOMwriter);
 
-  drawkeyboard(numpad, ['1', '2', '3'], 31);
-  drawkeyboard(numpad, [['Enter']], 31, 'keycap2');
-  key = KeypressX['Enter'][1];
+  drawkeyboard(numpad, ['Numpad1', 'Numpad2', 'Numpad3'], 31);
+  drawkeyboard(numpad, ['NumpadEnter'], 31, 'keycap2');
+  key = KeypressX['NumpadEnter'];
   key.childNodes[0].style.height = '84px';
   key.style.float = 'right';
 
   DOMwriter = document.createElement('BR');
   numpad.appendChild(DOMwriter);
 
-  drawkeyboard(numpad, ['0'], 84);
-  drawkeyboard(numpad, ['.'], 31);
+  drawkeyboard(numpad, ['Numpad0'], 84);
+  drawkeyboard(numpad, ['NumpadDecimal'], 31);
 
 
 
@@ -4452,7 +4459,7 @@ function createkeyboard() {
   DOMwriter.classList = 'keysocketrow';
   shamefurbar3.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, [['Shamefur bar']], '100%');
+  drawkeyboard(DOMwriter, ['Shamefur'], '100%');
 }
 
 function resize() {

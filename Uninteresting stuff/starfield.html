@@ -4196,7 +4196,7 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
           joystick = false;
         }
         if (joystick) {
-          const where = KeypressX['Key' + joystick[0]].getBoundingClientRect();
+          const where = KeypressX[joystick[0]].getBoundingClientRect();
           deadzone = {
             x: where.left + where.width/2,
             y: where.bottom,

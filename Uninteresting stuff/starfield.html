@@ -243,10 +243,16 @@ canvas {
   border-top-color: #a4a2a0;
   border-bottom-color: #817e84;
 
-  &.pressed, &.joystick {
+  &.pressed {
     border-color: #44a;
     border-top-color: #55b;
     border-bottom-color: #339;
+  }
+
+  &.joystick {
+    border-color: #a70;
+    border-top-color: #ec6;
+    border-bottom-color: #630;
   }
 
   .face {
@@ -256,8 +262,12 @@ canvas {
     padding: 2px;
     border-radius: 4px;
   
-    &.pressed, &.joystick {
+    &.pressed {
       background: #66c;
+    }
+
+    &.joystick {
+      background: #ca5;
     }
   }
 }
@@ -267,7 +277,7 @@ canvas {
   pointer-events: none;
   width: 100% /*738px*/;
   height: 100% /*400px*/;
-  z-index: 1;
+  z-index: 3;
 }
 
 .hint {
@@ -4081,9 +4091,23 @@ var deadzone = {
   y: 0,
 };
 
+const wasd = [];
+for (const k of 'WASD') {
+  wasd.push('Key' + k);
+}
+const tfgh = [];
+for (const k of 'TFGH') {
+  tfgh.push('Key' + k);
+}
+const arrowks = ['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight'];
+
 function joystick_move() {
   const x = mousepos.x - deadzone.x;
   const y = mousepos.y - deadzone.y;
+
+  givehint = true;
+  drawhint(hint, deadzone.x - cardsize[0]/2, deadzone.y, mousepos.x - cardsize[0]/2, mousepos.y);
+
   const ks = [];
   if (Math.abs(x)*2 > Math.abs(y)*3) {
     //horizontal
@@ -4126,13 +4150,13 @@ function joystick_move() {
   ) {
     for (const k of yeetCodes) {
       if (!ks.includes(k)) {
-        pressed('Key' + k);
+        pressed(k);
       }
     }
     yeetCodes = ks;
     for (const k of ks) {
-      if (!Keypress['Key' + k]) {
-        pressed('Key' + k, true);
+      if (!Keypress[k]) {
+        pressed(k, true);
       }
     }
   }
@@ -4162,10 +4186,12 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
         e.preventDefault();
         yeet = keycap.getBoundingClientRect();
         yeetCode = code;
-        if ('WASD'.split('').some((k) => 'Key' + k === yeetCode)) {
-          joystick = 'WASD';
-        } else if ('TFGH'.split('').some((k) => 'Key' + k === yeetCode)) {
-          joystick = 'TFGH';
+        if (wasd.some((k) => k === yeetCode)) {
+          joystick = wasd;
+        } else if (tfgh.some((k) => k === yeetCode)) {
+          joystick = tfgh;
+        } else if (arrowks.some((k) => k === yeetCode)) {
+          joystick = arrowks;
         } else {
           joystick = false;
         }
@@ -4191,7 +4217,7 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
         if (
           !newCode ||
           joystick &&
-          !joystick.split('').some((k) => 'Key' + k === newCode)
+          !joystick.some((k) => k === newCode)
         ) {
           return;
         }
@@ -4215,21 +4241,29 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
       });
       keycap.addEventListener('touchend', (e) => {
         e.preventDefault();
+        joystick = false;
+        for (const k of yeetCodes) {
+          pressed(k);
+        }
+        hint.style.display = 'none';
         pressed(yeetCode);
       });
     } else {
       keycap.addEventListener('mousedown', (e) => {
         e.preventDefault();
         yeetCode = code;
-        if ('WASD'.split('').some((k) => 'Key' + k === yeetCode)) {
-          joystick = 'WASD';
-        } else if ('TFGH'.split('').some((k) => 'Key' + k === yeetCode)) {
-          joystick = 'TFGH';
+
+        if (wasd.some((k) => k === yeetCode)) {
+          joystick = wasd;
+        } else if (tfgh.some((k) => k === yeetCode)) {
+          joystick = tfgh;
+        } else if (arrowks.some((k) => k === yeetCode)) {
+          joystick = arrowks;
         } else {
           joystick = false;
         }
         if (joystick) {
-          const where = KeypressX['Key' + joystick[0]].getBoundingClientRect();
+          const where = KeypressX[joystick[0]].getBoundingClientRect();
           deadzone = {
             x: where.left + where.width/2,
             y: where.bottom,
@@ -4248,7 +4282,7 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
           if (
             !code ||
             joystick &&
-            !joystick.split('').some((k) => 'Key' + k === code)
+            !joystick.some((k) => k === code)
           ) {
             return;
           }
@@ -4265,8 +4299,9 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
         e.preventDefault();
         joystick = false;
         for (const k of yeetCodes) {
-          pressed('Key' + k);
+          pressed(k);
         }
+        hint.style.display = 'none';
         pressed(code);
       });
     }

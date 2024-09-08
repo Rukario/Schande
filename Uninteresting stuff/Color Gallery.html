@@ -41,12 +41,13 @@ body {
   white-space: pre-wrap;
 }
 
-a {
+a, a.next {
+  text-decoration: none;
   color: #ccbb77;
-}
 
-a:visited {
-  color: #efdfa8;
+  &:visited {
+    color: #efdfa8;
+  }
 }
 
 img {
@@ -86,7 +87,7 @@ h1, h2, h3, h4, h5, h6 {
   margin: -1px;
 }
 
-.blink {animation: bl 1000ms linear infinite;}
+.pulse {animation: bl 1000ms linear infinite;}
 @keyframes bl{0%{opacity:100%;} 50%{opacity:50%;} 100%{opacity:100%;}}
 
 input[type="text"] {
@@ -307,6 +308,7 @@ ul {
   color: #9b859d;
   background-color: #110c13;
   border: 2px solid #221926;
+  display: inline-block;
   padding: 6px;
   min-height: 0px;
 }
@@ -511,9 +513,9 @@ function makedots(cs, pos) {
     var bt = r2;
     var tr = '';
     var st = '';
-    if (r2%4 == 2){
+    if (r2%4 == 2) {
       tr = 'semi-translucent ';
-    } else if (r2%4 === 3){
+    } else if (r2%4 === 3) {
       tr = 'translucent ';
     }
     if (r2 > 7) {
@@ -529,7 +531,7 @@ function makedots(cs, pos) {
       bc = '#556';
       bt += 1;
     }
-    if (r3 == 2){
+    if (r3 == 2) {
       if (creative && creative.classList.contains('previous')) {
         pos += 3;
         continue;
@@ -947,7 +949,7 @@ function FFdown(e) {
     link.classList.remove('tang');
     gallery_tooltip.style.display = 'none';
 
-    link.classList.remove('blink');
+    link.classList.remove('pulse');
     cursor_tooltip.style.display = 'none';
   }
 
@@ -1244,7 +1246,7 @@ function FFup() {
   let len = sel.toString().length;
   let pos = sel.getRangeAt(0);
   if (link && link.classList.contains('hyperlink')) {
-    link.classList.remove('blink');
+    link.classList.remove('pulse');
     cursor_tooltip.style.display = 'none';
   }
   link = sel.anchorNode.parentNode;
@@ -1255,7 +1257,7 @@ function FFup() {
   }
 
   if (link.classList.contains('hyperlink')) {
-    link.classList.add('blink');
+    link.classList.add('pulse');
     where = link.getBoundingClientRect();
     cursor_tooltip.style.left = (window.scrollX + where.left + 6) + 'px';
     cursor_tooltip.style.top = (window.scrollY + where.top + (where.top < 60 ? 30 : -30)) + 'px';
@@ -1468,6 +1470,24 @@ var rainbow = [];
 var rainbowfade = false;
 const isTouch = 'ontouchstart' in window;
 
+const neweditor = (v = true) => {
+  const d = document.createElement('DIV');
+  d.classList = 'editor';
+  d.style.display = v ? 'inline-block' : 'none';
+  d.setAttribute('contenteditable', 'plaintext-only');
+  d.spellcheck = false;
+  d.innerHTML = '<br>';
+
+  if (!d.isContentEditable) {
+    d.setAttribute('contenteditable', true);
+    d.addEventListener('paste', (e) => {
+      plaintext(e);
+    });
+  }
+
+  return d;
+}
+
 window.onload = () => {
   while (document.body.firstChild) {
     document.body.lastChild.remove();
@@ -1483,24 +1503,6 @@ window.onload = () => {
     a.id = c;
     a.textContent = t;
     return a;
-  }
-
-  const neweditor = (v = true) => {
-    const d = document.createElement('DIV');
-    d.classList = 'editor';
-    d.style.display = v ? 'inline-block' : 'none';
-    d.setAttribute('contenteditable', 'plaintext-only');
-    d.spellcheck = false;
-    d.innerHTML = '<br>';
-
-    if (!d.isContentEditable) {
-      d.setAttribute('contenteditable', true);
-      d.addEventListener('paste', (e) => {
-        plaintext(e);
-      });
-    }
-
-    return d;
   }
 
 

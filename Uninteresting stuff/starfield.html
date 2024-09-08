@@ -4065,6 +4065,66 @@ for (const [n, k] of '←↑→↓'.split('').entries()) {
 const Keypress = Object.fromEntries(Object.keys(vCode).map((k) => [k, false]));
 const KeypressX = {};
 var yeet, yeetCode, joystick;
+var yeetCodes = [];
+var deadzone = {
+  x: 0,
+  y: 0,
+};
+
+function joystick_move() {
+  const x = mousepos.x - deadzone.x;
+  const y = mousepos.y - deadzone.y;
+  const ks = [];
+  if (Math.abs(x)*2 > Math.abs(y)*3) {
+    //horizontal
+    if (x > 0) {
+      ks.push(joystick[3]);
+    } else {
+      ks.push(joystick[1]);
+    }
+  } else if (Math.abs(x)*3 > Math.abs(y)*2) {
+    //diagonal
+    if (x > 0) {
+      if (y > 0) {
+        ks.push(joystick[2]);
+        ks.push(joystick[3]);
+      } else {
+        ks.push(joystick[0]);
+        ks.push(joystick[3]);
+      }
+    } else {
+      if (y > 0) {
+        ks.push(joystick[2]);
+        ks.push(joystick[1]);
+      } else {
+        ks.push(joystick[0]);
+        ks.push(joystick[1]);
+      }
+    }
+  } else {
+    //vertical
+    if (y > 0) {
+      ks.push(joystick[2]);
+    } else {
+      ks.push(joystick[0]);
+    }
+  }
+
+  if (
+    yeetCodes.length !== ks.length ||
+    yeetCodes.some((ele, idx) => ele !== ks[idx])
+  ) {
+    for (const k of yeetCodes) {
+      pressed('Key' + k);
+    }
+    yeetCodes = ks;
+    for (const k of ks) {
+      if (!Keypress['Key' + k]) {
+        pressed('Key' + k, true);
+      }
+    }
+  }
+}
 
 function drawkeyboard(socket, codes, w, c='keycap', logo) {
   for (const code of codes) {
@@ -4092,13 +4152,24 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
         yeetCode = code;
         if ('WASD'.split('').some((k) => 'Key' + k === yeetCode)) {
           joystick = 'WASD';
+        } else if ('TFGH'.split('').some((k) => 'Key' + k === yeetCode)) {
+          joystick = 'TFGH';
         } else {
           joystick = false;
+        }
+        if (joystick) {
+          const where = KeypressX['Key' + joystick[0]].getBoundingClientRect();
+          deadzone = {
+            x: where.left + where.width/2,
+            y: where.bottom,
+          }
         }
         pressed(yeetCode, true);
       });
       keycap.addEventListener('touchmove', (e) => {
         e.preventDefault();
+        FFmove(e);
+        joystick_move();
 
         const x = e.touches[0].clientX;
         const y = e.touches[0].clientY;
@@ -4121,7 +4192,7 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
             y < Math.floor(yeet.top) ||
             y > Math.ceil(yeet.bottom)
           ) {
-            pressed(yeetCode, false);
+            pressed(yeetCode);
           }
         }
         if (!Keypress[newCode]) {
@@ -4132,7 +4203,7 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
       });
       keycap.addEventListener('touchend', (e) => {
         e.preventDefault();
-        pressed(yeetCode, false);
+        pressed(yeetCode);
       });
     } else {
       keycap.addEventListener('mousedown', (e) => {
@@ -4140,13 +4211,28 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
         yeetCode = code;
         if ('WASD'.split('').some((k) => 'Key' + k === yeetCode)) {
           joystick = 'WASD';
+        } else if ('TFGH'.split('').some((k) => 'Key' + k === yeetCode)) {
+          joystick = 'TFGH';
         } else {
           joystick = false;
         }
+        if (joystick) {
+          const where = KeypressX['Key' + joystick[0]].getBoundingClientRect();
+          deadzone = {
+            x: where.left + where.width/2,
+            y: where.bottom,
+          }
+        }
         pressed(yeetCode, true);
+      });
+      keycap.addEventListener('mousemove', () => {
+        if (joystick && mousec.down) {
+          joystick_move();
+        }
       });
       keycap.addEventListener('mouseenter', (e) => {
         if (mousec.down) {
+          e.preventDefault();
           if (
             !code ||
             joystick &&
@@ -4154,18 +4240,19 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
           ) {
             return;
           }
-          e.preventDefault();
           pressed(code, true);
         }
       });
       keycap.addEventListener('mouseleave', (e) => {
         e.preventDefault();
-        pressed(code, false);
+        if (!joystick && mousec.down) {
+          pressed(code);
+        }
       });
       keycap.addEventListener('mouseup', (e) => {
         e.preventDefault();
         joystick = false;
-        pressed(code, false);
+        pressed(code);
       });
     }
     socket.appendChild(keycap);

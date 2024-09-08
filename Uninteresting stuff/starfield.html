@@ -215,9 +215,9 @@ canvas {
   }
 
   &.joystick {
-    border-color: #531;
-    border-top-color: #642;
-    border-bottom-color: #321;
+    border-color: #521;
+    border-top-color: #621;
+    border-bottom-color: #310;
   }
 
   .face {
@@ -233,7 +233,7 @@ canvas {
     }
 
     &.joystick {
-      background: #a63;
+      background: #a53;
     }
   }
 }
@@ -877,6 +877,7 @@ win.addEventListener('load', () => {
 });
 
 var currentFrame = 0;
+var movingsc = 1;
 function movingphoto() {
   //context.fillStyle = "#000";
   //context.fillRect(0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
@@ -893,15 +894,15 @@ function movingphoto() {
   //  canvas.height // dHeight
   //);
 
-  for (let y = 0; y < canvas.height; y += picturetomove.height) {
-    for (let x = currentFrame; x < canvas.width; x += picturetomove.width) {
-      context.drawImage(picturetomove, x, y, picturetomove.width, picturetomove.height);
+  for (let y = 0; y < canvas.height; y += picturetomove.height*movingsc) {
+    for (let x = currentFrame; x < canvas.width; x += picturetomove.width*movingsc) {
+      context.drawImage(picturetomove, x, y, picturetomove.width*movingsc, picturetomove.height*movingsc);
     }
   }
 
   currentFrame = currentFrame + 960/fps.vfps;
   if (currentFrame > 0) {
-    currentFrame = currentFrame - picturetomove.width;
+    currentFrame = currentFrame - picturetomove.width*movingsc;
   }
 }
 
@@ -1664,7 +1665,7 @@ function sol() {
       };
       award(1, "So there's no more face-down cards, at this point the next card movement is unlosable and you also have earned the winning point.<br>You can restart the solitaire because you've won.");
       award(2, "No more face-down cards or cards to draw means you've won for Solitaire with draw 3 cards. You can restart the solitaire now that you have earned the winning point.\n\nNew screensaver: Starfield");
-      award(16, "New test suite: Moving photo\n\nNew option: FPS");
+      award(16, "New test suite: Moving photo\n\nNew option: Frame rate");
       award(24, "New screensaver: More stars");
       award(32, "New mode: Fly");
       award(64, "New mode: Glide\n\nNew option: Star speed");
@@ -3935,10 +3936,10 @@ ${x}px ${y+18}px)`;
     fpsopt.append(newmenu('20 FPS', listener, 20));
     fpsopt.append(newmenu('30 FPS', listener, 30));
     fpsopt.append(newmenu('60 FPS', listener, 60));
-    fpsopt.append(newmenu('Unrestricted', listener));
-    poppy.append(newmenu('FPS', submenu, false, fpsopt));
+    fpsopt.append(newmenu('FPS = Hz', listener));
+    poppy.append(newmenu('Frame rate', submenu, false, fpsopt));
   } else {
-    poppy.append(unlock(['FPS (', ')'], 16, true));
+    poppy.append(unlock(['Frame rate (', ')'], 16, true));
   }
 }
 
@@ -4124,7 +4125,9 @@ function joystick_move() {
     yeetCodes.some((ele, idx) => ele !== ks[idx])
   ) {
     for (const k of yeetCodes) {
-      pressed('Key' + k);
+      if (!ks.includes(k)) {
+        pressed('Key' + k);
+      }
     }
     yeetCodes = ks;
     for (const k of ks) {
@@ -4261,6 +4264,9 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
       keycap.addEventListener('mouseup', (e) => {
         e.preventDefault();
         joystick = false;
+        for (const k of yeetCodes) {
+          pressed('Key' + k);
+        }
         pressed(code);
       });
     }

@@ -74,12 +74,29 @@ canvas {
 
   display: none;
   position: absolute;
-  bottom: 0px;
+  bottom: 42px;
   z-index: 2;
   background: var(--color-keyboard);
   border-radius: 4px;
   padding: 8px;
   vertical-align: text-top;
+
+  &::after {
+    content: 'SHAMEFUL BAR';
+    white-space: pre-wrap;
+    font-weight: 700;
+    text-align: center;
+    color: #b9c;
+    display: inline-block;
+    left: 0px;
+    bottom: -42px;
+    position: absolute;
+    width: calc(100% - 2px);
+    background-color: #dbe;
+    height: 40px;
+    border-radius: 2px;
+    border: 1px solid #b9c;
+  }
 }
 
 .plate {
@@ -174,7 +191,13 @@ canvas {
   border-style: solid;
   border-radius: 3px;
 
+  border-top-width: 5px;
+  border-left-width: 10px;
+  border-right-width: 10px;
+  border-bottom-width: 11px;
+
   .face {
+    height: 34px;
     color: #088;
 
     &.pressed, &.joystick {
@@ -183,22 +206,16 @@ canvas {
   }
 
   @media (width < 796px) {
-    border-top-width: 4px;
-    border-left-width: 6px;
-    border-right-width: 6px;
-    border-bottom-width: 9px;
+    border-top-width: 8px;
+    border-left-width: 14px;
+    border-right-width: 14px;
+    border-bottom-width: 16px;
     .face {
-      height: 40px;
+      height: 48px;
+      font-size: 15px;
     }
-  }
-
-  @media (width >= 796px) {
-    border-top-width: 5px;
-    border-left-width: 10px;
-    border-right-width: 10px;
-    border-bottom-width: 11px;
-    .face {
-      height: 34px;
+    &.cripple {
+      display: none;
     }
   }
 }
@@ -2736,14 +2753,14 @@ const FFup = (e_) => {
 
 
 var rightc = (e_) => {
-  if (e_.getModifierState('CapsLock')) {
-    pressed('CapsLock', true);
-  } else {
-    pressed('CapsLock');
-  }
-
   if (isTouch && e_.touches.length > 1) {
     return;
+  } else if (!isTouch) {
+    if (e_.getModifierState('CapsLock')) {
+      pressed('CapsLock', true);
+    } else {
+      pressed('CapsLock');
+    }
   }
 
   for (const p of document.querySelectorAll('.poppywin')) {
@@ -4025,27 +4042,27 @@ function FFkeyup(e) {
 const vCode = {
   AltLeft: ['Alt', null],
   AltRight: ['Alt', null],
-  BracketLeft: ['[ {', '[{'],
-  BracketRight: ['] }', ']}'],
+  BracketLeft: ['[ {', '[{', true],
+  BracketRight: ['] }', ']}', true],
   Backquote: ['` ~', '`~'],
   Backslash: ['\\ |', '\\|'],
   Backspace: ['Backspace', null],
   Calculator: ['Cal', null],
   CapsLock: ['Caps Lock', null],
-  Comma: [', \<', ',\<'],
+  Comma: [', \<', ',\<', true],
   ControlLeft: ['Ctrl', null],
   ControlRight: ['Ctrl', null],
   ContextMenu: ['CM', null],
   Enter: ['Enter', '\n'],
-  Equal: ['= +', '=+'],
+  Equal: ['= +', '=+', true],
   Escape: ['Esc', null],
   Function: ['Fn', null],
   MetaLeft: ['Win', null],
   MetaRight: ['Win', null],
-  Minus: ['- _', '-_'],
-  Period: ['. \>', '.\>'],
-  Quote: ['\' "', '\'"'],
-  Semicolon: ['; :', ';:'],
+  Minus: ['- _', '-_', true],
+  Period: ['. \>', '.\>', true],
+  Quote: ['\' "', '\'"', true],
+  Semicolon: ['; :', ';:', true],
   Shamefur: ['Shamefur bar', null],
   ShiftLeft: ['Shift', null],
   ShiftRight: ['Shift', null],
@@ -4189,6 +4206,9 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
 
     const keycap = document.createElement('DIV');
     keycap.classList = c;
+    if (vCode[code][2]) {
+      keycap.classList.add('cripple');
+    }
     if (w) {
       cap.style.width = 'calc(100% + 2px)';
       keycap.style.width = w + 'px';
@@ -4405,7 +4425,7 @@ function createkeyboard() {
       d.style.width = '100%';
     }
 
-    keyboard.append(d);
+    return d;
   }
 
   const keysocket = (right, top, w) => {
@@ -4429,40 +4449,46 @@ function createkeyboard() {
 
 
   // catastrophe viewports
-  shamefurbar = keysocket(0, 12, 'calc(100% - 6px)');
+  //shamefurbar = keysocket(0, 12, 'calc(100% - 6px)');
 
-  if (window.screen.width > 800) {
-    esc = keysocket(44, 0, 'calc(5% + 12px)');
-    f1 = keysocket(24, 0, 'calc(32% - 46px)');
-    f5 = keysocket(24, 0, 'calc(32% - 46px)');
-    f9 = keysocket(0, 0, 'calc(32% - 46px)');
-    alphakeys = keysocket(0, 12, 'calc(100% - 6px)');
-    keydiv([esc, f1, f5, f9, null, alphakeys, null, shamefurbar], 0, '779px');
+  esc = keysocket(44, 0, 'calc(5% + 12px)');
+  f1 = keysocket(24, 0, 'calc(32% - 46px)');
+  f5 = keysocket(24, 0, 'calc(32% - 46px)');
+  f9 = keysocket(0, 0, 'calc(32% - 46px)');
+  alphakeys = keysocket(0, 12, 'calc(100% - 6px)');
 
-    DOMwriter = document.createElement('DIV');
-    DOMwriter.classList = 'keysocketrow';
-    esc.appendChild(DOMwriter);
-    drawkeyboard(DOMwriter, ['Escape'], null, 'keycap2');
+  basekb = document.createElement('DIV');
+  basekb.style.width = '779px';
+  basekb.style.maxWidth = '100%';
+  basekb.style.display = 'inline-block';
+  keyboard.append(basekb);
 
-    DOMwriter = document.createElement('DIV');
-    DOMwriter.classList = 'keysocketrow';
-    f1.appendChild(DOMwriter);
-    drawkeyboard(DOMwriter, ['F1', 'F2', 'F3', 'F4'], 31);
+  DOMwriter = keydiv([esc, f1, f5, f9, null], 0, '779px', 'var(--med)');
+  DOMwriter.style.paddingBottom = '12px';
+  basekb.append(DOMwriter);
 
-    DOMwriter = document.createElement('DIV');
-    DOMwriter.classList = 'keysocketrow';
-    f5.appendChild(DOMwriter);
-    drawkeyboard(DOMwriter, ['F5', 'F6', 'F7', 'F8'], 31, 'keycap2');
+  alphakeys = keysocket(0, 0, 'calc(100% - 6px)');
+  basekb.append(keydiv([alphakeys], 0, '779px')); // null, shamefurbar
 
-    DOMwriter = document.createElement('DIV');
-    DOMwriter.classList = 'keysocketrow';
-    f9.appendChild(DOMwriter);
-    drawkeyboard(DOMwriter, ['F9', 'F10', 'F11', 'F12'], 31);
-  } else {
-    //bigger face
-    alphakeys = keysocket(0, 0, 'calc(100% - 6px)');
-    keydiv([alphakeys, null, shamefurbar], 0, '779px');
-  }
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  esc.appendChild(DOMwriter);
+  drawkeyboard(DOMwriter, ['Escape'], null, 'keycap2');
+
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  f1.appendChild(DOMwriter);
+  drawkeyboard(DOMwriter, ['F1', 'F2', 'F3', 'F4'], 31);
+
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  f5.appendChild(DOMwriter);
+  drawkeyboard(DOMwriter, ['F5', 'F6', 'F7', 'F8'], 31, 'keycap2');
+
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  f9.appendChild(DOMwriter);
+  drawkeyboard(DOMwriter, ['F9', 'F10', 'F11', 'F12'], 31);
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
@@ -4528,11 +4554,11 @@ function createkeyboard() {
   drawkeyboard(DOMwriter, ['Function'], 43, 'keycap2');
   drawkeyboard(DOMwriter, ['ControlRight'], 43, 'keycap2');
 
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.classList = 'keysocketrow';
-  shamefurbar.appendChild(DOMwriter);
-
-  drawkeyboard(DOMwriter, ['Shamefur'], '100%');
+  //DOMwriter = document.createElement('DIV');
+  //DOMwriter.classList = 'keysocketrow';
+  //shamefurbar.appendChild(DOMwriter);
+  //
+  //drawkeyboard(DOMwriter, ['Shamefur'], '100%');
 
 
 
@@ -4540,9 +4566,9 @@ function createkeyboard() {
   homekeys2 = keysocket(0, 0, 'calc(100% - 6px)');
   homekeys = keysocket(0, 12, 'calc(100% - 6px)');
   arrows = keysocket(0, 44, 'calc(100% - 6px)');
-  shamefurbar2 = keysocket(0, 12, 'calc(100% - 6px)');
-  keydiv([homekeys2, null, homekeys, null, arrows, null, shamefurbar2], 6, '159px', 'var(--med)');
-
+  //shamefurbar2 = keysocket(0, 12, 'calc(100% - 6px)');
+  DOMwriter = keydiv([homekeys2, null, homekeys, null, arrows], 6, '159px', 'var(--med)'); //, null, shamefurbar2
+  keyboard.append(DOMwriter);
 
 
   DOMwriter = document.createElement('DIV');
@@ -4592,19 +4618,20 @@ function createkeyboard() {
 
 
 
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.classList = 'keysocketrow';
-  shamefurbar2.appendChild(DOMwriter);
-
-  drawkeyboard(DOMwriter, ['Shamefur'], '100%');
+  //DOMwriter = document.createElement('DIV');
+  //DOMwriter.classList = 'keysocketrow';
+  //shamefurbar2.appendChild(DOMwriter);
+  //
+  //drawkeyboard(DOMwriter, ['Shamefur'], '100%');
 
 
 
   // Shamefur dispray arr keys for unrestricted viewports
   numpad2 = keysocket();
   numpad = keysocket(0, 12);
-  shamefurbar3 = keysocket(0, 12, 'calc(100% - 6px)');
-  keydiv([numpad2, null, numpad, null, shamefurbar3], 6, null, 'var(--large)');
+  //shamefurbar3 = keysocket(0, 12, 'calc(100% - 6px)');
+  DOMwriter = keydiv([numpad2, null, numpad], 6, null, 'var(--large)'); //, null, shamefurbar3
+  keyboard.append(DOMwriter);
 
   drawkeyboard(numpad2, ['Calculator', 'VolumeMute', 'VolumeDown', 'VolumeUp'], 31, 'keycap2');
   drawkeyboard(numpad, ['NumLock', 'NumpadDivide', 'NumpadMultiply', 'NumpadSubtract'], 31, 'keycap2');
@@ -4641,11 +4668,11 @@ function createkeyboard() {
 
 
 
-  DOMwriter = document.createElement('DIV');
-  DOMwriter.classList = 'keysocketrow';
-  shamefurbar3.appendChild(DOMwriter);
-
-  drawkeyboard(DOMwriter, ['Shamefur'], '100%');
+  //DOMwriter = document.createElement('DIV');
+  //DOMwriter.classList = 'keysocketrow';
+  //shamefurbar3.appendChild(DOMwriter);
+  //
+  //drawkeyboard(DOMwriter, ['Shamefur'], '100%');
 }
 
 function resize() {

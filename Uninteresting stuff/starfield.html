@@ -2687,10 +2687,13 @@ const FFdown = (e_) => {
     yeetCode = e_.target.dataset.code;
     if (wasd.some((k) => k === yeetCode)) {
       joystick = wasd;
+      yeetCodes.push(yeetCode);
     } else if (tfgh.some((k) => k === yeetCode)) {
       joystick = tfgh;
+      yeetCodes.push(yeetCode);
     } else if (arrowks.some((k) => k === yeetCode)) {
       joystick = arrowks;
+      yeetCodes.push(yeetCode);
     } else {
       joystick = false;
     }
@@ -4241,10 +4244,11 @@ function joystick_move() {
     yeetCodes.length !== ks.length ||
     yeetCodes.some((ele, idx) => ele !== ks[idx])
   ) {
-    repeatpress(true);
     for (const k of yeetCodes) {
       if (!ks.includes(k)) {
         pressed(k);
+      } else {
+        yeetCode = k;
       }
     }
     yeetCodes = ks;
@@ -4254,6 +4258,7 @@ function joystick_move() {
         pressed(yeetCode, true);
       }
     }
+    repeatpress(true);
   }
 }
 
@@ -4265,15 +4270,7 @@ function rollkey() {
   const t = document.elementFromPoint(mousepos.x, mousepos.y);
   const newCode = t.dataset.code;
 
-  if (newCode === 'CapsLock' || newCode === 'ScrollLock') {
-    return;
-  }
-
-  if (
-    !newCode ||
-    joystick &&
-    !joystick.some((k) => k === newCode)
-  ) {
+  if (!newCode || joystick || newCode === 'CapsLock' || newCode === 'ScrollLock') {
     return;
   }
 

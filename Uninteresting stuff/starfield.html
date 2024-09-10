@@ -31,8 +31,6 @@ body {
   font-family: Helvetica, Arial, Sans-Serif;
   -webkit-user-select: none;
   overflow: hidden;
-  //display: flex;
-  //justify-content: center;
 }
 
 canvas {
@@ -59,9 +57,20 @@ canvas {
   font-size: 26.6px;
 }
 
+#desk {
+  width: 100%;
+  position: absolute;
+  bottom: 0px;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+}
+
 #keyboard {
   width: calc(100% - 16px);
-  max-width: 780px;
+  @media (width < 960px) {
+    max-width: 780px;
+  }
 
   @media (width >= 960px) {
     max-width: 944px;
@@ -74,7 +83,6 @@ canvas {
   display: none;
   position: absolute;
   bottom: 42px;
-  z-index: 2;
   background: var(--color-keyboard);
   border-radius: 4px;
   padding: 8px;
@@ -85,7 +93,6 @@ canvas {
     font-weight: 700;
     text-align: center;
     color: #b9c;
-    display: inline-block;
     left: 0px;
     bottom: -42px;
     position: absolute;
@@ -195,9 +202,9 @@ canvas {
   border-bottom-width: 11px;
 
   .face {
+    text-align: center;
     height: 34px;
-    color: #445;
-    font-weight: 700;
+    color: #556;
 
     &.pressed, &.joystick {
       color: #fff;
@@ -359,6 +366,11 @@ canvas {
   z-index: 1;
   pointer-events: none;
   position: absolute;
+}
+
+#result {
+  width: 100%;
+  text-align: center;
 }
 
 #stdout {
@@ -4797,6 +4809,6 @@ window.addEventListener('load', () => {
 <div id='touchloc'></div>
 <div id='touchloc_dot'></div>
 <div id='dialogbox'><div id='close'>&times;</div><div id='dialog'></div></div>
-<div id='keyboard'></div>
+<div id='desk'><div id='keyboard'></div></div>
 </body>
 </html>

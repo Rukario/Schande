@@ -57,7 +57,6 @@ canvas {
   color: #0f0;
   font-family: courier;
   font-size: 26.6px;
-  z-index: 5;
 }
 
 #keyboard {
@@ -79,7 +78,6 @@ canvas {
   background: var(--color-keyboard);
   border-radius: 4px;
   padding: 8px;
-  vertical-align: text-top;
 
   &::after {
     content: 'SHAMEFUL BAR';
@@ -198,7 +196,8 @@ canvas {
 
   .face {
     height: 34px;
-    color: #088;
+    color: #445;
+    font-weight: 700;
 
     &.pressed, &.joystick {
       color: #fff;
@@ -206,13 +205,13 @@ canvas {
   }
 
   @media (width < 796px) {
-    border-top-width: 8px;
-    border-left-width: 14px;
-    border-right-width: 14px;
-    border-bottom-width: 16px;
+    border-top-width: 6px;
+    border-left-width: 12px;
+    border-right-width: 12px;
+    border-bottom-width: 13px;
     .face {
-      height: 48px;
-      font-size: 15px;
+      height: 40px;
+      font-size: 12px;
     }
     &.cripple {
       display: none;
@@ -278,6 +277,7 @@ canvas {
     margin: -3px;
     padding: 2px;
     border-radius: 4px;
+    pointer-events: none;
   
     &.pressed {
       background: #66c;
@@ -1007,6 +1007,7 @@ function change_stars(args) {
   star.accelerate = args[7];
   ccolor = args[8] || '#000';
   lastcolor = args[8] || '#000';
+  document.body.style.backgroundColor = ccolor;
 
   if (args[2]) {
     alpha.src = args[2];
@@ -2640,9 +2641,6 @@ const FFdown = (e_) => {
     mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop : e_.y;
   }
 
-  cursordraw(e_);
-  cursordrawing = true;
-
   graphdraw(e_);
   leverdraw(e_);
 
@@ -2652,12 +2650,41 @@ const FFdown = (e_) => {
       rubberband();
       dragcard = false;
     }
+  } else if (e_.target.classList.contains('keycap') || e_.target.classList.contains('keycap2')) {
+    yeet = e_.target.getBoundingClientRect();
+    yeetCode = e_.target.dataset.code;
+    if (wasd.some((k) => k === yeetCode)) {
+      joystick = wasd;
+    } else if (tfgh.some((k) => k === yeetCode)) {
+      joystick = tfgh;
+    } else if (arrowks.some((k) => k === yeetCode)) {
+      joystick = arrowks;
+    } else {
+      joystick = false;
+    }
+    if (joystick) {
+      const where = KeypressX[joystick[0]].getBoundingClientRect();
+      deadzone = {
+        x: where.left + where.width/2,
+        y: where.bottom,
+      }
+      if (isTouch) {
+        deadzone.x += window.visualViewport.offsetLeft;
+        deadzone.y += window.visualViewport.offsetTop;
+      }
+      mousepos.x = deadzone.x;
+      mousepos.y = deadzone.y;
+    }
+    pressed(yeetCode, true);
   } else {
     ZOOKd = false;
     if (solitaire) {
       pickcard();
     }
   }
+
+  cursordraw(e_);
+  cursordrawing = true;
 }
 
 const FFmove = (e_) => {
@@ -2675,6 +2702,9 @@ const FFmove = (e_) => {
       mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop : e_.y;
     }
 
+    if (mousec.down) {
+      rollkey();
+    }
     cursordraw(e_);
     graphdraw(e_);
     leverdraw(e_);
@@ -2738,10 +2768,14 @@ const FFup = (e_) => {
       }
     }
 
-    cursordraw(e_, true);
-  }
+    joystick = false;
+    for (const k of yeetCodes) {
+      pressed(k);
+    }
+    qixscr.style.display = 'none';
+    pressed(yeetCode);
 
-  if (e_) {
+    cursordraw(e_, true);
     e_.preventDefault();
   }
 
@@ -2760,6 +2794,11 @@ var rightc = (e_) => {
       pressed('CapsLock', true);
     } else {
       pressed('CapsLock');
+    }
+    if (e_.getModifierState('ScrollLock')) {
+      pressed('ScrollLock', true);
+    } else {
+      pressed('ScrollLock');
     }
   }
 
@@ -2922,8 +2961,7 @@ glyphimg.addEventListener('load', () => {
 });
 
 function new_glyph(clear) {
-  context.fillStyle = '#000';
-  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.clearRect(0, 0, canvas.width, canvas.height);
 
   glyphscr.style.display = 'block';
   keyboard.style.display = 'inline-block';
@@ -3403,9 +3441,13 @@ function qixupdate() {
 
 const neweditor = (B = '<br>', v = true) => {
   const d = document.createElement('DIV');
+  d.style.backgroundColor = '#000';
   d.classList = 'editor';
   d.style.display = v ? 'inline-block' : 'none';
-  d.setAttribute('contenteditable', 'plaintext-only');
+  //d.setAttribute('contenteditable', 'plaintext-only');
+  d.style.pointerEvents = 'none';
+  d.style.minWidth = '100%';
+  d.style.minHeight = '100%';
   d.spellcheck = false;
   d.innerHTML = B;
   document.body.appendChild(d);
@@ -3589,6 +3631,7 @@ function makemenu() {
 
       glyph = false;
       glyphscr.style.display = 'none';
+      document.body.style.backgroundColor = '#003D00';
 
       solitaire = true;
 
@@ -3626,6 +3669,7 @@ function makemenu() {
         solitaire = false;
         hint.style.display = 'none';
         hintb.style.display = 'none';
+        document.body.style.backgroundColor = '#dbe';
 
         if (!qixdb) {
           opendb('qix.json', (x) => {
@@ -3659,6 +3703,7 @@ ${x}px ${y+18}px)`;
         stopscr = true;
         qixscr.style.display = 'none';
         qixscr2.style.display = 'none';
+        document.body.style.backgroundColor = '#dbe';
 
         new_glyph(true);
       });
@@ -3786,6 +3831,7 @@ ${x}px ${y+18}px)`;
         solitaire = false;
         hint.style.display = 'none';
         hintb.style.display = 'none';
+        document.body.style.backgroundColor = '#fff';
 
         sideways = true;
     
@@ -4015,7 +4061,7 @@ function pressed(code, down) {
 
 function FFkeydown(e) {
   const { code } = e;
-  if (['F5'].some((c) => c === code)) {
+  if (['F3', 'F5', 'F7', 'Quote', 'Slash', 'Tab'].some((c) => c === code)) {
     e.preventDefault();
   }
   if (code === 'CapsLock') {
@@ -4024,6 +4070,12 @@ function FFkeydown(e) {
     } else {
       pressed('CapsLock');
     }
+  } else if (code === 'ScrollLock') {
+    if (e.getModifierState('ScrollLock')) {
+      pressed('ScrollLock', true);
+    } else {
+      pressed('ScrollLock');
+    }
   } else {
     pressed(code, true);
   }
@@ -4031,10 +4083,10 @@ function FFkeydown(e) {
 
 function FFkeyup(e) {
   const { code } = e;
-  if (['F5'].some((c) => c === code)) {
+  if (['F3', 'F5', 'F7', 'Quote', 'Slash', 'Tab'].some((c) => c === code)) {
     e.preventDefault();
   }
-  if (code !== 'CapsLock') {
+  if (code !== 'CapsLock' && code !== 'ScrollLock') {
     pressed(code);
   }
 }
@@ -4117,7 +4169,8 @@ for (const [n, k] of '←↑→↓'.split('').entries()) {
 
 const Keypress = Object.fromEntries(Object.keys(vCode).map((k) => [k, false]));
 const KeypressX = {};
-var yeet, yeetCode, joystick;
+var yeet, joystick;
+var yeetCode = 'Backspace';
 var yeetCodes = [];
 var deadzone = {
   x: 0,
@@ -4195,6 +4248,39 @@ function joystick_move() {
   }
 }
 
+function rollkey() {
+  if (joystick) {
+    joystick_move();
+  }
+  const t = document.elementFromPoint(mousepos.x, mousepos.y);
+  const newCode = t.dataset.code;
+
+  if (
+    !newCode ||
+    joystick &&
+    !joystick.some((k) => k === newCode)
+  ) {
+    return;
+  }
+
+  const rect = t.getBoundingClientRect();
+  if (Keypress[yeetCode]) {
+    if (
+      mousepos.x < Math.floor(yeet.left) ||
+      mousepos.x > Math.ceil(yeet.right) ||
+      mousepos.y < Math.floor(yeet.top) ||
+      mousepos.y > Math.ceil(yeet.bottom)
+    ) {
+      pressed(yeetCode);
+    }
+  }
+  if (!Keypress[newCode]) {
+    yeet = rect;
+    yeetCode = newCode;
+    pressed(newCode, true);
+  }
+}
+
 function drawkeyboard(socket, codes, w, c='keycap', logo) {
   for (const code of codes) {
     const cap = document.createElement('DIV');
@@ -4219,132 +4305,17 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
 
     if (isTouch) {
       keycap.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        yeet = keycap.getBoundingClientRect();
-        yeetCode = code;
-        if (wasd.some((k) => k === yeetCode)) {
-          joystick = wasd;
-        } else if (tfgh.some((k) => k === yeetCode)) {
-          joystick = tfgh;
-        } else if (arrowks.some((k) => k === yeetCode)) {
-          joystick = arrowks;
-        } else {
-          joystick = false;
-        }
-        if (joystick) {
-          const where = KeypressX[joystick[0]].getBoundingClientRect();
-          deadzone = {
-            x: where.left + where.width/2 + window.visualViewport.offsetLeft,
-            y: where.bottom + window.visualViewport.offsetTop,
-          }
-        }
-        pressed(yeetCode, true);
+        FFdown(e);
       });
       keycap.addEventListener('touchmove', (e) => {
-        e.preventDefault();
         FFmove(e);
-        if (joystick) {
-          joystick_move();
-        }
-
-        const x = e.touches[0].clientX;
-        const y = e.touches[0].clientY;
-        const t = document.elementFromPoint(x, y);
-        const newCode = t.dataset.code;
-
-        if (
-          !newCode ||
-          joystick &&
-          !joystick.some((k) => k === newCode)
-        ) {
-          return;
-        }
-
-        const rect = t.getBoundingClientRect();
-        if (Keypress[yeetCode]) {
-          if (
-            x < Math.floor(yeet.left) ||
-            x > Math.ceil(yeet.right) ||
-            y < Math.floor(yeet.top) ||
-            y > Math.ceil(yeet.bottom)
-          ) {
-            pressed(yeetCode);
-          }
-        }
-        if (!Keypress[newCode]) {
-          yeet = rect;
-          yeetCode = newCode;
-          pressed(newCode, true);
-        }
       });
       keycap.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        joystick = false;
-        for (const k of yeetCodes) {
-          pressed(k);
-        }
-        qixscr.style.display = 'none';
-        pressed(yeetCode);
+        FFup(e);
       });
     } else {
       keycap.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        yeet = keycap.getBoundingClientRect();
-        yeetCode = code;
-        if (wasd.some((k) => k === yeetCode)) {
-          joystick = wasd;
-        } else if (tfgh.some((k) => k === yeetCode)) {
-          joystick = tfgh;
-        } else if (arrowks.some((k) => k === yeetCode)) {
-          joystick = arrowks;
-        } else {
-          joystick = false;
-        }
-        if (joystick) {
-          const where = KeypressX[joystick[0]].getBoundingClientRect();
-          deadzone = {
-            x: where.left + where.width/2,
-            y: where.bottom,
-          }
-        }
-        pressed(yeetCode, true);
-      });
-      keycap.addEventListener('mousemove', (e) => {
-        if (mousec.down) {
-          if (joystick) {
-            joystick_move();
-          }
-
-          const x = e.x;
-          const y = e.y;
-          const t = document.elementFromPoint(x, y);
-          const newCode = t.dataset.code;
-
-          if (
-            !newCode ||
-            joystick &&
-            !joystick.some((k) => k === newCode)
-          ) {
-            return;
-          }
-
-          const rect = t.getBoundingClientRect();
-          if (Keypress[yeetCode]) {
-            if (
-              x < Math.floor(yeet.left) ||
-              x > Math.ceil(yeet.right) ||
-              y < Math.floor(yeet.top) ||
-              y > Math.ceil(yeet.bottom)
-            ) {
-              pressed(yeetCode);
-            }
-          }
-          if (!Keypress[newCode]) {
-            yeet = rect;
-            yeetCode = newCode;
-            pressed(newCode, true);
-          }
-        }
+        FFdown(e);
       });
       //keycap.addEventListener('mouseenter', (e) => {
       //  if (mousec.down) {
@@ -4366,13 +4337,7 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
       //  }
       //});
       keycap.addEventListener('mouseup', (e) => {
-        e.preventDefault();
-        joystick = false;
-        for (const k of yeetCodes) {
-          pressed(k);
-        }
-        qixscr.style.display = 'none';
-        pressed(code);
+        FFup(e);
       });
     }
     socket.appendChild(keycap);
@@ -4381,7 +4346,7 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
 
 function windo(win) {
   const mask = newCanvas(95, 95);
-  mask.fillStyle = '#088';
+  mask.fillStyle = '#445';
   mask.drawImage(win, 0, 0);
   mask.globalCompositeOperation = 'source-in';
   mask.fillRect(0, 0, 95, 95);

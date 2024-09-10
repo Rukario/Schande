@@ -2648,6 +2648,19 @@ var crosshint, givehint;
 var hints = 1;
 var fader = null;
 var ZOOKd = null;
+var repeatyeets = false;
+
+function repeatpress(down) {
+  clearTimeout(repeatyeets);
+  clearInterval(repeatyeets);
+  if (down) {
+    repeatyeets = setTimeout(() => {
+      repeatyeets = setInterval(() => {
+        pressed(yeetCode, true);
+      }, 20);
+    }, 500);
+  }
+}
 
 const FFdown = (e_) => {
   mousec.down = 1;
@@ -2700,6 +2713,7 @@ const FFdown = (e_) => {
       lockpress(yeetCode, !Keypress['ScrollLock']);
     } else {
       pressed(yeetCode, true);
+      repeatpress(true);
     }
   } else {
     ZOOKd = false;
@@ -2800,6 +2814,7 @@ const FFup = (e_) => {
     hint.style.display = 'none';
     if (yeetCode !== 'CapsLock' && yeetCode !== 'ScrollLock') {
       pressed(yeetCode);
+      repeatpress();
     }
 
     cursordraw(e_, true);
@@ -4018,7 +4033,6 @@ ${x}px ${y+18}px)`;
 var glyph_cursor = 0;
 var glyph_row = 0;
 function pressed(code, down) {
-
   if (KeypressX[code]) {
     //console.log(code, down ? 'down' : 'up', 'registered to', KeypressX[code].childNodes[0].innerHTML);
   } else {
@@ -4227,6 +4241,7 @@ function joystick_move() {
     yeetCodes.length !== ks.length ||
     yeetCodes.some((ele, idx) => ele !== ks[idx])
   ) {
+    repeatpress(true);
     for (const k of yeetCodes) {
       if (!ks.includes(k)) {
         pressed(k);
@@ -4235,7 +4250,8 @@ function joystick_move() {
     yeetCodes = ks;
     for (const k of ks) {
       if (!Keypress[k]) {
-        pressed(k, true);
+        yeetCode = k;
+        pressed(yeetCode, true);
       }
     }
   }
@@ -4275,7 +4291,8 @@ function rollkey() {
   if (!Keypress[newCode]) {
     yeet = rect;
     yeetCode = newCode;
-    pressed(newCode, true);
+    pressed(yeetCode, true);
+    repeatpress(true);
   }
 }
 

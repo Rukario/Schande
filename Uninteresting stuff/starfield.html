@@ -2686,7 +2686,13 @@ const FFdown = (e_) => {
       mousepos.x = deadzone.x;
       mousepos.y = deadzone.y;
     }
-    pressed(yeetCode, true);
+    if (yeetCode === 'CapsLock') {
+      lockpress(yeetCode, !Keypress['CapsLock']);
+    } else if (yeetCode === 'ScrollLock') {
+      lockpress(yeetCode, !Keypress['ScrollLock']);
+    } else {
+      pressed(yeetCode, true);
+    }
   } else {
     ZOOKd = false;
     if (solitaire) {
@@ -2784,7 +2790,9 @@ const FFup = (e_) => {
       pressed(k);
     }
     qixscr.style.display = 'none';
-    pressed(yeetCode);
+    if (yeetCode !== 'CapsLock' && yeetCode !== 'ScrollLock') {
+      pressed(yeetCode);
+    }
 
     cursordraw(e_, true);
     e_.preventDefault();
@@ -2801,16 +2809,8 @@ var rightc = (e_) => {
   if (isTouch && e_.touches.length > 1) {
     return;
   } else if (!isTouch) {
-    if (e_.getModifierState('CapsLock')) {
-      pressed('CapsLock', true);
-    } else {
-      pressed('CapsLock');
-    }
-    if (e_.getModifierState('ScrollLock')) {
-      pressed('ScrollLock', true);
-    } else {
-      pressed('ScrollLock');
-    }
+    lockpress('CapsLock', e_.getModifierState('CapsLock'));
+    lockpress('ScrollLock', e_.getModifierState('ScrollLock'));
   }
 
   for (const p of document.querySelectorAll('.poppywin')) {
@@ -4045,23 +4045,23 @@ function pressed(code, down) {
   }
 }
 
+function lockpress(code, down) {
+  if (down) {
+    pressed(code, true);
+  } else {
+    pressed(code);
+  }
+}
+
 function FFkeydown(e) {
   const { code } = e;
   if (['F3', 'F5', 'F7', 'Quote', 'Slash', 'Tab'].some((c) => c === code)) {
     e.preventDefault();
   }
   if (code === 'CapsLock') {
-    if (e.getModifierState('CapsLock')) {
-      pressed('CapsLock', true);
-    } else {
-      pressed('CapsLock');
-    }
+    lockpress('CapsLock', e.getModifierState('CapsLock'));
   } else if (code === 'ScrollLock') {
-    if (e.getModifierState('ScrollLock')) {
-      pressed('ScrollLock', true);
-    } else {
-      pressed('ScrollLock');
-    }
+    lockpress('ScrollLock', e.getModifierState('ScrollLock'));
   } else {
     pressed(code, true);
   }
@@ -4238,8 +4238,13 @@ function rollkey() {
   if (joystick) {
     joystick_move();
   }
+
   const t = document.elementFromPoint(mousepos.x, mousepos.y);
   const newCode = t.dataset.code;
+
+  if (newCode === 'CapsLock' || newCode === 'ScrollLock') {
+    return;
+  }
 
   if (
     !newCode ||

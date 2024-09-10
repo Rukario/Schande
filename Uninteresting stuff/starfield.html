@@ -48,8 +48,8 @@ canvas {
 .editor {
   position: absolute;
   padding: 8px;
-  min-width: calc(100% - 18px);
-  min-height: 12px;
+  min-width: calc(100% - 16px);
+  min-height: calc(100% - 16px);
   line-height: calc(1em - 10.6px);
   white-space: pre-wrap;
   color: #0f0;
@@ -202,6 +202,12 @@ canvas {
   border-bottom-width: 11px;
 
   .face {
+    min-width: 16px;
+    margin: -3px;
+    padding: 2px;
+    border-radius: 4px;
+
+    pointer-events: none;
     text-align: center;
     height: 34px;
     color: #556;
@@ -245,11 +251,6 @@ canvas {
 
   .face {
     background: #dddad7;
-    min-width: 16px;
-    margin: -3px;
-    padding: 2px;
-    border-radius: 4px;
-    pointer-events: none;
   
     &.pressed {
       background: #36c;
@@ -280,18 +281,13 @@ canvas {
 
   .face {
     background: #b6b4b9;
-    min-width: 16px;
-    margin: -3px;
-    padding: 2px;
-    border-radius: 4px;
-    pointer-events: none;
   
     &.pressed {
       background: #66c;
     }
 
     &.joystick {
-      background: #ca5;
+      background: #ca4;
     }
   }
 }
@@ -2653,10 +2649,13 @@ const FFdown = (e_) => {
     mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop : e_.y;
   }
 
-  graphdraw(e_);
-  leverdraw(e_);
-
-  if (e_.target.classList.contains('poppy') || e_.target.parentNode.classList.contains('poppy') || isTouch && e_.touches.length > 1) {
+  if (e_.target.classList.contains('graphboard')) {
+    graphdrawing = e_;
+    graphdraw(e_);
+  } else if (e_.target.classList.contains('lever')) {
+    leverdrawing = e_;
+    leverdraw(e_);
+  } else if (e_.target.classList.contains('poppy') || e_.target.parentNode.classList.contains('poppy') || isTouch && e_.touches.length > 1) {
     ZOOKd = true;
     if (solitaire && dragcard) {
       rubberband();
@@ -2956,6 +2955,8 @@ var qixmap = null;
 var qixpos, qixpos2, qix_tails, qixline;
 var glyphm = newCanvas();
 var glyphc = newCanvas();
+var glyph_chars = 46;
+var glyph_lines = 34;
 var glyph_shift = 1;
 
 var glyphimg = new Image();
@@ -2963,8 +2964,8 @@ glyphimg.src = 'SOL/glyph.png';
 glyphimg.addEventListener('load', () => {
   glyphm.width = glyphm.canvas.width = glyphimg.width;
   glyphm.height = glyphm.canvas.height = glyphimg.height;
-  glyphc.width = glyphc.canvas.width = 16*59;
-  glyphc.height = glyphc.canvas.height = 16*38;
+  glyphc.width = glyphc.canvas.width = 16 * glyph_chars;
+  glyphc.height = glyphc.canvas.height = 16 * glyph_lines;
 
   glyphm.drawImage(glyphimg, 0, 0);
   glyphm.globalCompositeOperation = 'source-in';
@@ -2987,8 +2988,8 @@ function new_glyph(clear) {
 
 function glyph_update(code) {
   const jump = () => {
-    if (glyph_cursor > 39) {
-      if (glyph_row > 36) {
+    if (glyph_cursor >= glyph_chars - 1) {
+      if (glyph_row >= glyph_lines - 1) {
         glyph_row = 0;
       } else {
         glyph_row += 1;
@@ -3002,10 +3003,10 @@ function glyph_update(code) {
   if (code.startsWith('Arrow')) {
     const x = (code === 'ArrowLeft' ? -1 : 0) + (code === 'ArrowRight' ? 1 : 0);
     const y = (code === 'ArrowUp' ? -1 : 0) + (code === 'ArrowDown' ? 1 : 0);
-    if (glyph_cursor + x >= 0 && glyph_cursor + x < 41) {
+    if (glyph_cursor + x >= 0 && glyph_cursor + x <= glyph_chars) {
       glyph_cursor += x;
     }
-    if (glyph_row + y >= 0 && glyph_row + y < 38) {
+    if (glyph_row + y >= 0 && glyph_row + y < glyph_lines) {
       glyph_row += y;
     }
   } else if (code === 'Backspace') {
@@ -3013,13 +3014,13 @@ function glyph_update(code) {
       glyph_cursor -= 1;
     } else if (glyph_row) {
       glyph_row -= 1;
-      glyph_cursor = 40;
+      glyph_cursor = glyph_chars;
     }
 
     glyphc.clearRect(16 * glyph_cursor, 16 * glyph_row, 16, 16);
   } else if (code === 'Enter') {
     editor.textContent += '\n';
-    if (glyph_row > 36) {
+    if (glyph_row >= glyph_lines - 1) {
       glyph_row = 0;
     } else {
       glyph_row += 1;
@@ -3052,8 +3053,8 @@ function glyph_update(code) {
     }
   }
 
-  const x = 16*glyph_cursor + 7;
-  const y = 16*glyph_row + 7;
+  const x = 16 * glyph_cursor + 7;
+  const y = 16 * glyph_row + 7;
 
   hint.style.clipPath = `polygon(${x}px ${y}px,
 ${x+2}px ${y}px,
@@ -3458,8 +3459,7 @@ const neweditor = (B = '<br>', v = true) => {
   d.style.display = v ? 'inline-block' : 'none';
   //d.setAttribute('contenteditable', 'plaintext-only');
   d.style.pointerEvents = 'none';
-  d.style.minWidth = '100%';
-  d.style.minHeight = '100%';
+  //d.style.minHeight = '100%';
   d.spellcheck = false;
   d.innerHTML = B;
   document.body.appendChild(d);
@@ -3526,24 +3526,11 @@ function makemenu() {
   const newgraph = () => {
     const e = document.createElement('DIV');
     e.classList = 'graphboard';
+    touchFF(e);
 
     pixelctrl = document.createElement('DIV');
     pixelctrl.classList = 'dot';
     e.appendChild(pixelctrl);
-
-    e.addEventListener('mousedown', (e_) => {
-      graphdrawing = e_;
-    });
-    e.addEventListener('touchstart', (e_) => {
-      graphdrawing = e_;
-      FFmove(e_);
-    });
-    e.addEventListener('touchmove', (e_) => {
-      FFmove(e_);
-    });
-    e.addEventListener('touchend', (e_) => {
-      FFup(e_);
-    });
 
     return e;
   }
@@ -3551,24 +3538,11 @@ function makemenu() {
   const newlever = () => {
     const e = document.createElement('DIV');
     e.classList = 'lever';
+    touchFF(e);
 
     DOMwriter = document.createElement('DIV');
     DOMwriter.classList = 'bar';
     e.appendChild(DOMwriter);
-
-    e.addEventListener('mousedown', (e_) => {
-      leverdrawing = e_;
-    });
-    e.addEventListener('touchstart', (e_) => {
-      leverdrawing = e_;
-      FFmove(e_);
-    });
-    e.addEventListener('touchmove', (e_) => {
-      FFmove(e_);
-    });
-    e.addEventListener('touchend', (e_) => {
-      FFup(e_);
-    });
 
     return e;
   }
@@ -4293,7 +4267,19 @@ function rollkey() {
   }
 }
 
-function drawkeyboard(socket, codes, w, c='keycap', logo) {
+function touchFF(e_) {
+  e_.addEventListener('touchstart', (e) => {
+    FFdown(e);
+  });
+  e_.addEventListener('touchmove', (e) => {
+    FFmove(e);
+  });
+  e_.addEventListener('touchend', (e) => {
+    FFup(e);
+  });
+}
+
+function drawkeyboard(socket, codes, w, c = 'keycap', logo) {
   for (const code of codes) {
     const cap = document.createElement('DIV');
     cap.textContent = vCode[code][0];
@@ -4316,19 +4302,8 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
     KeypressX[code] = keycap;
 
     if (isTouch) {
-      keycap.addEventListener('touchstart', (e) => {
-        FFdown(e);
-      });
-      keycap.addEventListener('touchmove', (e) => {
-        FFmove(e);
-      });
-      keycap.addEventListener('touchend', (e) => {
-        FFup(e);
-      });
+      touchFF(keycap);
     } else {
-      keycap.addEventListener('mousedown', (e) => {
-        FFdown(e);
-      });
       //keycap.addEventListener('mouseenter', (e) => {
       //  if (mousec.down) {
       //    e.preventDefault();
@@ -4348,9 +4323,6 @@ function drawkeyboard(socket, codes, w, c='keycap', logo) {
       //    pressed(code);
       //  }
       //});
-      keycap.addEventListener('mouseup', (e) => {
-        FFup(e);
-      });
     }
     socket.appendChild(keycap);
   }
@@ -4682,19 +4654,20 @@ window.addEventListener('load', () => {
         }, 500);
       }
     });
-    canvas.addEventListener('touchend', (e_) => {
-      FFup(e_);
+    canvas.addEventListener('touchmove', (e_) => {
+      FFmove(e_);
       clearTimeout(busyclick);
       busyclick = false;
     });
-    canvas.addEventListener('touchmove', (e_) => {
-      FFmove(e_);
+    canvas.addEventListener('touchend', (e_) => {
+      FFup(e_);
       clearTimeout(busyclick);
       busyclick = false;
     });
     canvas.addEventListener('contextmenu', (e_) => {
       e_.preventDefault();
     });
+
     poppy.addEventListener('touchstart', (e_) => {
       if (e_.touches.length > 1) {
         ZOOKd = true;

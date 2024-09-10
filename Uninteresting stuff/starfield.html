@@ -2624,7 +2624,7 @@ function imawake() {
 
       if (glyph) {
         keyboard.style.display = 'inline-block';
-        hint.style.display = 'block';
+        qixscr.style.display = 'block';
         new_glyph();
       }
     }
@@ -2789,7 +2789,7 @@ const FFup = (e_) => {
     for (const k of yeetCodes) {
       pressed(k);
     }
-    qixscr.style.display = 'none';
+    hint.style.display = 'none';
     if (yeetCode !== 'CapsLock' && yeetCode !== 'ScrollLock') {
       pressed(yeetCode);
     }
@@ -3056,7 +3056,7 @@ function glyph_update(code) {
   const x = 16 * glyph_cursor + 7;
   const y = 16 * glyph_row + 7;
 
-  hint.style.clipPath = `polygon(${x}px ${y}px,
+  qixscr.style.clipPath = `polygon(${x}px ${y}px,
 ${x+2}px ${y}px,
 ${x+2}px ${y+18}px,
 ${x}px ${y+18}px)`;
@@ -3676,18 +3676,17 @@ function makemenu() {
         glyph = true;
         qix = false;
 
-        hint.style.display = 'block';
+        qixscr.style.display = 'block';
         const x = 7;
         const y = 7;
 
-        hint.style.clipPath = `polygon(${x}px ${y}px,
+        qixscr.style.clipPath = `polygon(${x}px ${y}px,
 ${x+2}px ${y}px,
 ${x+2}px ${y+18}px,
 ${x}px ${y+18}px)`;
 
         hintb.style.display = 'none';
         stopscr = true;
-        qixscr.style.display = 'none';
         qixscr2.style.display = 'none';
         document.body.style.backgroundColor = '#dbe';
 
@@ -4178,7 +4177,7 @@ function joystick_move() {
   const y = mousepos.y - deadzone.y;
 
   givehint = true;
-  drawhint(qixscr, deadzone.x - cardsize[0]/2, deadzone.y, mousepos.x - cardsize[0]/2, mousepos.y);
+  drawhint(hint, deadzone.x - cardsize[0]/2, deadzone.y, mousepos.x - cardsize[0]/2, mousepos.y);
 
   const ks = [];
   if (Math.abs(x)*2 > Math.abs(y)*3) {

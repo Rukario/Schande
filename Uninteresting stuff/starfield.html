@@ -2651,8 +2651,7 @@ var ZOOKd = null;
 var repeatyeets = false;
 
 function repeatpress(down) {
-  clearTimeout(repeatyeets);
-  clearInterval(repeatyeets);
+  clearTimeout(repeatyeets); // clearTimeout and clearInterval are interchangeable
   if (down) {
     repeatyeets = setTimeout(() => {
       repeatyeets = setInterval(() => {
@@ -4205,14 +4204,14 @@ function joystick_move() {
   drawhint(hint, deadzone.x - cardsize[0]/2, deadzone.y, mousepos.x - cardsize[0]/2, mousepos.y);
 
   const ks = [];
-  if (Math.abs(x)*2 > Math.abs(y)*3) {
+  if (Math.abs(x) > Math.abs(y)*2) {
     //horizontal
     if (x > 0) {
       ks.push(joystick[3]);
     } else {
       ks.push(joystick[1]);
     }
-  } else if (Math.abs(x)*3 > Math.abs(y)*2) {
+  } else if (Math.abs(x)*2 > Math.abs(y)) {
     //diagonal
     if (x > 0) {
       if (y > 0) {

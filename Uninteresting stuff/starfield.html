@@ -898,17 +898,28 @@ silhouette.addEventListener('load', () => {
   qixmask.width = qixmask.canvas.width = silhouette.width/qg.downscale/qixsc;
   qixmask.height = qixmask.canvas.height = silhouette.height/qg.downscale/qixsc;
   qixmask.imageSmoothingEnabled = false;
-  spoiler.width = spoiler.canvas.width = silhouette.width/qg.downscale;
-  spoiler.height = spoiler.canvas.height = silhouette.height/qg.downscale;
-  spoiler.imageSmoothingEnabled = false;
+
+  spoilermask.width = spoilermask.canvas.width = silhouette.width/qg.downscale;
+  spoilermask.height = spoilermask.canvas.height = silhouette.height/qg.downscale;
+  spoilermask.imageSmoothingEnabled = false;
+
   reveal.src = qg.reveal;
 });
 
 const reveal = new Image();
 reveal.addEventListener('load', () => {
+  const qg = qixdb.gallery[qixsel];
+
+  spoiler.width = spoiler.canvas.width = reveal.width/qg.downscale;
+  spoiler.height = spoiler.canvas.height = reveal.height/qg.downscale;
+  spoiler.imageSmoothingEnabled = false;
+
+  spoiler.drawImage(reveal, 0, 0, spoiler.width, spoiler.height);
+
   tailscr.style.display = 'block';
   tailscr2.style.display = 'block';
   keyboard.style.display = isTouch ? 'inline-block' : 'none';
+
   new_qix();
   qixupdate();
 });
@@ -2622,6 +2633,7 @@ function imawake() {
       if (qix) {
         keyboard.style.display = isTouch ? 'inline-block' : 'none';
         qixupdate();
+        qixpaint();
       }
 
       if (glyph) {
@@ -2970,6 +2982,7 @@ var qixsel = 0;
 const qixsc = 2;
 var qixmask = newCanvas();
 var spoiler = newCanvas();
+var spoilermask = newCanvas();
 var qixmap = null;
 var qixdim, qixpos, qixpos2, qix_tails, qixline;
 var glyphm = newCanvas();
@@ -3120,18 +3133,30 @@ function new_qix() {
   qix = true;
   drawqix(tailscr, qixpos, 0.75);
   drawqix(tailscr2, qixpos2, 2);
+
+  qixpaint();
+}
+
+function qixpaint() {
+  context.fillStyle = '#104';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  context.drawImage(spoiler.canvas, dim.x - spoiler.width / 2, dim.y - spoiler.height / 2, spoiler.width, spoiler.height);
+
+  spoilermask.clearRect(0, 0, spoilermask.width, spoilermask.height);
+  spoilermask.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
+  spoilermask.globalCompositeOperation = 'source-in';
+  spoilermask.drawImage(silhouette, 0, 0, spoilermask.width, spoilermask.height);
+  spoilermask.globalCompositeOperation = 'source-over';
+
+  context.drawImage(spoilermask.canvas, dim.x - spoilermask.width / 2, dim.y - spoilermask.height / 2, spoilermask.width, spoilermask.height);
 }
 
 function qixscan() {
   const satellite = [Math.floor(qixpos2.x/qixsc), Math.floor(qixpos2.y/qixsc)];
-  //if (!rgba) {
-  //  const n = satellite[0]+satellite[1]*qixmask.width;
-  //  rgba = qixmap.data.slice(n*4, n*4+4);
-  //}
   const monstermap = new Uint8Array(qixmask.width*qixmask.height);
   let pixels = 0;
   for (const n of Array(qixmask.width*qixmask.height).keys()) {
-    //if (qixmap.data.slice(n*4, n*4+4).every((r, i) => {return r === rgba[i];})) {
     if (qixmap.data[n*4+3] === 255) {
       monstermap[n] = 1;
     } else {
@@ -3171,6 +3196,7 @@ function qixscan() {
     }, 1500);
   }
   qixmask.putImageData(qixmap, 0, 0);
+  qixpaint();
 }
 
 function clearSq(x, y, w, h, co = 0) {
@@ -3461,18 +3487,6 @@ function qixupdate() {
     stopqix = false;
     return;
   }
-
-  context.fillStyle = '#000';
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  context.drawImage(reveal, dim.x - reveal.width / 2, dim.y - reveal.height / 2, reveal.width, reveal.height); // 0, 0, qixmask.width*qixsc, qixmask.height*qixsc
-
-  spoiler.clearRect(0, 0, spoiler.width, spoiler.height);
-  spoiler.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
-  spoiler.globalCompositeOperation = 'source-in';
-  spoiler.drawImage(silhouette, 0, 0, spoiler.width, spoiler.height);
-  spoiler.globalCompositeOperation = 'source-over';
-  context.drawImage(spoiler.canvas, dim.x - spoiler.width / 2, dim.y - spoiler.height / 2, spoiler.width, spoiler.height);
 
   if (stopscr) {
     requestAnimationFrame(qixupdate);

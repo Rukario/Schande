@@ -4180,14 +4180,8 @@ var deadzone = {
   y: 0,
 };
 
-const wasd = [];
-for (const k of 'WASD') {
-  wasd.push('Key' + k);
-}
-const tfgh = [];
-for (const k of 'TFGH') {
-  tfgh.push('Key' + k);
-}
+const wasd = ['KeyW', 'KeyA', 'KeyS', 'KeyD'];
+const tfgh = ['KeyT', 'KeyF', 'KeyG', 'KeyH'];
 const arrowks = ['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight'];
 
 function joystick_move() {
@@ -4322,27 +4316,8 @@ function drawkeyboard(socket, codes, w, c = 'keycap', logo) {
 
     if (isTouch) {
       touchFF(keycap);
-    } else {
-      //keycap.addEventListener('mouseenter', (e) => {
-      //  if (mousec.down) {
-      //    e.preventDefault();
-      //    if (
-      //      !code ||
-      //      joystick &&
-      //      !joystick.some((k) => k === code)
-      //    ) {
-      //      return;
-      //    }
-      //    pressed(code, true);
-      //  }
-      //});
-      //keycap.addEventListener('mouseleave', (e) => {
-      //  e.preventDefault();
-      //  if (!joystick && mousec.down) {
-      //    pressed(code);
-      //  }
-      //});
     }
+
     socket.appendChild(keycap);
   }
 }

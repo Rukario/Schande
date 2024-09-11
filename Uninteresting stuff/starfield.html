@@ -351,7 +351,7 @@ canvas {
   );
 }
 
-#qixscr2 {
+#tailscr2 {
   background: repeating-linear-gradient(
     45deg,
     #50a,
@@ -906,8 +906,8 @@ silhouette.addEventListener('load', () => {
 
 const reveal = new Image();
 reveal.addEventListener('load', () => {
-  qixscr.style.display = 'block';
-  qixscr2.style.display = 'block';
+  tailscr.style.display = 'block';
+  tailscr2.style.display = 'block';
   keyboard.style.display = isTouch ? 'inline-block' : 'none';
   new_qix();
   qixupdate();
@@ -1835,26 +1835,46 @@ function sol() {
   }
 }
 
-function drawhint(h, x, y, dx, dy) {
-  if (!h) {
-    x = gap.x*8 + cardsize[0]*7 + Math.floor(cardsize[0]/2) - 16*scale;
-    y = gap.y*1 + cardsize[1]*0 + Math.floor(cardsize[1]/2) - 8*scale;
-    dx = x+32*scale;
-    dy = y+16*scale;
-    hintb.style.clipPath = `polygon(
+function drawhint_line(h, x, y, dx, dy) {
+  if (Math.abs(x-dx) * 2 < Math.abs(y-dy)){
+    h.style.clipPath = `polygon(
+${x}px ${y}px,
+${x + 1}px ${y}px,
+${dx + 1}px ${dy}px,
+${dx}px ${dy}px)`;
+  } else {
+    h.style.clipPath = `polygon(
+${x}px ${y}px,
+${x}px ${y + 2}px,
+${dx}px ${dy + 2}px,
+${dx}px ${dy}px)`;
+  }
+}
+
+function drawhint_outline(h, x, y, dx, dy) {
+  h.style.clipPath = `polygon(
 ${x}px ${y}px,
 ${dx}px ${y}px,
 ${dx}px ${dy}px,
 ${x}px ${dy}px,
-
 ${x}px ${y}px,
 
-${x+2}px ${y}px,
-${x+2}px ${dy-2}px,
-${dx-2}px ${dy-2}px,
-${dx-2}px ${y+2}px,
-${x}px ${y+2}px
+${x + 2}px ${y}px,
+${x + 2}px ${dy - 2}px,
+${dx - 2}px ${dy - 2}px,
+${dx - 2}px ${y + 2}px,
+${x}px ${y + 2}px
 )`;
+}
+
+function drawhint(h, x, y, dx, dy) {
+  if (!h) {
+    x = gap.x * 8 + cardsize[0] * 7 + Math.floor(cardsize[0] / 2) - 16 * scale;
+    y = gap.y * 1 + cardsize[1] * 0 + Math.floor(cardsize[1] / 2) - 8 * scale;
+    dx = x + 32 * scale;
+    dy = y + 16 * scale;
+    drawhint_outline(hintb, x, y, dx, dy);
+
     hintb.style.display = 'block';
     hint.style.display = 'none';
     hint2.style.display = 'none';
@@ -1868,35 +1888,9 @@ ${x}px ${y+2}px
   }
   h.style.display = givehint && x ? 'block' : 'none';
   if (x === dx && y === dy) {
-    const ddx = dx + cardsize[0];
-    const ddy = dy + cardsize[1];
-    h.style.clipPath = `polygon(
-${x}px ${y}px,
-${ddx}px ${y}px,
-${ddx}px ${ddy}px,
-${x}px ${ddy}px,
-${x}px ${y}px,
-
-${x+2}px ${y}px,
-${x+2}px ${ddy-2}px,
-${ddx-2}px ${ddy-2}px,
-${ddx-2}px ${y+2}px,
-${x}px ${y+2}px
-)`;
+    drawhint_outline(h, x, y, dx + cardsize[0], dy + cardsize[1]);
   } else {
-    const xx = x + Math.floor(cardsize[0]/2);
-    const ddx = dx + Math.floor(cardsize[0]/2);
-    if (xx === ddx){
-      h.style.clipPath = `polygon(${xx}px ${y}px,
-${xx+1}px ${y}px,
-${ddx+1}px ${dy}px,
-${ddx}px ${dy}px)`;
-    } else {
-      h.style.clipPath = `polygon(${xx}px ${y}px,
-${xx}px ${y+2}px,
-${ddx}px ${dy+2}px,
-${ddx}px ${dy}px)`;
-    }
+    drawhint_line(h, x + Math.floor(cardsize[0]/2), y, dx + Math.floor(cardsize[0]/2), dy);
   }
 }
 
@@ -2632,7 +2626,7 @@ function imawake() {
 
       if (glyph) {
         keyboard.style.display = 'inline-block';
-        qixscr.style.display = 'block';
+        tailscr.style.display = 'block';
         new_glyph();
       }
     }
@@ -2699,8 +2693,8 @@ const FFdown = (e_) => {
     if (joystick) {
       const where = KeypressX[joystick[0]].getBoundingClientRect();
       deadzone = {
-        x: where.left + where.width/2,
-        y: where.bottom,
+        x: Math.floor(where.left + where.width/2),
+        y: Math.floor(where.bottom),
       }
       if (isTouch) {
         deadzone.x += window.visualViewport.offsetLeft;
@@ -3081,7 +3075,7 @@ function glyph_update(code) {
   const x = 16 * glyph_cursor + 7;
   const y = 16 * glyph_row + 7;
 
-  qixscr.style.clipPath = `polygon(${x}px ${y}px,
+  tailscr.style.clipPath = `polygon(${x}px ${y}px,
 ${x+2}px ${y}px,
 ${x+2}px ${y+18}px,
 ${x}px ${y+18}px)`;
@@ -3124,8 +3118,8 @@ function new_qix() {
   clearSq(qixmask.width-1, 0, 0, qixmask.height);
 
   qix = true;
-  drawqix(qixscr, qixpos, 0.75);
-  drawqix(qixscr2, qixpos2, 2);
+  drawqix(tailscr, qixpos, 0.75);
+  drawqix(tailscr2, qixpos2, 2);
 }
 
 function qixscan() {
@@ -3442,10 +3436,10 @@ function qixupdate() {
 
     qixpos.x = (stix[0] + stix[2])*qixsc;
     qixpos.y = (stix[1] + stix[3])*qixsc;
-    drawqix(qixscr, qixpos, 0.75);
+    drawqix(tailscr, qixpos, 0.75);
   } else if ('WASD'.split('').some((k) => Keypress['Key' + k]) || ['Left', 'Up', 'Right', 'Down'].some((k) => Keypress['Arrow' + k])) {
     qixstep();
-    drawqix(qixscr, qixpos, 0.75);
+    drawqix(tailscr, qixpos, 0.75);
   }
 
   if ('TFGH'.split('').some((k) => Keypress['Key' + k])) {
@@ -3454,7 +3448,7 @@ function qixupdate() {
     qixstep2();
   }
 
-  drawqix(qixscr2, qixpos2, 2);
+  drawqix(tailscr2, qixpos2, 2);
   if (!qix || stopqix) {
     stopqix = false;
     return;
@@ -3637,8 +3631,8 @@ function makemenu() {
       keyboard.style.display = 'none';
 
       qix = false;
-      qixscr.style.display = 'none';
-      qixscr2.style.display = 'none';
+      tailscr.style.display = 'none';
+      tailscr2.style.display = 'none';
 
       glyph = false;
       glyphscr.style.display = 'none';
@@ -3701,18 +3695,18 @@ function makemenu() {
         glyph = true;
         qix = false;
 
-        qixscr.style.display = 'block';
+        tailscr.style.display = 'block';
         const x = 7;
         const y = 7;
 
-        qixscr.style.clipPath = `polygon(${x}px ${y}px,
+        tailscr.style.clipPath = `polygon(${x}px ${y}px,
 ${x+2}px ${y}px,
 ${x+2}px ${y+18}px,
 ${x}px ${y+18}px)`;
 
         hintb.style.display = 'none';
         stopscr = true;
-        qixscr2.style.display = 'none';
+        tailscr2.style.display = 'none';
         document.body.style.backgroundColor = '#dbe';
 
         new_glyph(true);
@@ -3769,8 +3763,8 @@ ${x}px ${y+18}px)`;
       keyboard.style.display = 'none';
 
       qix = false;
-      qixscr.style.display = 'none';
-      qixscr2.style.display = 'none';
+      tailscr.style.display = 'none';
+      tailscr2.style.display = 'none';
 
       glyph = false;
       glyphscr.style.display = 'none';
@@ -3832,8 +3826,8 @@ ${x}px ${y+18}px)`;
         keyboard.style.display = 'none';
 
         qix = false;
-        qixscr.style.display = 'none';
-        qixscr2.style.display = 'none';
+        tailscr.style.display = 'none';
+        tailscr2.style.display = 'none';
 
         glyph = false;
         glyphscr.style.display = 'none';
@@ -3872,8 +3866,8 @@ ${x}px ${y+18}px)`;
         solitaire = true;
         qix = false;
         keyboard.style.display = 'none';
-        qixscr.style.display = 'none';
-        qixscr2.style.display = 'none';
+        tailscr.style.display = 'none';
+        tailscr2.style.display = 'none';
         stopscr = true;
         drawn = 1;
         readcard(sol);
@@ -4200,8 +4194,8 @@ function joystick_move() {
   const x = mousepos.x - deadzone.x;
   const y = mousepos.y - deadzone.y;
 
-  givehint = true;
-  drawhint(hint, deadzone.x - cardsize[0]/2, deadzone.y, mousepos.x - cardsize[0]/2, mousepos.y);
+  hint.style.display = 'inline-block';
+  drawhint_line(hint, deadzone.x, deadzone.y, mousepos.x, mousepos.y);
 
   const ks = [];
   if (Math.abs(x) > Math.abs(y)*2) {
@@ -4799,8 +4793,8 @@ window.addEventListener('load', () => {
 <div class='hintscreen'><div class='hint' id='hint3'></div></div>
 <div class='hintscreen'><div class='hint' id='hint4'></div></div>
 <div class='hintscreen'><div class='hint' id='hintb'></div></div>
-<div class='hintscreen'><div class='hint' id='qixscr'></div></div>
-<div class='hintscreen'><div class='hint' id='qixscr2'></div></div>
+<div class='hintscreen'><div class='hint' id='tailscr'></div></div>
+<div class='hintscreen'><div class='hint' id='tailscr2'></div></div>
 <div id='result'></div>
 <div id='stdout'>Output:</div>
 <div class='poppy' id='poppy'></div>

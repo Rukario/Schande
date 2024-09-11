@@ -2971,7 +2971,7 @@ const qixsc = 2;
 var qixmask = newCanvas();
 var spoiler = newCanvas();
 var qixmap = null;
-var qixpos, qixpos2, qix_tails, qixline;
+var qixdim, qixpos, qixpos2, qix_tails, qixline;
 var glyphm = newCanvas();
 var glyphc = newCanvas();
 var glyph_chars = 46;
@@ -3084,17 +3084,17 @@ ${x}px ${y+18}px)`;
 
 
 function new_qix() {
-  const center = [
-    Math.floor(qixmask.width/2),
-    Math.floor(qixmask.height/2),
-  ]
+  qixdim = {
+    x: Math.floor(qixmask.width / 2),
+    y: Math.floor(qixmask.height / 2),
+  }
   qixpos = {
-    x: center[0]*qixsc + qixsc,
-    y: center[1]*qixsc + qixsc,
+    x: qixdim.x * qixsc + qixsc,
+    y: qixdim.y * qixsc + qixsc,
   };
   qixpos2 = {
-    x: Math.floor((Math.random()*qixmask.width-2)+1)*qixsc,
-    y: Math.floor((Math.random()*qixmask.height-2)+1)*qixsc,
+    x: Math.floor((Math.random() * qixmask.width - 2) + 1) * qixsc,
+    y: Math.floor((Math.random() * qixmask.height - 2) + 1) * qixsc,
   };
   qix_tails = [];
   qixline = {
@@ -3110,11 +3110,11 @@ function new_qix() {
     qixmap.data[n*4+3] = 255;
   }
 
-  clearSq(center[0]-9, center[1]-9, 19, 19);
-  clearSq(center[0]-8, center[1]-8, 17, 17, 128); // 128 for semi-translucent
+  clearSq(qixdim.x - 9, qixdim.y - 9, 19, 19);
+  clearSq(qixdim.x - 8, qixdim.y - 8, 17, 17, 128); // 128 for semi-translucent
   clearSq(0, 0, qixmask.width, 0);
   clearSq(0, 0, 0, qixmask.height);
-  clearSq(0, qixmask.height-1, qixmask.width, 0);
+  clearSq(0, qixmask.height - 1, qixmask.width, 0);
   clearSq(qixmask.width-1, 0, 0, qixmask.height);
 
   qix = true;
@@ -3358,23 +3358,27 @@ function drawqix(scr, pos, size = 0) {
       chdir(area[2], area[3], area[0], area[1]);
       dir.x = area[2];
       dir.y = area[3];
-      tail.push(`${dir.nw * qixsc + dir.w}px ${dir.nh * qixsc + dir.h}px`);
+      const xx = dir.nw * qixsc + dir.w + dim.x - qixdim.x * qixsc;
+      const yy = dir.nh * qixsc + dir.h + dim.y - qixdim.y * qixsc;
+      tail.push(`${xx}px ${yy}px`);
       dir.nw = nx;
       dir.nh = ny;
     };
     if (qix_tails.length) {
-      tail.push(`${dir.nw * qixsc + dir.w}px ${dir.nh * qixsc + dir.h}px`);
+      const xx = dir.nw * qixsc + dir.w + dim.x - qixdim.x * qixsc;
+      const yy = dir.nh * qixsc + dir.h + dim.y - qixdim.y * qixsc;
+      tail.push(`${xx}px ${yy}px`);
     }
   }
 
   if (size) {
-    const x = pos.x+0.5;
-    const y = pos.y+0.5;
-    tail.push(`${x}px ${y-10*size}px,
-${x+10*size}px ${y}px,
-${x}px ${y+10*size}px,
-${x-10*size}px ${y}px,
-${x}px ${y-10*size}px`);
+    const x = pos.x + 0.5 + dim.x - qixdim.x * qixsc;
+    const y = pos.y + 0.5 + dim.y - qixdim.y * qixsc;
+    tail.push(`${x}px ${y - 10 * size}px,
+${x + 10 * size}px ${y}px,
+${x}px ${y + 10 * size}px,
+${x - 10 * size}px ${y}px,
+${x}px ${y - 10 * size}px`);
   }
 
   if (size < 2) {
@@ -3394,7 +3398,9 @@ ${x}px ${y-10*size}px`);
       dir.y = -area[3];
       dir.nw = nx;
       dir.nh = ny;
-      tail.push(`${dir.nw*qixsc+dir.w}px ${dir.nh*qixsc+dir.h}px`);
+      const xx = dir.nw * qixsc + dir.w + dim.x - qixdim.x * qixsc;
+      const yy = dir.nh * qixsc + dir.h + dim.y - qixdim.y * qixsc;
+      tail.push(`${xx}px ${yy}px`);
     };
     if (qix_tails.length) {
       const area = qix_tails[0];
@@ -3411,7 +3417,9 @@ ${x}px ${y-10*size}px`);
         dir.w = 0;
         dir.h = qixsc;
       }
-      tail.push(`${area[0] * qixsc + dir.w}px ${area[1] * qixsc + dir.h}px`);
+      const xx = area[0] * qixsc + dir.w + dim.x - qixdim.x * qixsc;
+      const yy = area[1] * qixsc + dir.h + dim.y - qixdim.y * qixsc;
+      tail.push(`${xx}px ${yy}px`);
     }
   }
   scr.style.clipPath = `polygon(${tail.join(',')})`;
@@ -3434,8 +3442,8 @@ function qixupdate() {
       qix_tails.pop();
     }
 
-    qixpos.x = (stix[0] + stix[2])*qixsc;
-    qixpos.y = (stix[1] + stix[3])*qixsc;
+    qixpos.x = (stix[0] + stix[2]) * qixsc;
+    qixpos.y = (stix[1] + stix[3]) * qixsc;
     drawqix(tailscr, qixpos, 0.75);
   } else if ('WASD'.split('').some((k) => Keypress['Key' + k]) || ['Left', 'Up', 'Right', 'Down'].some((k) => Keypress['Arrow' + k])) {
     qixstep();
@@ -3456,13 +3464,15 @@ function qixupdate() {
 
   context.fillStyle = '#000';
   context.fillRect(0, 0, canvas.width, canvas.height);
-  context.drawImage(reveal, 0, 0, reveal.width, reveal.height, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
+
+  context.drawImage(reveal, dim.x - reveal.width / 2, dim.y - reveal.height / 2, reveal.width, reveal.height); // 0, 0, qixmask.width*qixsc, qixmask.height*qixsc
+
   spoiler.clearRect(0, 0, spoiler.width, spoiler.height);
   spoiler.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
   spoiler.globalCompositeOperation = 'source-in';
   spoiler.drawImage(silhouette, 0, 0, spoiler.width, spoiler.height);
   spoiler.globalCompositeOperation = 'source-over';
-  context.drawImage(spoiler.canvas, 0, 0, spoiler.width, spoiler.height);
+  context.drawImage(spoiler.canvas, dim.x - spoiler.width / 2, dim.y - spoiler.height / 2, spoiler.width, spoiler.height);
 
   if (stopscr) {
     requestAnimationFrame(qixupdate);
@@ -3699,10 +3709,12 @@ function makemenu() {
         const x = 7;
         const y = 7;
 
-        tailscr.style.clipPath = `polygon(${x}px ${y}px,
-${x+2}px ${y}px,
-${x+2}px ${y+18}px,
-${x}px ${y+18}px)`;
+        tailscr.style.clipPath = `polygon(
+${x}px ${y}px,
+${x + 2}px ${y}px,
+${x + 2}px ${y + 18}px,
+${x}px ${y + 18}px
+)`;
 
         hintb.style.display = 'none';
         stopscr = true;
@@ -4118,7 +4130,6 @@ const vCode = {
   Period: ['. \>', '.\>', true],
   Quote: ['\' "', '\'"', true],
   Semicolon: ['; :', ';:', true],
-  Shamefur: ['Shamefur bar', null],
   ShiftLeft: ['Shift', null],
   ShiftRight: ['Shift', null],
   Slash: ['/ ?', '/?'],
@@ -4392,8 +4403,6 @@ function createkeyboard() {
 
 
   // catastrophe viewports
-  //shamefurbar = keysocket(0, 12, 'calc(100% - 6px)');
-
   esc = keysocket(52, 0, 'calc(5% + 12px)');
   f1 = keysocket(21, 0, 'calc(32% - 46px)');
   f5 = keysocket(20, 0, 'calc(32% - 46px)');
@@ -4411,7 +4420,7 @@ function createkeyboard() {
   basekb.append(DOMwriter);
 
   alphakeys = keysocket(0, 0, 'calc(100% - 6px)');
-  basekb.append(keydiv([alphakeys], 0, '838px')); // null, shamefurbar
+  basekb.append(keydiv([alphakeys], 0, '838px'));
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
@@ -4497,20 +4506,12 @@ function createkeyboard() {
   drawkeyboard(DOMwriter, ['Function'], 43, 'keycap2');
   drawkeyboard(DOMwriter, ['ControlRight'], 43, 'keycap2');
 
-  //DOMwriter = document.createElement('DIV');
-  //DOMwriter.classList = 'keysocketrow';
-  //shamefurbar.appendChild(DOMwriter);
-  //
-  //drawkeyboard(DOMwriter, ['Shamefur'], '100%');
-
-
 
   // TKL for small viewports
   homekeys2 = keysocket(0, 0, 'calc(100% - 6px)');
   homekeys = keysocket(0, 12, 'calc(100% - 6px)');
   arrows = keysocket(0, 49, 'calc(100% - 6px)');
-  //shamefurbar2 = keysocket(0, 12, 'calc(100% - 6px)');
-  DOMwriter = keydiv([homekeys2, null, homekeys, null, arrows], 6, '172px', 'var(--med)'); //, null, shamefurbar2
+  DOMwriter = keydiv([homekeys2, null, homekeys, null, arrows], 6, '172px', 'var(--med)');
   keyboard.append(DOMwriter);
 
 
@@ -4561,19 +4562,10 @@ function createkeyboard() {
 
 
 
-  //DOMwriter = document.createElement('DIV');
-  //DOMwriter.classList = 'keysocketrow';
-  //shamefurbar2.appendChild(DOMwriter);
-  //
-  //drawkeyboard(DOMwriter, ['Shamefur'], '100%');
-
-
-
   // Shamefur dispray arr keys for unrestricted viewports
   numpad2 = keysocket();
   numpad = keysocket(0, 12);
-  //shamefurbar3 = keysocket(0, 12, 'calc(100% - 6px)');
-  DOMwriter = keydiv([numpad2, null, numpad], 6, null, 'var(--large)'); //, null, shamefurbar3
+  DOMwriter = keydiv([numpad2, null, numpad], 6, null, 'var(--large)');
   keyboard.append(DOMwriter);
 
   drawkeyboard(numpad2, ['Calculator', 'VolumeMute', 'VolumeDown', 'VolumeUp'], 32, 'keycap2');
@@ -4608,14 +4600,6 @@ function createkeyboard() {
 
   drawkeyboard(numpad, ['Numpad0'], 88);
   drawkeyboard(numpad, ['NumpadDecimal'], 32);
-
-
-
-  //DOMwriter = document.createElement('DIV');
-  //DOMwriter.classList = 'keysocketrow';
-  //shamefurbar3.appendChild(DOMwriter);
-  //
-  //drawkeyboard(DOMwriter, ['Shamefur'], '100%');
 }
 
 function resize() {

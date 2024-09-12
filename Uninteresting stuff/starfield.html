@@ -2676,8 +2676,8 @@ function giveth(t) {
   }
 }
 
-function copyTouch({ identifier, pageX, pageY }) {
-  return { identifier, pageX, pageY };
+function copyTouch({ identifier, clientX, clientY }) {
+  return { identifier, clientX, clientY };
 }
 
 function repeatpress(tooie, down) {
@@ -2708,8 +2708,8 @@ const FFdown = (e_) => {
 
   for (const tooie of tooies) {
     mouse[tooie].down = true;
-    mouse[tooie].x = isTouch ? e_.touches[tooie].clientX + window.visualViewport.offsetLeft : e_.x;
-    mouse[tooie].y = isTouch ? e_.touches[tooie].clientY + window.visualViewport.offsetTop : e_.y;
+    mouse[tooie].x = isTouch ? taketh[tooie].clientX + window.visualViewport.offsetLeft : e_.x;
+    mouse[tooie].y = isTouch ? taketh[tooie].clientY + window.visualViewport.offsetTop : e_.y;
 
     if (e_.target.classList.contains('graphboard')) {
       graphdrawing = e_;
@@ -2783,7 +2783,9 @@ const FFmove = (e_) => {
     if (isTouch) {
       tooies.length = 0;
       for (const t of e_.changedTouches) {
-        tooies.push(giveth(t));
+        const tooie = giveth(t);
+        taketh[tooie] = copyTouch(t);
+        tooies.push(tooie);
       }
     }
 
@@ -2792,8 +2794,8 @@ const FFmove = (e_) => {
     }
 
     for (tooie of tooies) {
-      mouse[tooie].x = isTouch ? e_.touches[tooie].clientX + window.visualViewport.offsetLeft : e_.x;
-      mouse[tooie].y = isTouch ? e_.touches[tooie].clientY + window.visualViewport.offsetTop : e_.y;
+      mouse[tooie].x = isTouch ? taketh[tooie].clientX + window.visualViewport.offsetLeft : e_.x;
+      mouse[tooie].y = isTouch ? taketh[tooie].clientY + window.visualViewport.offsetTop : e_.y;
 
       if (mouse[tooie].down) {
         rollkey(tooie);

@@ -435,7 +435,7 @@ canvas {
   float: right;
 }
 
-#touchloc, #touchloc_dot {
+.touchloc, .touchloc_dot {
   display: none;
   pointer-events: none;
   z-index: 4;
@@ -454,12 +454,12 @@ canvas {
   }
 }
 
-#touchloc {
+.touchloc {
   border-color: #ffffff;
   border-style: solid;
 }
 
-#touchloc_dot {
+.touchloc_dot {
   background-color: #ffffff;
 }
 
@@ -634,7 +634,11 @@ var qix = false;
 var scale = 1;
 
 var dim = {x:0, y:0};
-var mousepos = {x:0, y:0};
+const maxtouches = 5;
+const mouse = Array(maxtouches).fill({
+  x: 0,
+  y: 0,
+});
 var rubbermouse = {x:0, y:0};
 
 const isTouch = 'ontouchstart' in window;
@@ -783,13 +787,13 @@ function starry(vmsec, msec, vfps) {
   }
 
   const drift = {
-    x: (mousepos.x - dim.x) / (200 / scr.levitate) / (vfps / 60) / star.life - (mousepos.x - rubbermouse.x) / scr.friction.x * scr.drift,
-    y: (mousepos.y - dim.y) / (200 / scr.levitate) / (vfps / 60) / star.life - (mousepos.y - rubbermouse.y) / scr.friction.y * scr.drift,
+    x: (mouse[0].x - dim.x) / (200 / scr.levitate) / (vfps / 60) / star.life - (mouse[0].x - rubbermouse.x) / scr.friction.x * scr.drift,
+    y: (mouse[0].y - dim.y) / (200 / scr.levitate) / (vfps / 60) / star.life - (mouse[0].y - rubbermouse.y) / scr.friction.y * scr.drift,
   }
 
   const off = {
-    x: scr.fly ? (mousepos.x - dim.x) / 5 : 0,
-    y: scr.fly ? (mousepos.y - dim.x) / 5 : 0,
+    x: scr.fly ? (mouse[0].x - dim.x) / 5 : 0,
+    y: scr.fly ? (mouse[0].y - dim.x) / 5 : 0,
   }
 
   context.fillStyle = ccolor;
@@ -803,10 +807,10 @@ function starry(vmsec, msec, vfps) {
   };
 
   if (scr.glide) {
-    bound.x += Math.min(mousepos.x - canvas.width, -dim.x);
-    bound.y += Math.min(mousepos.y - canvas.height, -dim.y);
-    bound.dx += Math.max(mousepos.x, dim.x);
-    bound.dy += Math.max(mousepos.y, dim.y);
+    bound.x += Math.min(mouse[0].x - canvas.width, -dim.x);
+    bound.y += Math.min(mouse[0].y - canvas.height, -dim.y);
+    bound.dx += Math.max(mouse[0].x, dim.x);
+    bound.dy += Math.max(mouse[0].y, dim.y);
   } else {
     bound.x += -dim.x;
     bound.y += -dim.y;
@@ -827,8 +831,8 @@ function starry(vmsec, msec, vfps) {
       //const scanline = n % channel / channel + Math.random() / channel;
       const scanline = Math.random();
 
-      ishtar.x = (horizon - 0.5) * canvas.width * scr.frustum + (scr.glide ? (mousepos.x - dim.x) / scr.friction.x : 0);
-      ishtar.y = (scanline - 0.5) * canvas.height * scr.frustum + (scr.glide ? (mousepos.y - dim.y) / scr.friction.y : 0);
+      ishtar.x = (horizon - 0.5) * canvas.width * scr.frustum + (scr.glide ? (mouse[0].x - dim.x) / scr.friction.x : 0);
+      ishtar.y = (scanline - 0.5) * canvas.height * scr.frustum + (scr.glide ? (mouse[0].y - dim.y) / scr.friction.y : 0);
     }
 
     if (scr.glide) {
@@ -841,8 +845,8 @@ function starry(vmsec, msec, vfps) {
       x: Math.ceil(ishtar.boost / (speli / star.x)),
       y: Math.ceil(ishtar.boost / (speli / star.y)),
     };
-    const sx = (ishtar.x + off.x) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(mousepos.x - dim.x) / (900 * scr.friction.x)) : 0);
-    const sy = (ishtar.y + off.y) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(mousepos.y - dim.y) / (900 * scr.friction.y)) : 0);
+    const sx = (ishtar.x + off.x) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(mouse[0].x - dim.x) / (900 * scr.friction.x)) : 0);
+    const sy = (ishtar.y + off.y) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(mouse[0].y - dim.y) / (900 * scr.friction.y)) : 0);
 
     if (false) {
       if (ishtar.x < dim.x) {
@@ -878,8 +882,8 @@ function starry(vmsec, msec, vfps) {
       }
     }
   }
-  rubbermouse.x = mousepos.x;
-  rubbermouse.y = mousepos.y;
+  rubbermouse.x = mouse[0].x;
+  rubbermouse.y = mouse[0].y;
 }
 
 const alpha = new Image();
@@ -998,6 +1002,7 @@ function screensaver(resolve) {
 
       if (vmsec > fps.msec * 2) {
         startTime = performance.now();
+        frameCount = 0;
       }
 
       if (sideways) {
@@ -1989,8 +1994,8 @@ function computerplaysol(forhint) {
             dragcard = {
               x: x,
               y: y,
-              dx: mousepos.x,
-              dy: mousepos.y,
+              dx: mouse[0].x,
+              dy: mouse[0].y,
               slot: slots[pos],
               draw: depth,
             };
@@ -2025,8 +2030,8 @@ function computerplaysol(forhint) {
           dragcard = {
             x: x,
             y: y,
-            dx: mousepos.x,
-            dy: mousepos.y,
+            dx: mouse[0].x,
+            dy: mouse[0].y,
             slot: slots[0],
           };
           setTimeout(FFup, computerspeed*3);
@@ -2072,8 +2077,8 @@ function computerplaysol(forhint) {
           dragcard = {
             x: x,
             y: y,
-            dx: mousepos.x,
-            dy: mousepos.y,
+            dx: mouse[0].x,
+            dy: mouse[0].y,
             slot: slo,
           };
           if(!isdeck) {
@@ -2136,8 +2141,8 @@ function computerplaysol(forhint) {
                     dragcard = {
                       x: x,
                       y: y,
-                      dx: mousepos.x,
-                      dy: mousepos.y,
+                      dx: mouse[0].x,
+                      dy: mouse[0].y,
                       slot: slo,
                     };
                     dragcard['draw'] = n+1;
@@ -2178,8 +2183,8 @@ function computerplaysol(forhint) {
                   dragcard = {
                     x: x,
                     y: y,
-                    dx: mousepos.x,
-                    dy: mousepos.y,
+                    dx: mouse[0].x,
+                    dy: mouse[0].y,
                     slot: fslo,
                   };
                   dragcard['draw'] = fslo[1].length-1;
@@ -2240,10 +2245,10 @@ var pickcard = () => {
   returncard = false;
   const sel = (x, y, e) => {
     return (
-      mousepos.x >= gap.x*(x+1) + cardsize[0]*x &&
-      mousepos.x < gap.x*(x+1) + cardsize[0]*(x+1)+e &&
-      mousepos.y >= gap.y*(y+1) + cardsize[1]*y &&
-      mousepos.y < gap.y*(y+1) + cardsize[1]*(y+1)
+      mouse[0].x >= gap.x*(x+1) + cardsize[0]*x &&
+      mouse[0].x < gap.x*(x+1) + cardsize[0]*(x+1)+e &&
+      mouse[0].y >= gap.y*(y+1) + cardsize[1]*y &&
+      mouse[0].y < gap.y*(y+1) + cardsize[1]*(y+1)
     )
   };
 
@@ -2259,18 +2264,18 @@ var pickcard = () => {
     dragcard = {
       x: gap.x*2 + cardsize[0]*1 + repeat*2 + dep*scale*14,
       y: gap.y*1 + cardsize[1]*0 + repeat + dep*scale,
-      dx: mousepos.x,
-      dy: mousepos.y,
+      dx: mouse[0].x,
+      dy: mouse[0].y,
       slot: slots[0],
     };
   }
 
   // Undo draw
   if (
-    mousepos.x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale &&
-    mousepos.x < gap.x*3 + cardsize[0]*3 &&
-    mousepos.y > gap.y + cardsize[1]*0 &&
-    mousepos.y < gap.y*1 + cardsize[1]*1/2
+    mouse[0].x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale &&
+    mouse[0].x < gap.x*3 + cardsize[0]*3 &&
+    mouse[0].y > gap.y + cardsize[1]*0 &&
+    mouse[0].y < gap.y*1 + cardsize[1]*1/2
   ) {
     if (draw.draw > -1) {
       if (!(drawn-1-(draw.last+drawn)%drawn) || draw.draw > draw.last || !draw.cycle) {
@@ -2303,10 +2308,10 @@ var pickcard = () => {
 
   // Undo card movement
   if (
-    mousepos.x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale &&
-    mousepos.x <= gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 + 12/2*(drawn-1)*scale &&
-    mousepos.y > gap.y + cardsize[1]*1/2 &&
-    mousepos.y <= gap.y*1 + cardsize[1]*1
+    mouse[0].x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale &&
+    mouse[0].x <= gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 + 12/2*(drawn-1)*scale &&
+    mouse[0].y > gap.y + cardsize[1]*1/2 &&
+    mouse[0].y <= gap.y*1 + cardsize[1]*1
   ) {
     winanim = false;
     if (rev) {
@@ -2320,10 +2325,10 @@ var pickcard = () => {
   // Redo card movement
   if (
     !winanim &&
-    mousepos.x > gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 + 12/2*(drawn-1)*scale &&
-    mousepos.x < gap.x*3 + cardsize[0]*3 &&
-    mousepos.y > gap.y + cardsize[1]*1/2 &&
-    mousepos.y < gap.y*1 + cardsize[1]*1
+    mouse[0].x > gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 + 12/2*(drawn-1)*scale &&
+    mouse[0].x < gap.x*3 + cardsize[0]*3 &&
+    mouse[0].y > gap.y + cardsize[1]*1/2 &&
+    mouse[0].y < gap.y*1 + cardsize[1]*1
   ) {
     if (rev < slothistory.length-1) {
       rev ++;
@@ -2335,14 +2340,14 @@ var pickcard = () => {
 
   // Solitaire with computer
   if (!winanim &&
-    mousepos.x >= gap.x*8 + cardsize[0]*7 &&
-    mousepos.x < gap.x*8 + cardsize[0]*8 &&
-    mousepos.y >= gap.y*1 + cardsize[1]*0 &&
-    mousepos.y < gap.y*1 + cardsize[1]*1
+    mouse[0].x >= gap.x*8 + cardsize[0]*7 &&
+    mouse[0].x < gap.x*8 + cardsize[0]*8 &&
+    mouse[0].y >= gap.y*1 + cardsize[1]*0 &&
+    mouse[0].y < gap.y*1 + cardsize[1]*1
   ) {
     let pos = 0;
 
-    if (mousepos.y < gap.y*1 + cardsize[1]*1/2) {
+    if (mouse[0].y < gap.y*1 + cardsize[1]*1/2) {
       solcomputer = debugcomputer ? true : !solcomputer;
       debugcomputer = false;
       computerspeed = 30;
@@ -2386,8 +2391,8 @@ var pickcard = () => {
         dragcard = {
           x: gap.x*(pos+4) + cardsize[0]*(pos+3) + repeat*scale*2,
           y: gap.y*1 + cardsize[1]*0 + repeat*scale,
-          dx: mousepos.x,
-          dy: mousepos.y,
+          dx: mouse[0].x,
+          dy: mouse[0].y,
           slot: slots[pos+1],
           draw: slots[pos+1][1].length-1,
         };
@@ -2400,18 +2405,18 @@ var pickcard = () => {
   // Drag card from Stack
   for (const pos of [...Array(7+cheatslots).keys()]) {
     if (
-      mousepos.x >= gap.x*(pos+1) + cardsize[0]*pos &&
-      mousepos.x < gap.x*(pos+1) + cardsize[0]*(pos+1) &&
-      mousepos.y >= gap.y*2 + cardsize[1]*1 &&
-      mousepos.y < gap.y*2 + cardsize[1]*2 + 3*scale*slots[pos+5][0].length + 15*scale*slots[pos+5][1].length + (slots[pos+5][1].length > 0 ? -15 : 0)
+      mouse[0].x >= gap.x*(pos+1) + cardsize[0]*pos &&
+      mouse[0].x < gap.x*(pos+1) + cardsize[0]*(pos+1) &&
+      mouse[0].y >= gap.y*2 + cardsize[1]*1 &&
+      mouse[0].y < gap.y*2 + cardsize[1]*2 + 3*scale*slots[pos+5][0].length + 15*scale*slots[pos+5][1].length + (slots[pos+5][1].length > 0 ? -15 : 0)
     ) {
       if (slots[pos+5][1].length) {
-        const depth = Math.min(Math.floor(Math.max(mousepos.y - (gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length), 0) / 15 / scale), slots[pos+5][1].length-1);
+        const depth = Math.min(Math.floor(Math.max(mouse[0].y - (gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length), 0) / 15 / scale), slots[pos+5][1].length-1);
         dragcard = {
           x: gap.x*(pos+1) + cardsize[0]*pos,
           y: gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length + depth*15*scale,
-          dx: mousepos.x,
-          dy: mousepos.y,
+          dx: mouse[0].x,
+          dy: mouse[0].y,
           slot: slots[pos+5],
           draw: depth,
         };
@@ -2454,8 +2459,8 @@ function rubberband() {
     requestAnimationFrame(update);
     let des = 0;
     for (const card of returncards) {
-      const x = rubberstep / rubbersize * (mousepos.x - returncard.dx) + returncard.x;
-      const y = rubberstep / rubbersize * (mousepos.y - returncard.dy) + returncard.y + des;
+      const x = rubberstep / rubbersize * (mouse[0].x - returncard.dx) + returncard.x;
+      const y = rubberstep / rubbersize * (mouse[0].y - returncard.dy) + returncard.y + des;
       context.drawImage(cards[card], x, y, ...cardsize);
       des += 15 * scale;
     }
@@ -2478,7 +2483,7 @@ var releasecard = () => {
     let cheat = false;
 
     // Deal
-    //if (mousepos.x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*9 + cardsize[0]*8 && mousepos.x - dragcard.dx + dragcard.x < gap.x*9 + cardsize[0]*9 && mousepos.y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*1 + cardsize[1]*0 && mousepos.y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1) {
+    //if (mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*9 + cardsize[0]*8 && mouse[0].x - dragcard.dx + dragcard.x < gap.x*9 + cardsize[0]*9 && mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*1 + cardsize[1]*0 && mouse[0].y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1) {
     //  dragcard = false;
     //  returncard = false;
     //  new_deck();
@@ -2489,10 +2494,10 @@ var releasecard = () => {
     // Select pile from Foundation or an action for double click
     for (const pos of [...Array(4).keys()]) {
       if (
-        mousepos.x - dragcard.dx + dragcard.x + cardsize[0] >= gap.x*(pos+4) + cardsize[0]*(pos+3) &&
-        mousepos.x - dragcard.dx + dragcard.x < gap.x*(pos+4) + cardsize[0]*(pos+4) &&
-        mousepos.y - dragcard.dy + dragcard.y + cardsize[1] >= gap.y*1 + cardsize[1]*0 &&
-        mousepos.y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1
+        mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] >= gap.x*(pos+4) + cardsize[0]*(pos+3) &&
+        mouse[0].x - dragcard.dx + dragcard.x < gap.x*(pos+4) + cardsize[0]*(pos+4) &&
+        mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] >= gap.y*1 + cardsize[1]*0 &&
+        mouse[0].y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1
       ) {
         slot.push(slots[pos+1]);
       }
@@ -2554,10 +2559,10 @@ var releasecard = () => {
     // Select pile from Stack
     for (const pos of [...Array(7+cheatslots).keys()]) {
       if (
-        mousepos.x - dragcard.dx + dragcard.x + cardsize[0] >= gap.x*(pos+1) + cardsize[0]*(pos) &&
-        mousepos.x - dragcard.dx + dragcard.x < gap.x*(pos+1) + cardsize[0]*(pos+1) &&
-        mousepos.y - dragcard.dy + dragcard.y + cardsize[1] >= gap.y*2 + cardsize[1]*1 &&
-        mousepos.y - dragcard.dy + dragcard.y < gap.y*2 + cardsize[1]*2 + 3*scale*slots[pos+5][0].length + 15*scale*(slots[pos+5][1].length-1)
+        mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] >= gap.x*(pos+1) + cardsize[0]*(pos) &&
+        mouse[0].x - dragcard.dx + dragcard.x < gap.x*(pos+1) + cardsize[0]*(pos+1) &&
+        mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] >= gap.y*2 + cardsize[1]*1 &&
+        mouse[0].y - dragcard.dy + dragcard.y < gap.y*2 + cardsize[1]*2 + 3*scale*slots[pos+5][0].length + 15*scale*(slots[pos+5][1].length-1)
       ) {
         slot.push(slots[pos+5]);
         if (!cheat){
@@ -2652,86 +2657,116 @@ function imawake() {
 
 var crosshint, givehint;
 var hints = 1;
-var fader = null;
 var ZOOKd = null;
-var repeatyeets = false;
+const fader = Array(maxtouches).fill(false);
+const repeatyeets = Array(maxtouches).fill(false);
+const taketh = Array(maxtouches).fill(false);
 
-function repeatpress(down) {
-  clearTimeout(repeatyeets); // clearTimeout and clearInterval are interchangeable
+function copyTouch({ identifier, pageX, pageY }) {
+  return { identifier, pageX, pageY };
+}
+
+function takethById(id) {
+  for (let i = 0; i < taketh.length; i++) {
+    if (taketh[i] && taketh[i].identifier === id) {
+      return i;
+    }
+  }
+}
+
+
+
+function repeatpress(tooie, down) {
+  clearTimeout(repeatyeets[tooie]); // clearTimeout and clearInterval are interchangeable
   if (down) {
-    repeatyeets = setTimeout(() => {
-      repeatyeets = setInterval(() => {
-        pressed(yeetCode, true);
+    repeatyeets[tooie] = setTimeout(() => {
+      repeatyeets[tooie] = setInterval(() => {
+        pressed(yeetCode[tooie], tooie, true);
       }, 20);
     }, 500);
   }
 }
 
 const FFdown = (e_) => {
-  mousec.down = 1;
-
-  if (!isTouch || e_.touches.length === 1) {
-    mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft : e_.x;
-    mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop : e_.y;
-  }
-
-  if (e_.target.classList.contains('graphboard')) {
-    graphdrawing = e_;
-    graphdraw(e_);
-  } else if (e_.target.classList.contains('lever')) {
-    leverdrawing = e_;
-    leverdraw(e_);
-  } else if (e_.target.classList.contains('poppy') || e_.target.parentNode.classList.contains('poppy') || isTouch && e_.touches.length > 1) {
-    ZOOKd = true;
-    if (solitaire && dragcard) {
-      rubberband();
-      dragcard = false;
-    }
-  } else if (e_.target.classList.contains('keycap') || e_.target.classList.contains('keycap2')) {
-    yeet = e_.target.getBoundingClientRect();
-    yeetCode = e_.target.dataset.code;
-    if (wasd.some((k) => k === yeetCode)) {
-      joystick = wasd;
-      yeetCodes.push(yeetCode);
-    } else if (tfgh.some((k) => k === yeetCode)) {
-      joystick = tfgh;
-      yeetCodes.push(yeetCode);
-    } else if (arrowks.some((k) => k === yeetCode)) {
-      joystick = arrowks;
-      yeetCodes.push(yeetCode);
-    } else {
-      joystick = false;
-    }
-    if (joystick) {
-      const where = KeypressX[joystick[0]].getBoundingClientRect();
-      deadzone = {
-        x: Math.floor(where.left + where.width/2),
-        y: Math.floor(where.bottom),
+  const tooies = [0];
+  if (isTouch) {
+    for (const t of e_.changedTouches) {
+      for (let i = 0; i < taketh.length; i++) {
+        if (!taketh[i]) {
+          taketh[i] = copyTouch(t);
+          break;
+        }
       }
-      if (isTouch) {
-        deadzone.x += window.visualViewport.offsetLeft;
-        deadzone.y += window.visualViewport.offsetTop;
-      }
-      mousepos.x = deadzone.x;
-      mousepos.y = deadzone.y;
     }
-    if (yeetCode === 'CapsLock') {
-      lockpress(yeetCode, !Keypress['CapsLock']);
-    } else if (yeetCode === 'ScrollLock') {
-      lockpress(yeetCode, !Keypress['ScrollLock']);
-    } else {
-      pressed(yeetCode, true);
-      repeatpress(true);
-    }
-  } else {
-    ZOOKd = false;
-    if (solitaire) {
-      pickcard();
+
+    tooies.length = 0;
+    for (const t of e_.changedTouches) {
+      tooies.push(takethById(t.identifier));
     }
   }
 
-  cursordraw(e_);
-  cursordrawing = true;
+  for (const tooie of tooies) {
+    mouse[tooie].down = 1;
+    mouse[tooie].x = isTouch ? e_.touches[tooie].clientX + window.visualViewport.offsetLeft : e_.x;
+    mouse[tooie].y = isTouch ? e_.touches[tooie].clientY + window.visualViewport.offsetTop : e_.y;
+
+    if (e_.target.classList.contains('graphboard')) {
+      graphdrawing = e_;
+      graphdraw(e_);
+    } else if (e_.target.classList.contains('lever')) {
+      leverdrawing = e_;
+      leverdraw(e_);
+    } else if (e_.target.classList.contains('poppy') || e_.target.parentNode.classList.contains('poppy') || tooies.length > 1) {
+      ZOOKd = true;
+      if (solitaire && dragcard) {
+        rubberband();
+        dragcard = false;
+      }
+    } else if (e_.target.classList.contains('keycap') || e_.target.classList.contains('keycap2')) {
+      yeetdim[tooie] = e_.target.getBoundingClientRect();
+      yeetCode[tooie] = e_.target.dataset.code;
+      if (wasd.some((k) => k === yeetCode[tooie])) {
+        joystick[tooie] = wasd;
+        yeetCodes[tooie].push(yeetCode[tooie]);
+      } else if (tfgh.some((k) => k === yeetCode[tooie])) {
+        joystick[tooie] = tfgh;
+        yeetCodes[tooie].push(yeetCode[tooie]);
+      } else if (arrowks.some((k) => k === yeetCode[tooie])) {
+        joystick[tooie] = arrowks;
+        yeetCodes[tooie].push(yeetCode[tooie]);
+      } else {
+        joystick[tooie] = false;
+      }
+      if (joystick[tooie]) {
+        const where = KeypressX[joystick[tooie][0]].getBoundingClientRect();
+        deadzone[tooie] = {
+          x: Math.floor(where.left + where.width / 2),
+          y: Math.floor(where.bottom),
+        }
+        if (isTouch) {
+          deadzone[tooie].x += window.visualViewport.offsetLeft;
+          deadzone[tooie].y += window.visualViewport.offsetTop;
+        }
+        mouse[tooie].x = deadzone[tooie].x;
+        mouse[tooie].y = deadzone[tooie].y;
+      }
+      if (yeetCode[tooie] === 'CapsLock') {
+        lockpress(yeetCode[tooie], !Keypress['CapsLock']);
+      } else if (yeetCode[tooie] === 'ScrollLock') {
+        lockpress(yeetCode[tooie], !Keypress['ScrollLock']);
+      } else {
+        pressed(yeetCode[tooie], tooie, true);
+        repeatpress(tooie, true);
+      }
+    } else {
+      ZOOKd = false;
+      if (solitaire) {
+        pickcard();
+      }
+    }
+
+    cursordraw(e_, tooie, true);
+  }
 }
 
 const FFmove = (e_) => {
@@ -2741,28 +2776,49 @@ const FFmove = (e_) => {
   }, 1500);
   canvas.style.cursor = 'default';
   imawake();
+  const tooies = [0];
 
   if (e_) {
-    if (!isTouch || e_.touches.length === 1) {
-      e_.preventDefault();
-      mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft : e_.x;
-      mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop : e_.y;
+    if (isTouch) {
+      tooies.length = 0;
+      for (const t of e_.changedTouches) {
+        tooies.push(takethById(t.identifier));
+      }
+      //const point2 = taketh.findLastIndex(
+      //  (tp) => tp.identifier === e_.targetTouches[1].identifier,
+      //);
+      //for (const n of Array(taketh.length).keys()) {
+      //  if (taketh[n] === e_.targetTouches[0]) {
+      //    tooie = n;
+      //    echo(tooie);
+      //    break;
+      //  }
+      //}
     }
 
-    if (mousec.down) {
-      rollkey();
+    if (!isTouch || tooies.length === 1) {
+      e_.preventDefault();
     }
-    cursordraw(e_);
-    graphdraw(e_);
-    leverdraw(e_);
+
+    for (tooie of tooies) {
+      mouse[tooie].x = isTouch ? e_.touches[tooie].clientX + window.visualViewport.offsetLeft : e_.x;
+      mouse[tooie].y = isTouch ? e_.touches[tooie].clientY + window.visualViewport.offsetTop : e_.y;
+
+      if (mouse[tooie].down) {
+        rollkey(tooie);
+      }
+      cursordraw(e_, tooie);
+      graphdraw(e_);
+      leverdraw(e_);
+    }
   }
 
   if (solitaire && !winanim) {
     if (
-      mousepos.x > gap.x*8 + cardsize[0]*7 + cardsize[0]/2 - 16*scale &&
-      mousepos.x < gap.x*8 + cardsize[0]*7 + cardsize[0]/2 + 16*scale &&
-      mousepos.y > gap.y*1 + cardsize[1]*0 + cardsize[1]/2 - 8*scale &&
-      mousepos.y < gap.y*1 + cardsize[1]*0 + cardsize[1]/2 + 8*scale
+      mouse[0].x > gap.x*8 + cardsize[0]*7 + cardsize[0]/2 - 16*scale &&
+      mouse[0].x < gap.x*8 + cardsize[0]*7 + cardsize[0]/2 + 16*scale &&
+      mouse[0].y > gap.y*1 + cardsize[1]*0 + cardsize[1]/2 - 8*scale &&
+      mouse[0].y < gap.y*1 + cardsize[1]*0 + cardsize[1]/2 + 8*scale
     ) {
       if (!crosshint) {
         givehint = !givehint;
@@ -2792,20 +2848,30 @@ const FFmove = (e_) => {
     let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
     let des = 0;
     for (const card of dragcards){
-      context.drawImage(cards[card], mousepos.x-dragcard.dx+dragcard.x, mousepos.y-dragcard.dy+dragcard.y+des, ...cardsize);
+      context.drawImage(cards[card], mouse[0].x-dragcard.dx+dragcard.x, mouse[0].y-dragcard.dy+dragcard.y+des, ...cardsize);
       des += 15*scale;
     }
   }
 }
 
 const FFup = (e_) => {
-  mousec.down = 0;
-
-  cursordrawing = false;
   graphdrawing = false;
   leverdrawing = false;
 
   if (e_) {
+    const tooies = [0];
+    if (isTouch) {
+      tooies.length = 0;
+      for (const t of e_.changedTouches) {
+        tooies.push(takethById(t.identifier));
+      }
+      for (const tooie of tooies) {
+        if (tooie >= 0) {
+          taketh[tooie] = false;
+        }
+      } 
+    }
+
     if (!ZOOKd) {
       if (!e_.target.parentNode.classList.contains('poppy') && poppy.style.display !== 'none') {
         poppy.style.display = 'none';
@@ -2815,17 +2881,20 @@ const FFup = (e_) => {
       }
     }
 
-    joystick = false;
-    for (const k of yeetCodes) {
-      pressed(k);
-    }
-    hint.style.display = 'none';
-    if (yeetCode !== 'CapsLock' && yeetCode !== 'ScrollLock') {
-      pressed(yeetCode);
-      repeatpress();
-    }
+    for (const tooie of tooies) {
+      mouse[tooie].down = 0;
+      joystick[tooie] = false;
+      for (const k of yeetCodes[tooie]) {
+        pressed(k, tooie);
+      }
+      hint.style.display = 'none';
+      if (yeetCode[tooie] !== 'CapsLock' && yeetCode[tooie] !== 'ScrollLock') {
+        pressed(yeetCode[tooie], tooie);
+        repeatpress(tooie, false);
+      }
 
-    cursordraw(e_, true);
+      cursordraw(e_, tooie, false, true);
+    }
     e_.preventDefault();
   }
 
@@ -2885,43 +2954,42 @@ function savestar(str, args) {
   //no expiry would allow the cookie to be automatically deleted upon browser exit.
 }
 
-var cursordrawing = false;
 var graphdrawing = false;
 var leverdrawing = false;
 
-function cursordraw(e, end) {
+function cursordraw(e, tooie, start, end) {
   if (isTouch) {
     const sc = window.visualViewport.scale;
     const size = 3 / sc;
     const border = 1 / sc;
     const center = size / 2;
-    if (!cursordrawing && e.touches.length === 1) {
-      clearTimeout(fader);
+    if (start) {
+      clearTimeout(fader[tooie]);
 
-      touchloc.style.display = 'block';
-      touchloc.style.animation = 'none';
-      touchloc.style.top = mousepos.y - border - center + 'px';
-      touchloc.style.left = mousepos.x - border - center + 'px';
+      cursors[tooie].pos.style.display = 'block';
+      cursors[tooie].pos.style.animation = 'none';
+      cursors[tooie].pos.style.top = mouse[tooie].y - border - center + 'px';
+      cursors[tooie].pos.style.left = mouse[tooie].x - border - center + 'px';
 
-      touchloc_dot.style.display = 'block';
-      touchloc_dot.style.animation = 'none';
+      cursors[tooie].dot.style.display = 'block';
+      cursors[tooie].dot.style.animation = 'none';
     }
 
-    touchloc.style.width = size + 'px';
-    touchloc.style.height = size + 'px';
-    touchloc.style.borderWidth = border + 'px';
+    cursors[tooie].pos.style.width = size + 'px';
+    cursors[tooie].pos.style.height = size + 'px';
+    cursors[tooie].pos.style.borderWidth = border + 'px';
 
-    touchloc_dot.style.width = size + 'px';
-    touchloc_dot.style.height = size + 'px';
-    touchloc_dot.style.top = mousepos.y - center + 'px';
-    touchloc_dot.style.left = mousepos.x - center + 'px';
+    cursors[tooie].dot.style.width = size + 'px';
+    cursors[tooie].dot.style.height = size + 'px';
+    cursors[tooie].dot.style.top = mouse[tooie].y - center + 'px';
+    cursors[tooie].dot.style.left = mouse[tooie].x - center + 'px';
 
-    if (end && e.touches.length === 0) {
-      touchloc.style.animation = '';
-      touchloc_dot.style.animation = '';
-      fader = setTimeout(() => {
-        touchloc.style.display = 'none';
-        touchloc_dot.style.display = 'none';
+    if (end) {
+      cursors[tooie].pos.style.animation = '';
+      cursors[tooie].dot.style.animation = '';
+      fader[tooie] = setTimeout(() => {
+        cursors[tooie].pos.style.display = 'none';
+        cursors[tooie].dot.style.display = 'none';
       }, 900);
     }
   }
@@ -3242,7 +3310,7 @@ function stixpath(nx, land) {
 }
 
 function qixstep() {
-  const speed = qixsc*60/fps.hz;
+  const speed = qixsc * 60 / fps.hz;
   const step = {
     x: (Keypress.KeyD || Keypress.ArrowRight ? speed : 0) + (Keypress.KeyA || Keypress.ArrowLeft ? -speed : 0),
     y: (Keypress.KeyS || Keypress.ArrowDown ? speed : 0) + (Keypress.KeyW || Keypress.ArrowUp ? -speed : 0),
@@ -3251,8 +3319,8 @@ function qixstep() {
   if (
     qixpos.x + step.x >= 0 &&
     qixpos.y + step.y >= 0 &&
-    qixpos.x + step.x <= qixmask.width*qixsc &&
-    qixpos.y + step.y <= qixmask.height*qixsc
+    qixpos.x + step.x <= qixmask.width * qixsc &&
+    qixpos.y + step.y <= qixmask.height * qixsc
   ) {
     // death barrier
     const toMask = {
@@ -3269,17 +3337,17 @@ function qixstep() {
       stixpath(step.x, true);
       qixpos.x += step.x;
       qixpos.y += step.y;
-      if (mousec.hold) {
-        mousec.hold = 0;
+      if (mouse[tooie].hold) {
+        mouse[tooie].hold = 0;
         for (const area of qix_tails) {
           clearSq(...area);
         }
         qix_tails = [];
         qixscan();
       }
-    } else if (mousec.down) {
+    } else if (mouse[tooie].down) {
       // on adventure
-      mousec.hold = 1;
+      mouse[tooie].hold = 1;
       stixpath(step.x);
       qixpos.x += step.x;
       qixpos.y += step.y;
@@ -3288,7 +3356,7 @@ function qixstep() {
 }
 
 function qixstep2(k = false) {
-  const speed = qixsc*60/fps.hz;
+  const speed = qixsc * 60 / fps.hz;
   const step = {
     x: k ? (Keypress.KeyH ? speed : 0) + (Keypress.KeyF ? -speed : 0) : Math.round((Math.random() - 0.5) * 8),
     y: k ? (Keypress.KeyG ? speed : 0) + (Keypress.KeyT ? -speed : 0) : Math.round((Math.random() - 0.5) * 8),
@@ -3458,7 +3526,7 @@ var mousec = {
 };
 
 function qixupdate() {
-  if (qix_tails.length > 0 && !mousec.down) {
+  if (qix_tails.length > 0 && !mouse[tooie].down) {
     const stix = qix_tails.at(-1);
     if (stix[2]) {
       stix[2] += stix[2] > 0 ? -1 : 1;
@@ -4054,7 +4122,7 @@ ${x}px ${y + 18}px
 
 var glyph_cursor = 0;
 var glyph_row = 0;
-function pressed(code, down) {
+function pressed(code, tooie = 0, down) {
   if (KeypressX[code]) {
     //console.log(code, down ? 'down' : 'up', 'registered to', KeypressX[code].childNodes[0].innerHTML);
   } else {
@@ -4064,7 +4132,7 @@ function pressed(code, down) {
 
   if (down) {
     imawake();
-    const cl = joystick ? 'joystick' : 'pressed';
+    const cl = joystick[tooie] ? 'joystick' : 'pressed';
     KeypressX[code].childNodes[0].classList.add(cl);
     KeypressX[code].classList.add(cl);
     Keypress[code] = true;
@@ -4090,7 +4158,7 @@ function pressed(code, down) {
 
 function lockpress(code, down) {
   if (down) {
-    pressed(code, true);
+    pressed(code, 0, true);
   } else {
     pressed(code);
   }
@@ -4106,7 +4174,7 @@ function FFkeydown(e) {
   } else if (code === 'ScrollLock') {
     lockpress('ScrollLock', e.getModifierState('ScrollLock'));
   } else {
-    pressed(code, true);
+    pressed(code, 0, true);
   }
 }
 
@@ -4197,111 +4265,112 @@ for (const [n, k] of '←↑→↓'.split('').entries()) {
 
 const Keypress = Object.fromEntries(Object.keys(vCode).map((k) => [k, false]));
 const KeypressX = {};
-var yeet, joystick;
-var yeetCode = 'Backspace';
-var yeetCodes = [];
-var deadzone = {
+const yeetdim = Array(maxtouches);
+const yeetCode = Array(maxtouches).fill('Backspace');
+const joystick = Array(maxtouches).fill(false);
+const yeetCodes = Array(maxtouches).fill([]);
+const deadzone = Array(maxtouches).fill({
   x: 0,
   y: 0,
-};
+});
 
 const wasd = ['KeyW', 'KeyA', 'KeyS', 'KeyD'];
 const tfgh = ['KeyT', 'KeyF', 'KeyG', 'KeyH'];
 const arrowks = ['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight'];
 
-function joystick_move() {
-  const x = mousepos.x - deadzone.x;
-  const y = mousepos.y - deadzone.y;
+function joystick_move(tooie) {
+  const x = mouse[tooie].x - deadzone[tooie].x;
+  const y = mouse[tooie].y - deadzone[tooie].y;
 
   hint.style.display = 'inline-block';
-  drawhint_line(hint, deadzone.x, deadzone.y, mousepos.x, mousepos.y);
+  drawhint_line(hint, deadzone[tooie].x, deadzone[tooie].y, mouse[tooie].x, mouse[tooie].y);
 
   const ks = [];
   if (Math.abs(x) > Math.abs(y)*2) {
     //horizontal
     if (x > 0) {
-      ks.push(joystick[3]);
+      ks.push(joystick[tooie][3]);
     } else {
-      ks.push(joystick[1]);
+      ks.push(joystick[tooie][1]);
     }
   } else if (Math.abs(x)*2 > Math.abs(y)) {
     //diagonal
     if (x > 0) {
       if (y > 0) {
-        ks.push(joystick[2]);
-        ks.push(joystick[3]);
+        ks.push(joystick[tooie][2]);
+        ks.push(joystick[tooie][3]);
       } else {
-        ks.push(joystick[0]);
-        ks.push(joystick[3]);
+        ks.push(joystick[tooie][0]);
+        ks.push(joystick[tooie][3]);
       }
     } else {
       if (y > 0) {
-        ks.push(joystick[2]);
-        ks.push(joystick[1]);
+        ks.push(joystick[tooie][2]);
+        ks.push(joystick[tooie][1]);
       } else {
-        ks.push(joystick[0]);
-        ks.push(joystick[1]);
+        ks.push(joystick[tooie][0]);
+        ks.push(joystick[tooie][1]);
       }
     }
   } else {
     //vertical
     if (y > 0) {
-      ks.push(joystick[2]);
+      ks.push(joystick[tooie][2]);
     } else {
-      ks.push(joystick[0]);
+      ks.push(joystick[tooie][0]);
     }
   }
 
   if (
-    yeetCodes.length !== ks.length ||
-    yeetCodes.some((ele, idx) => ele !== ks[idx])
+    yeetCodes[tooie].length !== ks.length ||
+    yeetCodes[tooie].some((ele, idx) => ele !== ks[idx])
   ) {
-    for (const k of yeetCodes) {
+    for (const k of yeetCodes[tooie]) {
       if (!ks.includes(k)) {
-        pressed(k);
+        pressed(k, tooie);
       } else {
-        yeetCode = k;
+        yeetCode[tooie] = k;
       }
     }
-    yeetCodes = ks;
+    yeetCodes[tooie] = ks;
     for (const k of ks) {
       if (!Keypress[k]) {
-        yeetCode = k;
-        pressed(yeetCode, true);
+        yeetCode[tooie] = k;
+        pressed(yeetCode[tooie], tooie, true);
       }
     }
-    repeatpress(true);
+    repeatpress(tooie, true);
   }
 }
 
-function rollkey() {
-  if (joystick) {
-    joystick_move();
+function rollkey(tooie) {
+  if (joystick[tooie]) {
+    joystick_move(tooie);
   }
 
-  const t = document.elementFromPoint(mousepos.x, mousepos.y);
+  const t = document.elementFromPoint(mouse[tooie].x, mouse[tooie].y);
   const newCode = t.dataset.code;
 
-  if (!newCode || joystick || newCode === 'CapsLock' || newCode === 'ScrollLock') {
+  if (!newCode || joystick[tooie] || newCode === 'CapsLock' || newCode === 'ScrollLock') {
     return;
   }
 
   const rect = t.getBoundingClientRect();
-  if (Keypress[yeetCode]) {
+  if (Keypress[yeetCode[tooie]]) {
     if (
-      mousepos.x < Math.floor(yeet.left) ||
-      mousepos.x > Math.ceil(yeet.right) ||
-      mousepos.y < Math.floor(yeet.top) ||
-      mousepos.y > Math.ceil(yeet.bottom)
+      mouse[tooie].x < Math.floor(yeetdim[tooie].left) ||
+      mouse[tooie].x > Math.ceil(yeetdim[tooie].right) ||
+      mouse[tooie].y < Math.floor(yeetdim[tooie].top) ||
+      mouse[tooie].y > Math.ceil(yeetdim[tooie].bottom)
     ) {
-      pressed(yeetCode);
+      pressed(yeetCode[tooie], tooie);
     }
   }
   if (!Keypress[newCode]) {
-    yeet = rect;
-    yeetCode = newCode;
-    pressed(yeetCode, true);
-    repeatpress(true);
+    yeetdim[tooie] = rect;
+    yeetCode[tooie] = newCode;
+    pressed(yeetCode[tooie], tooie, true);
+    repeatpress(tooie, true);
   }
 }
 
@@ -4626,9 +4695,25 @@ function resize() {
   scr.friction.y = Math.ceil(canvas.height/canvas.width);
 }
 
+const cursors = [];
 window.addEventListener('load', () => {
   result.style.display = fps.display ? 'block' : 'none';
   document.title = 'Starfield';
+
+  for (const c of Array(maxtouches).keys()) {
+    const pos = document.createElement('DIV');
+    pos.classList = 'touchloc';
+    document.body.appendChild(pos);
+
+    const dot = document.createElement('DIV');
+    dot.classList = 'touchloc_dot';
+    document.body.appendChild(dot);
+
+    cursors.push({
+      pos,
+      dot,
+    });
+  }
 
   editor = neweditor();
 
@@ -4747,8 +4832,8 @@ window.addEventListener('load', () => {
 
   dim.x = Math.floor(canvas.width/2)
   dim.y = Math.floor(canvas.height/2);
-  mousepos.x = dim.x;
-  mousepos.y = dim.y;
+  mouse[0].x = dim.x;
+  mouse[0].y = dim.y;
   scr.friction.x = Math.ceil(canvas.width/canvas.height);
   scr.friction.y = Math.ceil(canvas.height/canvas.width);
 
@@ -4771,8 +4856,6 @@ window.addEventListener('load', () => {
 <div id='result'></div>
 <div id='stdout'>Output:</div>
 <div class='poppy' id='poppy'></div>
-<div id='touchloc'></div>
-<div id='touchloc_dot'></div>
 <div id='dialogbox'><div id='close'>&times;</div><div id='dialog'></div></div>
 <div id='keyboard'></div>
 </body>

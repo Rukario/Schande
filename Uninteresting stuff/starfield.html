@@ -8,6 +8,8 @@
 <meta name="viewport" content="width=675, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
 <style>
 :root {
+  color-scheme: light dark;
+
   --color-keyboard: #fff;
   --color-keysocket: #6c7074;
   --color-keyborder: color-mix(in srgb, var(--color-keyboard), var(--color-keysocket));
@@ -26,6 +28,7 @@
 }
 
 body {
+  color: #000;
   background-color: #000;
   margin: 0;
   font-family: Helvetica, Arial, Sans-Serif;
@@ -69,6 +72,7 @@ canvas {
   line-height: calc(1em - 10.6px);
   white-space: pre-wrap;
   color: #0f0;
+  background-color: #000;
   font-family: courier;
   font-size: 26.6px;
 }
@@ -3559,7 +3563,6 @@ function qixupdate() {
 
 const neweditor = (B = '<br>', v = true) => {
   const d = document.createElement('DIV');
-  d.style.backgroundColor = '#000';
   d.classList = 'editor';
   d.style.display = v ? 'inline-block' : 'none';
   //d.setAttribute('contenteditable', 'plaintext-only');

@@ -30,6 +30,7 @@ body {
   margin: 0;
   font-family: Helvetica, Arial, Sans-Serif;
   -webkit-user-select: none;
+  -webkit-text-size-adjust: none;
   overflow: hidden;
 
   display: flex;
@@ -379,6 +380,7 @@ canvas {
 
 #stdout {
   top: 400px;
+  top: 0px;
   font-size: 14px;
 }
 
@@ -635,10 +637,14 @@ var scale = 1;
 
 var dim = {x:0, y:0};
 const maxtouches = 5;
-const mouse = Array(maxtouches).fill({
-  x: 0,
-  y: 0,
-});
+const mouse = [];
+for (const n of Array(maxtouches).keys()) {
+  mouse.push({
+    x: 0,
+    y: 0,
+    down: false,
+  });
+}
 var rubbermouse = {x:0, y:0};
 
 const isTouch = 'ontouchstart' in window;
@@ -2662,19 +2668,17 @@ const fader = Array(maxtouches).fill(false);
 const repeatyeets = Array(maxtouches).fill(false);
 const taketh = Array(maxtouches).fill(false);
 
-function copyTouch({ identifier, pageX, pageY }) {
-  return { identifier, pageX, pageY };
-}
-
-function takethById(id) {
+function giveth(t) {
   for (let i = 0; i < taketh.length; i++) {
-    if (taketh[i] && taketh[i].identifier === id) {
+    if (taketh[i] && taketh[i].identifier === t.identifier) {
       return i;
     }
   }
 }
 
-
+function copyTouch({ identifier, pageX, pageY }) {
+  return { identifier, pageX, pageY };
+}
 
 function repeatpress(tooie, down) {
   clearTimeout(repeatyeets[tooie]); // clearTimeout and clearInterval are interchangeable
@@ -2690,6 +2694,7 @@ function repeatpress(tooie, down) {
 const FFdown = (e_) => {
   const tooies = [0];
   if (isTouch) {
+    tooies.length = 0;
     for (const t of e_.changedTouches) {
       for (let i = 0; i < taketh.length; i++) {
         if (!taketh[i]) {
@@ -2697,16 +2702,12 @@ const FFdown = (e_) => {
           break;
         }
       }
-    }
-
-    tooies.length = 0;
-    for (const t of e_.changedTouches) {
-      tooies.push(takethById(t.identifier));
+      tooies.push(giveth(t));
     }
   }
 
   for (const tooie of tooies) {
-    mouse[tooie].down = 1;
+    mouse[tooie].down = true;
     mouse[tooie].x = isTouch ? e_.touches[tooie].clientX + window.visualViewport.offsetLeft : e_.x;
     mouse[tooie].y = isTouch ? e_.touches[tooie].clientY + window.visualViewport.offsetTop : e_.y;
 
@@ -2765,7 +2766,7 @@ const FFdown = (e_) => {
       }
     }
 
-    cursordraw(e_, tooie, true);
+    cursordraw(tooie, true);
   }
 }
 
@@ -2776,27 +2777,17 @@ const FFmove = (e_) => {
   }, 1500);
   canvas.style.cursor = 'default';
   imawake();
-  const tooies = [0];
 
   if (e_) {
+    const tooies = [0];
     if (isTouch) {
       tooies.length = 0;
       for (const t of e_.changedTouches) {
-        tooies.push(takethById(t.identifier));
+        tooies.push(giveth(t));
       }
-      //const point2 = taketh.findLastIndex(
-      //  (tp) => tp.identifier === e_.targetTouches[1].identifier,
-      //);
-      //for (const n of Array(taketh.length).keys()) {
-      //  if (taketh[n] === e_.targetTouches[0]) {
-      //    tooie = n;
-      //    echo(tooie);
-      //    break;
-      //  }
-      //}
     }
 
-    if (!isTouch || tooies.length === 1) {
+    if (!isTouch || e_.touches.length === 1) {
       e_.preventDefault();
     }
 
@@ -2807,7 +2798,7 @@ const FFmove = (e_) => {
       if (mouse[tooie].down) {
         rollkey(tooie);
       }
-      cursordraw(e_, tooie);
+      cursordraw(tooie);
       graphdraw(e_);
       leverdraw(e_);
     }
@@ -2848,7 +2839,7 @@ const FFmove = (e_) => {
     let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
     let des = 0;
     for (const card of dragcards){
-      context.drawImage(cards[card], mouse[0].x-dragcard.dx+dragcard.x, mouse[0].y-dragcard.dy+dragcard.y+des, ...cardsize);
+      context.drawImage(cards[card], mouse[0].x - dragcard.dx + dragcard.x, mouse[0].y - dragcard.dy + dragcard.y + des, ...cardsize);
       des += 15*scale;
     }
   }
@@ -2863,7 +2854,7 @@ const FFup = (e_) => {
     if (isTouch) {
       tooies.length = 0;
       for (const t of e_.changedTouches) {
-        tooies.push(takethById(t.identifier));
+        tooies.push(giveth(t));
       }
       for (const tooie of tooies) {
         if (tooie >= 0) {
@@ -2882,18 +2873,19 @@ const FFup = (e_) => {
     }
 
     for (const tooie of tooies) {
-      mouse[tooie].down = 0;
+      mouse[tooie].down = false;
       joystick[tooie] = false;
       for (const k of yeetCodes[tooie]) {
         pressed(k, tooie);
       }
-      hint.style.display = 'none';
+
       if (yeetCode[tooie] !== 'CapsLock' && yeetCode[tooie] !== 'ScrollLock') {
         pressed(yeetCode[tooie], tooie);
         repeatpress(tooie, false);
       }
 
-      cursordraw(e_, tooie, false, true);
+      cursors[tooie].tail.style.display = 'none';
+      cursordraw(tooie, false, true);
     }
     e_.preventDefault();
   }
@@ -2957,7 +2949,7 @@ function savestar(str, args) {
 var graphdrawing = false;
 var leverdrawing = false;
 
-function cursordraw(e, tooie, start, end) {
+function cursordraw(tooie, start, end) {
   if (isTouch) {
     const sc = window.visualViewport.scale;
     const size = 3 / sc;
@@ -4269,10 +4261,13 @@ const yeetdim = Array(maxtouches);
 const yeetCode = Array(maxtouches).fill('Backspace');
 const joystick = Array(maxtouches).fill(false);
 const yeetCodes = Array(maxtouches).fill([]);
-const deadzone = Array(maxtouches).fill({
-  x: 0,
-  y: 0,
-});
+const deadzone = [];
+for (const n of Array(maxtouches).keys()) {
+  deadzone.push({
+    x: 0,
+    y: 0,
+  });
+}
 
 const wasd = ['KeyW', 'KeyA', 'KeyS', 'KeyD'];
 const tfgh = ['KeyT', 'KeyF', 'KeyG', 'KeyH'];
@@ -4282,8 +4277,8 @@ function joystick_move(tooie) {
   const x = mouse[tooie].x - deadzone[tooie].x;
   const y = mouse[tooie].y - deadzone[tooie].y;
 
-  hint.style.display = 'inline-block';
-  drawhint_line(hint, deadzone[tooie].x, deadzone[tooie].y, mouse[tooie].x, mouse[tooie].y);
+  cursors[tooie].tail.style.display = 'inline-block';
+  drawhint_line(cursors[tooie].tail, deadzone[tooie].x, deadzone[tooie].y, mouse[tooie].x, mouse[tooie].y);
 
   const ks = [];
   if (Math.abs(x) > Math.abs(y)*2) {
@@ -4709,9 +4704,18 @@ window.addEventListener('load', () => {
     dot.classList = 'touchloc_dot';
     document.body.appendChild(dot);
 
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.classList = 'hintscreen';
+    document.body.appendChild(DOMwriter);
+
+    const tail = document.createElement('DIV');
+    tail.classList = 'hint';
+    DOMwriter.appendChild(tail);
+
     cursors.push({
       pos,
       dot,
+      tail,
     });
   }
 

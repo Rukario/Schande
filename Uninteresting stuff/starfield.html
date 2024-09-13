@@ -1770,9 +1770,9 @@ function sol() {
           solcomputer = false;
         };
       };
-      award(1, "So there's no more face-down cards, at this point the next card movement is unlosable and you also have earned the winning point.<br>You can restart the solitaire because you've won.");
-      award(2, "No more face-down cards or cards to draw means you've won for Solitaire with draw 3 cards. You can restart the solitaire now that you have earned the winning point.\n\nNew screensaver: Starfield");
-      award(16, "New test suite: Moving photo\n\nNew option: Frame rate");
+      award(1, "So there's no more face-down cards, at this point the next card movement is unlosable and you also have earned the winning point.\nYou can restart the game because you've won.\n\nNew game: Solitaire (draw 3)\n\nChanged: Solitaire (draw 1) requires 4 winning points to play again");
+      award(2, "No more face-down cards or cards to draw mean you've won for Solitaire with draw 3 cards.\nYou can restart the game now that you have earned the winning point.\n\nNew screensaver: Starfield\n\nNew game: Qix\n\nNew test suite: Glyph\n\nChanged: Solitaire (draw 1) returned");
+      award(16, "New game: FreeCell\n\nNew test suite: Moving photo\n\nNew option: Frame rate");
       award(24, "New screensaver: More stars");
       award(32, "New mode: Fly");
       award(64, "New mode: Glide\n\nNew option: Star speed");
@@ -3841,7 +3841,7 @@ function makemenu() {
   if (!winsoln || winsoln >= 5) {
     poppy.append(newmenu('Solitaire (draw 1)', listener, 1));
   } else {
-    poppy.append(unlock(['Solitaire (draw 1) (', ' or reset)'], 5));
+    poppy.append(unlock(['Solitaire (draw 1) (', ')'], 5));
   }
 
   if (winsoln >= 1) {

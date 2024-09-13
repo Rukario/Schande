@@ -1271,6 +1271,8 @@ var cardsize = [71 * scale, 96 * scale];
 const gap = {
   x: 11 * scale,
   y: 5 * scale,
+  dn: 3 * scale,
+  up: 15 * scale,
 };
 var solsize = [
   ((gap.x + 1) * scale + cardsize[0]) * (7 + cheatslots),
@@ -1505,6 +1507,7 @@ function new_deck() {
     // Solitaire
     gap.x = 11 * scale;
     gap.y = 5 * scale;
+    gap.up = 15 * scale;
     drawhint_sol();
 
     slots = Array(12+cheatslots);
@@ -1526,6 +1529,7 @@ function new_deck() {
     // Freecell, incomplete
     gap.x = 7 * scale;
     gap.y = 5 * scale;
+    gap.up = 18 * scale;
 
     slots = Array(16);
     for (const pos of [...Array(16).keys()]) {
@@ -2029,8 +2033,8 @@ function computerplaysol(forhint) {
 
   // Flip
   for (const pos of facedowns) {
-    const x = gap.x*(pos+1) + cardsize[0]*pos;
-    const y = gap.y*2 + cardsize[1] + 3*scale*(slots[pos+5][0].length-1);
+    const x = gap.x * (pos + 1) + cardsize[0] * pos;
+    const y = gap.y * 2 + cardsize[1] + gap.dn * (slots[pos+5][0].length - 1);
     drawhint_sol(hint, x, y, x, y);
     if (!forhint) {
       const card = slots[pos+5][0].at(-1); 
@@ -2061,8 +2065,8 @@ function computerplaysol(forhint) {
           return card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16) + 1;
         })
       ) {
-        const x = gap.x*(pos-(5*des)+1) + cardsize[0]*(pos-(5*des));
-        const y = gap.y*2 + cardsize[1] + depth*15*scale + 3*scale*slots[pos][0].length;
+        const x = gap.x * (pos - (5 * des) + 1) + cardsize[0] * (pos - (5 * des));
+        const y = gap.y * 2 + cardsize[1] + gap.up * depth + gap.dn * slots[pos][0].length;
         drawhint_sol(hint, x, y, x, y);
         if (!forhint) {
           if (vector) {
@@ -2080,7 +2084,7 @@ function computerplaysol(forhint) {
               slot: slots[pos],
               draw: depth,
             };
-            setTimeout(FFup, computerspeed*3);
+            setTimeout(FFup, computerspeed * 3);
           }
         }
         return;
@@ -2150,10 +2154,10 @@ function computerplaysol(forhint) {
       for (const [card, slo, place, isdeck] of vectors) {
         let depth = slots[pos+5][1].length;
         depth -= (depth ? 1 : 0)
-        const x = gap.x*(pos+1) + cardsize[0]*pos;
-        const y = gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length + depth*15*scale;
+        const x = gap.x * (pos + 1) + cardsize[0] * pos;
+        const y = gap.y * 2 + cardsize[1] * 1 + gap.dn * slots[pos+5][0].length + gap.up * depth;
         const des = place > 4 ? 1 : 0;
-        drawhint_sol([hint, hint2, hint3, hint4][o], x, y, gap.x*(place-(5*des)+1) + cardsize[0]*(place-(5*des)), gap.y*(des+1) + cardsize[1]*des + 3*scale*slo[0].length);
+        drawhint_sol([hint, hint2, hint3, hint4][o], x, y, gap.x * (place - (5 * des) + 1) + cardsize[0] * (place - (5 * des)), gap.y * (des + 1) + cardsize[1] * des + gap.dn * slo[0].length);
         if (!forhint) {
           dragcard = {
             x: x,
@@ -2211,10 +2215,10 @@ function computerplaysol(forhint) {
                 const de = slots[pos+5][1].length-1;
                 const ca = slots[pos+5][1][de];
                 if (ch[0]%2 !== ca[0]%2 && parseInt(ch[1], 16) === parseInt(ca[1], 16)-1) {
-                  const x = gap.x*(pos+1) + cardsize[0]*pos;
-                  const y = gap.y*2 + cardsize[1]*1 + de*15*scale + 3*scale*slots[pos+5][0].length;
-                  const dx = gap.x*(place+1) + cardsize[0]*place;
-                  const dy = gap.y*1 + cardsize[1]*1 + (n+1)*15*scale + 3*scale*(slo[0].length+2);
+                  const x = gap.x * (pos + 1) + cardsize[0] * pos;
+                  const y = gap.y * 2 + cardsize[1]*1 + gap.up * de + gap.dn * slots[pos+5][0].length;
+                  const dx = gap.x * (place + 1) + cardsize[0] * place;
+                  const dy = gap.y * 1 + cardsize[1] * 1 + gap.up * (n + 1) + gap.dn * (slo[0].length + 2);
                   drawhint_sol(hint, x, y, dx, dy);
 
                   if (!forhint) {
@@ -2255,8 +2259,8 @@ function computerplaysol(forhint) {
               if (parseInt(fca[1], 16) === 13 && !ca || ca && fca[0]%2 !== ca[0]%2 && parseInt(fca[1], 16) === parseInt(ca[1], 16)-1) {
                 const des = fpos > 4 ? 1 : 0;
                 const repeat = Math.floor(Math.abs(fslo[1].length-2)/4)*scale;
-                const x = gap.x*(place+1) + cardsize[0]*place;
-                const y = gap.y*2 + cardsize[1]*1 + 15*scale*(slo[1].length-(slo[1].length ? 1 : 0)) + 3*scale*slo[0].length;
+                const x = gap.x * (place + 1) + cardsize[0] * place;
+                const y = gap.y * 2 + cardsize[1] * 1 + gap.up * (slo[1].length - (slo[1].length ? 1 : 0)) + gap.dn * slo[0].length;
                 drawhint_sol(hint, x, y, gap.x*(fpos+3) + cardsize[0]*(fpos+2) + repeat*2, gap.y*(des+1) + cardsize[1]*(des*1) + repeat);
                 moved = true;
                 if (!forhint) {
@@ -2324,24 +2328,24 @@ var returncard = false;
 
 var pickcard = () => {
   returncard = false;
-  const sel = (x, y, e) => {
+  const sel = (x, y, dx = 0, dy = 0) => {
     return (
       mouse[0].x >= gap.x * (x + 1) + cardsize[0] * x &&
-      mouse[0].x < gap.x * (x + 1) + cardsize[0] * (x + 1) + e &&
+      mouse[0].x < gap.x * (x + 1) + cardsize[0] * (x + 1) + dx &&
       mouse[0].y >= gap.y * (y + 1) + cardsize[1] * y &&
-      mouse[0].y < gap.y * (y + 1) + cardsize[1] * (y + 1)
+      mouse[0].y < gap.y * (y + 1) + cardsize[1] * (y + 1) + dy
     )
   };
 
   if (solitaire) {
     // Deck to Waste
-    if (sel(0, 0, 0)) {
+    if (sel(0, 0)) {
       drawx();
     }
 
     // Drag card from Waste
-    const dep = Math.min(drawn, deck.length)-1;
-    if (sel(1, 0, 14*(drawn-1)*scale) && deck.length) {
+    const dep = Math.min(drawn, deck.length) - 1;
+    if (sel(1, 0, 14 * (drawn - 1) * scale) && deck.length) {
       const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
       dragcard = {
         x: gap.x*2 + cardsize[0]*1 + repeat*2 + dep*scale*14,
@@ -2352,85 +2356,62 @@ var pickcard = () => {
       };
     }
 
-    // Undo draw
-    if (
-      mouse[0].x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale &&
-      mouse[0].x < gap.x*3 + cardsize[0]*3 &&
-      mouse[0].y > gap.y + cardsize[1]*0 &&
-      mouse[0].y < gap.y*1 + cardsize[1]*1/2
-    ) {
-      const slot = slots[0];
-      if (draw.draw > -1) {
-        if (!(drawn-1-(draw.last+drawn)%drawn) || draw.draw > draw.last || !draw.cycle) {
-          if (slot[1].length-1 <= draw.draw) {
-            const microdraw = draw.cycle ? (draw.draw-(draw.last-drawn)%drawn)%drawn : slot[1].length%drawn;
-            if (microdraw) {
-              // Partial backwards
-              draw.draw -= microdraw;
-              deck.splice(draw.draw+1);
+    if (sel(2, 0) && mouse[0].x > gap.x * 3 + cardsize[0] * 2 + 12 * (drawn - 1) * scale) {
+      if (mouse[0].y < gap.y + cardsize[1] / 2) {
+        // Undo draw
+        const slot = slots[0];
+        if (draw.draw > -1) {
+          if (!(drawn-1-(draw.last+drawn)%drawn) || draw.draw > draw.last || !draw.cycle) {
+            if (slot[1].length-1 <= draw.draw) {
+              const microdraw = draw.cycle ? (draw.draw-(draw.last-drawn)%drawn)%drawn : slot[1].length%drawn;
+              if (microdraw) {
+                // Partial backwards
+                draw.draw -= microdraw;
+                deck.splice(draw.draw+1);
+              } else {
+                // Standard backwards
+                draw.draw -= drawn;
+                deck.splice(draw.draw+1);
+              }
             } else {
               // Standard backwards
               draw.draw -= drawn;
               deck.splice(draw.draw+1);
             }
-          } else {
-            // Standard backwards
-            draw.draw -= drawn;
-            deck.splice(draw.draw+1);
+          }
+        } else {
+          // Unflip deck
+          draw.draw = slot[1].length-1;
+          draw.cycle = true;
+          for (const d of [...Array(draw.draw+1).keys()]) {
+            deck.push(slot[1][d]);
           }
         }
-      } else {
-        // Unflip deck
-        draw.draw = slot[1].length-1;
-        draw.cycle = true;
-        for (const d of [...Array(draw.draw+1).keys()]) {
-          deck.push(slot[1][d]);
+      } else if (mouse[0].x <= gap.x * 3 + cardsize[0] * 3 - cardsize[0] / 2 + 12 / 2 * (drawn - 1) * scale) {
+        // Undo card movement
+        winanim = false;
+        if (rev) {
+          rev --;
+          [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
         }
+        sol();
+        return;
+      } else {
+        // Redo card movement
+        if (rev < slothistory.length-1) {
+          rev ++;
+          [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
+        }
+        sol();
+        return;
       }
-    }
-
-    // Undo card movement
-    if (
-      mouse[0].x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale &&
-      mouse[0].x <= gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 + 12/2*(drawn-1)*scale &&
-      mouse[0].y > gap.y + cardsize[1]*1/2 &&
-      mouse[0].y <= gap.y*1 + cardsize[1]*1
-    ) {
-      winanim = false;
-      if (rev) {
-        rev --;
-        [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
-      }
-      sol();
-      return;
-    }
-
-    // Redo card movement
-    if (
-      !winanim &&
-      mouse[0].x > gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 + 12/2*(drawn-1)*scale &&
-      mouse[0].x < gap.x*3 + cardsize[0]*3 &&
-      mouse[0].y > gap.y + cardsize[1]*1/2 &&
-      mouse[0].y < gap.y*1 + cardsize[1]*1
-    ) {
-      if (rev < slothistory.length-1) {
-        rev ++;
-        [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
-      }
-      sol();
-      return;
     }
 
     // Solitaire with computer
-    if (!winanim &&
-      mouse[0].x >= gap.x*8 + cardsize[0]*7 &&
-      mouse[0].x < gap.x*8 + cardsize[0]*8 &&
-      mouse[0].y >= gap.y*1 + cardsize[1]*0 &&
-      mouse[0].y < gap.y*1 + cardsize[1]*1
-    ) {
+    if (!winanim && sel(7, 0)) {
       let pos = 0;
     
-      if (mouse[0].y < gap.y*1 + cardsize[1]*1/2) {
+      if (mouse[0].y < gap.y + cardsize[1] / 2) {
         solcomputer = debugcomputer ? true : !solcomputer;
         debugcomputer = false;
         computerspeed = 30;
@@ -2469,7 +2450,7 @@ var pickcard = () => {
     // Drag card from Foundation
     for (const pos of [...Array(4).keys()]) {
       const slot = slots[pos+1];
-      if (sel(pos+3, 0, 0)) {
+      if (sel(pos+3, 0)) {
         if (slot[1].length) {
           const repeat = Math.ceil(([1].length) / 4) - 1;
           dragcard = {
@@ -2489,17 +2470,13 @@ var pickcard = () => {
     // Drag card from Stack
     for (const pos of Array(7+cheatslots).keys()) {
       const slot = slots[pos+5];
-      if (
-        mouse[0].x >= gap.x * (pos + 1) + cardsize[0] * pos &&
-        mouse[0].x < gap.x * (pos + 1) + cardsize[0] * (pos + 1) &&
-        mouse[0].y >= gap.y * 2 + cardsize[1] * 1 &&
-        mouse[0].y < gap.y * 2 + cardsize[1] * 2 + 3 * scale * slot[0].length + 15 * scale * slot[1].length + (slot[1].length > 0 ? -15 : 0)
-      ) {
+      const dy = gap.dn * slot[0].length + gap.up * slot[1].length + (slot[1].length > 0 ? -gap.up : 0);
+      if (sel(pos, 1, 0, dy)) {
         if (slots[pos+5][1].length) {
-          const depth = Math.min(Math.floor(Math.max(mouse[0].y - (gap.y * 2 + cardsize[1] * 1 + 3 * scale * slot[0].length), 0) / 15 / scale), slot[1].length-1);
+          const depth = Math.min(Math.floor(Math.max(mouse[0].y - (gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length), 0) / 15 / scale), slot[1].length-1);
           dragcard = {
-            x: gap.x*(pos + 1) + cardsize[0] * pos,
-            y: gap.y*2 + cardsize[1] * 1 + 3 * scale * slot[0].length + depth * 15 * scale,
+            x: gap.x * (pos + 1) + cardsize[0] * pos,
+            y: gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length + gap.up * depth,
             dx: mouse[0].x,
             dy: mouse[0].y,
             slot: slot,
@@ -2521,24 +2498,20 @@ var pickcard = () => {
       let des = 0;
       for (const card of dragcards){
         context.drawImage(cards[card], dragcard.x, dragcard.y+des, ...cardsize);
-        des += 15*scale;
+        des += gap.up;
       }
     }
   } else {
     // Drag card from Stack
     for (const pos of Array(8).keys()) {
       const slot = slots[pos+8];
-      if (
-        mouse[0].x >= gap.x * (pos + 1) + cardsize[0] * pos &&
-        mouse[0].x < gap.x * (pos + 1) + cardsize[0] * (pos + 1) &&
-        mouse[0].y >= gap.y * 2 + cardsize[1] * 1 &&
-        mouse[0].y < gap.y * 2 + cardsize[1] * 2 + 3 * scale * slot[0].length + 18 * scale * slot[1].length + (slot[1].length > 0 ? -18 : 0)
-      ) {
+      const dy = gap.dn * slot[0].length + gap.up * slot[1].length + (slot[1].length > 0 ? -gap.up : 0);
+      if (sel(pos, 1, 0, dy)) {
         if (slot[1].length) {
-          const depth = Math.min(Math.floor(Math.max(mouse[0].y - (gap.y * 2 + cardsize[1] * 1 + 3 * scale * slot[0].length), 0) / 18 / scale), slot[1].length-1);
+          const depth = Math.min(Math.floor(Math.max(mouse[0].y - (gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length), 0) / 18 / scale), slot[1].length-1);
           dragcard = {
             x: gap.x * (pos + 1) + cardsize[0] * pos,
-            y: gap.y * 2 + cardsize[1] * 1 + 3 * scale * slot[0].length + depth * 18 * scale,
+            y: gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length + depth * gap.up,
             dx: mouse[0].x,
             dy: mouse[0].y,
             slot: slot,
@@ -2554,7 +2527,7 @@ var pickcard = () => {
       let des = 0;
       for (const card of dragcards){
         context.drawImage(cards[card], dragcard.x, dragcard.y + des, ...cardsize);
-        des += 18 * scale;
+        des += gap.up;
       }
     }
   }
@@ -2563,7 +2536,7 @@ var pickcard = () => {
 function rubberband() {
   returncard = dragcard;
   let returncards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
-  const rubbersize = 4;
+  const rubbersize = 4 * Math.ceil(fps.hz / 60);
   let rubberstep = rubbersize;
   const update = () => {
     if (!returncard || rubberstep === 0) {
@@ -2590,7 +2563,7 @@ function rubberband() {
       const x = rubberstep / rubbersize * (mouse[0].x - returncard.dx) + returncard.x;
       const y = rubberstep / rubbersize * (mouse[0].y - returncard.dy) + returncard.y + des;
       context.drawImage(cards[card], x, y, ...cardsize);
-      des += 15 * scale;
+      des += gap.up;
     }
     rubberstep -= 1;
   }
@@ -2687,10 +2660,10 @@ var releasecard = () => {
     // Select pile from Stack
     for (const pos of [...Array(7+cheatslots).keys()]) {
       if (
-        mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] >= gap.x*(pos+1) + cardsize[0]*(pos) &&
-        mouse[0].x - dragcard.dx + dragcard.x < gap.x*(pos+1) + cardsize[0]*(pos+1) &&
-        mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] >= gap.y*2 + cardsize[1]*1 &&
-        mouse[0].y - dragcard.dy + dragcard.y < gap.y*2 + cardsize[1]*2 + 3*scale*slots[pos+5][0].length + 15*scale*(slots[pos+5][1].length-1)
+        mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] >= gap.x * (pos + 1) + cardsize[0] * pos &&
+        mouse[0].x - dragcard.dx + dragcard.x < gap.x * (pos + 1) + cardsize[0] * (pos + 1) &&
+        mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] >= gap.y * 2 + cardsize[1] &&
+        mouse[0].y - dragcard.dy + dragcard.y < gap.y * 2 + cardsize[1] * 2 + gap.dn * slots[pos+5][0].length + gap.up * (slots[pos+5][1].length - 1)
       ) {
         slot.push(slots[pos+5]);
         if (!cheat){
@@ -2971,16 +2944,13 @@ const FFmove = (e_) => {
 
     if (solitaire) {
       sol();
-      for (const card of dragcards){
-        context.drawImage(cards[card], mouse[0].x - dragcard.dx + dragcard.x, mouse[0].y - dragcard.dy + dragcard.y + des, ...cardsize);
-        des += 15*scale;
-      }
     } else {
       freec();
-      for (const card of dragcards){
-        context.drawImage(cards[card], mouse[0].x - dragcard.dx + dragcard.x, mouse[0].y - dragcard.dy + dragcard.y + des, ...cardsize);
-        des += 18 * scale;
-      }
+    }
+
+    for (const card of dragcards){
+      context.drawImage(cards[card], mouse[0].x - dragcard.dx + dragcard.x, mouse[0].y - dragcard.dy + dragcard.y + des, ...cardsize);
+      des += gap.up;
     }
   }
 }

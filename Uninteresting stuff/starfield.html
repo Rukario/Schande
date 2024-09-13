@@ -700,6 +700,12 @@ function newCanvas(w, h) {
   return d;
 }
 
+function echoCanvas(c) {
+  c.style.maxHeight = '400px';
+  echo('');
+  stdout.appendChild(c);
+}
+
 function canvasToAB(c, ext = 'png') {
   return function(resolve) {
     c.toBlob((blob0) => {
@@ -1383,31 +1389,54 @@ function new_card(next, suit) {
   const acard = newCanvas(71, 96);
   const sym = newCanvas();
 
-  acard.drawImage(cards['card0'], 0, 0, acard.width, acard.height);
   if (next === 0 && suit === 2) {
+    acard.drawImage(cards['card0'], 0, 0, acard.width, acard.height);
     // Spade A
     sym.width = sym.canvas.width = 39;
     sym.height = sym.canvas.height = 39;
     sym.clearRect(0, 0, sym.width, sym.height);
-    sym.drawImage(cards['sym'], -132, 0, 171, 60);
+    sym.drawImage(cards['sym'], -147, 0, cards['sym'].width, 60);
     acard.drawImage(sym.canvas, 17, 25, 39, 39);
   } else if (next >= 10) {
-    sym.width = sym.canvas.width = 47;
-    sym.height = sym.canvas.height = 74;
+    // Monarch
+    acard.drawImage(cards['cardm'], 0, 0, acard.width, acard.height);
+
+    sym.width = sym.canvas.width = Math.floor(portrait[0] / 4);
+    sym.height = sym.canvas.height = Math.floor(portrait[1] / 3);
     sym.clearRect(0, 0, sym.width, sym.height);
-    sym.drawImage(cards['mon'], -47*suit, -74*(next-10), 188, 222);
-    acard.drawImage(sym.canvas, 12, 11, 47, 74);
+
+    let loc;
+    if (next === 12) {
+      loc = suit === 1 ? 0 : 1;
+    } else {
+      loc = suit === 1 ? 30 : 29;
+    }
+
+    sym.drawImage(cards['mon'], -sym.width * suit, -sym.height * (next - 10), ...portrait);
+    sym.drawImage(cards['sym'], 37, 15*suit, 15, 15, loc, 1, 15, 15);
+    acard.drawImage(sym.canvas, 13, 12, sym.width, sym.height);
+
+    if (portrait[0] > portrait[1]) {
+      sym.clearRect(0, 0, sym.width, sym.height);
+      sym.translate(sym.width, sym.height);
+      sym.scale(-1, -1);
+      sym.drawImage(cards['mon'], -sym.width * suit, -sym.height * (next - 10), ...portrait);
+      sym.drawImage(cards['sym'], 37, 15*suit, 15, 15, loc, 1, 15, 15);
+      acard.drawImage(sym.canvas, 13, 12+sym.height, sym.width, sym.height);
+      sym.setTransform(1,0,0,1,0,0);
+    }
   } else {
+    acard.drawImage(cards['card0'], 0, 0, acard.width, acard.height);
     sym.width = sym.canvas.width = 15;
     sym.height = sym.canvas.height = 15;
     sym.clearRect(0, 0, sym.width, sym.height);
-    sym.drawImage(cards['sym'], -22, -15*suit, 171, 60);
+    sym.drawImage(cards['sym'], -22, -15*suit, ...symdim);
     for (const symloc of [cloverloc, diamondloc, spadeloc, heartloc][suit][next]) {
       if (symloc[1] > 33 && !flip) {
         sym.clearRect(0, 0, sym.width, sym.height);
         sym.translate(sym.width, sym.height);
         sym.scale(-1, -1);
-        sym.drawImage(cards['sym'], -22, -15*suit, 171, 60);
+        sym.drawImage(cards['sym'], -22, -15*suit, ...symdim);
         flip = true;
       }
       acard.drawImage(sym.canvas, symloc[0]+15, symloc[1]+10, 15, 15);
@@ -1416,25 +1445,25 @@ function new_card(next, suit) {
   sym.setTransform(1,0,0,1,0,0);
   flip = false;
 
-  const x = 37 + 12*(next%8);
+  const x = 52 + 12*(next%8);
   const y = 15*Math.floor(next/8) + 30*(suit%2);
 
   sym.width = sym.canvas.width = 12;
   sym.height = sym.canvas.height = 14;
   sym.clearRect(0, 0, sym.width, sym.height);
-  sym.drawImage(cards['sym'], -x, -y, 171, 60);
+  sym.drawImage(cards['sym'], -x, -y, ...symdim);
   acard.drawImage(sym.canvas, 2, 4, 12, 14);
   sym.clearRect(0, 0, sym.width, sym.height);
   sym.translate(sym.width, sym.height);
   sym.scale(-1, -1);
-  sym.drawImage(cards['sym'], -x, -y, 171, 60);
+  sym.drawImage(cards['sym'], -x, -y, ...symdim);
   acard.drawImage(sym.canvas, 57, 78, 12, 14);
   sym.setTransform(1,0,0,1,0,0);
 
   sym.width = sym.canvas.width = 11;
   sym.height = sym.canvas.height = 11;
   sym.clearRect(0, 0, sym.width, sym.height);
-  sym.drawImage(cards['sym'], -11*(next >= 10 ? 1 : 0), -15*suit, 171, 60);
+  sym.drawImage(cards['sym'], -11*(next >= 10 ? 1 : 0), -15*suit, ...symdim);
   const ms = {'x':3, 'y':18};
   if (suit === 1) {
     // Diamond
@@ -1456,7 +1485,7 @@ function new_card(next, suit) {
   sym.clearRect(0, 0, sym.width, sym.height);
   sym.translate(sym.width, sym.height);
   sym.scale(-1, -1);
-  sym.drawImage(cards['sym'], -11*(next >= 10 ? 1: 0), -15*suit, 171, 60);
+  sym.drawImage(cards['sym'], -11*(next >= 10 ? 1: 0), -15*suit, ...symdim);
   sym.setTransform(1,0,0,1,0,0);
   acard.drawImage(sym.canvas, 60-ms.x, 85-ms.y, 11, 11);
 
@@ -1552,6 +1581,8 @@ function new_deck() {
 }
 
 var factorysealed = [];
+var symdim = [0, 0];
+var portrait = [0, 0];
 function readcard(callback, interFrameN) {
   const is_star = !isNaN(interFrameN);
   if (factorysealed.length) {
@@ -1566,7 +1597,7 @@ function readcard(callback, interFrameN) {
     return;
   };
 
-  for (const card of ['card0', 'card1', 'card2', 'deck', 'undo', 'undo3', 'free', 'slot', 'computer', 'mon', 'sym']) {
+  for (const card of ['card0', 'card1', 'card2', 'cardm', 'deck', 'undo', 'undo3', 'free', 'slot', 'computer', 'mon', 'sym']) {
     cards[card] = new Image();
     cards[card].src = `SOL/${card}.png`;
   }
@@ -1586,6 +1617,9 @@ function readcard(callback, interFrameN) {
   }
 
   Promise.all(promiseCards).then(() => {
+    symdim = [cards['sym'].width, cards['sym'].height];
+    portrait = [cards['mon'].width, cards['mon'].height];
+
     // optional hue
     for (const [pos, card] of Object.keys(cards).entries()) {
       break;
@@ -2584,7 +2618,12 @@ var releasecard = () => {
     let cheat = false;
 
     // Deal
-    //if (mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*9 + cardsize[0]*8 && mouse[0].x - dragcard.dx + dragcard.x < gap.x*9 + cardsize[0]*9 && mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*1 + cardsize[1]*0 && mouse[0].y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1) {
+    //if (
+    //  mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] > gap.x*9 + cardsize[0]*8 &&
+    //  mouse[0].x - dragcard.dx + dragcard.x < gap.x*9 + cardsize[0]*9 &&
+    //  mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] > gap.y*1 + cardsize[1]*0 &&
+    //  mouse[0].y - dragcard.dy + dragcard.y < gap.y*1 + cardsize[1]*1
+    //) {
     //  dragcard = false;
     //  returncard = false;
     //  new_deck();

@@ -635,6 +635,7 @@ const scr = {
 }
 
 var solitaire = false;
+var freecell = false;
 var glyph = false;
 var qix = false;
 var scale = 1;
@@ -2325,201 +2326,238 @@ var pickcard = () => {
   returncard = false;
   const sel = (x, y, e) => {
     return (
-      mouse[0].x >= gap.x*(x+1) + cardsize[0]*x &&
-      mouse[0].x < gap.x*(x+1) + cardsize[0]*(x+1)+e &&
-      mouse[0].y >= gap.y*(y+1) + cardsize[1]*y &&
-      mouse[0].y < gap.y*(y+1) + cardsize[1]*(y+1)
+      mouse[0].x >= gap.x * (x + 1) + cardsize[0] * x &&
+      mouse[0].x < gap.x * (x + 1) + cardsize[0] * (x + 1) + e &&
+      mouse[0].y >= gap.y * (y + 1) + cardsize[1] * y &&
+      mouse[0].y < gap.y * (y + 1) + cardsize[1] * (y + 1)
     )
   };
 
-  // Deck to Waste
-  if(sel(0, 0, 0)){
-    drawx();
-  }
+  if (solitaire) {
+    // Deck to Waste
+    if (sel(0, 0, 0)) {
+      drawx();
+    }
 
-  // Drag card from Waste
-  const dep = Math.min(drawn, deck.length)-1;
-  if (sel(1, 0, 14*(drawn-1)*scale) && deck.length) {
-    const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
-    dragcard = {
-      x: gap.x*2 + cardsize[0]*1 + repeat*2 + dep*scale*14,
-      y: gap.y*1 + cardsize[1]*0 + repeat + dep*scale,
-      dx: mouse[0].x,
-      dy: mouse[0].y,
-      slot: slots[0],
-    };
-  }
+    // Drag card from Waste
+    const dep = Math.min(drawn, deck.length)-1;
+    if (sel(1, 0, 14*(drawn-1)*scale) && deck.length) {
+      const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
+      dragcard = {
+        x: gap.x*2 + cardsize[0]*1 + repeat*2 + dep*scale*14,
+        y: gap.y*1 + cardsize[1]*0 + repeat + dep*scale,
+        dx: mouse[0].x,
+        dy: mouse[0].y,
+        slot: slots[0],
+      };
+    }
 
-  // Undo draw
-  if (
-    mouse[0].x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale &&
-    mouse[0].x < gap.x*3 + cardsize[0]*3 &&
-    mouse[0].y > gap.y + cardsize[1]*0 &&
-    mouse[0].y < gap.y*1 + cardsize[1]*1/2
-  ) {
-    if (draw.draw > -1) {
-      if (!(drawn-1-(draw.last+drawn)%drawn) || draw.draw > draw.last || !draw.cycle) {
-        if (slots[0][1].length-1 <= draw.draw) {
-          const microdraw = draw.cycle ? (draw.draw-(draw.last-drawn)%drawn)%drawn : slots[0][1].length%drawn;
-          if (microdraw) {
-            // Partial backwards
-            draw.draw -= microdraw;
-            deck.splice(draw.draw+1);
+    // Undo draw
+    if (
+      mouse[0].x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale &&
+      mouse[0].x < gap.x*3 + cardsize[0]*3 &&
+      mouse[0].y > gap.y + cardsize[1]*0 &&
+      mouse[0].y < gap.y*1 + cardsize[1]*1/2
+    ) {
+      const slot = slots[0];
+      if (draw.draw > -1) {
+        if (!(drawn-1-(draw.last+drawn)%drawn) || draw.draw > draw.last || !draw.cycle) {
+          if (slot[1].length-1 <= draw.draw) {
+            const microdraw = draw.cycle ? (draw.draw-(draw.last-drawn)%drawn)%drawn : slot[1].length%drawn;
+            if (microdraw) {
+              // Partial backwards
+              draw.draw -= microdraw;
+              deck.splice(draw.draw+1);
+            } else {
+              // Standard backwards
+              draw.draw -= drawn;
+              deck.splice(draw.draw+1);
+            }
           } else {
             // Standard backwards
             draw.draw -= drawn;
             deck.splice(draw.draw+1);
           }
-        } else {
-          // Standard backwards
-          draw.draw -= drawn;
-          deck.splice(draw.draw+1);
+        }
+      } else {
+        // Unflip deck
+        draw.draw = slot[1].length-1;
+        draw.cycle = true;
+        for (const d of [...Array(draw.draw+1).keys()]) {
+          deck.push(slot[1][d]);
         }
       }
-    } else {
-      // Unflip deck
-      draw.draw = slots[0][1].length-1;
-      draw.cycle = true;
-      for (const d of [...Array(draw.draw+1).keys()]) {
-        deck.push(slots[0][1][d]);
-      }
-    }
-  }
-
-  // Undo card movement
-  if (
-    mouse[0].x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale &&
-    mouse[0].x <= gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 + 12/2*(drawn-1)*scale &&
-    mouse[0].y > gap.y + cardsize[1]*1/2 &&
-    mouse[0].y <= gap.y*1 + cardsize[1]*1
-  ) {
-    winanim = false;
-    if (rev) {
-      rev --;
-      [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
-    }
-    sol();
-    return;
-  }
-
-  // Redo card movement
-  if (
-    !winanim &&
-    mouse[0].x > gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 + 12/2*(drawn-1)*scale &&
-    mouse[0].x < gap.x*3 + cardsize[0]*3 &&
-    mouse[0].y > gap.y + cardsize[1]*1/2 &&
-    mouse[0].y < gap.y*1 + cardsize[1]*1
-  ) {
-    if (rev < slothistory.length-1) {
-      rev ++;
-      [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
-    }
-    sol();
-    return;
-  }
-
-  // Solitaire with computer
-  if (!winanim &&
-    mouse[0].x >= gap.x*8 + cardsize[0]*7 &&
-    mouse[0].x < gap.x*8 + cardsize[0]*8 &&
-    mouse[0].y >= gap.y*1 + cardsize[1]*0 &&
-    mouse[0].y < gap.y*1 + cardsize[1]*1
-  ) {
-    let pos = 0;
-
-    if (mouse[0].y < gap.y*1 + cardsize[1]*1/2) {
-      solcomputer = debugcomputer ? true : !solcomputer;
-      debugcomputer = false;
-      computerspeed = 30;
-    } else {
-      solcomputer = !debugcomputer ? true : !solcomputer;
-      debugcomputer = true;
-      computerspeed = 1;
-      pos = -cardsize[1]/2;
     }
 
-    if (invert.filter) {
-      invert.filter = 'invert(1)';
-      invert.globalCompositeOperation = 'source-over';
-      invert.clearRect(0, 0, invert.width, invert.height);
-      invert.drawImage(cards['computer'], 0, pos, ...cardsize);
-    } else {
-      invert.globalCompositeOperation = 'source-over';
-      invert.clearRect(0, 0, invert.width, invert.height);
-      invert.drawImage(cards['computer'], 0, pos, ...cardsize);
-      invert.globalCompositeOperation = 'difference';
-      invert.fillStyle = 'white';
-      invert.fillRect(0, 0, invert.width, invert.height);
-
-      const ice = newCanvas(invert.width, invert.height);
-      ice.drawImage(cards['computer'], 0, pos, ...cardsize);
-      ice.globalCompositeOperation = 'source-in';
-      ice.fillStyle = 'black';
-      ice.fillRect(0, 0, invert.width, invert.height);
-      invert.globalCompositeOperation = 'destination-in';
-      invert.drawImage(ice.canvas, 0, 0, invert.width, invert.height);
-    }
-
-    sol();
-  }
-
-  // Drag card from Foundation
-  for (const pos of [...Array(4).keys()]) {
-    if (sel(pos+3, 0, 0)) {
-      if (slots[pos+1][1].length) {
-        const repeat = Math.ceil((slots[pos+1][1].length)/4)-1;
-        dragcard = {
-          x: gap.x*(pos+4) + cardsize[0]*(pos+3) + repeat*scale*2,
-          y: gap.y*1 + cardsize[1]*0 + repeat*scale,
-          dx: mouse[0].x,
-          dy: mouse[0].y,
-          slot: slots[pos+1],
-          draw: slots[pos+1][1].length-1,
-        };
-        winanim = false;
-      }
-      break;
-    }
-  }
-
-  // Drag card from Stack
-  for (const pos of [...Array(7+cheatslots).keys()]) {
+    // Undo card movement
     if (
-      mouse[0].x >= gap.x*(pos+1) + cardsize[0]*pos &&
-      mouse[0].x < gap.x*(pos+1) + cardsize[0]*(pos+1) &&
-      mouse[0].y >= gap.y*2 + cardsize[1]*1 &&
-      mouse[0].y < gap.y*2 + cardsize[1]*2 + 3*scale*slots[pos+5][0].length + 15*scale*slots[pos+5][1].length + (slots[pos+5][1].length > 0 ? -15 : 0)
+      mouse[0].x > gap.x*3 + cardsize[0]*2 + 12*(drawn-1)*scale &&
+      mouse[0].x <= gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 + 12/2*(drawn-1)*scale &&
+      mouse[0].y > gap.y + cardsize[1]*1/2 &&
+      mouse[0].y <= gap.y*1 + cardsize[1]*1
     ) {
-      if (slots[pos+5][1].length) {
-        const depth = Math.min(Math.floor(Math.max(mouse[0].y - (gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length), 0) / 15 / scale), slots[pos+5][1].length-1);
-        dragcard = {
-          x: gap.x*(pos+1) + cardsize[0]*pos,
-          y: gap.y*2 + cardsize[1]*1 + 3*scale*slots[pos+5][0].length + depth*15*scale,
-          dx: mouse[0].x,
-          dy: mouse[0].y,
-          slot: slots[pos+5],
-          draw: depth,
-        };
-      } else if (slots[pos+5][0].length) {
-        // Flip card
-        const card = slots[pos+5][0].at(-1); 
-        slots[pos+5][0] = slots[pos+5][0].slice(0, -1);
-        slots[pos+5][1].push(card);
-        snapshot();
+      winanim = false;
+      if (rev) {
+        rev --;
+        [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
       }
-      break;
+      sol();
+      return;
     }
-  }
 
-  if (dragcard) {
-    let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
-    let des = 0;
-    for (const card of dragcards){
-      context.drawImage(cards[card], dragcard.x, dragcard.y+des, ...cardsize);
-      des += 15*scale;
+    // Redo card movement
+    if (
+      !winanim &&
+      mouse[0].x > gap.x*3 + cardsize[0]*2 + cardsize[0]*1/2 + 12/2*(drawn-1)*scale &&
+      mouse[0].x < gap.x*3 + cardsize[0]*3 &&
+      mouse[0].y > gap.y + cardsize[1]*1/2 &&
+      mouse[0].y < gap.y*1 + cardsize[1]*1
+    ) {
+      if (rev < slothistory.length-1) {
+        rev ++;
+        [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
+      }
+      sol();
+      return;
+    }
+
+    // Solitaire with computer
+    if (!winanim &&
+      mouse[0].x >= gap.x*8 + cardsize[0]*7 &&
+      mouse[0].x < gap.x*8 + cardsize[0]*8 &&
+      mouse[0].y >= gap.y*1 + cardsize[1]*0 &&
+      mouse[0].y < gap.y*1 + cardsize[1]*1
+    ) {
+      let pos = 0;
+    
+      if (mouse[0].y < gap.y*1 + cardsize[1]*1/2) {
+        solcomputer = debugcomputer ? true : !solcomputer;
+        debugcomputer = false;
+        computerspeed = 30;
+      } else {
+        solcomputer = !debugcomputer ? true : !solcomputer;
+        debugcomputer = true;
+        computerspeed = 1;
+        pos = -cardsize[1]/2;
+      }
+
+      if (invert.filter) {
+        invert.filter = 'invert(1)';
+        invert.globalCompositeOperation = 'source-over';
+        invert.clearRect(0, 0, invert.width, invert.height);
+        invert.drawImage(cards['computer'], 0, pos, ...cardsize);
+      } else {
+        invert.globalCompositeOperation = 'source-over';
+        invert.clearRect(0, 0, invert.width, invert.height);
+        invert.drawImage(cards['computer'], 0, pos, ...cardsize);
+        invert.globalCompositeOperation = 'difference';
+        invert.fillStyle = 'white';
+        invert.fillRect(0, 0, invert.width, invert.height);
+    
+        const ice = newCanvas(invert.width, invert.height);
+        ice.drawImage(cards['computer'], 0, pos, ...cardsize);
+        ice.globalCompositeOperation = 'source-in';
+        ice.fillStyle = 'black';
+        ice.fillRect(0, 0, invert.width, invert.height);
+        invert.globalCompositeOperation = 'destination-in';
+        invert.drawImage(ice.canvas, 0, 0, invert.width, invert.height);
+      }
+    
+      sol();
+    }
+
+    // Drag card from Foundation
+    for (const pos of [...Array(4).keys()]) {
+      const slot = slots[pos+1];
+      if (sel(pos+3, 0, 0)) {
+        if (slot[1].length) {
+          const repeat = Math.ceil(([1].length) / 4) - 1;
+          dragcard = {
+            x: gap.x * (pos + 4) + cardsize[0] * (pos + 3) + repeat * scale * 2,
+            y: gap.y * 1 + repeat * scale,
+            dx: mouse[0].x,
+            dy: mouse[0].y,
+            slot: slot,
+            draw: slot[1].length-1,
+          };
+          winanim = false;
+        }
+        break;
+      }
+    }
+
+    // Drag card from Stack
+    for (const pos of Array(7+cheatslots).keys()) {
+      const slot = slots[pos+5];
+      if (
+        mouse[0].x >= gap.x * (pos + 1) + cardsize[0] * pos &&
+        mouse[0].x < gap.x * (pos + 1) + cardsize[0] * (pos + 1) &&
+        mouse[0].y >= gap.y * 2 + cardsize[1] * 1 &&
+        mouse[0].y < gap.y * 2 + cardsize[1] * 2 + 3 * scale * slot[0].length + 15 * scale * slot[1].length + (slot[1].length > 0 ? -15 : 0)
+      ) {
+        if (slots[pos+5][1].length) {
+          const depth = Math.min(Math.floor(Math.max(mouse[0].y - (gap.y * 2 + cardsize[1] * 1 + 3 * scale * slot[0].length), 0) / 15 / scale), slot[1].length-1);
+          dragcard = {
+            x: gap.x*(pos + 1) + cardsize[0] * pos,
+            y: gap.y*2 + cardsize[1] * 1 + 3 * scale * slot[0].length + depth * 15 * scale,
+            dx: mouse[0].x,
+            dy: mouse[0].y,
+            slot: slot,
+            draw: depth,
+          };
+        } else if (slot[0].length) {
+          // Flip card
+          const card = slot[0].at(-1); 
+          slot[0] = slot[0].slice(0, -1);
+          slot[1].push(card);
+          snapshot();
+        }
+        break;
+      }
+    }
+
+    if (dragcard) {
+      let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
+      let des = 0;
+      for (const card of dragcards){
+        context.drawImage(cards[card], dragcard.x, dragcard.y+des, ...cardsize);
+        des += 15*scale;
+      }
+    }
+  } else {
+    // Drag card from Stack
+    for (const pos of Array(8).keys()) {
+      const slot = slots[pos+8];
+      if (
+        mouse[0].x >= gap.x * (pos + 1) + cardsize[0] * pos &&
+        mouse[0].x < gap.x * (pos + 1) + cardsize[0] * (pos + 1) &&
+        mouse[0].y >= gap.y * 2 + cardsize[1] * 1 &&
+        mouse[0].y < gap.y * 2 + cardsize[1] * 2 + 3 * scale * slot[0].length + 18 * scale * slot[1].length + (slot[1].length > 0 ? -18 : 0)
+      ) {
+        if (slot[1].length) {
+          const depth = Math.min(Math.floor(Math.max(mouse[0].y - (gap.y * 2 + cardsize[1] * 1 + 3 * scale * slot[0].length), 0) / 18 / scale), slot[1].length-1);
+          dragcard = {
+            x: gap.x * (pos + 1) + cardsize[0] * pos,
+            y: gap.y * 2 + cardsize[1] * 1 + 3 * scale * slot[0].length + depth * 18 * scale,
+            dx: mouse[0].x,
+            dy: mouse[0].y,
+            slot: slot,
+            draw: depth,
+          };
+        }
+        break;
+      }
+    }
+
+    if (dragcard) {
+      let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
+      let des = 0;
+      for (const card of dragcards){
+        context.drawImage(cards[card], dragcard.x, dragcard.y + des, ...cardsize);
+        des += 18 * scale;
+      }
     }
   }
-  return;
 }
 
 function rubberband() {
@@ -2531,11 +2569,21 @@ function rubberband() {
     if (!returncard || rubberstep === 0) {
       returncard = false;
       if (!dragcard) {
-        sol();
+        if (solitaire) {
+          sol();
+        } else {
+          freec();
+        }
       }
       return;
     }
-    sol();
+
+    if (solitaire) {
+      sol();
+    } else {
+      freec();
+    }
+
     requestAnimationFrame(update);
     let des = 0;
     for (const card of returncards) {
@@ -2558,7 +2606,7 @@ var releasecard = () => {
     draw.cycle = true;
   }
 
-  if (dragcard){
+  if (solitaire && dragcard){
     let slot = [];
     let cheat = false;
 
@@ -2693,20 +2741,27 @@ var releasecard = () => {
     } else {
       rubberband();
     }
+  } else if (freecell && dragcard) {
+    rubberband();
   }
   dragcard = false;
   moved = false;
-  if (!winanim) {
+  if (solitaire && !winanim) {
     sol();
+  } else if (freecell) {
+    freec();
   }
   fastclick = performance.now();
-  return;
 }
 
 function imawake() {
-  if (solitaire || qix || glyph) {
+  if (freecell || solitaire || qix || glyph) {
     if (!stopscr) {
       stopscr = true;
+
+      if (freecell) {
+        freec();
+      }
 
       if (solitaire) {
         hintb.style.display = 'block';
@@ -2835,7 +2890,7 @@ const FFdown = (e_) => {
       }
     } else {
       ZOOKd = false;
-      if (solitaire) {
+      if (freecell || solitaire) {
         pickcard();
       }
     }
@@ -2880,7 +2935,7 @@ const FFmove = (e_) => {
     }
   }
 
-  if (solitaire && !winanim) {
+  if (freecell || solitaire && !winanim) {
     if (
       mouse[0].x > gap.x*8 + cardsize[0]*7 + cardsize[0]/2 - 16*scale &&
       mouse[0].x < gap.x*8 + cardsize[0]*7 + cardsize[0]/2 + 16*scale &&
@@ -2910,13 +2965,22 @@ const FFmove = (e_) => {
     }
   }
 
-  if (solitaire && dragcard){
-    sol();
+  if (dragcard) {
     let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
     let des = 0;
-    for (const card of dragcards){
-      context.drawImage(cards[card], mouse[0].x - dragcard.dx + dragcard.x, mouse[0].y - dragcard.dy + dragcard.y + des, ...cardsize);
-      des += 15*scale;
+
+    if (solitaire) {
+      sol();
+      for (const card of dragcards){
+        context.drawImage(cards[card], mouse[0].x - dragcard.dx + dragcard.x, mouse[0].y - dragcard.dy + dragcard.y + des, ...cardsize);
+        des += 15*scale;
+      }
+    } else {
+      freec();
+      for (const card of dragcards){
+        context.drawImage(cards[card], mouse[0].x - dragcard.dx + dragcard.x, mouse[0].y - dragcard.dy + dragcard.y + des, ...cardsize);
+        des += 18 * scale;
+      }
     }
   }
 }
@@ -2966,7 +3030,7 @@ const FFup = (e_) => {
     e_.preventDefault();
   }
 
-  if (solitaire) {
+  if (freecell || solitaire) {
     releasecard();
   }
 }

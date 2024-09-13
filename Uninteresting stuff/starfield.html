@@ -3356,7 +3356,7 @@ function qixscan() {
   if (Math.floor((pixels/monstermap.length)*10000)/100 > 99) {
     setTimeout(() => {
       stopqix = true;
-      winsoln += 1;
+      winsoln += 2;
       savestar('winsol=', winsoln);
       makemenu();
     }, 0);
@@ -3765,6 +3765,10 @@ function makemenu() {
     e.style.margin = '0 20px';
     e.style.color = '#848484';
     e.style.textShadow = '1px 1px #fff';
+
+    e.addEventListener(tc, () => {
+      speaker('You will need ' + (n-winsoln) + ' winning points to unlock this feature\n\nSolitaire (draw 1): 1 point\nSolitaire (draw 3): 4 points\nFreeCell: 2 points\nQix: 2 points');
+    });
 
     if (arrow) {
       const a = document.createElement('DIV');
@@ -4945,6 +4949,14 @@ window.addEventListener('load', () => {
         fps.vfps = fps.hz;
         fps.msec = 1000 / fps.hz;
       }
+    }
+  }
+
+  if (!winsoln) {
+    if (isTouch) {
+      speaker('Long press for star options');
+    } else {
+      speaker('Right-click for star options');
     }
   }
 

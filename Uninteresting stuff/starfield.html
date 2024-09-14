@@ -2623,6 +2623,18 @@ var releasecard = () => {
   }
   let intersected_slots = [];
 
+  const draginto = (slot, callback) => {
+    if ('draw' in dragcard) {
+      slot[1].push(...dragcard.slot[1].slice(dragcard.draw));
+      dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
+    } else {
+      slot[1].push(dragcard.slot[1][draw.draw]);
+      deckpop();
+    }
+    snapshot();
+    callback();
+  }
+
   if (solitaire && dragcard){
     let cheat = false;
 
@@ -2653,15 +2665,7 @@ var releasecard = () => {
           parseInt(card[0], 16) === parseInt(stack[0], 16) &&
           parseInt(card[1], 16) === parseInt(stack[1], 16) + 1
         ) {
-          if ('draw' in dragcard) {
-            slots[pos+1][1].push(...dragcard.slot[1].slice(dragcard.draw));
-            dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
-          } else {
-            slots[pos+1][1].push(dragcard.slot[1][draw.draw]);
-            deckpop();
-          }
-          snapshot();
-          sol();
+          draginto(slots[pos+1], sol);
           return;
         }
       }
@@ -2681,15 +2685,7 @@ var releasecard = () => {
           parseInt(card[0], 16) === parseInt(stack[0], 16) &&
           parseInt(card[1], 16) === parseInt(stack[1], 16) + 1
         ) {
-          if ('draw' in dragcard) {
-            slot[1].push(...dragcard.slot[1].slice(dragcard.draw));
-            dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
-          } else {
-            slot[1].push(dragcard.slot[1][draw.draw]);
-            deckpop();
-          }
-          snapshot();
-          sol();
+          draginto(slot, sol);
           return;
         }
       }
@@ -2712,15 +2708,7 @@ var releasecard = () => {
       for (const slot of intersected_slots){
         if (!slot[1].length) {
           if (parseInt(card[1], 16) === ncard/4 || cheat === 2 && !(dragcard.draw)) {
-            if ('draw' in dragcard) {
-              slot[1].push(...dragcard.slot[1].slice(dragcard.draw));
-              dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
-            } else {
-              slot[1].push(dragcard.slot[1][draw.draw]);
-              deckpop();
-            }
-            snapshot();
-            sol();
+            draginto(slot, sol);
             fastclick = performance.now();
             return;
           } else {
@@ -2730,15 +2718,7 @@ var releasecard = () => {
           card[0] % 2 !== slot[1].at(-1)[0] % 2 &&
           parseInt(card[1], 16) === parseInt(slot[1].at(-1)[1][0], 16) - 1
         ) {
-          if ('draw' in dragcard) {
-            slot[1].push(...dragcard.slot[1].slice(dragcard.draw));
-            dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
-          } else {
-            slot[1].push(dragcard.slot[1][draw.draw]);
-            deckpop();
-          }
-          snapshot();
-          sol();
+          draginto(slot, sol);
           fastclick = performance.now();
           return;
         } else {
@@ -2762,15 +2742,7 @@ var releasecard = () => {
       for (const slot of intersected_slots){
         if (!slot[1].length) {
           if (parseInt(card[1], 16) === ncard/4) {
-            if ('draw' in dragcard) {
-              slot[1].push(...dragcard.slot[1].slice(dragcard.draw));
-              dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
-            } else {
-              slot[1].push(dragcard.slot[1][draw.draw]);
-              deckpop();
-            }
-            snapshot();
-            freec();
+            draginto(slot, freec);
             fastclick = performance.now();
             return;
           } else {
@@ -2780,15 +2752,7 @@ var releasecard = () => {
           card[0] % 2 !== slot[1].at(-1)[0] % 2 &&
           parseInt(card[1], 16) === parseInt(slot[1].at(-1)[1][0], 16) - 1
         ) {
-          if ('draw' in dragcard) {
-            slot[1].push(...dragcard.slot[1].slice(dragcard.draw));
-            dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
-          } else {
-            slot[1].push(dragcard.slot[1][draw.draw]);
-            deckpop();
-          }
-          snapshot();
-          freec();
+          draginto(slot, freec);
           fastclick = performance.now();
           return;
         } else {

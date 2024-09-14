@@ -2029,6 +2029,30 @@ function drawhint_sol(h, x, y, dx, dy) {
   }
 }
 
+const vector = (slot, depth, dest) => {
+  dragcard = {
+    slot: slot,
+  };
+  if (depth !== false) {
+    dragcard.draw = depth;
+  }
+  const callback = () => {
+    clearTimeout(readycomputer);
+    readycomputer = setTimeout(computerplaysol, 0);
+  };
+  draginto(dest, callback);
+}
+
+const vectorA = (slot, depth) => {
+  for (const fpos of Array(4).keys()) {
+    const fslo = slots[fpos+1];
+    if (!fslo[1].length) {
+      vector(slot, depth, fslo);
+      break;
+    }
+  }
+}
+
 let moved = false;
 function computerplaysol(forhint) {
   imawake();
@@ -2044,14 +2068,14 @@ function computerplaysol(forhint) {
   const facedowns = [];
 
   // Register cards from Foundation piles
-  for (const pos of [...Array(4).keys()]) {
+  for (const pos of Array(4).keys()) {
     if (slots[pos+1][1].length) {
-      foundations.push([slots[pos+1], pos+1]);
+      foundations.push(pos+1);
     }
   }
 
   // Register cards from Stack piles
-  for (const pos of [...Array(7+cheatslots).keys()]){
+  for (const pos of Array(7+cheatslots).keys()){
     const slot = slots[pos+5];
     if (!slot[1].length && slot[0].length) {
       facedowns.push(pos);
@@ -2094,36 +2118,35 @@ function computerplaysol(forhint) {
     const depth = slot[1].length-1;
     const card = slot[1][depth];
     if (!moved) {
-      if (
-        parseInt(card[1], 16) === 1 ||
-        foundations.some((f) => {
-          const fca = f[0][1].at(-1);
-          return card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16) + 1;
-        })
-      ) {
-        const x = gap.x * (pos - (5 * des) + 1) + cardsize[0] * (pos - (5 * des));
-        const y = gap.y * 2 + cardsize[1] + gap.up * depth + gap.dn * slot[0].length;
-        drawhint_sol(hint, x, y, x, y);
-        if (!forhint) {
-          if (debugcomputer === 2) {
-            slot[1] = slot[1].slice(0, -1);
-            slots[1][1].push(card);
-            snapshot();
-            clearTimeout(readycomputer);
-            readycomputer = setTimeout(computerplaysol, 0);
-          } else {
-            dragcard = {
-              x: x,
-              y: y,
-              dx: mouse[0].x,
-              dy: mouse[0].y,
-              slot: slot,
-              draw: depth,
-            };
-            setTimeout(FFup, computerspeed * 3);
+      if (parseInt(card[1], 16) === 1) {
+        vectorA(slot, depth);
+        return;
+      } else {
+        for (const fpos of foundations) {
+          const fslo = slots[fpos];
+          const fca = fslo[1].at(-1);
+          if (card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16) + 1) {
+            const x = gap.x * (pos - (5 * des) + 1) + cardsize[0] * (pos - (5 * des));
+            const y = gap.y * 2 + cardsize[1] + gap.up * depth + gap.dn * slot[0].length;
+            drawhint_sol(hint, x, y, x, y);
+            if (!forhint) {
+              if (debugcomputer === 2) {
+                vector(slot, depth, fslo);
+              } else {
+                dragcard = {
+                  x: x,
+                  y: y,
+                  dx: mouse[0].x,
+                  dy: mouse[0].y,
+                  slot: slot,
+                  draw: depth,
+                };
+                setTimeout(FFup, computerspeed * 3);
+              }
+            }
+            return;
           }
         }
-        return;
       }
     }
   }
@@ -2135,29 +2158,36 @@ function computerplaysol(forhint) {
     // Deck to Foundation
     const card = deck.at(-1);
     if (!moved) {
-      if (
-        parseInt(card[1], 16) === 1 ||
-        foundations.some((f) => {
-          const fca = f[0][1].at(-1);
-          return card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16)+1;
-        })
-      ) {
-        const depth = Math.min(drawn, deck.length)-1;
-        const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
-        const x = gap.x*2 + cardsize[0]*1 + repeat*2 + depth*scale*14;
-        const y = gap.y*1 + cardsize[1]*0 + repeat + depth*scale;
-        drawhint_sol(hint, x, y, x, y);
-        if (!forhint) {
-          dragcard = {
-            x: x,
-            y: y,
-            dx: mouse[0].x,
-            dy: mouse[0].y,
-            slot: slots[0],
-          };
-          setTimeout(FFup, computerspeed*3);
-        }
+      if (parseInt(card[1], 16) === 1) {
+        vectorA(slots[0], false);
         return;
+      } else {
+        for (const fpos of foundations) {
+          const fslo = slots[fpos];
+          const fca = fslo[1].at(-1);
+          if (card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16) + 1) {
+            const depth = Math.min(drawn, deck.length)-1;
+            const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
+            const x = gap.x*2 + cardsize[0]*1 + repeat*2 + depth*scale*14;
+            const y = gap.y*1 + cardsize[1]*0 + repeat + depth*scale;
+            drawhint_sol(hint, x, y, x, y);
+            if (!forhint) {
+              if (debugcomputer === 2) {
+                vector(slots[0], false, fslo);
+              } else {
+                dragcard = {
+                  x: x,
+                  y: y,
+                  dx: mouse[0].x,
+                  dy: mouse[0].y,
+                  slot: slots[0],
+                };
+                setTimeout(FFup, computerspeed*3);
+              }
+            }
+            return;
+          }
+        }
       }
     }
   }
@@ -2196,17 +2226,21 @@ function computerplaysol(forhint) {
         const des = place > 4 ? 1 : 0;
         drawhint_sol([hint, hint2, hint3, hint4][o], x, y, gap.x * (place - (5 * des) + 1) + cardsize[0] * (place - (5 * des)), gap.y * (des + 1) + cardsize[1] * des + gap.dn * slo[0].length);
         if (!forhint) {
-          dragcard = {
-            x: x,
-            y: y,
-            dx: mouse[0].x,
-            dy: mouse[0].y,
-            slot: slo,
-          };
-          if(!isdeck) {
-            dragcard['draw'] = 0;
+          if (debugcomputer === 2) {
+            vector(slo, !isdeck ? 0 : false, slot);
+          } else {
+            dragcard = {
+              x: x,
+              y: y,
+              dx: mouse[0].x,
+              dy: mouse[0].y,
+              slot: slo,
+            };
+            if (!isdeck) {
+              dragcard.draw = 0;
+            }
+            setTimeout(FFup, computerspeed*3);
           }
-          setTimeout(FFup, computerspeed*3);
           return;
         }
         o++
@@ -2235,7 +2269,8 @@ function computerplaysol(forhint) {
     }
   } else {
     // Stack to Foundation: Pile movement
-    for (const [fslo, fpos] of foundations) {
+    for (const fpos of foundations) {
+      const fslo = slots[fpos];
       for (const [slo, place] of stackforpile) {
         if (!slo[1].length) {
           continue;
@@ -2286,7 +2321,8 @@ function computerplaysol(forhint) {
       if (slots[pos+5][0].length && slots[pos+5][1].length){
         const card = slots[pos+5][1][0];
         let unsure = false;
-        for (const [fslo, fpos] of foundations) {
+        for (const fpos of foundations) {
+          const fslo = slots[fpos];
           const fca = fslo[1].at(-1);
           if (card[0]%2 !== fca[0]%2 && parseInt(card[1], 16) < parseInt(fca[1], 16)) {
             if (parseInt(card[1], 16) < parseInt(fca[1], 16)-1) {
@@ -2653,14 +2689,10 @@ const releasecard = () => {
 
     // Select pile from Foundation or an action for double click
     for (const pos of Array(4).keys()) {
-      if (area(pos+3, 0)) {
-        intersected_slots.push(slots[pos+1]);
-      }
-
       if (fastclick + 200 > performance.now()) {
-        let stack = slots[pos+1][1].at(-1);
-        let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
-        let card = dragcards.at(-1);
+        const stack = slots[pos+1][1].at(-1);
+        const dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
+        const card = dragcards.at(-1);
         if (
           !stack &&
           parseInt(card[1], 16) === 1 ||
@@ -2672,6 +2704,8 @@ const releasecard = () => {
           draginto(slots[pos+1], sol);
           return;
         }
+      } else if (area(pos+3, 0)) {
+        intersected_slots.push(slots[pos+1]);
       }
     }
 

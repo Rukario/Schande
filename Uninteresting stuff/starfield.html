@@ -1597,7 +1597,7 @@ function readcard(callback, interFrameN) {
     return;
   };
 
-  for (const card of ['card0', 'card1', 'card2', 'cardm', 'deck', 'undo', 'undo3', 'free', 'slot', 'computer', 'mon', 'sym']) {
+  for (const card of ['card0', 'card1', 'card2', 'cardm', 'deck', 'undo', 'undo3', 'free', 'freemon', 'slot', 'computer', 'mon', 'sym']) {
     cards[card] = new Image();
     cards[card].src = `SOL/${card}.png`;
   }
@@ -1933,6 +1933,7 @@ function sol() {
   }
 }
 
+var face = 1;
 function freec() {
   speaker('Unimplemented');
 
@@ -1949,13 +1950,14 @@ function freec() {
   context.drawImage(cards['free'], cardsize[0]*3*scale, 0, ...cardsize);
 
   // Monarch
-  context.drawImage(cards['2d'], cardsize[0]*4*scale, 0, ...cardsize);
+  context.drawImage(cards['freemon'], 0, 0, 38, 38, cardsize[0]*4*scale + 12, 18, 38, 38);
+  context.drawImage(cards['freemon'], 38 * (face+1), 0, 38, 38, cardsize[0]*4*scale + 12, 18, 38, 38);
 
   // Home cells
-  context.drawImage(cards['free'], cardsize[0]*5*scale, 0, ...cardsize);
-  context.drawImage(cards['free'], cardsize[0]*6*scale, 0, ...cardsize);
-  context.drawImage(cards['free'], cardsize[0]*7*scale, 0, ...cardsize);
-  context.drawImage(cards['free'], cardsize[0]*8*scale, 0, ...cardsize);
+  context.drawImage(cards['free'], cardsize[0]*4*scale + 62, 0, ...cardsize);
+  context.drawImage(cards['free'], cardsize[0]*5*scale + 62, 0, ...cardsize);
+  context.drawImage(cards['free'], cardsize[0]*6*scale + 62, 0, ...cardsize);
+  context.drawImage(cards['free'], cardsize[0]*7*scale + 62, 0, ...cardsize);
 
   // Stack
   for (const pos of [...Array(8).keys()]){

@@ -3428,7 +3428,7 @@ function new_qix() {
   }
 
   clearSq(qixdim.x - 9, qixdim.y - 9, 19, 19);
-  clearSq(qixdim.x - 8, qixdim.y - 8, 17, 17, 128); // 128 for semi-translucent
+  clearSq(qixdim.x - 8, qixdim.y - 8, 17, 17, qixdb.translucent);
   clearSq(0, 0, qixmask.width, 0);
   clearSq(0, 0, 0, qixmask.height);
   clearSq(0, qixmask.height - 1, qixmask.width, 0);
@@ -3468,7 +3468,7 @@ function qixscan() {
   for (const [n, pixel] of monstermap.entries()) {
     if (pixel) {
       pixels++;
-      qixmap.data[n*4+3] = 128; // 128 for semi-translucent
+      qixmap.data[n*4+3] = qixdb.translucent;
     }
   }
 
@@ -4055,6 +4055,7 @@ function makemenu() {
             silhouette.src = qixdb.gallery[qixsel].silhouette;
           });
         } else {
+          qixsel = (qixsel + 1) % qixdb.gallery.length;
           silhouette.src = qixdb.gallery[qixsel].silhouette;
         };
       });

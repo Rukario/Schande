@@ -8,6 +8,7 @@
     }
   ],
   "color": "#003D00",
+  "translucent": "0",
   "gallery": [
     {
       "downscale": 1,

@@ -672,9 +672,12 @@ function echo(B, b) {
 function speaker(B) {
   dialogbox.style.display = 'inline-block';
   dialog.innerHTML = B;
+  anger = 1;
   if (freecell) {
-    anger = 1;
     repaint.freecell();
+  }
+  if (qix) {
+    repaint.qix();
   }
 }
 
@@ -945,6 +948,7 @@ reveal.addEventListener('load', () => {
   tailscr2.style.display = 'block';
   keyboard.style.display = isTouch ? 'inline-block' : 'none';
 
+  speaker("Move with WASD or arrow keys, hold mouse while moving to set up barriers.\n\nCheat with TFGH keys.");
   new_qix();
   qixupdate();
 });
@@ -1949,7 +1953,7 @@ const repaint = {
 
     context.drawImage(spoilermask.canvas, dim.x - qixpos.x, dim.y - qixpos.y, spoilermask.width, spoilermask.height);
 
-    context.drawImage(cards['freemon'], 38*face, 0, 38, 38, dim.x-19, dim.y-19, 38, 38);
+    context.drawImage(cards['freemon'], 38*face, 38*anger, 38, 38, dim.x-19, dim.y-19, 38, 38);
   },
 }
 
@@ -3109,9 +3113,12 @@ const FFup = (e_) => {
       }
       if (dialogbox.style.display != 'none') {
         dialogbox.style.display = 'none';
+        anger = 0;
         if (freecell) {
-          anger = 0;
           repaint.freecell();
+        }
+        if (qix) {
+          repaint.qix();
         }
       }
     }
@@ -5144,9 +5151,12 @@ window.addEventListener('load', () => {
   const close = document.getElementById('close');
   close.addEventListener('click', () => {
     dialogbox.style.display = 'none';
+    anger = 0;
     if (freecell) {
-      anger = 0;
       repaint.freecell();
+    }
+    if (qix) {
+      repaint.qix();
     }
   });
 });

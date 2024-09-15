@@ -1936,7 +1936,7 @@ const repaint = {
   },
 
   qix: () => {
-    context.fillStyle = '#104';
+    context.fillStyle = qixdb.color;
     context.fillRect(0, 0, canvas.width, canvas.height);
 
     context.drawImage(spoiler.canvas, dim.x - qixpos.x, dim.y - qixpos.y, spoiler.width, spoiler.height);

@@ -1271,7 +1271,6 @@ var draw = {};
 var rev = -1;
 var slothistory = [];
 var solcomputer = false;
-var debugcomputer = false;
 var readycomputer = false;
 var computerspeed = 0;
 var winanim = false;
@@ -1771,10 +1770,10 @@ const repaint = {
       //context.lineWidth = 3;
       //context.beginPath();
       //const coord = cardsize[0]*8+gap.x*2;
-      //context.arc(coord, gap.y*2 + (debugcomputer ? 3+cardsize[1]*1/2 : 0), 2, 0, Math.PI*2);
+      //context.arc(coord, gap.y*2 + (computerspeed ? 0 : 3+cardsize[1]*1/2), 2, 0, Math.PI*2);
       //context.stroke();
 
-      context.drawImage(invert.canvas, gap.x*8 + cardsize[0]*7, gap.y + (debugcomputer ? cardsize[1]/2 : 0), invert.width, invert.height);
+      context.drawImage(invert.canvas, gap.x*8 + cardsize[0]*7, gap.y + (computerspeed ? 0 : cardsize[1]/2), invert.width, invert.height);
     }
 
     if (drawn-1-(draw.last+drawn)%drawn && draw.draw < draw.last+drawn && draw.cycle) {
@@ -1937,7 +1936,7 @@ const repaint = {
 const game = {
   sol: () => {
     if ([...Array(4).keys()].every((pos) => {
-      return slots[pos + 1][1].length === ncard/4;
+      return slots[pos+1][1].length === ncard / 4;
     })) {
       if (!winanim) {
         clearTimeout(winid);
@@ -1951,7 +1950,7 @@ const game = {
     repaint.sol();
 
     if ((drawn === 1 || !slots[0][1].length) && slots.every((slot) => {return !slot[0].length})) {
-      if (debugcomputer) {
+      if (!computerspeed) {
         console.log("Winning vector found, the seed is", seednow);
         new_deck(seednow);
         game.sol();
@@ -1980,11 +1979,11 @@ const game = {
       }
     }
 
-    if (solcomputer) {
+    if (solcomputer && computerspeed) {
       clearTimeout(readycomputer);
       readycomputer = setTimeout(computer.sol, computerspeed);
     } else {
-      computer.sol(true);
+      computer.sol();
     }
   },
 
@@ -2053,18 +2052,7 @@ function drawhint_sol(h, x, y, dx, dy) {
 }
 
 const vector = (x, y, slot, depth, dest) => {
-  if (debugcomputer === 2) {
-    dragcard = {
-      slot: slot,
-    };
-    if (depth !== false) {
-      dragcard.draw = depth;
-    }
-    const callback = () => {
-      computer.sol();
-    };
-    draginto(dest, callback);
-  } else {
+  if (computerspeed) {
     dragcard = {
       x: x,
       y: y,
@@ -2076,6 +2064,17 @@ const vector = (x, y, slot, depth, dest) => {
       dragcard.draw = depth;
     }
     setTimeout(FFup, computerspeed * 3);
+  } else {
+    dragcard = {
+      slot: slot,
+    };
+    if (depth !== false) {
+      dragcard.draw = depth;
+    }
+    const callback = () => {
+      computer.sol();
+    };
+    draginto(dest, callback);
   }
 }
 
@@ -2132,16 +2131,16 @@ const computer = {
       const x = gap.x * (pos + 1) + cardsize[0] * pos;
       const y = gap.y * 2 + cardsize[1] + gap.dn * (slot[0].length - 1);
       drawhint_sol(hint, x, y, x, y);
-      if (!forhint) {
+      if (solcomputer) {
         const card = slot[0].at(-1); 
         slot[0] = slot[0].slice(0, -1);
         slot[1].push(card);
         snapshot();
 
-        if (debugcomputer === 2) {
-          computer.sol();
-        } else {
+        if (computerspeed) {
           game.sol();
+        } else {
+          computer.sol();
         }
       }
       return;
@@ -2158,7 +2157,7 @@ const computer = {
         const y = gap.y * 2 + cardsize[1] + gap.up * depth + gap.dn * slot[0].length;
         if (parseInt(card[1], 16) === 1) {
           drawhint_sol(hint, x, y, x, y);
-          if (!forhint) {
+          if (solcomputer) {
             vectorA(x, y, slot, !isdeck ? depth : false);
           }
           return;
@@ -2168,7 +2167,7 @@ const computer = {
             const fca = fslo[1].at(-1);
             if (card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16) + 1) {
               drawhint_sol(hint, x, y, x, y);
-              if (!forhint) {
+              if (solcomputer) {
                 vector(x, y, slot, !isdeck ? depth : false, fslo);
               }
               return;
@@ -2191,7 +2190,7 @@ const computer = {
         const y = gap.y*1 + cardsize[1]*0 + repeat + depth*scale;
         if (parseInt(card[1], 16) === 1) {
           drawhint_sol(hint, x, y, x, y);
-          if (!forhint) {
+          if (solcomputer) {
             vectorA(x, y, slots[0], false);
           }
           return;
@@ -2201,7 +2200,7 @@ const computer = {
             const fca = fslo[1].at(-1);
             if (card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16) + 1) {
               drawhint_sol(hint, x, y, x, y);
-              if (!forhint) {
+              if (solcomputer) {
                 vector(x, y, slots[0], false, fslo);
               }
               return;
@@ -2244,7 +2243,7 @@ const computer = {
           const y = gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length + gap.up * depth;
           const des = place > 4 ? 1 : 0;
           drawhint_sol([hint, hint2, hint3, hint4][o], x, y, gap.x * (place - (5 * des) + 1) + cardsize[0] * (place - (5 * des)), gap.y * (des + 1) + cardsize[1] * des + gap.dn * slo[0].length);
-          if (!forhint) {
+          if (solcomputer) {
             vector(x, y, slo, !isdeck ? 0 : false, slot);
             return;
           }
@@ -2266,12 +2265,12 @@ const computer = {
       //hint.style.display = "none";
       //hintb.style.display = "block";
       drawhint_sol(hint, x, y, x, y);
-      if (!forhint) {
+      if (solcomputer) {
         drawx();
-        if (debugcomputer === 2) {
-          computer.sol();
-        } else {
+        if (computerspeed) {
           setTimeout(game.sol, computerspeed);
+        } else {
+          computer.sol();
         }
       }
     } else {
@@ -2300,7 +2299,7 @@ const computer = {
                     const dx = gap.x * (place + 1) + cardsize[0] * place;
                     const dy = gap.y * 1 + cardsize[1] * 1 + gap.up * (n + 1) + gap.dn * (slo[0].length + 2);
                     drawhint_sol(hint, x, y, dx, dy);
-                    if (!forhint) {
+                    if (solcomputer) {
                       drawx();
                       vector(x, y, slo, n+1, fslo);
                       console.log('That was a special move!');
@@ -2335,7 +2334,7 @@ const computer = {
                   const y = gap.y * 2 + cardsize[1] * 1 + gap.up * (slo[1].length - (slo[1].length ? 1 : 0)) + gap.dn * slo[0].length;
                   drawhint_sol(hint, x, y, gap.x*(fpos+3) + cardsize[0]*(fpos+2) + repeat*2, gap.y*(des+1) + cardsize[1]*(des*1) + repeat);
                   moved = true;
-                  if (!forhint) {
+                  if (solcomputer) {
                     drawx();
                     vector(x, y, fslo, fslo[1].length-1, slo);
                     console.log("moved", fca, "to", ca);
@@ -2348,14 +2347,14 @@ const computer = {
           }
           if (unsure) {
             console.log("About to run into a dead end and I'm not sure, maybe wanna move card", cardsym[parseInt(card[0], 16)], cardname[parseInt(card[1], 16)], "somehow? I see a larger number from pile that might be able to help with that.");
-            if (debugcomputer) {
-              new_deck();
-              game.sol();
-            } else {
+            if (computerspeed) {
               solcomputer = false;
-              if (!forhint) {
+              if (solcomputer) {
                 game.sol();
               }
+            } else {
+              new_deck();
+              game.sol();
             }
             return;
           }
@@ -2370,13 +2369,13 @@ const computer = {
         drawhint_sol(hint3, x, y, x, y);
       }
 
-      //if (debugcomputer === 2) {
+      //if (!computerspeed) {
       //  new_deck();
       //  game.sol();
       //}
 
       // teach computer to undo and retry with alternative card movement
-      if (!forhint) {
+      if (solcomputer) {
         solcomputer = false;
         game.sol();
       }
@@ -2483,12 +2482,10 @@ var pickcard = () => {
       let pos = 0;
 
       if (mouse[0].y < gap.y + cardsize[1] / 2) {
-        solcomputer = debugcomputer ? true : !solcomputer;
-        debugcomputer = false;
+        solcomputer = !computerspeed ? true : !solcomputer;
         computerspeed = 30;
       } else {
-        solcomputer = !debugcomputer ? true : !solcomputer;
-        debugcomputer = 2;
+        solcomputer = computerspeed ? true : !solcomputer;
         computerspeed = 0;
         pos = -cardsize[1]/2;
       }
@@ -4184,12 +4181,10 @@ ${x}px ${y + 18}px
   listener = (e, arg) => {
     e.addEventListener(tc, () => {
       if (arg) {
-        solcomputer = debugcomputer ? true : !solcomputer;
-        debugcomputer = false;
-        computerspeed = 30;
+        solcomputer = computerspeed === 0 ? true : !solcomputer;
+        computerspeed = arg;
       } else {
-        solcomputer = !debugcomputer ? true : !solcomputer;
-        debugcomputer = 2;
+        solcomputer = computerspeed !== 0 ? true : !solcomputer;
         computerspeed = 0;
       }
 
@@ -4207,7 +4202,7 @@ ${x}px ${y + 18}px
       }
     });
   };
-  //poppy.append(newmenu('Sol computer Solve!', listener, true));
+  //poppy.append(newmenu('Sol computer Solve!', listener, 30));
   //poppy.append(newmenu('Sol computer Debug', listener));
 
   poppy.append(newmenu());

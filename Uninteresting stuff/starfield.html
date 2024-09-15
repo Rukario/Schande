@@ -1547,7 +1547,7 @@ function new_deck(restart = false) {
     gap.x = 11 * scale;
     gap.y = 5 * scale;
     gap.up = 15 * scale;
-    drawhint_sol();
+    drawhint.sol();
 
     slots = Array(12+cheatslots);
     for (const pos of [...Array(13+cheatslots).keys()]) {
@@ -1569,6 +1569,7 @@ function new_deck(restart = false) {
     gap.x = 7 * scale;
     gap.y = 5 * scale;
     gap.up = 18 * scale;
+    drawhint.freecell();
 
     slots = Array(16);
     for (const pos of [...Array(16).keys()]) {
@@ -1600,7 +1601,7 @@ function loadcards(callback, interFrameN) {
       for (const card of factorysealed) {
         newstar(cards[card]);
       };
-    } else {
+    } else if (!qix) {
       new_deck();
     }
     callback(interFrameN);
@@ -1642,9 +1643,9 @@ function loadcards(callback, interFrameN) {
       }
     }
 
-    for (const [n, cs] of cardname.entries()){
+    for (const [n, cs] of cardname.entries()) {
       if (n) {
-        for (const [s, suit] of cardsym.entries()){
+        for (const [s, suit] of cardsym.entries()) {
           card = `${s}${n.toString(16)}`;
           //cards[card] = new Image();
           //cards[card].src = `SOL/${cs}${suit[0]}.png`;
@@ -1658,7 +1659,7 @@ function loadcards(callback, interFrameN) {
       for (const card of factorysealed) {
         newstar(cards[card]);
       };
-    } else {
+    } else if (!qix) {
       new_deck();
     }
 
@@ -1892,7 +1893,7 @@ const repaint = {
       const x = 5*(draw.draw+1) + cardsize[0]*draw.draw;
 
       // Current draw
-      drawhint_sol(hint4, x, y, x, y);
+      drawhint.sol(hint4, x, y, x, y);
     }
   },
 
@@ -1919,6 +1920,8 @@ const repaint = {
     context.drawImage(cards['free'], cardsize[0]*6*scale + 62, 0, ...cardsize);
     context.drawImage(cards['free'], cardsize[0]*7*scale + 62, 0, ...cardsize);
 
+    context.drawImage(cards['computer'], cardsize[0]*9*scale, gap.y, ...cardsize);
+
     // Stack
     for (const pos of [...Array(8).keys()]){
       let des = 0;
@@ -1930,6 +1933,23 @@ const repaint = {
         des += 18;
       }
     }
+  },
+
+  qix: () => {
+    context.fillStyle = '#104';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    context.drawImage(spoiler.canvas, dim.x - qixpos.x, dim.y - qixpos.y, spoiler.width, spoiler.height);
+
+    spoilermask.clearRect(0, 0, spoilermask.width, spoilermask.height);
+    spoilermask.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
+    spoilermask.globalCompositeOperation = 'source-in';
+    spoilermask.drawImage(silhouette, 0, 0, spoilermask.width, spoilermask.height);
+    spoilermask.globalCompositeOperation = 'source-over';
+
+    context.drawImage(spoilermask.canvas, dim.x - qixpos.x, dim.y - qixpos.y, spoilermask.width, spoilermask.height);
+
+    context.drawImage(cards['freemon'], 38*face, 0, 38, 38, dim.x-17, dim.y-17, 38, 38);
   },
 }
 
@@ -2024,57 +2044,72 @@ ${x}px ${y + 2}px
 )`;
 }
 
-function drawhint_sol(h, x, y, dx, dy) {
-  if (!h) {
-    x = gap.x * 8 + cardsize[0] * 7 + Math.floor(cardsize[0] / 2) - 16 * scale;
-    y = gap.y * 1 + cardsize[1] * 0 + Math.floor(cardsize[1] / 2) - 8 * scale;
-    dx = x + 32 * scale;
-    dy = y + 16 * scale;
-    drawhint_outline(hintb, x, y, dx, dy);
-
-    hintb.style.display = 'block';
-    hint.style.display = 'none';
-    hint2.style.display = 'none';
-    hint3.style.display = 'none';
-    hint4.style.display = 'none';
-    givehint = false;
-    if (!winsoln) {
-      speaker("In case you need a hint, move cursor/fingertip across the magenta/lime striping ring to enable hint, cross again to disable hints.");
+const drawhint = {
+  sol: (h, x, y, dx, dy) => {
+    if (!h) {
+      x = gap.x * 8 + cardsize[0] * 7 + Math.floor(cardsize[0] / 2) - 16 * scale;
+      y = gap.y * 1 + cardsize[1] * 0 + Math.floor(cardsize[1] / 2) - 8 * scale;
+      dx = x + 32 * scale;
+      dy = y + 16 * scale;
+      drawhint_outline(hintb, x, y, dx, dy);
+    
+      hintb.style.display = 'block';
+      hint.style.display = 'none';
+      hint2.style.display = 'none';
+      hint3.style.display = 'none';
+      hint4.style.display = 'none';
+      givehint = false;
+      if (!winsoln) {
+        speaker("In case you need a hint, move cursor/fingertip across the magenta/lime striping ring to enable hint, cross again to disable hints.");
+      }
+      return;
     }
-    return;
-  }
-  h.style.display = givehint && x ? 'block' : 'none';
-  if (x === dx && y === dy) {
-    drawhint_outline(h, x, y, dx + cardsize[0], dy + cardsize[1]);
-  } else {
-    drawhint_line(h, x + Math.floor(cardsize[0]/2), y, dx + Math.floor(cardsize[0]/2), dy);
-  }
+    h.style.display = givehint && x ? 'block' : 'none';
+    if (x === dx && y === dy) {
+      drawhint_outline(h, x, y, dx + cardsize[0], dy + cardsize[1]);
+    } else {
+      drawhint_line(h, x + Math.floor(cardsize[0]/2), y, dx + Math.floor(cardsize[0]/2), dy);
+    }
+  },
+
+  freecell: (h, x, y, dx, dy) => {
+    if (!h) {
+      x = cardsize[0] * 9 + Math.floor(cardsize[0] / 2) - 16 * scale;
+      y = gap.y * 1 + cardsize[1] * 0 + Math.floor(cardsize[1] / 2) - 8 * scale;
+      dx = x + 32 * scale;
+      dy = y + 16 * scale;
+      drawhint_outline(hintb, x, y, dx, dy);
+    
+      hintb.style.display = 'block';
+      hint.style.display = 'none';
+      hint2.style.display = 'none';
+      hint3.style.display = 'none';
+      hint4.style.display = 'none';
+      givehint = false;
+      if (!winsoln) {
+        speaker("In case you need a hint, move cursor/fingertip across the magenta/lime striping ring to enable hint, cross again to disable hints.");
+      }
+      return;
+    }
+    speaker('Unimplemented');
+  },
 }
 
 const vector = (x, y, slot, depth, dest) => {
+  dragcard = {
+    slot: slot,
+  };
+  if (depth !== false) {
+    dragcard.draw = depth;
+  }
   if (computerspeed) {
-    dragcard = {
-      x: x,
-      y: y,
-      dx: mouse[0].x,
-      dy: mouse[0].y,
-      slot: slot,
-    };
-    if (depth !== false) {
-      dragcard.draw = depth;
-    }
+    dragcard.x = x;
+    dragcard.y = y;
+    dragcard.dx = mouse[0].x;
+    dragcard.dy = mouse[0].y;
     setTimeout(FFup, computerspeed * 3);
   } else {
-    dragcard = {
-      slot: slot,
-    };
-    if (depth !== false) {
-      dragcard.draw = depth;
-    }
-    const callback = () => {
-      computer.sol();
-    };
-    draginto(dest, callback);
+    draginto(dest, computer.sol);
   }
 }
 
@@ -2092,10 +2127,10 @@ let moved = false;
 const computer = {
   sol: (forhint) => {
     imawake();
-    drawhint_sol(hint2);
-    drawhint_sol(hint3);
+    drawhint.sol(hint2);
+    drawhint.sol(hint3);
     if (!givehint) {
-      drawhint_sol(hint4);
+      drawhint.sol(hint4);
     }
 
     const foundations = [];
@@ -2130,7 +2165,7 @@ const computer = {
       const slot = slots[pos+5];
       const x = gap.x * (pos + 1) + cardsize[0] * pos;
       const y = gap.y * 2 + cardsize[1] + gap.dn * (slot[0].length - 1);
-      drawhint_sol(hint, x, y, x, y);
+      drawhint.sol(hint, x, y, x, y);
       if (solcomputer) {
         const card = slot[0].at(-1); 
         slot[0] = slot[0].slice(0, -1);
@@ -2156,7 +2191,7 @@ const computer = {
         const x = gap.x * (pos - (5 * des) + 1) + cardsize[0] * (pos - (5 * des));
         const y = gap.y * 2 + cardsize[1] + gap.up * depth + gap.dn * slot[0].length;
         if (parseInt(card[1], 16) === 1) {
-          drawhint_sol(hint, x, y, x, y);
+          drawhint.sol(hint, x, y, x, y);
           if (solcomputer) {
             vectorA(x, y, slot, !isdeck ? depth : false);
           }
@@ -2166,7 +2201,7 @@ const computer = {
             const fslo = slots[fpos];
             const fca = fslo[1].at(-1);
             if (card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16) + 1) {
-              drawhint_sol(hint, x, y, x, y);
+              drawhint.sol(hint, x, y, x, y);
               if (solcomputer) {
                 vector(x, y, slot, !isdeck ? depth : false, fslo);
               }
@@ -2189,7 +2224,7 @@ const computer = {
         const x = gap.x*2 + cardsize[0]*1 + repeat*2 + depth*scale*14;
         const y = gap.y*1 + cardsize[1]*0 + repeat + depth*scale;
         if (parseInt(card[1], 16) === 1) {
-          drawhint_sol(hint, x, y, x, y);
+          drawhint.sol(hint, x, y, x, y);
           if (solcomputer) {
             vectorA(x, y, slots[0], false);
           }
@@ -2199,7 +2234,7 @@ const computer = {
             const fslo = slots[fpos];
             const fca = fslo[1].at(-1);
             if (card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16) + 1) {
-              drawhint_sol(hint, x, y, x, y);
+              drawhint.sol(hint, x, y, x, y);
               if (solcomputer) {
                 vector(x, y, slots[0], false, fslo);
               }
@@ -2242,7 +2277,7 @@ const computer = {
           const x = gap.x * (pos + 1) + cardsize[0] * pos;
           const y = gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length + gap.up * depth;
           const des = place > 4 ? 1 : 0;
-          drawhint_sol([hint, hint2, hint3, hint4][o], x, y, gap.x * (place - (5 * des) + 1) + cardsize[0] * (place - (5 * des)), gap.y * (des + 1) + cardsize[1] * des + gap.dn * slo[0].length);
+          drawhint.sol([hint, hint2, hint3, hint4][o], x, y, gap.x * (place - (5 * des) + 1) + cardsize[0] * (place - (5 * des)), gap.y * (des + 1) + cardsize[1] * des + gap.dn * slo[0].length);
           if (solcomputer) {
             vector(x, y, slo, !isdeck ? 0 : false, slot);
             return;
@@ -2264,7 +2299,7 @@ const computer = {
       const y = gap.y + repeat;
       //hint.style.display = "none";
       //hintb.style.display = "block";
-      drawhint_sol(hint, x, y, x, y);
+      drawhint.sol(hint, x, y, x, y);
       if (solcomputer) {
         drawx();
         if (computerspeed) {
@@ -2298,7 +2333,7 @@ const computer = {
                     const y = gap.y * 2 + cardsize[1]*1 + gap.up * de + gap.dn * slot[0].length;
                     const dx = gap.x * (place + 1) + cardsize[0] * place;
                     const dy = gap.y * 1 + cardsize[1] * 1 + gap.up * (n + 1) + gap.dn * (slo[0].length + 2);
-                    drawhint_sol(hint, x, y, dx, dy);
+                    drawhint.sol(hint, x, y, dx, dy);
                     if (solcomputer) {
                       drawx();
                       vector(x, y, slo, n+1, fslo);
@@ -2332,7 +2367,7 @@ const computer = {
                   const repeat = Math.floor(Math.abs(fslo[1].length-2)/4)*scale;
                   const x = gap.x * (place + 1) + cardsize[0] * place;
                   const y = gap.y * 2 + cardsize[1] * 1 + gap.up * (slo[1].length - (slo[1].length ? 1 : 0)) + gap.dn * slo[0].length;
-                  drawhint_sol(hint, x, y, gap.x*(fpos+3) + cardsize[0]*(fpos+2) + repeat*2, gap.y*(des+1) + cardsize[1]*(des*1) + repeat);
+                  drawhint.sol(hint, x, y, gap.x*(fpos+3) + cardsize[0]*(fpos+2) + repeat*2, gap.y*(des+1) + cardsize[1]*(des*1) + repeat);
                   moved = true;
                   if (solcomputer) {
                     drawx();
@@ -2366,7 +2401,7 @@ const computer = {
         const repeat = draw.draw < slots[0][1].length-1 ? Math.ceil((slots[0][1].length-draw.draw-1)/10)-1 : 0;
         const x = gap.x + repeat*2;
         const y = gap.y + repeat;
-        drawhint_sol(hint3, x, y, x, y);
+        drawhint.sol(hint3, x, y, x, y);
       }
 
       //if (!computerspeed) {
@@ -2386,6 +2421,7 @@ const computer = {
   },
 
   freecell: () => {
+    imawake();
     speaker("Unimplemented");
   }
 }
@@ -2512,7 +2548,11 @@ var pickcard = () => {
         invert.drawImage(ice.canvas, 0, 0, invert.width, invert.height);
       }
 
-      game.sol();
+      if (solitaire) {
+        game.sol();
+      } else {
+        game.freecell();
+      }
     }
 
     // Drag card from Foundation
@@ -2792,7 +2832,7 @@ const releasecard = () => {
         };
       }
     } else {
-      speaker("I voice for speaker! My face is showing.");
+      speaker("I voice for dialogbox! You can tell by looking at my face.");
       rubberband();
     }
   }
@@ -2812,6 +2852,7 @@ function imawake() {
       stopscr = true;
 
       if (freecell) {
+        hintb.style.display = 'block';
         game.freecell();
       }
 
@@ -2825,7 +2866,7 @@ function imawake() {
       if (qix) {
         keyboard.style.display = isTouch ? 'inline-block' : 'none';
         qixupdate();
-        qixpaint();
+        repaint.qix();
       }
 
       if (glyph) {
@@ -3397,24 +3438,7 @@ function new_qix() {
   drawqix(tailscr, qixpos, 0.75);
   drawqix(tailscr2, qixpos2, 2);
 
-  qixpaint();
-}
-
-function qixpaint() {
-  context.fillStyle = '#104';
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  context.drawImage(spoiler.canvas, dim.x - spoiler.width / 2, dim.y - spoiler.height / 2, spoiler.width, spoiler.height);
-
-  spoilermask.clearRect(0, 0, spoilermask.width, spoilermask.height);
-  spoilermask.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
-  spoilermask.globalCompositeOperation = 'source-in';
-  spoilermask.drawImage(silhouette, 0, 0, spoilermask.width, spoilermask.height);
-  spoilermask.globalCompositeOperation = 'source-over';
-
-  context.drawImage(spoilermask.canvas, dim.x - spoilermask.width / 2, dim.y - spoilermask.height / 2, spoilermask.width, spoilermask.height);
-
-  context.drawImage(cards['freemon'], 76, 0, 38, 38, dim.x-17, dim.y-17, 38, 38);
+  loadcards(repaint.qix);
 }
 
 function qixscan() {
@@ -3461,7 +3485,7 @@ function qixscan() {
     }, 1500);
   }
   qixmask.putImageData(qixmap, 0, 0);
-  qixpaint();
+  repaint.qix();
 }
 
 function clearSq(x, y, w, h, co = 0) {
@@ -3512,6 +3536,11 @@ function qixstep() {
     x: (Keypress.KeyD || Keypress.ArrowRight ? speed : 0) + (Keypress.KeyA || Keypress.ArrowLeft ? -speed : 0),
     y: (Keypress.KeyS || Keypress.ArrowDown ? speed : 0) + (Keypress.KeyW || Keypress.ArrowUp ? -speed : 0),
   }
+
+  if (step.x) {
+    face = step.x < 0 ? 1 : 2;
+  }
+  repaint.qix();
 
   if (
     qixpos.x + step.x >= 0 &&
@@ -3649,22 +3678,26 @@ function drawqix(scr, pos, size = 0) {
       chdir(area[2], area[3], area[0], area[1]);
       dir.x = area[2];
       dir.y = area[3];
-      const xx = dir.nw * qixsc + dir.w + dim.x - qixdim.x * qixsc;
-      const yy = dir.nh * qixsc + dir.h + dim.y - qixdim.y * qixsc;
+      const xx = dir.nw * qixsc + dir.w + dim.x - qixpos.x;
+      const yy = dir.nh * qixsc + dir.h + dim.y - qixpos.y;
       tail.push(`${xx}px ${yy}px`);
       dir.nw = nx;
       dir.nh = ny;
     };
     if (qix_tails.length) {
-      const xx = dir.nw * qixsc + dir.w + dim.x - qixdim.x * qixsc;
-      const yy = dir.nh * qixsc + dir.h + dim.y - qixdim.y * qixsc;
+      const xx = dir.nw * qixsc + dir.w + dim.x - qixpos.x;
+      const yy = dir.nh * qixsc + dir.h + dim.y - qixpos.y;
       tail.push(`${xx}px ${yy}px`);
     }
   }
 
-  if (size) {
-    const x = pos.x + 0.5 + dim.x - qixdim.x * qixsc;
-    const y = pos.y + 0.5 + dim.y - qixdim.y * qixsc;
+  if (size < 2) {
+    const x = spoiler.width / 2 + dim.x - qixdim.x * qixsc;
+    const y = spoiler.height / 2 + dim.y - qixdim.y * qixsc;
+    tail.push(`${x}px ${y}px`);
+  } else {
+    const x = pos.x + 0.5 + dim.x - qixpos.x;
+    const y = pos.y + 0.5 + dim.y - qixpos.y;
     tail.push(`${x}px ${y - 10 * size}px,
 ${x + 10 * size}px ${y}px,
 ${x}px ${y + 10 * size}px,
@@ -3689,8 +3722,8 @@ ${x}px ${y - 10 * size}px`);
       dir.y = -area[3];
       dir.nw = nx;
       dir.nh = ny;
-      const xx = dir.nw * qixsc + dir.w + dim.x - qixdim.x * qixsc;
-      const yy = dir.nh * qixsc + dir.h + dim.y - qixdim.y * qixsc;
+      const xx = dir.nw * qixsc + dir.w + dim.x - qixpos.x;
+      const yy = dir.nh * qixsc + dir.h + dim.y - qixpos.y;
       tail.push(`${xx}px ${yy}px`);
     };
     if (qix_tails.length) {
@@ -3708,8 +3741,8 @@ ${x}px ${y - 10 * size}px`);
         dir.w = 0;
         dir.h = qixsc;
       }
-      const xx = area[0] * qixsc + dir.w + dim.x - qixdim.x * qixsc;
-      const yy = area[1] * qixsc + dir.h + dim.y - qixdim.y * qixsc;
+      const xx = area[0] * qixsc + dir.w + dim.x - qixpos.x;
+      const yy = area[1] * qixsc + dir.h + dim.y - qixpos.y;
       tail.push(`${xx}px ${yy}px`);
     }
   }
@@ -3736,6 +3769,7 @@ function qixupdate() {
     qixpos.x = (stix[0] + stix[2]) * qixsc;
     qixpos.y = (stix[1] + stix[3]) * qixsc;
     drawqix(tailscr, qixpos, 0.75);
+    repaint.qix();
   } else if ('WASD'.split('').some((k) => Keypress['Key' + k]) || ['Left', 'Up', 'Right', 'Down'].some((k) => Keypress['Arrow' + k])) {
     qixstep();
     drawqix(tailscr, qixpos, 0.75);
@@ -3966,12 +4000,11 @@ function makemenu() {
       glyphscr.style.display = 'none';
       document.body.style.backgroundColor = '#003D00';
 
+      freecell = true;
       solitaire = false;
       hint.style.display = 'none';
       hint4.style.display = 'none';
       hintb.style.display = 'none';
-
-      freecell = true;
 
       //drawhint_freec();
       loadcards(game.freecell);
@@ -3997,6 +4030,7 @@ function makemenu() {
         glyph = false;
         glyphscr.style.display = 'none';
 
+        freecell = false;
         solitaire = false;
         hint.style.display = 'none';
         hintb.style.display = 'none';
@@ -4016,6 +4050,7 @@ function makemenu() {
 
     listener = (e) => {
       e.addEventListener(tc, () => {
+        freecell = false;
         solitaire = false;
         winanim = false;
         glyph = true;
@@ -4099,6 +4134,7 @@ ${x}px ${y + 18}px
       glyph = false;
       glyphscr.style.display = 'none';
 
+      freecell = false;
       solitaire = false;
       hintb.style.display = 'none';
 

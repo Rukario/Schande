@@ -1949,7 +1949,7 @@ const repaint = {
 
     context.drawImage(spoilermask.canvas, dim.x - qixpos.x, dim.y - qixpos.y, spoilermask.width, spoilermask.height);
 
-    context.drawImage(cards['freemon'], 38*face, 0, 38, 38, dim.x-17, dim.y-17, 38, 38);
+    context.drawImage(cards['freemon'], 38*face, 0, 38, 38, dim.x-19, dim.y-19, 38, 38);
   },
 }
 
@@ -3542,42 +3542,55 @@ function qixstep() {
   }
   repaint.qix();
 
-  if (
-    qixpos.x + step.x >= 0 &&
-    qixpos.y + step.y >= 0 &&
-    qixpos.x + step.x <= qixmask.width * qixsc &&
-    qixpos.y + step.y <= qixmask.height * qixsc
-  ) {
-    // death barrier
-    const toMask = {
-      x: Math.floor((qixpos.x + step.x)/qixsc),
-      y: Math.floor((qixpos.y + step.y)/qixsc),
-    }
+  // death barrier
+  if (qixpos.x + step.x < 0 || qixpos.x + step.x > qixmask.width * qixsc) {
+    step.x = 0;
+  }
 
-    //result.textContent = 'X: ' + toMask.x + ' Y: ' + toMask.y;
-    //result.style.display = 'block';
+  if (qixpos.y + step.y < 0 || qixpos.y + step.y > qixmask.height * qixsc) {
+    step.y = 0;
+  }
 
-    const datapos = toMask.x + qixmask.width * toMask.y;
-    if (qixmap.data[datapos * 4 + 3] !== 255) {
-      // established land
-      stixpath(step.x, true);
-      qixpos.x += step.x;
-      qixpos.y += step.y;
-      if (mouse[tooie].hold) {
-        mouse[tooie].hold = 0;
-        for (const area of qix_tails) {
-          clearSq(...area);
-        }
-        qix_tails = [];
-        qixscan();
+  // invisible barrier
+  const toMask = {
+    x: Math.floor((qixpos.x + step.x)/qixsc),
+    y: Math.floor((qixpos.y + step.y)/qixsc),
+    nx: Math.floor((qixpos.x)/qixsc),
+    ny: Math.floor((qixpos.y)/qixsc),
+  }
+
+  const datapos = {
+    now: toMask.x + qixmask.width * toMask.y,
+    x: toMask.x + qixmask.width * toMask.ny,
+    y: toMask.nx + qixmask.width * toMask.y,
+  }
+
+  const stepmap = (x, y) => {
+    stixpath(x, true);
+    qixpos.x += x;
+    qixpos.y += y;
+    if (mouse[tooie].hold) {
+      mouse[tooie].hold = 0;
+      for (const area of qix_tails) {
+        clearSq(...area);
       }
-    } else if (mouse[tooie].down) {
-      // on adventure
-      mouse[tooie].hold = 1;
-      stixpath(step.x);
-      qixpos.x += step.x;
-      qixpos.y += step.y;
+      qix_tails = [];
+      qixscan();
     }
+  }
+
+  if (qixmap.data[datapos.now * 4 + 3] !== 255) {
+    stepmap(step.x, step.y);
+  } else if (mouse[tooie].down) {
+    // on adventure
+    mouse[tooie].hold = 1;
+    stixpath(step.x);
+    qixpos.x += step.x;
+    qixpos.y += step.y;
+  } else if (qixmap.data[datapos.x * 4 + 3] !== 255) {
+    stepmap(step.x, 0);
+  } else if (qixmap.data[datapos.y * 4 + 3] !== 255) {
+    stepmap(0, step.y);
   }
 }
 

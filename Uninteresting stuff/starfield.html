@@ -1949,7 +1949,7 @@ const repaint = {
       }
     }
 
-    if (Array(4).keys().every((pos) => {
+    if ([...Array(4).keys()].every((pos) => {
       return slots[pos+4][1].length === ncard / 4;
     })) {
       context.drawImage(cards['freemon'], 38*3, 38*anger, 38, 38, 0, cardsize[1], 38*8, 38*8);
@@ -1978,7 +1978,7 @@ const repaint = {
 
 const game = {
   sol: () => {
-    if (Array(4).keys().every((pos) => {
+    if ([...Array(4).keys()].every((pos) => {
       return slots[pos+1][1].length === ncard / 4;
     })) {
       if (!winanim) {

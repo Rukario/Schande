@@ -1308,7 +1308,7 @@ var drawx = () => {
   if (draw.draw < slots[0][1].length-1) {
     const dd = Math.min(drawn, slots[0][1].length-deck.length);
     draw.draw += dd;
-    for (const i of [...Array(dd).keys()]) {
+    for (const i of Array(dd).keys()) {
       deck.push(slots[0][1][draw.draw-dd+1+i]);
     }
   } else {
@@ -1554,15 +1554,15 @@ function new_deck(restart = false) {
     drawhint.sol();
 
     slots = Array(12+cheatslots);
-    for (const pos of [...Array(13+cheatslots).keys()]) {
+    for (const pos of Array(13+cheatslots).keys()) {
       slots[pos] = [[], []];
     };
 
     let used = 0;
-    for (const pos of [...Array(7).keys()]) {
+    for (const pos of Array(7).keys()) {
       used += pos-1;
       slots[pos+5][1].push(deck[pos+ncard-7]);
-      for (const p of [...Array(pos).keys()]) {
+      for (const p of Array(pos).keys()) {
         slots[pos+5][0].push(deck[used+ncard-27+p]);
       }
     }
@@ -1576,7 +1576,7 @@ function new_deck(restart = false) {
     drawhint.freecell();
 
     slots = Array(16);
-    for (const pos of [...Array(16).keys()]) {
+    for (const pos of Array(16).keys()) {
       slots[pos] = [[], []];
     };
 
@@ -1681,8 +1681,8 @@ function winsol() {
   const kinecticloss = 0.85;
   let i = 0;
 
-  for (const card of [...Array(ncard/4).keys()]){
-    for (const pos of [...Array(4).keys()]){
+  for (const card of Array(ncard/4).keys()) {
+    for (const pos of Array(4).keys()) {
       const falldir = Math.floor(Math.random()*14-7)+1;
       const dep = Math.ceil((12-card)/4)*scale;
       flycards.push({
@@ -1791,7 +1791,7 @@ const repaint = {
     }
 
     // Cheat slots
-    for (const pos of [...Array(cheatslots).keys()]) {
+    for (const pos of Array(cheatslots).keys()) {
       context.drawImage(cards['free'], gap.x + 82*(pos+7)*scale, gap.y*2 + cardsize[1], ...cardsize);
     }
 
@@ -1816,7 +1816,7 @@ const repaint = {
         if (deck.length-1) {
           context.drawImage(cards[deck[deck.length-2]], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);
         }
-        for (const i of [...Array(ded).keys()]) {
+        for (const i of Array(ded).keys()) {
           const card = deck[deck.length-ded+i];
           if (dragcard && dragcard.slot[1][draw.draw] === card || returncard && returncard.slot[1][draw.draw] === card) {
             break;
@@ -1824,7 +1824,7 @@ const repaint = {
           context.drawImage(cards[card], gap.x+dep*2 + 82*scale + 14*i, gap.y+dep+i, ...cardsize);
         };
       } else if (!dragcard || dragcard.slot[1][draw.draw] !== deck[deck.length]) {
-        for (const i of [...Array(ded).keys()]) {
+        for (const i of Array(ded).keys()) {
           context.drawImage(cards[deck[deck.length-ded+i]], gap.x+dep*2 + 82*scale + 14*i, gap.y+dep+i, ...cardsize);
         }
       }
@@ -1948,6 +1948,14 @@ const repaint = {
         des += 18;
       }
     }
+
+    if (Array(4).keys().every((pos) => {
+      return slots[pos+4][1].length === ncard / 4;
+    })) {
+      context.drawImage(cards['freemon'], 38*3, 38*anger, 38, 38, 0, cardsize[1], 38*8, 38*8);
+    } else {
+      imawake();
+    }
   },
 
   qix: () => {
@@ -1970,7 +1978,7 @@ const repaint = {
 
 const game = {
   sol: () => {
-    if ([...Array(4).keys()].every((pos) => {
+    if (Array(4).keys().every((pos) => {
       return slots[pos+1][1].length === ncard / 4;
     })) {
       if (!winanim) {
@@ -2024,14 +2032,6 @@ const game = {
 
   freecell: () => {
     repaint.freecell();
-
-    if ([...Array(4).keys()].every((pos) => {
-      return slots[pos+4][1].length === ncard / 4;
-    })) {
-      context.drawImage(cards['freemon'], 38*3, 38*anger, 38, 38, 0, cardsize[1], 38*8, 38*8);
-    } else {
-      imawake();
-    }
 
     if (solcomputer && computerspeed) {
       clearTimeout(readycomputer);
@@ -2564,7 +2564,7 @@ var pickcard = () => {
           // Unflip deck
           draw.draw = slot[1].length-1;
           draw.cycle = true;
-          for (const d of [...Array(draw.draw+1).keys()]) {
+          for (const d of Array(draw.draw+1).keys()) {
             deck.push(slot[1][d]);
           }
         }
@@ -3161,7 +3161,7 @@ const FFmove = (e_) => {
       if (!crosshint) {
         givehint = !givehint;
         if (givehint) {
-          for (const o of [...Array(hints).keys()]) {
+          for (const o of Array(hints).keys()) {
             [hint, hint2, hint3, hint4][o].style.display = 'block';
           }
           hintb.style.display = 'none';

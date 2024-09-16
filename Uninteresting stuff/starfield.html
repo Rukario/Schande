@@ -2150,8 +2150,9 @@ const vector = (x, y, slot, depth, dest) => {
 }
 
 const vectorA = (x, y, slot, depth) => {
+  const p = solitaire ? 1 : 4;
   for (const fpos of Array(4).keys()) {
-    const fslo = slots[fpos+1];
+    const fslo = slots[fpos+p];
     if (!fslo[1].length) {
       vector(x, y, slot, depth, fslo);
       break;
@@ -2490,10 +2491,10 @@ const computer = {
       const depth = slot[1].length-1;
       const card = slot[1][depth];
       const x = gap.x * (pos - (8 * des) + 1) + cardsize[0] * (pos - (8 * des));
-      const y = gap.y * 2 + cardsize[1] + gap.up * depth + gap.dn * slot[0].length;
+      const y = gap.y * 2 + cardsize[1] + gap.up * depth;
       if (isAce(card)) {
         drawhint.sol(hint, x, y, x, y);
-        if (true || solcomputer) {
+        if (solcomputer) {
           vectorA(x, y, slot, depth);
         }
         return;
@@ -2502,7 +2503,7 @@ const computer = {
           const fslo = slots[fpos];
           if (isRanked(card, fslo)) {
             drawhint.sol(hint, x, y, x, y);
-            if (true || solcomputer) {
+            if (solcomputer) {
               vector(x, y, slot, depth, fslo);
             }
             return;

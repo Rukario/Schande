@@ -1276,7 +1276,7 @@ var rev = -1;
 var slothistory = [];
 var solcomputer = false;
 var readycomputer = false;
-var computerspeed = 0;
+var computerspeed = 30;
 var winanim = false;
 var won = false;
 var winid = false;
@@ -2454,7 +2454,62 @@ const computer = {
 
   freecell: () => {
     imawake();
-    // speaker("Unimplemented");
+    drawhint.sol(hint2);
+    drawhint.sol(hint3);
+    //speaker("Computer started");
+
+    const freecells = [];
+    const homecells = [];
+    const stack = [];
+
+    // Register cards from Free Cell piles
+    for (const pos of Array(4).keys()) {
+      if (slots[pos][1].length) {
+        freecells.push(pos);
+      }
+    }
+
+    // Register cards from Home Cell piles
+    for (const pos of Array(4).keys()) {
+      if (slots[pos+4][1].length) {
+        homecells.push(pos+4);
+      }
+    }
+
+    // Register cards from Stack piles
+    for (const pos of Array(8).keys()){
+      if (slots[pos+8][1].length) {
+        stack.push(pos+8);
+      }
+    };
+
+    // Stack to Foundation
+    for (const pos of [...freecells, ...stack]) {
+      const des = pos > 4 ? 1 : 0;
+      const slot = slots[pos];
+      const depth = slot[1].length-1;
+      const card = slot[1][depth];
+      const x = gap.x * (pos - (8 * des) + 1) + cardsize[0] * (pos - (8 * des));
+      const y = gap.y * 2 + cardsize[1] + gap.up * depth + gap.dn * slot[0].length;
+      if (isAce(card)) {
+        drawhint.sol(hint, x, y, x, y);
+        if (true || solcomputer) {
+          vectorA(x, y, slot, depth);
+        }
+        return;
+      } else {
+        for (const fpos of homecells) {
+          const fslo = slots[fpos];
+          if (isRanked(card, fslo)) {
+            drawhint.sol(hint, x, y, x, y);
+            if (true || solcomputer) {
+              vector(x, y, slot, depth, fslo);
+            }
+            return;
+          }
+        }
+      }
+    }
   }
 }
 

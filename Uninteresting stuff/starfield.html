@@ -2650,7 +2650,7 @@ var pickcard = () => {
     // Drag card from Free Cell
     for (const pos of Array(4).keys()) {
       const slot = slots[pos];
-      if (area(pos, 0, 0, 0, -gap.x)) {
+      if (area(pos, 0, 0, 0, 0)) {
         if (slot[1].length) {
           const repeat = Math.ceil((slot[1].length) / 4) - 1;
           dragcard = {
@@ -2773,9 +2773,9 @@ const draginto = (slot, callback) => {
 const releasecard = () => {
   const area = (x, y, dx = 0, dy = 0, gapx = gap.x, gapy = gap.y) => {
     return (
-      mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] >= cardsize[0] * x + gapx * x &&
+      mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] > cardsize[0] * x + gapx * (x + 1) &&
       mouse[0].x - dragcard.dx + dragcard.x < cardsize[0] * (x + 1) + dx + gapx * (x + 1) &&
-      mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] >= cardsize[1] * y + gapy * y &&
+      mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] > cardsize[1] * y + gapy * y &&
       mouse[0].y - dragcard.dy + dragcard.y < cardsize[1] * (y + 1) + dy + gapy * (y + 1)
     )
   };
@@ -2877,7 +2877,7 @@ const releasecard = () => {
           draginto(slot, game.freecell);
           return;
         }
-      } else if (area(pos+4, 0, 0, 0, 0, 0)) {
+      } else if (area(pos+5, 0, 0, 0, 0, 0)) {
         intersected_slots.push(slot);
       }
     }

@@ -1925,11 +1925,12 @@ const repaint = {
     // Monarch
     context.drawImage(cards['freemon'], 0, 0, 38, 38, cardsize[0]*4*scale + 12, 18, 38, 38);
     context.drawImage(cards['freemon'], 38*face, 38*anger, 38, 38, cardsize[0]*4*scale + 12, 18, 38, 38);
+    context.drawImage(cards['freemon'], 0, 38, 38, 38, cardsize[0]*4*scale + 12, 64, 38, 38);
 
     // Home cells
     for (const pos of Array(4).keys()) {
       const slot = slots[pos+4];
-      context.drawImage(cards[slot[1].length > 0 ? slot[1].at(-1) : 'free'], cardsize[0]*(pos+4)*scale + 62, 0, ...cardsize);
+      context.drawImage(cards[slot[1].length > 0 ? slot[1].at(-1) : 'free'], cardsize[0]*(pos+5)*scale - 10, 0, ...cardsize);
     }
 
     context.drawImage(cards['computer'], 11*9*scale + cardsize[0]*8*scale, gap.y, ...cardsize);
@@ -2465,17 +2466,80 @@ var returncard = false;
 
 var pickcard = () => {
   returncard = false;
-  const area = (x, y, dx = 0, dy = 0, gapx = 0) => {
+  const area = (x, y, dx = 0, dy = 0, gapx = gap.x, gapy = gap.y) => {
     return (
-      mouse[0].x >= gap.x * (x + 1) + cardsize[0] * x + gapx * (x + 1) &&
-      mouse[0].x < gap.x * (x + 1) + cardsize[0] * (x + 1) + dx + gapx * (x + 1) &&
-      mouse[0].y >= gap.y * (y + 1) + cardsize[1] * y &&
-      mouse[0].y < gap.y * (y + 1) + cardsize[1] * (y + 1) + dy
+      mouse[0].x >= cardsize[0] * x + gapx * (x + 1) &&
+      mouse[0].x < cardsize[0] * (x + 1) + gapx * (x + 1) + dx &&
+      mouse[0].y >= cardsize[1] * y + gapy * (y + 1) &&
+      mouse[0].y < cardsize[1] * (y + 1) + gapy * (y + 1) + dy
     )
   };
 
+  const undo3gap = solitaire ? 12 * (drawn - 1) : -10;
+  const undoloc = solitaire ? gap.x * 3 + cardsize[0] * 2 : cardsize[0] * 4;
+  const undoarea = solitaire ? area(2, 0) : area(4, 0, -10, 0, 0, 11);
+  // Menu
+  if (undoarea && mouse[0].x >= undoloc + undo3gap) {
+    if (solitaire && mouse[0].y < cardsize[1] / 2 + gap.y) {
+      // Undo draw
+      const slot = slots[0];
+      if (draw.draw > -1) {
+        if (!(drawn-1-(draw.last+drawn)%drawn) || draw.draw > draw.last || !draw.cycle) {
+          if (slot[1].length-1 <= draw.draw) {
+            const microdraw = draw.cycle ? (draw.draw-(draw.last-drawn)%drawn)%drawn : slot[1].length%drawn;
+            if (microdraw) {
+              // Partial backwards
+              draw.draw -= microdraw;
+              deck.splice(draw.draw+1);
+            } else {
+              // Standard backwards
+              draw.draw -= drawn;
+              deck.splice(draw.draw+1);
+            }
+          } else {
+            // Standard backwards
+            draw.draw -= drawn;
+            deck.splice(draw.draw+1);
+          }
+        }
+      } else {
+        // Unflip deck
+        draw.draw = slot[1].length-1;
+        draw.cycle = true;
+        for (const d of Array(draw.draw+1).keys()) {
+          deck.push(slot[1][d]);
+        }
+      }
+    } else if (mouse[0].x <= undoloc + (cardsize[0] + undo3gap) / 2) {
+      // Undo card movement
+      winanim = false;
+      if (rev) {
+        rev --;
+        [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
+      }
+      if (solitaire) {
+        game.sol();
+      } else {
+        game.freecell();
+      }
+      return;
+    } else {
+      // Redo card movement
+      if (rev < slothistory.length-1) {
+        rev ++;
+        [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
+      }
+      if (solitaire) {
+        game.sol();
+      } else {
+        game.freecell();
+      }
+      return;
+    }
+  }
+
   // Solitaire with computer
-  if (!winanim && area(8, 0, 0, 0, 11-gap.x)) {
+  if (!winanim && area(8, 0, 0, 0, 11)) {
     let pos = 0;
 
     if (mouse[0].y < gap.y + cardsize[1] / 2) {
@@ -2537,57 +2601,6 @@ var pickcard = () => {
       };
     }
 
-    if (area(2, 0) && mouse[0].x > gap.x * 3 + cardsize[0] * 2 + 12 * (drawn - 1) * scale) {
-      if (mouse[0].y < gap.y + cardsize[1] / 2) {
-        // Undo draw
-        const slot = slots[0];
-        if (draw.draw > -1) {
-          if (!(drawn-1-(draw.last+drawn)%drawn) || draw.draw > draw.last || !draw.cycle) {
-            if (slot[1].length-1 <= draw.draw) {
-              const microdraw = draw.cycle ? (draw.draw-(draw.last-drawn)%drawn)%drawn : slot[1].length%drawn;
-              if (microdraw) {
-                // Partial backwards
-                draw.draw -= microdraw;
-                deck.splice(draw.draw+1);
-              } else {
-                // Standard backwards
-                draw.draw -= drawn;
-                deck.splice(draw.draw+1);
-              }
-            } else {
-              // Standard backwards
-              draw.draw -= drawn;
-              deck.splice(draw.draw+1);
-            }
-          }
-        } else {
-          // Unflip deck
-          draw.draw = slot[1].length-1;
-          draw.cycle = true;
-          for (const d of Array(draw.draw+1).keys()) {
-            deck.push(slot[1][d]);
-          }
-        }
-      } else if (mouse[0].x <= gap.x * 3 + cardsize[0] * 3 - cardsize[0] / 2 + 12 / 2 * (drawn - 1) * scale) {
-        // Undo card movement
-        winanim = false;
-        if (rev) {
-          rev --;
-          [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
-        }
-        game.sol();
-        return;
-      } else {
-        // Redo card movement
-        if (rev < slothistory.length-1) {
-          rev ++;
-          [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
-        }
-        game.sol();
-        return;
-      }
-    }
-
     // Drag card from Foundation
     for (const pos of Array(4).keys()) {
       const slot = slots[pos+1];
@@ -2631,15 +2644,6 @@ var pickcard = () => {
           snapshot();
         }
         break;
-      }
-    }
-
-    if (dragcard) {
-      let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
-      let des = 0;
-      for (const card of dragcards){
-        context.drawImage(cards[card], dragcard.x, dragcard.y+des, ...cardsize);
-        des += gap.up;
       }
     }
   } else {
@@ -2697,14 +2701,14 @@ var pickcard = () => {
         break;
       }
     }
+  }
 
-    if (dragcard) {
-      let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
-      let des = 0;
-      for (const card of dragcards){
-        context.drawImage(cards[card], dragcard.x, dragcard.y + des, ...cardsize);
-        des += gap.up;
-      }
+  if (dragcard) {
+    let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
+    let des = 0;
+    for (const card of dragcards){
+      context.drawImage(cards[card], dragcard.x, dragcard.y + des, ...cardsize);
+      des += gap.up;
     }
   }
 }
@@ -2767,12 +2771,12 @@ const draginto = (slot, callback) => {
 }
 
 const releasecard = () => {
-  const area = (x, y, dx = 0, dy = 0, gapx = gap.x) => {
+  const area = (x, y, dx = 0, dy = 0, gapx = gap.x, gapy = gap.y) => {
     return (
-      mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] >= cardsize[0] * x + gapx * (x + 1) &&
+      mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] >= cardsize[0] * x + gapx * x &&
       mouse[0].x - dragcard.dx + dragcard.x < cardsize[0] * (x + 1) + dx + gapx * (x + 1) &&
-      mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] >= cardsize[1] * y &&
-      mouse[0].y - dragcard.dy + dragcard.y < cardsize[1] * (y + 1) + dy
+      mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] >= cardsize[1] * y + gapy * y &&
+      mouse[0].y - dragcard.dy + dragcard.y < cardsize[1] * (y + 1) + dy + gapy * (y + 1)
     )
   };
 
@@ -2873,7 +2877,7 @@ const releasecard = () => {
           draginto(slot, game.freecell);
           return;
         }
-      } else if (area(pos+4, 0, 0, 0, 0)) {
+      } else if (area(pos+4, 0, 0, 0, 0, 0)) {
         intersected_slots.push(slot);
       }
     }
@@ -2898,7 +2902,7 @@ const releasecard = () => {
     // Collect intersected slots of Free Cell
     for (const pos of Array(4).keys()) {
       const slot = slots[pos];
-      if (area(pos, 0, 0, 0, false)) {
+      if (area(pos, 0, 0, 0, 0, 0)) {
         intersected_slots.push(slot);
       }
     }

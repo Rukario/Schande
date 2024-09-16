@@ -1268,7 +1268,7 @@ function new_stars() {
 var deck = [];
 var cards = {};
 var slots = [];
-var cheatslots = 5;
+var cheatslots = 2;
 var ncard = 52;
 var drawn = 1;
 var draw = {};
@@ -1767,7 +1767,7 @@ const repaint = {
 
     context.drawImage(cards['deck'], gap.x, gap.y, ...cardsize);
     context.drawImage(cards[drawn === 3 ? 'undo3' : 'undo'], gap.x*3 + cardsize[0]*2, gap.y, ...cardsize);
-    context.drawImage(cards['computer'], gap.x*8 + cardsize[0]*7, gap.y, ...cardsize);
+    context.drawImage(cards['computer'], gap.x*9 + cardsize[0]*8, gap.y, ...cardsize);
     //context.drawImage(cards['deal'], gap.x*9 + cardsize[0]*8, gap.y, ...cardsize);
 
     if (solcomputer) {
@@ -1778,7 +1778,7 @@ const repaint = {
       //context.arc(coord, gap.y*2 + (computerspeed ? 0 : 3+cardsize[1]*1/2), 2, 0, Math.PI*2);
       //context.stroke();
 
-      context.drawImage(invert.canvas, gap.x*8 + cardsize[0]*7, gap.y + (computerspeed ? 0 : cardsize[1]/2), invert.width, invert.height);
+      context.drawImage(invert.canvas, gap.x*9 + cardsize[0]*8, gap.y + (computerspeed ? 0 : cardsize[1]/2), invert.width, invert.height);
     }
 
     if (drawn-1-(draw.last+drawn)%drawn && draw.draw < draw.last+drawn && draw.cycle) {
@@ -1791,14 +1791,14 @@ const repaint = {
     }
 
     // Cheat slots
-    //for (const pos of [...Array(cheatslots).keys()]) {
-    //  context.drawImage(cards['cardm'], gap.x + 82*(pos+7)*scale, gap.y*2 + cardsize[1], ...cardsize);
-    //}
+    for (const pos of [...Array(cheatslots).keys()]) {
+      context.drawImage(cards['free'], gap.x + 82*(pos+7)*scale, gap.y*2 + cardsize[1], ...cardsize);
+    }
 
     // Deck
     if (draw.draw < slots[0][1].length-1) {
       const repeat = Math.ceil((slots[0][1].length-draw.draw-1)/10);
-      for (const pos of [...Array(repeat).keys()]){
+      for (const pos of Array(repeat).keys()) {
         context.drawImage(cards['card1'], gap.x + pos*2*scale, gap.y + pos*scale, ...cardsize);
       }
     }
@@ -1807,7 +1807,7 @@ const repaint = {
     if (deck.length) {
       let dep = 0;
       const repeat = Math.ceil((deck.length-1)/10);
-      for (const pos of [...Array(repeat).keys()]){
+      for (const pos of Array(repeat).keys()) {
         dep = pos*scale;
         context.drawImage(cards['01'], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);
       }
@@ -1831,16 +1831,16 @@ const repaint = {
     }
 
     // Foundation
-    for (const pos of [...Array(4).keys()]){
+    for (const pos of Array(4).keys()) {
       let dep = 0;
       const repeat = Math.ceil((slots[pos+1][1].length)/4);
-      for (const de of [...Array(repeat).keys()]){
+      for (const de of Array(repeat).keys()) {
         dep = de*scale;
         if (slots[pos+1][1].length-1){
           context.drawImage(cards['01'], gap.x+dep*2 + 82*(pos+3)*scale, gap.y+dep, ...cardsize);
         }
       }
-      for (const card of slots[pos+1][1]){
+      for (const card of slots[pos+1][1]) {
         if (dragcard && dragcard.slot[1][dragcard.draw] === card || returncard && returncard.slot[1][returncard.draw] === card) {
           break;
         }
@@ -1849,13 +1849,13 @@ const repaint = {
     }
 
     // Stack
-    for (const pos of [...Array(7+cheatslots).keys()]){
-      let des = 0
-      for (let i=0;i<slots[pos+5][0].length;i++){
+    for (const pos of Array(7+cheatslots).keys()) {
+      let des = 0;
+      for (const card of slots[pos+5][0]) {
         context.drawImage(cards['card1'], gap.x + 82*pos*scale, (106 + des)*scale, ...cardsize);
         des += 3;
       }
-      for (const card of slots[pos+5][1]){
+      for (const card of slots[pos+5][1]) {
         if (dragcard && dragcard.slot[1][dragcard.draw] === card || returncard && returncard.slot[1][returncard.draw] === card) {
           break;
         }
@@ -1909,22 +1909,25 @@ const repaint = {
     context.fillRect(0, 0, ...solsize);
 
     // Free cells
-    context.drawImage(cards['free'], cardsize[0]*0*scale, 0, ...cardsize);
-    context.drawImage(cards['free'], cardsize[0]*1*scale, 0, ...cardsize);
-    context.drawImage(cards['free'], cardsize[0]*2*scale, 0, ...cardsize);
-    context.drawImage(cards['free'], cardsize[0]*3*scale, 0, ...cardsize);
+    for (const pos of Array(4).keys()) {
+      const slot = slots[pos];
+      context.drawImage(cards[slot[1].length > 0 ? slot[1].at(-1) : 'free'], cardsize[0]*pos*scale, 0, ...cardsize);
+    }
 
     // Monarch
     context.drawImage(cards['freemon'], 0, 0, 38, 38, cardsize[0]*4*scale + 12, 18, 38, 38);
     context.drawImage(cards['freemon'], 38*face, 38*anger, 38, 38, cardsize[0]*4*scale + 12, 18, 38, 38);
 
     // Home cells
-    context.drawImage(cards['free'], cardsize[0]*4*scale + 62, 0, ...cardsize);
-    context.drawImage(cards['free'], cardsize[0]*5*scale + 62, 0, ...cardsize);
-    context.drawImage(cards['free'], cardsize[0]*6*scale + 62, 0, ...cardsize);
-    context.drawImage(cards['free'], cardsize[0]*7*scale + 62, 0, ...cardsize);
+    for (const pos of Array(4).keys()) {
+      const slot = slots[pos+4];
+      context.drawImage(cards[slot[1].length > 0 ? slot[1].at(-1) : 'free'], cardsize[0]*(pos+4)*scale + 62, 0, ...cardsize);
+    }
 
-    context.drawImage(cards['computer'], cardsize[0]*9*scale, gap.y, ...cardsize);
+    context.drawImage(cards['computer'], 11*9*scale + cardsize[0]*8*scale, gap.y, ...cardsize);
+    if (solcomputer) {
+      context.drawImage(invert.canvas, 11*9 + cardsize[0]*8, gap.y + (computerspeed ? 0 : cardsize[1]/2), invert.width, invert.height);
+    }
 
     // Stack
     for (const pos of [...Array(8).keys()]){
@@ -2012,7 +2015,26 @@ const game = {
   },
 
   freecell: () => {
+    if ([...Array(4).keys()].every((pos) => {
+      return slots[pos+4][1].length === ncard / 4;
+    })) {
+      if (!winanim) {
+        clearTimeout(winid);
+        winsol();
+      }
+    } else {
+      winanim = false;
+      imawake();
+    }
+
     repaint.freecell();
+
+    if (solcomputer && computerspeed) {
+      clearTimeout(readycomputer);
+      readycomputer = setTimeout(computer.freecell, computerspeed);
+    } else {
+      computer.freecell();
+    }
   },
 }
 
@@ -2051,7 +2073,7 @@ ${x}px ${y + 2}px
 const drawhint = {
   sol: (h, x, y, dx, dy) => {
     if (!h) {
-      x = gap.x * 8 + cardsize[0] * 7 + Math.floor(cardsize[0] / 2) - 16 * scale;
+      x = gap.x * 9 + cardsize[0] * 8 + Math.floor(cardsize[0] / 2) - 16 * scale;
       y = gap.y * 1 + cardsize[1] * 0 + Math.floor(cardsize[1] / 2) - 8 * scale;
       dx = x + 32 * scale;
       dy = y + 16 * scale;
@@ -2078,7 +2100,7 @@ const drawhint = {
 
   freecell: (h, x, y, dx, dy) => {
     if (!h) {
-      x = cardsize[0] * 9 + Math.floor(cardsize[0] / 2) - 16 * scale;
+      x = 11 * 9 + cardsize[0] * 8 + Math.floor(cardsize[0] / 2) - 16 * scale;
       y = gap.y * 1 + cardsize[1] * 0 + Math.floor(cardsize[1] / 2) - 8 * scale;
       dx = x + 32 * scale;
       dy = y + 16 * scale;
@@ -2098,6 +2120,11 @@ const drawhint = {
     speaker('Unimplemented');
   },
 }
+
+const isA = (ca) => parseInt(ca[1], 16) === 1;
+const isKing = (ca) => parseInt(ca[1], 16) === ncard/4;
+const isRanked = (ca, dest) => parseInt(ca[0], 16) === parseInt(dest[1].at(-1)[0], 16) && parseInt(ca[1], 16) === parseInt(dest[1].at(-1)[1], 16) + 1;
+const isRankedAlt = (ca, dest) => ca[0] % 2 !== dest[1].at(-1)[0] % 2 && parseInt(ca[1], 16) === parseInt(dest[1].at(-1)[1], 16) - 1;
 
 const vector = (x, y, slot, depth, dest) => {
   dragcard = {
@@ -2194,7 +2221,7 @@ const computer = {
       if (!moved) {
         const x = gap.x * (pos - (5 * des) + 1) + cardsize[0] * (pos - (5 * des));
         const y = gap.y * 2 + cardsize[1] + gap.up * depth + gap.dn * slot[0].length;
-        if (parseInt(card[1], 16) === 1) {
+        if (isA(card)) {
           drawhint.sol(hint, x, y, x, y);
           if (solcomputer) {
             vectorA(x, y, slot, !isdeck ? depth : false);
@@ -2203,8 +2230,7 @@ const computer = {
         } else {
           for (const fpos of foundations) {
             const fslo = slots[fpos];
-            const fca = fslo[1].at(-1);
-            if (card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16) + 1) {
+            if (isRanked(card, fslo)) {
               drawhint.sol(hint, x, y, x, y);
               if (solcomputer) {
                 vector(x, y, slot, !isdeck ? depth : false, fslo);
@@ -2227,7 +2253,7 @@ const computer = {
         const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
         const x = gap.x*2 + cardsize[0]*1 + repeat*2 + depth*scale*14;
         const y = gap.y*1 + cardsize[1]*0 + repeat + depth*scale;
-        if (parseInt(card[1], 16) === 1) {
+        if (isA(card)) {
           drawhint.sol(hint, x, y, x, y);
           if (solcomputer) {
             vectorA(x, y, slots[0], false);
@@ -2236,8 +2262,7 @@ const computer = {
         } else {
           for (const fpos of foundations) {
             const fslo = slots[fpos];
-            const fca = fslo[1].at(-1);
-            if (card[0] === fca[0] && parseInt(card[1], 16) === parseInt(fca[1], 16) + 1) {
+            if (isRanked(card, fslo)) {
               drawhint.sol(hint, x, y, x, y);
               if (solcomputer) {
                 vector(x, y, slots[0], false, fslo);
@@ -2255,16 +2280,15 @@ const computer = {
       const vectors = [];
       if (slot[1].length) {
         // Standard card movement
-        const card = slot[1].at(-1);
         for (const s of [...stack[1], ...stack[0]]) {
-          if (s[0][0]%2 !== card[0]%2 && parseInt(s[0][1], 16) === parseInt(card[1], 16)-1) {
+          if (isRankedAlt(s[0], slot)) {
             vectors.push(s);
           }
         }
       } else if (pos < 7 && !slot[0].length) {
         // Move King card to an empty slot
         for (const s of stack[1]) {
-          if (parseInt(s[0][1], 16) === 13) {
+          if (isKing(s[0])) {
             vectors.push(s);
           }
         }
@@ -2321,20 +2345,17 @@ const computer = {
             continue;
           }
           for (const [n, card] of slo[1].entries()) {
-            const fca = fslo[1].at(-1);
-            if (fca[0] === card[0] && parseInt(fca[1], 16) === parseInt(card[1], 16)-1) {
+            if (isRanked(card, fslo)) {
               const ch = slo[1][n+1];
               if (!ch) {
                 continue;
               }
-              for (const pos of [...Array(7+cheatslots).keys()]){
+              for (const pos of Array(7+cheatslots).keys()){
                 const slot = slots[pos+5];
                 if (slot[1].length) {
-                  const de = slot[1].length-1;
-                  const ca = slot[1][de];
-                  if (ch[0]%2 !== ca[0]%2 && parseInt(ch[1], 16) === parseInt(ca[1], 16)-1) {
+                  if (isRankedAlt(ch, slot)) {
                     const x = gap.x * (pos + 1) + cardsize[0] * pos;
-                    const y = gap.y * 2 + cardsize[1]*1 + gap.up * de + gap.dn * slot[0].length;
+                    const y = gap.y * 2 + cardsize[1]*1 + gap.up * (slot[1].length - 1) + gap.dn * slot[0].length;
                     const dx = gap.x * (place + 1) + cardsize[0] * place;
                     const dy = gap.y * 1 + cardsize[1] * 1 + gap.up * (n + 1) + gap.dn * (slo[0].length + 2);
                     drawhint.sol(hint, x, y, dx, dy);
@@ -2360,13 +2381,15 @@ const computer = {
           for (const fpos of foundations) {
             const fslo = slots[fpos];
             const fca = fslo[1].at(-1);
-            if (card[0]%2 !== fca[0]%2 && parseInt(card[1], 16) < parseInt(fca[1], 16)) {
+            if (card[0] % 2 !== fca[0] % 2 && parseInt(card[1], 16) < parseInt(fca[1], 16)) {
               if (parseInt(card[1], 16) < parseInt(fca[1], 16)-1) {
                 console.log('Takes more than 1 card to do it! Trying...');
               }
               for (const [slo, place] of stackforpile) {
-                const ca = slo[1].at(-1);
-                if (parseInt(fca[1], 16) === 13 && !ca || ca && fca[0]%2 !== ca[0]%2 && parseInt(fca[1], 16) === parseInt(ca[1], 16)-1) {
+                if (
+                  slo[1].length === 0 && isKing(fca) ||
+                  slo[1].length > 0 && isRankedAlt(fca, slo)
+                ) {
                   const des = fpos > 4 ? 1 : 0;
                   const repeat = Math.floor(Math.abs(fslo[1].length-2)/4)*scale;
                   const x = gap.x * (place + 1) + cardsize[0] * place;
@@ -2376,7 +2399,7 @@ const computer = {
                   if (solcomputer) {
                     drawx();
                     vector(x, y, fslo, fslo[1].length-1, slo);
-                    console.log("moved", fca, "to", ca);
+                    console.log("moved", fca, "to", slo[1].at(-1));
                   }
                   return;
                 }
@@ -2402,8 +2425,8 @@ const computer = {
 
       if (!won) {
         console.log('Ran into a dead end');
-        const repeat = draw.draw < slots[0][1].length-1 ? Math.ceil((slots[0][1].length-draw.draw-1)/10)-1 : 0;
-        const x = gap.x + repeat*2;
+        const repeat = draw.draw < slots[0][1].length - 1 ? Math.ceil((slots[0][1].length - draw.draw - 1) / 10) - 1 : 0;
+        const x = gap.x + repeat * 2;
         const y = gap.y + repeat;
         drawhint.sol(hint3, x, y, x, y);
       }
@@ -2426,7 +2449,7 @@ const computer = {
 
   freecell: () => {
     imawake();
-    speaker("Unimplemented");
+    // speaker("Unimplemented");
   }
 }
 
@@ -2438,14 +2461,58 @@ var returncard = false;
 
 var pickcard = () => {
   returncard = false;
-  const area = (x, y, dx = 0, dy = 0) => {
+  const area = (x, y, dx = 0, dy = 0, nx = 0) => {
     return (
-      mouse[0].x >= gap.x * (x + 1) + cardsize[0] * x &&
+      mouse[0].x >= gap.x * (x + 1) + cardsize[0] * x + nx &&
       mouse[0].x < gap.x * (x + 1) + cardsize[0] * (x + 1) + dx &&
       mouse[0].y >= gap.y * (y + 1) + cardsize[1] * y &&
       mouse[0].y < gap.y * (y + 1) + cardsize[1] * (y + 1) + dy
     )
   };
+
+  // Solitaire with computer
+  if (!winanim && area(8, 0, (11-gap.x)*9, 0, (11-gap.x)*9)) {
+    let pos = 0;
+
+    if (mouse[0].y < gap.y + cardsize[1] / 2) {
+      solcomputer = !computerspeed ? true : !solcomputer;
+      computerspeed = 30;
+    } else {
+      solcomputer = computerspeed ? true : !solcomputer;
+      computerspeed = 0;
+      pos = -cardsize[1]/2;
+    }
+
+    if (invert.filter) {
+      invert.filter = 'invert(1)';
+      invert.globalCompositeOperation = 'source-over';
+      invert.clearRect(0, 0, invert.width, invert.height);
+      invert.drawImage(cards['computer'], 0, pos, ...cardsize);
+    } else {
+      invert.globalCompositeOperation = 'source-over';
+      invert.clearRect(0, 0, invert.width, invert.height);
+      invert.drawImage(cards['computer'], 0, pos, ...cardsize);
+      invert.globalCompositeOperation = 'difference';
+      invert.fillStyle = 'white';
+      invert.fillRect(0, 0, invert.width, invert.height);
+
+      const ice = newCanvas(invert.width, invert.height);
+      ice.drawImage(cards['computer'], 0, pos, ...cardsize);
+      ice.globalCompositeOperation = 'source-in';
+      ice.fillStyle = 'black';
+      ice.fillRect(0, 0, invert.width, invert.height);
+      invert.globalCompositeOperation = 'destination-in';
+      invert.drawImage(ice.canvas, 0, 0, invert.width, invert.height);
+    }
+
+    if (solitaire) {
+      game.sol();
+    } else {
+      game.freecell();
+    }
+
+    return;
+  }
 
   if (solitaire) {
     // Deck to Waste
@@ -2514,48 +2581,6 @@ var pickcard = () => {
         }
         game.sol();
         return;
-      }
-    }
-
-    // Solitaire with computer
-    if (!winanim && area(7, 0)) {
-      let pos = 0;
-
-      if (mouse[0].y < gap.y + cardsize[1] / 2) {
-        solcomputer = !computerspeed ? true : !solcomputer;
-        computerspeed = 30;
-      } else {
-        solcomputer = computerspeed ? true : !solcomputer;
-        computerspeed = 0;
-        pos = -cardsize[1]/2;
-      }
-
-      if (invert.filter) {
-        invert.filter = 'invert(1)';
-        invert.globalCompositeOperation = 'source-over';
-        invert.clearRect(0, 0, invert.width, invert.height);
-        invert.drawImage(cards['computer'], 0, pos, ...cardsize);
-      } else {
-        invert.globalCompositeOperation = 'source-over';
-        invert.clearRect(0, 0, invert.width, invert.height);
-        invert.drawImage(cards['computer'], 0, pos, ...cardsize);
-        invert.globalCompositeOperation = 'difference';
-        invert.fillStyle = 'white';
-        invert.fillRect(0, 0, invert.width, invert.height);
-
-        const ice = newCanvas(invert.width, invert.height);
-        ice.drawImage(cards['computer'], 0, pos, ...cardsize);
-        ice.globalCompositeOperation = 'source-in';
-        ice.fillStyle = 'black';
-        ice.fillRect(0, 0, invert.width, invert.height);
-        invert.globalCompositeOperation = 'destination-in';
-        invert.drawImage(ice.canvas, 0, 0, invert.width, invert.height);
-      }
-
-      if (solitaire) {
-        game.sol();
-      } else {
-        game.freecell();
       }
     }
 
@@ -2703,17 +2728,19 @@ const draginto = (slot, callback) => {
 }
 
 const releasecard = () => {
-  const area = (x, y, dx = 0, dy = 0) => {
+  const area = (x, y, dx = 0, dy = 0, usegap = true) => {
+    const gapw = usegap ? gap.x * (x + 1) : 0;
+    const gapy = usegap ? gap.y * (y + 1) : 0;
     return (
-      mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] >= gap.x * (x + 1) + cardsize[0] * x &&
-      mouse[0].x - dragcard.dx + dragcard.x < gap.x * (x + 1) + cardsize[0] * (x + 1) &&
-      mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] >= gap.y * (y + 1) + cardsize[1] * y &&
-      mouse[0].y - dragcard.dy + dragcard.y < gap.y * (y + 1) + cardsize[1] * (y + 1) + dy
+      mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] >= cardsize[0] * x + gapw &&
+      mouse[0].x - dragcard.dx + dragcard.x < cardsize[0] * (x + 1) + gapw &&
+      mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] >= cardsize[1] * y + gapy &&
+      mouse[0].y - dragcard.dy + dragcard.y < cardsize[1] * (y + 1) + dy + gapy
     )
   };
-  let intersected_slots = [];
 
   if (solitaire && dragcard){
+    let intersected_slots = [];
     let cheat = false;
 
     // Deal
@@ -2725,41 +2752,32 @@ const releasecard = () => {
     //  return;
     //}
 
-    // Select pile from Foundation or an action for double click
+    // Collect intersected slots from Foundation or an action for double click
     for (const pos of Array(4).keys()) {
+      const slot = slots[pos+1];
       if (fastclick + 200 > performance.now()) {
-        const stack = slots[pos+1][1].at(-1);
         const dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
         const card = dragcards.at(-1);
         if (
-          !stack &&
-          parseInt(card[1], 16) === 1 ||
-          stack &&
-          dragcards.length === 1 &&
-          parseInt(card[0], 16) === parseInt(stack[0], 16) &&
-          parseInt(card[1], 16) === parseInt(stack[1], 16) + 1
+          slot[1].length === 0 && isA(card) ||
+          slot[1].length > 0 && dragcards.length === 1 && isRanked(card, slot)
         ) {
-          draginto(slots[pos+1], game.sol);
+          draginto(slot, game.sol);
           return;
         }
       } else if (area(pos+3, 0)) {
-        intersected_slots.push(slots[pos+1]);
+        intersected_slots.push(slot);
       }
     }
 
-    // Drag card to this pile
+    // Drag card to Foundation
     if (intersected_slots.length) {
       for (const slot of intersected_slots){
-        let stack = slot[1].at(-1);
         let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
         let card = dragcards.at(-1);
         if (
-          !stack &&
-          parseInt(card[1], 16) === 1 ||
-          stack &&
-          dragcards.length === 1 &&
-          parseInt(card[0], 16) === parseInt(stack[0], 16) &&
-          parseInt(card[1], 16) === parseInt(stack[1], 16) + 1
+          slot[1].length === 0 && isA(card) ||
+          slot[1].length > 0 && dragcards.length === 1 && isRanked(card, slot)
         ) {
           draginto(slot, game.sol);
           return;
@@ -2768,32 +2786,30 @@ const releasecard = () => {
     }
     intersected_slots = [];
 
-    // Select pile from Stack
-    for (const pos of [...Array(7+cheatslots).keys()]) {
-      if (area(pos, 1, 0, gap.dn * slots[pos+5][0].length + gap.up * (slots[pos+5][1].length - 1))) {
-        intersected_slots.push(slots[pos+5]);
+    // Collect intersected slots from Stack
+    for (const pos of Array(7+cheatslots).keys()) {
+      const slot = slots[pos+5];
+      if (area(pos, 1, 0, gap.dn * slot[0].length + gap.up * (slot[1].length - 1))) {
+        intersected_slots.push(slot);
         if (!cheat){
-          cheat = pos > 6 || 'draw' in dragcard && slots[pos+5][0].length === 0 && dragcard.slot[0].length === 0 ? 2 : 1;
+          cheat = pos > 6 || 'draw' in dragcard && slot[0].length === 0 && dragcard.slot[0].length === 0 ? 2 : 1;
         }
       }
     }
 
-    // Drag card to this pile
+    // Drag card to Stack
     if (intersected_slots.length) {
       const card = dragcard.slot[1]['draw' in dragcard ? dragcard.draw : draw.draw];
       for (const slot of intersected_slots){
         if (!slot[1].length) {
-          if (parseInt(card[1], 16) === ncard/4 || cheat === 2 && !(dragcard.draw)) {
+          if (isKing(card) || cheat === 2 && !(dragcard.draw)) {
             draginto(slot, game.sol);
             fastclick = performance.now();
             return;
           } else {
             rubberband();
           };
-        } else if (
-          card[0] % 2 !== slot[1].at(-1)[0] % 2 &&
-          parseInt(card[1], 16) === parseInt(slot[1].at(-1)[1][0], 16) - 1
-        ) {
+        } else if (isRankedAlt(card, slot)) {
           draginto(slot, game.sol);
           fastclick = performance.now();
           return;
@@ -2805,29 +2821,99 @@ const releasecard = () => {
       rubberband();
     }
   } else if (freecell && dragcard) {
-    // Select pile from Stack
-    for (const pos of [...Array(8).keys()]) {
-      if (area(pos, 1, 0, gap.dn * slots[pos+8][0].length + gap.up * (slots[pos+8][1].length - 1))) {
-        intersected_slots.push(slots[pos+8]);
+    let intersected_slots = [];
+
+    // Collect intersected slots from Home Cell
+    for (const pos of Array(4).keys()) {
+      const slot = slots[pos+4];
+      if (fastclick + 200 > performance.now()) {
+        const dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
+        const card = dragcards.at(-1);
+        if (
+          !slot[1].at(-1) && isA(card) ||
+          slot[1].at(-1) && dragcards.length === 1 && isRanked(card, slot)
+        ) {
+          draginto(slot, game.freecell);
+          return;
+        }
+      } else if (area(pos+4, 0, 0, 0, false)) {
+        intersected_slots.push(slot);
       }
     }
 
-    // Drag card to this pile
+    // Drag card to Home Cell
+    if (intersected_slots.length) {
+      for (const slot of intersected_slots) {
+        let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
+        let card = dragcards.at(-1);
+        if (
+          slot[1].length === 0 && isA(card) ||
+          slot[1].length > 0 && dragcards.length === 1 && isRanked(card, slot)
+        ) {
+          draginto(slot, game.freecell);
+          return;
+        }
+      }
+      //speaker("Home Cell");
+    }
+    intersected_slots = [];
+
+    // Collect intersected slots from Free Cell
+    for (const pos of Array(4).keys()) {
+      const slot = slots[pos];
+      if (area(pos, 0, 0, 0, false)) {
+        intersected_slots.push(slot);
+      }
+    }
+
+    // Drag card to Free Cell
+    if (intersected_slots.length) {
+      for (const slot of intersected_slots) {
+        if (!slot[1].at(-1)) {
+          let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
+          if (dragcards.length === 1) {
+            draginto(slot, game.freecell);
+            return;
+          } else {
+            speaker("Stop!");
+            rubberband();
+            dragcard = false;
+            moved = false;
+            if (solitaire && !winanim) {
+              game.sol();
+            } else if (freecell) {
+              game.freecell();
+            }
+            fastclick = performance.now();
+            return;
+          }
+        }
+      }
+      //speaker("Free Cell");
+    }
+    intersected_slots = [];
+
+    // Collect intersected slots from Stack
+    for (const pos of Array(8).keys()) {
+      const slot = slots[pos+8];
+      if (area(pos, 1, 0, gap.dn * slot[0].length + gap.up * (slot[1].length - 1))) {
+        intersected_slots.push(slot);
+      }
+    }
+
+    // Drag card to Stack
     if (intersected_slots.length) {
       const card = dragcard.slot[1]['draw' in dragcard ? dragcard.draw : draw.draw];
       for (const slot of intersected_slots){
         if (!slot[1].length) {
-          if (parseInt(card[1], 16) === ncard/4) {
+          if (isKing(card)) {
             draginto(slot, game.freecell);
             fastclick = performance.now();
             return;
           } else {
             rubberband();
           };
-        } else if (
-          card[0] % 2 !== slot[1].at(-1)[0] % 2 &&
-          parseInt(card[1], 16) === parseInt(slot[1].at(-1)[1][0], 16) - 1
-        ) {
+        } else if (isRankedAlt(card, slot)) {
           draginto(slot, game.freecell);
           fastclick = performance.now();
           return;
@@ -3034,8 +3120,8 @@ const FFmove = (e_) => {
 
   if (freecell || solitaire && !winanim) {
     if (
-      mouse[0].x > gap.x*8 + cardsize[0]*7 + cardsize[0]/2 - 16*scale &&
-      mouse[0].x < gap.x*8 + cardsize[0]*7 + cardsize[0]/2 + 16*scale &&
+      mouse[0].x > 11*9 + cardsize[0]*8 + cardsize[0]/2 - 16*scale &&
+      mouse[0].x < 11*9 + cardsize[0]*8 + cardsize[0]/2 + 16*scale &&
       mouse[0].y > gap.y*1 + cardsize[1]*0 + cardsize[1]/2 - 8*scale &&
       mouse[0].y < gap.y*1 + cardsize[1]*0 + cardsize[1]/2 + 8*scale
     ) {

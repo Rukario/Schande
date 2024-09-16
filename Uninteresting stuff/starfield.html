@@ -2129,7 +2129,7 @@ const drawhint = {
   },
 }
 
-const isA = (ca) => parseInt(ca[1], 16) === 1;
+const isAce = (ca) => parseInt(ca[1], 16) === 1;
 const isKing = (ca) => parseInt(ca[1], 16) === ncard/4;
 const isRanked = (ca, dest) => parseInt(ca[0], 16) === parseInt(dest[1].at(-1)[0], 16) && parseInt(ca[1], 16) === parseInt(dest[1].at(-1)[1], 16) + 1;
 const isRankedAlt = (ca, dest) => ca[0] % 2 !== dest[1].at(-1)[0] % 2 && parseInt(ca[1], 16) === parseInt(dest[1].at(-1)[1], 16) - 1;
@@ -2229,7 +2229,7 @@ const computer = {
       if (!moved) {
         const x = gap.x * (pos - (5 * des) + 1) + cardsize[0] * (pos - (5 * des));
         const y = gap.y * 2 + cardsize[1] + gap.up * depth + gap.dn * slot[0].length;
-        if (isA(card)) {
+        if (isAce(card)) {
           drawhint.sol(hint, x, y, x, y);
           if (solcomputer) {
             vectorA(x, y, slot, !isdeck ? depth : false);
@@ -2261,7 +2261,7 @@ const computer = {
         const repeat = Math.floor(Math.abs(deck.length-2)/10)*scale;
         const x = gap.x*2 + cardsize[0]*1 + repeat*2 + depth*scale*14;
         const y = gap.y*1 + cardsize[1]*0 + repeat + depth*scale;
-        if (isA(card)) {
+        if (isAce(card)) {
           drawhint.sol(hint, x, y, x, y);
           if (solcomputer) {
             vectorA(x, y, slots[0], false);
@@ -2674,14 +2674,29 @@ var pickcard = () => {
       if (area(pos, 1, 0, dy)) {
         if (slot[1].length) {
           const depth = Math.min(Math.floor(Math.max(mouse[0].y - (gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length), 0) / 18 / scale), slot[1].length-1);
-          dragcard = {
-            x: gap.x * (pos + 1) + cardsize[0] * pos,
-            y: gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length + depth * gap.up,
-            dx: mouse[0].x,
-            dy: mouse[0].y,
-            slot: slot,
-            draw: depth,
-          };
+          const stack = slot[1].slice(depth);
+          let pickable = true;
+          if (stack.length-1 > 0) {
+            let card = stack[0];
+            for (const scard of stack.slice(1)) {
+              if (isRankedAlt(scard, [0, [card]])) {
+                card = scard;
+              } else {
+                speaker("Stop!");
+                pickable = false;
+              }
+            }
+          }
+          if (pickable) {
+            dragcard = {
+              x: gap.x * (pos + 1) + cardsize[0] * pos,
+              y: gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length + depth * gap.up,
+              dx: mouse[0].x,
+              dy: mouse[0].y,
+              slot: slot,
+              draw: depth,
+            };
+          }
         }
         break;
       }
@@ -2785,7 +2800,7 @@ const releasecard = () => {
         const dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
         const card = dragcards.at(-1);
         if (
-          slot[1].length === 0 && isA(card) ||
+          slot[1].length === 0 && isAce(card) ||
           slot[1].length > 0 && dragcards.length === 1 && isRanked(card, slot)
         ) {
           draginto(slot, game.sol);
@@ -2802,7 +2817,7 @@ const releasecard = () => {
         let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
         let card = dragcards.at(-1);
         if (
-          slot[1].length === 0 && isA(card) ||
+          slot[1].length === 0 && isAce(card) ||
           slot[1].length > 0 && dragcards.length === 1 && isRanked(card, slot)
         ) {
           draginto(slot, game.sol);
@@ -2856,7 +2871,7 @@ const releasecard = () => {
         const dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
         const card = dragcards.at(-1);
         if (
-          !slot[1].at(-1) && isA(card) ||
+          !slot[1].at(-1) && isAce(card) ||
           slot[1].at(-1) && dragcards.length === 1 && isRanked(card, slot)
         ) {
           draginto(slot, game.freecell);
@@ -2873,7 +2888,7 @@ const releasecard = () => {
         let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
         let card = dragcards.at(-1);
         if (
-          slot[1].length === 0 && isA(card) ||
+          slot[1].length === 0 && isAce(card) ||
           slot[1].length > 0 && dragcards.length === 1 && isRanked(card, slot)
         ) {
           draginto(slot, game.freecell);
@@ -2932,13 +2947,9 @@ const releasecard = () => {
       const card = dragcard.slot[1]['draw' in dragcard ? dragcard.draw : draw.draw];
       for (const slot of intersected_slots){
         if (!slot[1].length) {
-          if (isKing(card)) {
-            draginto(slot, game.freecell);
-            fastclick = performance.now();
-            return;
-          } else {
-            rubberband();
-          };
+          draginto(slot, game.freecell);
+          fastclick = performance.now();
+          return;
         } else if (isRankedAlt(card, slot)) {
           draginto(slot, game.freecell);
           fastclick = performance.now();

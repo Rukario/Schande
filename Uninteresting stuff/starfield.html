@@ -2475,7 +2475,7 @@ var pickcard = () => {
     )
   };
 
-  const undo3gap = solitaire ? 12 * (drawn - 1) : -10;
+  const undo3gap = solitaire ? 13 * (drawn - 1) : -10;
   const undoloc = solitaire ? gap.x * 3 + cardsize[0] * 2 : cardsize[0] * 4;
   const undoarea = solitaire ? area(2, 0) : area(4, 0, -10, 0, 0, 11);
   // Menu

@@ -2023,19 +2023,15 @@ const game = {
   },
 
   freecell: () => {
+    repaint.freecell();
+
     if ([...Array(4).keys()].every((pos) => {
       return slots[pos+4][1].length === ncard / 4;
     })) {
-      if (!winanim) {
-        clearTimeout(winid);
-        winsol();
-      }
+      context.drawImage(cards['freemon'], 38*3, 38*anger, 38, 38, 0, cardsize[1], 38*8, 38*8);
     } else {
-      winanim = false;
       imawake();
     }
-
-    repaint.freecell();
 
     if (solcomputer && computerspeed) {
       clearTimeout(readycomputer);

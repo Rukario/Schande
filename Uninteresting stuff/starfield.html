@@ -1319,7 +1319,7 @@ var drawx = () => {
 }
 
 var cardsym = ['Clover', 'Diamond', 'Spade', 'Heart'];
-var cardname = [0, 'A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K'];
+var cardname = [0, 'A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K']; // , 'L', 'Z'
 function newloc(l=0, r=26) {
   const sym = [
     [9],
@@ -1410,8 +1410,8 @@ function new_card(next, suit) {
     // Monarch
     acard.drawImage(cards['cardm'], 0, 0, acard.width, acard.height);
 
-    sym.width = sym.canvas.width = Math.floor(portrait[0] / 4);
-    sym.height = sym.canvas.height = Math.floor(portrait[1] / 3);
+    sym.width = sym.canvas.width = Math.floor(45);
+    sym.height = sym.canvas.height = Math.floor(72);
     sym.clearRect(0, 0, sym.width, sym.height);
 
     let loc;
@@ -1680,13 +1680,14 @@ function winsol() {
   const gravity = {x: 0, y: 1};
   const kinecticloss = 0.85;
   let i = 0;
+  const ranks = ncard/4;
 
-  for (const card of Array(ncard/4).keys()) {
+  for (const card of Array(ranks).keys()) {
     for (const pos of Array(4).keys()) {
       const falldir = Math.floor(Math.random()*14-7)+1;
-      const dep = Math.ceil((12-card)/4)*scale;
+      const dep = Math.ceil((ranks-1-card)/4)*scale;
       flycards.push({
-        card: slots[pos+1][1][12-card],
+        card: slots[pos+1][1][ranks-1-card],
         x: gap.x*4 + gap.x*pos + cardsize[0]*(pos+3) + dep*2,
         y: gap.y + dep,
         xdir: scale,
@@ -2836,6 +2837,17 @@ const releasecard = () => {
     )
   };
 
+  const rubbery = () => {
+    dragcard = false;
+    moved = false;
+    if (solitaire && !winanim) {
+      game.sol();
+    } else if (freecell) {
+      game.freecell();
+    }
+    fastclick = performance.now();
+  }
+
   if (solitaire && dragcard){
     let intersected_slots = [];
     let cheat = false;
@@ -2974,14 +2986,7 @@ const releasecard = () => {
           } else {
             speaker("Stop!");
             rubberband();
-            dragcard = false;
-            moved = false;
-            if (solitaire && !winanim) {
-              game.sol();
-            } else if (freecell) {
-              game.freecell();
-            }
-            fastclick = performance.now();
+            rubbery();
             return;
           }
         }
@@ -3019,14 +3024,7 @@ const releasecard = () => {
       rubberband();
     }
   }
-  dragcard = false;
-  moved = false;
-  if (solitaire && !winanim) {
-    game.sol();
-  } else if (freecell) {
-    game.freecell();
-  }
-  fastclick = performance.now();
+  rubbery();
 }
 
 function imawake() {

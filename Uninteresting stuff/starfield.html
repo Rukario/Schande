@@ -100,7 +100,7 @@ canvas {
   padding: 8px;
 
   &::after {
-    content: 'SHAMEFUL BAR';
+    content: '';
     white-space: pre-wrap;
     font-weight: 700;
     text-align: center;
@@ -1410,29 +1410,28 @@ function new_card(next, suit) {
     // Monarch
     acard.drawImage(cards['cardm'], 0, 0, acard.width, acard.height);
 
+    const rotatecopy = cards['mon'].height % 72 ? true : false; // 72px portraits odd of odd/even, otherwise there will be rotate copy monarches
     sym.width = sym.canvas.width = Math.floor(45);
-    sym.height = sym.canvas.height = Math.floor(72);
+    sym.height = sym.canvas.height = Math.floor(rotatecopy ? 36 : 72);
     sym.clearRect(0, 0, sym.width, sym.height);
 
-    let loc;
+    let monsym;
     if (next === 12) {
-      loc = suit === 1 ? 0 : 1;
+      monsym = suit === 1 ? 0 : 1; // diamond
     } else {
-      loc = suit === 1 ? 30 : 29;
+      monsym = suit === 1 ? 30 : 29;
     }
 
-    sym.drawImage(cards['mon'], -sym.width * suit, -sym.height * (next - 10), ...portrait);
-    sym.drawImage(cards['sym'], 37, 15*suit, 15, 15, loc, 1, 15, 15);
+    sym.drawImage(cards['mon'], -sym.width * suit, -sym.height * (next - 10), cards['mon'].width, cards['mon'].height);
+    sym.drawImage(cards['sym'], 37, 15*suit, 15, 15, monsym, 1, 15, 15);
     acard.drawImage(sym.canvas, 13, 12, sym.width, sym.height);
-
-    if (portrait[0] > portrait[1]) {
+    if (rotatecopy) {
       sym.clearRect(0, 0, sym.width, sym.height);
       sym.translate(sym.width, sym.height);
       sym.scale(-1, -1);
-      sym.drawImage(cards['mon'], -sym.width * suit, -sym.height * (next - 10), ...portrait);
-      sym.drawImage(cards['sym'], 37, 15*suit, 15, 15, loc, 1, 15, 15);
+      sym.drawImage(cards['mon'], -sym.width * suit, -sym.height * (next - 10), cards['mon'].width, cards['mon'].height);
+      sym.drawImage(cards['sym'], 37, 15*suit, 15, 15, monsym, 1, 15, 15);
       acard.drawImage(sym.canvas, 13, 12+sym.height, sym.width, sym.height);
-      sym.setTransform(1,0,0,1,0,0);
     }
   } else {
     acard.drawImage(cards['card0'], 0, 0, acard.width, acard.height);
@@ -1597,7 +1596,6 @@ function new_deck(restart = false) {
 
 var factorysealed = [];
 var symdim = [0, 0];
-var portrait = [0, 0];
 function loadcards(callback, interFrameN) {
   const is_star = !isNaN(interFrameN);
   if (factorysealed.length) {
@@ -1633,7 +1631,6 @@ function loadcards(callback, interFrameN) {
 
   Promise.all(promiseCards).then(() => {
     symdim = [cards['sym'].width, cards['sym'].height];
-    portrait = [cards['mon'].width, cards['mon'].height];
 
     // optional hue
     for (const [pos, card] of Object.keys(cards).entries()) {
@@ -2485,14 +2482,14 @@ const computer = {
       }
     };
 
-    // Stack to Foundation
+    // Stack to Home Cells
     for (const pos of [...freecells, ...stack]) {
       const des = pos > 4 ? 1 : 0;
       const slot = slots[pos];
       const depth = slot[1].length-1;
       const card = slot[1][depth];
-      const x = gap.x * (pos - (8 * des) + 1) + cardsize[0] * (pos - (8 * des));
-      const y = gap.y * 2 + cardsize[1] + gap.up * depth;
+      const x = gap.x * (pos - (8 * des) + 1) * des + cardsize[0] * (pos - (8 * des));
+      const y = gap.y * 2 * des + cardsize[1] * des + gap.up * depth;
       if (isAce(card)) {
         drawhint.sol(hint, x, y, x, y);
         if (solcomputer) {
@@ -3020,7 +3017,7 @@ const releasecard = () => {
         };
       }
     } else {
-      speaker("I voice for dialogbox! You can tell by looking at my face.");
+      //speaker("I voice for dialogbox! You can tell by looking at my face.");
       rubberband();
     }
   }

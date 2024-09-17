@@ -1964,7 +1964,7 @@ const repaint = {
     context.fillStyle = qixdb.color;
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    context.drawImage(spoiler.canvas, dim.x - qixpos.x, dim.y - qixpos.y, spoiler.width, spoiler.height);
+    context.drawImage(spoiler.canvas, dim.x - qixpos.x*qixsc, dim.y - qixpos.y*qixsc, spoiler.width, spoiler.height);
 
     spoilermask.clearRect(0, 0, spoilermask.width, spoilermask.height);
     spoilermask.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
@@ -1972,7 +1972,7 @@ const repaint = {
     spoilermask.drawImage(silhouette, 0, 0, spoilermask.width, spoilermask.height);
     spoilermask.globalCompositeOperation = 'source-over';
 
-    context.drawImage(spoilermask.canvas, dim.x - qixpos.x, dim.y - qixpos.y, spoilermask.width, spoilermask.height);
+    context.drawImage(spoilermask.canvas, dim.x - qixpos.x*qixsc, dim.y - qixpos.y*qixsc, spoilermask.width, spoilermask.height);
 
     context.drawImage(cards['freemon'], 38*face, 38*anger, 38, 38, dim.x-19, dim.y-19, 38, 38);
   },
@@ -3590,12 +3590,12 @@ function new_qix() {
     y: Math.floor(qixmask.height / 2),
   }
   qixpos = {
-    x: qixdim.x * qixsc + qixsc,
-    y: qixdim.y * qixsc + qixsc,
+    x: qixdim.x + 1,
+    y: qixdim.y + 1,
   };
   qixpos2 = {
-    x: Math.floor((Math.random() * qixmask.width - 2) + 1) * qixsc,
-    y: Math.floor((Math.random() * qixmask.height - 2) + 1) * qixsc,
+    x: Math.floor((Math.random() * qixmask.width - 2) + 1),
+    y: Math.floor((Math.random() * qixmask.height - 2) + 1),
   };
   qix_tails = [];
   qixline = {
@@ -3688,8 +3688,8 @@ function clearSq(x, y, w, h, co = 0) {
 }
 
 function stixpath(nx, land) {
-  const x = Math.floor(qixpos.x/qixsc);
-  const y = Math.floor(qixpos.y/qixsc);
+  const x = qixpos.x;
+  const y = qixpos.y;
 
   if (!qix_tails.length) {
     if (land) {
@@ -3715,71 +3715,96 @@ function stixpath(nx, land) {
 }
 
 function qixstep() {
-  const speed = qixsc * 60 / fps.hz;
-  const step = {
-    x: (Keypress.KeyD || Keypress.ArrowRight ? speed : 0) + (Keypress.KeyA || Keypress.ArrowLeft ? -speed : 0),
-    y: (Keypress.KeyS || Keypress.ArrowDown ? speed : 0) + (Keypress.KeyW || Keypress.ArrowUp ? -speed : 0),
+  const dir = {
+    e: Keypress.KeyD || Keypress.ArrowRight,
+    s: Keypress.KeyS || Keypress.ArrowDown,
+    w: Keypress.KeyA || Keypress.ArrowLeft,
+    n: Keypress.KeyW || Keypress.ArrowUp,
   }
 
-  if (step.x) {
-    face = step.x < 0 ? 1 : 2;
-  }
-  repaint.qix();
-
-  // death barrier
-  if (qixpos.x + step.x < 0 || qixpos.x + step.x > qixmask.width * qixsc) {
-    step.x = 0;
+  if (dir.w && face !==1 || dir.e && face !==2) {
+    face = dir.w ? 1 : 2;
   }
 
-  if (qixpos.y + step.y < 0 || qixpos.y + step.y > qixmask.height * qixsc) {
-    step.y = 0;
-  }
+  const speed = 1;
+  for (const frame of Array(120/fps.hz).keys()) {
+    const step = {
+      x: 0,
+      y: 0,
+    }
 
-  // invisible barrier
-  const toMask = {
-    x: Math.floor((qixpos.x + step.x)/qixsc),
-    y: Math.floor((qixpos.y + step.y)/qixsc),
-    nx: Math.floor((qixpos.x)/qixsc),
-    ny: Math.floor((qixpos.y)/qixsc),
-  }
-
-  const datapos = {
-    now: toMask.x + qixmask.width * toMask.y,
-    x: toMask.x + qixmask.width * toMask.ny,
-    y: toMask.nx + qixmask.width * toMask.y,
-  }
-
-  const stepmap = (x, y) => {
-    stixpath(x, true);
-    qixpos.x += x;
-    qixpos.y += y;
-    if (mouse[tooie].hold) {
-      mouse[tooie].hold = 0;
-      for (const area of qix_tails) {
-        clearSq(...area);
+    // death barrier
+    if (dir.w && !dir.e || dir.e && !dir.w) {
+      for (const x of Array(speed).keys()) {
+        const pow = dir.w ? -x-1 : x+1;
+        if (qixpos.x + pow >= 0 && qixpos.x + pow <= qixmask.width) {
+          step.x = pow;
+          break;
+        }
       }
-      qix_tails = [];
-      qixscan();
+    }
+
+    if (dir.n && !dir.s || dir.s && !dir.n) {
+      for (const y of Array(speed).keys()) {
+        const pow = dir.n ? -y-1 : y+1;
+        if (qixpos.y + pow >= 0 && qixpos.y + pow <= qixmask.height) {
+          step.y = pow;
+          break;
+        }
+      }
+    }
+
+    if (step.x === 0 && step.y === 0) {
+      return;
+    }
+    
+    // invisible barrier
+    const toMask = {
+      x: Math.floor(qixpos.x + step.x),
+      y: Math.floor(qixpos.y + step.y),
+      nx: Math.floor(qixpos.x),
+      ny: Math.floor(qixpos.y),
+    }
+    
+    const datapos = {
+      now: toMask.x + qixmask.width * toMask.y,
+      x: toMask.x + qixmask.width * toMask.ny,
+      y: toMask.nx + qixmask.width * toMask.y,
+    }
+    
+    const stepmap = (x, y) => {
+      stixpath(x, true);
+      qixpos.x += x;
+      qixpos.y += y;
+      if (mouse[0].hold) {
+        mouse[0].hold = 0;
+        for (const area of qix_tails) {
+          clearSq(...area);
+        }
+        qix_tails = [];
+        qixscan();
+      }
+    }
+    
+    if (qixmap.data[datapos.now * 4 + 3] !== 255) {
+      stepmap(step.x, step.y);
+    } else if (mouse[0].down) {
+      // on adventure
+      mouse[0].hold = 1;
+      stixpath(step.x);
+      qixpos.x += step.x;
+      qixpos.y += step.y;
+    } else if (qixmap.data[datapos.x * 4 + 3] !== 255) {
+      stepmap(step.x, 0);
+    } else if (qixmap.data[datapos.y * 4 + 3] !== 255) {
+      stepmap(0, step.y);
     }
   }
-
-  if (qixmap.data[datapos.now * 4 + 3] !== 255) {
-    stepmap(step.x, step.y);
-  } else if (mouse[tooie].down) {
-    // on adventure
-    mouse[tooie].hold = 1;
-    stixpath(step.x);
-    qixpos.x += step.x;
-    qixpos.y += step.y;
-  } else if (qixmap.data[datapos.x * 4 + 3] !== 255) {
-    stepmap(step.x, 0);
-  } else if (qixmap.data[datapos.y * 4 + 3] !== 255) {
-    stepmap(0, step.y);
-  }
+  repaint.qix();
 }
 
 function qixstep2(k = false) {
-  const speed = qixsc * 60 / fps.hz;
+  const speed = 1;
   const step = {
     x: k ? (Keypress.KeyH ? speed : 0) + (Keypress.KeyF ? -speed : 0) : Math.round((Math.random() - 0.5) * 8),
     y: k ? (Keypress.KeyG ? speed : 0) + (Keypress.KeyT ? -speed : 0) : Math.round((Math.random() - 0.5) * 8),
@@ -3875,15 +3900,15 @@ function drawqix(scr, pos, size = 0) {
       chdir(area[2], area[3], area[0], area[1]);
       dir.x = area[2];
       dir.y = area[3];
-      const xx = dir.nw * qixsc + dir.w + dim.x - qixpos.x;
-      const yy = dir.nh * qixsc + dir.h + dim.y - qixpos.y;
+      const xx = dir.nw * qixsc + dir.w + dim.x - qixpos.x * qixsc;
+      const yy = dir.nh * qixsc + dir.h + dim.y - qixpos.y * qixsc;
       tail.push(`${xx}px ${yy}px`);
       dir.nw = nx;
       dir.nh = ny;
     };
     if (qix_tails.length) {
-      const xx = dir.nw * qixsc + dir.w + dim.x - qixpos.x;
-      const yy = dir.nh * qixsc + dir.h + dim.y - qixpos.y;
+      const xx = dir.nw * qixsc + dir.w + dim.x - qixpos.x * qixsc;
+      const yy = dir.nh * qixsc + dir.h + dim.y - qixpos.y * qixsc;
       tail.push(`${xx}px ${yy}px`);
     }
   }
@@ -3893,8 +3918,8 @@ function drawqix(scr, pos, size = 0) {
     const y = spoiler.height / 2 + dim.y - qixdim.y * qixsc;
     tail.push(`${x}px ${y}px`);
   } else {
-    const x = pos.x + 0.5 + dim.x - qixpos.x;
-    const y = pos.y + 0.5 + dim.y - qixpos.y;
+    const x = pos.x + 0.5 + dim.x - qixpos.x * qixsc;
+    const y = pos.y + 0.5 + dim.y - qixpos.y * qixsc;
     tail.push(`${x}px ${y - 10 * size}px,
 ${x + 10 * size}px ${y}px,
 ${x}px ${y + 10 * size}px,
@@ -3919,8 +3944,8 @@ ${x}px ${y - 10 * size}px`);
       dir.y = -area[3];
       dir.nw = nx;
       dir.nh = ny;
-      const xx = dir.nw * qixsc + dir.w + dim.x - qixpos.x;
-      const yy = dir.nh * qixsc + dir.h + dim.y - qixpos.y;
+      const xx = dir.nw * qixsc + dir.w + dim.x - qixpos.x * qixsc;
+      const yy = dir.nh * qixsc + dir.h + dim.y - qixpos.y * qixsc;
       tail.push(`${xx}px ${yy}px`);
     };
     if (qix_tails.length) {
@@ -3938,8 +3963,8 @@ ${x}px ${y - 10 * size}px`);
         dir.w = 0;
         dir.h = qixsc;
       }
-      const xx = area[0] * qixsc + dir.w + dim.x - qixpos.x;
-      const yy = area[1] * qixsc + dir.h + dim.y - qixpos.y;
+      const xx = area[0] * qixsc + dir.w + dim.x - qixpos.x * qixsc;
+      const yy = area[1] * qixsc + dir.h + dim.y - qixpos.y * qixsc;
       tail.push(`${xx}px ${yy}px`);
     }
   }
@@ -3954,18 +3979,24 @@ var mousec = {
 
 function qixupdate() {
   if (qix_tails.length > 0 && !mouse[tooie].down) {
-    const stix = qix_tails.at(-1);
-    if (stix[2]) {
-      stix[2] += stix[2] > 0 ? -1 : 1;
-    } else if (stix[3]) {
-      stix[3] += stix[3] > 0 ? -1 : 1;
-    } else {
-      qix_tails.pop();
-    }
+    const speed = 1;
+    for (const frame of Array(120/fps.hz).keys()) {
+      const stix = qix_tails.at(-1);
+      if (stix[2]) {
+        stix[2] += stix[2] > 0 ? -speed : speed;
+      } else if (stix[3]) {
+        stix[3] += stix[3] > 0 ? -speed : speed;
+      } else {
+        qix_tails.pop();
+      }
 
-    qixpos.x = (stix[0] + stix[2]) * qixsc;
-    qixpos.y = (stix[1] + stix[3]) * qixsc;
-    drawqix(tailscr, qixpos, 0.75);
+      qixpos.x = (stix[0] + stix[2]);
+      qixpos.y = (stix[1] + stix[3]);
+      drawqix(tailscr, qixpos, 0.75);
+    }
+    if (qix_tails.length === 0) {
+      mouse[0].hold = 0;
+    }
     repaint.qix();
   } else if ('WASD'.split('').some((k) => Keypress['Key' + k]) || ['Left', 'Up', 'Right', 'Down'].some((k) => Keypress['Arrow' + k])) {
     qixstep();

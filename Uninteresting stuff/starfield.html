@@ -3727,7 +3727,7 @@ function qixstep() {
   }
 
   const speed = 1;
-  for (const frame of Array(240/fps.hz).keys()) {
+  for (const frame of Array(120/fps.hz).keys()) {
     const step = {
       x: 0,
       y: 0,
@@ -3976,21 +3976,22 @@ var mousec = {
 };
 
 function qixupdate() {
-  if (qix_tails.length > 0 && !mouse[tooie].down) {
+  if (qix_tails.length > 0 && !mouse[0].down) {
     const speed = 1;
-    for (const frame of Array(240/fps.hz).keys()) {
-      const stix = qix_tails.at(-1);
-      if (stix[2]) {
-        stix[2] += stix[2] > 0 ? -speed : speed;
-      } else if (stix[3]) {
-        stix[3] += stix[3] > 0 ? -speed : speed;
-      } else {
-        qix_tails.pop();
+    for (const frame of Array(120/fps.hz).keys()) {
+      if (qix_tails.length > 0) {
+        const stix = qix_tails.at(-1);
+        if (stix[2]) {
+          stix[2] += stix[2] > 0 ? -speed : speed;
+        } else if (stix[3]) {
+          stix[3] += stix[3] > 0 ? -speed : speed;
+        } else {
+          qix_tails.pop();
+        }
+        qixpos.x = (stix[0] + stix[2]);
+        qixpos.y = (stix[1] + stix[3]);
+        drawqix(tailscr, qixpos, 0.75);
       }
-
-      qixpos.x = (stix[0] + stix[2]);
-      qixpos.y = (stix[1] + stix[3]);
-      drawqix(tailscr, qixpos, 0.75);
     }
     if (qix_tails.length === 0) {
       mouse[0].hold = 0;

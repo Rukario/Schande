@@ -915,11 +915,6 @@ alpha.addEventListener('load', () => {
   new_stars();
 });
 
-const picturetomove = new Image();
-picturetomove.addEventListener('load', () => {
-  new_screensaver();
-});
-
 const silhouette = new Image();
 silhouette.addEventListener('load', () => {
   const qg = qixdb.gallery[qixsel];
@@ -962,30 +957,19 @@ win.addEventListener('load', () => {
 var currentFrame = 0;
 var movingsc = 1;
 function movingphoto() {
-  //context.fillStyle = "#000";
-  //context.fillRect(0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
-  //context.drawImage(reveal,
-  //  // Selection
-  //  (reveal.width-canvas.width) * ((Math.floor(currentFrame) % 120)/120),
-  //  600, // sy
-  //  canvas.width, // sWidth
-  //  canvas.height, // sHeight
-  //  // Drawing
-  //  0, // dx
-  //  0, // dy
-  //  canvas.width, // dWidth
-  //  canvas.height // dHeight
-  //);
-
-  for (let y = 0; y < canvas.height; y += picturetomove.height*movingsc) {
-    for (let x = currentFrame; x < canvas.width; x += picturetomove.width*movingsc) {
-      context.drawImage(picturetomove, x, y, picturetomove.width*movingsc, picturetomove.height*movingsc);
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  for (const [n, ishtar] of stars.entries()) {
+    for (let x = currentFrame; x < canvas.width; x += ishtar.canvas.width*movingsc) {
+      context.drawImage(ishtar.canvas, x, n*ishtar.canvas.height, ishtar.canvas.width*movingsc, ishtar.canvas.height*movingsc);
+    }
+    if (n*ishtar.canvas.height > canvas.height) {
+      break;
     }
   }
 
   currentFrame = currentFrame + 960/fps.vfps;
   if (currentFrame > 0) {
-    currentFrame = currentFrame - picturetomove.width*movingsc;
+    currentFrame = currentFrame - 95*movingsc;
   }
 }
 
@@ -1065,6 +1049,7 @@ function change_stars(args) {
   ccolor = args[8] || '#000';
   lastcolor = args[8] || '#000';
   document.body.style.backgroundColor = ccolor;
+  sideways = args[9];
 
   if (args[2]) {
     alpha.src = args[2];
@@ -4363,8 +4348,6 @@ ${x}px ${y + 18}px
       solitaire = false;
       hintb.style.display = 'none';
 
-      sideways = false;
-
       clearTimeout(idlescr);
       idlescr = false;
 
@@ -4376,30 +4359,30 @@ ${x}px ${y + 18}px
       savestar('star=', args);
     });
   };
-  poppy.append(newmenu('Flying Windows',               listener, [2,      75,   'win95.png', true,   95,  95,    1, 4, false]));
+  poppy.append(newmenu('Flying Windows',               listener, [2,      75,   'win95.png', true,   95,  95,    1, 4, false, false]));
 
   if (winsoln >= 5) {
-    poppy.append(newmenu('Starfield',                  listener, [0,      200,  false,       false,   4,   4, 1.50, 0, false]));
+    poppy.append(newmenu('Starfield',                  listener, [0,      200,  false,       false,   4,   4, 1.50, 0, false, false]));
   } else {
     poppy.append(unlock(['Starfield (', ')'], 5));
   }
 
   if (winsoln >= 24) {
-    morescr.append(newmenu('Flying Windows 24-bit',    listener, [4,      75,   'win95.png', true,   95,  95,    1, 4, false]));
-    morescr.append(newmenu('2000 flying Windows',      listener, [4,      2000, 'win95.png', true,   95,  95, 1.25, 4, false]));
+    morescr.append(newmenu('Flying Windows 24-bit',    listener, [4,      75,   'win95.png', true,   95,  95,    1, 4, false, false]));
+    morescr.append(newmenu('2000 flying Windows',      listener, [4,      2000, 'win95.png', true,   95,  95, 1.25, 4, false, false]));
     morescr.append(newmenu());
     if (winsoln >= 88) {
-      morescr.append(newmenu('Star Fox',                 listener, [1,      100,  false,       false,   6,   12, 1.50, 0, false]));
+      morescr.append(newmenu('Star Fox',                 listener, [1,      100,  false,       false,   6,   12, 1.50, 0, false, false]));
     } else {
       morescr.append(unlock(['Star Fox (', ')'], 88))
     }
-    morescr.append(newmenu('8000 colorful stars',      listener, [4,      8000, false,       false,   4,   4, 1.25, 0, false]));
+    morescr.append(newmenu('8000 colorful stars',      listener, [4,      8000, false,       false,   4,   4, 1.25, 0, false, false]));
     morescr.append(newmenu());
-    morescr.append(newmenu('Surreal Xmas',             listener, ['xmas', xlight.length*160,  'light.png', true,  190, 190, 1.25, 4, "#072700"]));
-    morescr.append(newmenu('Deep nature',              listener, ['natu', xnatur.length*120,  'petal.png', true,  190, 190, 1.25, 4, "#170b00"]));
+    morescr.append(newmenu('Surreal Xmas',             listener, ['xmas', xlight.length*160,  'light.png', true,  190, 190, 1.25, 4, "#072700", false]));
+    morescr.append(newmenu('Deep nature',              listener, ['natu', xnatur.length*120,  'petal.png', true,  190, 190, 1.25, 4, "#170b00", false]));
 
     if (winsoln >= 100) {
-      morescr.append(newmenu('Flying cards',           listener, ['card', 2,    false,       true, 71*2, 96*2, 1.25, 4, false]));
+      morescr.append(newmenu('Flying cards',           listener, ['card', 2,    false,       true, 71*2, 96*2, 1.25, 4, false, false]));
     } else {
       morescr.append(unlock(['Flying cards (', ')'], 100))
     }
@@ -4410,30 +4393,7 @@ ${x}px ${y + 18}px
   }
 
   if (winsoln >= 16) {
-    listener = (e) => {
-      e.addEventListener(tc, () => {
-        stopscr = true;
-
-        keyboard.style.display = 'none';
-
-        qix = false;
-        tailscr.style.display = 'none';
-        tailscr2.style.display = 'none';
-
-        glyph = false;
-        glyphscr.style.display = 'none';
-
-        solitaire = false;
-        hint.style.display = 'none';
-        hintb.style.display = 'none';
-        document.body.style.backgroundColor = '#fff';
-
-        sideways = true;
-
-        picturetomove.src = 'flower.jpg';
-      });
-    };
-    poppy.append(newmenu('Moving photo', listener));
+    poppy.append(newmenu('Moving photo', listener, [4,      75,   'win95.png', true,   95,  95,    1, 4, false, true]));
   } else {
     poppy.append(unlock(['Moving photo (', ')'], 16));
   }

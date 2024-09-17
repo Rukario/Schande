@@ -3594,8 +3594,8 @@ function new_qix() {
     y: qixdim.y + 1,
   };
   qixpos2 = {
-    x: Math.floor((Math.random() * qixmask.width - 2) + 1),
-    y: Math.floor((Math.random() * qixmask.height - 2) + 1),
+    x: Math.floor((Math.random() * qixmask.width * qixsc - 2) + 1),
+    y: Math.floor((Math.random() * qixmask.height * qixsc - 2) + 1),
   };
   qix_tails = [];
   qixline = {
@@ -3727,7 +3727,7 @@ function qixstep() {
   }
 
   const speed = 1;
-  for (const frame of Array(120/fps.hz).keys()) {
+  for (const frame of Array(240/fps.hz).keys()) {
     const step = {
       x: 0,
       y: 0,
@@ -3739,6 +3739,7 @@ function qixstep() {
         const pow = dir.w ? -x-1 : x+1;
         if (qixpos.x + pow >= 0 && qixpos.x + pow <= qixmask.width) {
           step.x = pow;
+        } else {
           break;
         }
       }
@@ -3749,6 +3750,7 @@ function qixstep() {
         const pow = dir.n ? -y-1 : y+1;
         if (qixpos.y + pow >= 0 && qixpos.y + pow <= qixmask.height) {
           step.y = pow;
+        } else {
           break;
         }
       }
@@ -3757,21 +3759,13 @@ function qixstep() {
     if (step.x === 0 && step.y === 0) {
       return;
     }
-    
-    // invisible barrier
-    const toMask = {
-      x: Math.floor(qixpos.x + step.x),
-      y: Math.floor(qixpos.y + step.y),
-      nx: Math.floor(qixpos.x),
-      ny: Math.floor(qixpos.y),
-    }
-    
-    const datapos = {
-      now: toMask.x + qixmask.width * toMask.y,
-      x: toMask.x + qixmask.width * toMask.ny,
-      y: toMask.nx + qixmask.width * toMask.y,
-    }
-    
+
+    //if (step.x !== 0 && step.y !== 0) {
+    //  step.x /= 2;
+    //  step.y /= 2;
+    //}
+
+    // invisible barrier    
     const stepmap = (x, y) => {
       stixpath(x, true);
       qixpos.x += x;
@@ -3785,8 +3779,12 @@ function qixstep() {
         qixscan();
       }
     }
-    
-    if (qixmap.data[datapos.now * 4 + 3] !== 255) {
+
+    const cleared = (pow) => {
+      return qixmap.data[pow * 4 + 3] !== 255;
+    }
+
+    if (cleared(qixpos.x + step.x + qixmask.width * (qixpos.y + step.y))) {
       stepmap(step.x, step.y);
     } else if (mouse[0].down) {
       // on adventure
@@ -3794,9 +3792,9 @@ function qixstep() {
       stixpath(step.x);
       qixpos.x += step.x;
       qixpos.y += step.y;
-    } else if (qixmap.data[datapos.x * 4 + 3] !== 255) {
+    } else if (cleared(qixpos.x + step.x + qixmask.width * qixpos.y)) {
       stepmap(step.x, 0);
-    } else if (qixmap.data[datapos.y * 4 + 3] !== 255) {
+    } else if (cleared(qixpos.x + qixmask.width * (qixpos.y + step.y))) {
       stepmap(0, step.y);
     }
   }
@@ -3980,7 +3978,7 @@ var mousec = {
 function qixupdate() {
   if (qix_tails.length > 0 && !mouse[tooie].down) {
     const speed = 1;
-    for (const frame of Array(120/fps.hz).keys()) {
+    for (const frame of Array(240/fps.hz).keys()) {
       const stix = qix_tails.at(-1);
       if (stix[2]) {
         stix[2] += stix[2] > 0 ? -speed : speed;

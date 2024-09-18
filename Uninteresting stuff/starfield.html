@@ -41,13 +41,74 @@ body {
 }
 
 #desk {
+  display: none;
   width: 100%;
+  height: 412px;
   position: absolute;
   bottom: 0px;
   z-index: 2;
+  overflow: hidden;
 
-  display: flex;
-  justify-content: center;
+  @media (width < 1032px) {
+    max-width: 844px;
+    height: 339px;
+  }
+
+  @media (width < 854px) {
+    height: 359px;
+  }
+
+  @media (width >= 1032px) {
+    max-width: 1032px;
+  }
+
+  @media (width >= 1269px) {
+    max-width: 1269px;
+  }
+
+  #rescue {
+    display: inline-block;
+    position: absolute;
+    bottom: 420px;
+    z-index: 3;
+    color: #556;
+    background-color: var(--color-keyboard);
+    border-radius: 12px;
+    border: 2px solid var(--color-keyborder);
+    line-height: 1;
+    font-size: 12px;
+    display: flex;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    text-align: center;
+    left: calc(50% - 10px);
+  }
+
+  #keyboard {
+    width: calc(100% - 16px);
+    position: absolute;
+    bottom: 42px;
+    z-index: 2;
+    background: var(--color-keyboard);
+    border-radius: 4px;
+    padding: 8px;
+  }
+
+  #wristrest {
+    white-space: pre-wrap;
+    font-weight: 700;
+    text-align: center;
+    bottom: 0;
+    position: absolute;
+    width: calc(100% - 2px);
+    height: 40px;
+    color: #b9c;
+    background-color: #dbe;
+    border: 1px solid #b9c;
+    border-radius: 2px;
+    z-index: 2;
+  }
 }
 
 canvas {
@@ -75,45 +136,6 @@ canvas {
   background-color: #000;
   font-family: courier;
   font-size: 26.6px;
-}
-
-#keyboard {
-  width: calc(100% - 16px);
-  @media (width < 1032px) {
-    max-width: 838px;
-  }
-
-  @media (width >= 1032px) {
-    max-width: 1016px;
-  }
-
-  @media (width >= 1269px) {
-    max-width: 1253px;
-  }
-
-  display: none;
-  position: absolute;
-  bottom: 42px;
-  z-index: 2;
-  background: var(--color-keyboard);
-  border-radius: 4px;
-  padding: 8px;
-
-  &::after {
-    content: 'SHAMEFUL BAR';
-    white-space: pre-wrap;
-    font-weight: 700;
-    text-align: center;
-    left: 0px;
-    bottom: -42px;
-    position: absolute;
-    width: calc(100% - 2px);
-    height: 40px;
-    color: #b9c;
-    background-color: #dbe;
-    border: 1px solid #b9c;
-    border-radius: 2px;
-  }
 }
 
 .plate {
@@ -953,7 +975,7 @@ reveal.addEventListener('load', () => {
 
   tailscr.style.display = 'block';
   tailscr2.style.display = 'block';
-  keyboard.style.display = isTouch ? 'inline-block' : 'none';
+  desk.style.display = isTouch ? 'inline-block' : 'none';
 
   speaker("Move with WASD or arrow keys, hold mouse while moving to set up barriers.\n\nCheat with TFGH keys.");
   new_qix();
@@ -1071,7 +1093,7 @@ function change_stars(args) {
 }
 
 function new_screensaver() {
-  keyboard.style.display = 'none';
+  desk.style.display = 'none';
   glyphscr.style.display = 'none';
   winanim = false;
   hint.style.display = 'none';
@@ -3039,13 +3061,13 @@ function imawake() {
       }
 
       if (qix) {
-        keyboard.style.display = isTouch ? 'inline-block' : 'none';
+        desk.style.display = isTouch ? 'inline-block' : 'none';
         qixupdate();
         repaint.qix();
       }
 
       if (glyph) {
-        keyboard.style.display = 'inline-block';
+        desk.style.display = 'inline-block';
         tailscr.style.display = 'block';
         new_glyph();
       }
@@ -3120,9 +3142,9 @@ const FFdown = (e_) => {
         rubberband();
         dragcard = false;
       }
-    } else if (e_.target.id === 'keyboard') {
-      const t = document.elementFromPoint(mouse[tooie].x, mouse[tooie].y);
-      FFpress(tooie, t);
+    //} else if (e_.target.id === 'keyboard') {
+    //  const t = document.elementFromPoint(mouse[tooie].x, mouse[tooie].y);
+    //  FFpress(tooie, t);
     } else if (e_.target.classList.contains('keyswitch')) {
       FFpress(tooie, e_.target);
     } else {
@@ -3461,7 +3483,7 @@ function new_glyph(clear) {
   context.clearRect(0, 0, canvas.width, canvas.height);
 
   glyphscr.style.display = 'block';
-  keyboard.style.display = 'inline-block';
+  desk.style.display = 'inline-block';
   if (clear) {
     editor.textContent = '';
     glyphc.clearRect(0, 0, glyphc.width, glyphc.height);
@@ -4148,7 +4170,7 @@ function makemenu() {
   listener = (e, arg) => {
     e.addEventListener(tc, () => {
       stopscr = true;
-      keyboard.style.display = 'none';
+      desk.style.display = 'none';
 
       qix = false;
       tailscr.style.display = 'none';
@@ -4181,7 +4203,7 @@ function makemenu() {
   listener = (e, arg) => {
     e.addEventListener(tc, () => {
       stopscr = true;
-      keyboard.style.display = 'none';
+      desk.style.display = 'none';
 
       qix = false;
       tailscr.style.display = 'none';
@@ -4317,7 +4339,7 @@ ${x}px ${y + 18}px
   listener = (e, args) => {
     e.addEventListener(tc, () => {
       stopscr = true;
-      keyboard.style.display = 'none';
+      desk.style.display = 'none';
 
       qix = false;
       tailscr.style.display = 'none';
@@ -4396,7 +4418,7 @@ ${x}px ${y + 18}px
       } else {
         solitaire = true;
         qix = false;
-        keyboard.style.display = 'none';
+        desk.style.display = 'none';
         tailscr.style.display = 'none';
         tailscr2.style.display = 'none';
         stopscr = true;
@@ -4838,11 +4860,12 @@ function rollkey(tooie) {
   const rect = t.getBoundingClientRect();
   if (Keypress[yeetCode[tooie]]) {
     if (
-      mouse[tooie].x < Math.floor(yeetdim[tooie].left) ||
-      mouse[tooie].x > Math.ceil(yeetdim[tooie].right) ||
-      mouse[tooie].y < Math.floor(yeetdim[tooie].top) ||
-      mouse[tooie].y > Math.ceil(yeetdim[tooie].bottom)
+      mouse[tooie].x <= Math.floor(yeetdim[tooie].left) ||
+      mouse[tooie].x >= Math.floor(yeetdim[tooie].right) ||
+      mouse[tooie].y <= Math.floor(yeetdim[tooie].top) ||
+      mouse[tooie].y >= Math.floor(yeetdim[tooie].bottom)
     ) {
+      // come here if you see stuck keypresses
       pressed(yeetCode[tooie], tooie);
     }
   }
@@ -5329,6 +5352,13 @@ window.addEventListener('load', () => {
 
   document.addEventListener('keydown', FFkeydown);
   document.addEventListener('keyup', FFkeyup);
+  addEventListener('scroll', () => {
+    if (isTouch) {
+      rescue.style.bottom = document.documentElement.clientHeight - window.visualViewport.offsetTop - 90 + 'px';
+      rescue.style.left = window.visualViewport.offsetLeft + 40 + 'px';
+      rescue.style.width = 10*5/window.visualViewport.scale + 'px';
+    }
+  });
   addEventListener('resize', () => {
     if (!winanim) {
       resize();
@@ -5380,6 +5410,10 @@ window.addEventListener('load', () => {
 <div id='stdout'>Output:</div>
 <div class='poppy' id='poppy'></div>
 <div id='dialogbox'><div id='close'>&times;</div><div id='dialog'></div></div>
-<div id='keyboard'></div>
+<div id='desk'>
+  <div id='rescue'><div style='position:absolute; width:14px; pointer-events: none;'>↔</div>↕</div>
+  <div id='keyboard'></div>
+  <div id='wristrest'>SHAMEFUL BAR</div>
+</div>
 </body>
 </html>

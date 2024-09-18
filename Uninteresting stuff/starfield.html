@@ -985,6 +985,7 @@ reveal.addEventListener('load', () => {
 
   tailscr.style.display = 'block';
   tailscr2.style.display = 'block';
+  desk.style.opacity = 0.5;
   desk.style.display = isTouch ? 'inline-block' : 'none';
 
   speaker("Move with WASD or arrow keys, hold mouse while moving to set up barriers.\n\nCheat with TFGH keys.");
@@ -3071,12 +3072,14 @@ function imawake() {
       }
 
       if (qix) {
+        desk.style.opacity = 0.5;
         desk.style.display = isTouch ? 'inline-block' : 'none';
         qixupdate();
         repaint.qix();
       }
 
       if (glyph) {
+        desk.style.opacity = 1;
         desk.style.display = 'inline-block';
         tailscr.style.display = 'block';
         new_glyph();
@@ -3493,6 +3496,7 @@ function new_glyph(clear) {
   context.clearRect(0, 0, canvas.width, canvas.height);
 
   glyphscr.style.display = 'block';
+  desk.style.opacity = 1;
   desk.style.display = 'inline-block';
   if (clear) {
     editor.textContent = '';

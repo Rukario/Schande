@@ -3617,6 +3617,7 @@ function new_qix() {
   clearSq(0, 0, 0, qixmask.height);
   clearSq(0, qixmask.height - 1, qixmask.width, 0);
   clearSq(qixmask.width-1, 0, 0, qixmask.height);
+  qixmask.putImageData(qixmap, 0, 0);
 
   qix = true;
   drawqix(tailscr, qixpos, 0.75);
@@ -3674,17 +3675,27 @@ function qixscan() {
 
 function clearSq(x, y, w, h, co = 0) {
   const ww = qixmask.width;
-  const yh = h > 0 ? [y, h + 1] : [y + h, -h + 1];
-  const xw = w > 0 ? [x, w + 1] : [x + w, -w + 1];
-  const d = ww * yh[0] * 4;
-  const r = xw[0] * 4;
-  for (const i of Array(yh[1]).keys()) {
-    const ii = d + ww * i * 4 + 3;
-    for (const j of Array(xw[1]).keys()) {
-      qixmap.data[ii + r + j * 4] = co;
+
+  if (w > 0) {
+    w += 1;
+  } else {
+    x += w;
+    w = -w + 1;
+  }
+
+  if (h > 0) {
+    h += 1;
+  } else {
+    y += h;
+    h = -h + 1;
+  }
+
+  for (const scanline of Array(h).keys()) {
+    const scnmask = (y + scanline) * ww;
+    for (const row of Array(w).keys()) {
+      qixmap.data[(scnmask + x + row) * 4 + 3] = co;
     }
   }
-  qixmask.putImageData(qixmap, 0, 0);
 }
 
 function stixpath(nx, land) {
@@ -3775,6 +3786,7 @@ function qixstep() {
         for (const area of qix_tails) {
           clearSq(...area);
         }
+        qixmask.putImageData(qixmap, 0, 0);
         qix_tails = [];
         qixscan();
       }

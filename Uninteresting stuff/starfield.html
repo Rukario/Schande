@@ -5381,7 +5381,11 @@ window.addEventListener('load', () => {
     }
 
     if (solitaire && !winanim) {
-      game.sol();
+      repaint.sol();
+    } else if (freecell) {
+      repaint.freecell();
+    } else if (qix) {
+      repaint.qix();
     }
   });
 

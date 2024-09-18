@@ -185,6 +185,10 @@ canvas {
   }
 }
 
+.keydiv {
+  pointer-events: none;
+}
+
 .keysocket {
   font-size: 11px;
   background: var(--color-keysocket);
@@ -198,11 +202,23 @@ canvas {
   display: flex;
 }
 
-.keycap, .keycap2 {
+.keyswitch {
   flex: auto;
   position: relative;
   z-index: 2;
-  display: inline-block;
+  display: flex;
+  pointer-events: auto;
+
+  @media (width < 854px) {
+    &.cripple {
+      display: none;
+    }
+  }
+}
+
+.keycap, .keycap2 {
+  flex: auto;
+  pointer-events: none;
   margin: 1px;
 
   border-style: solid;
@@ -220,7 +236,6 @@ canvas {
     border-radius: 4px;
     font-size: 12px;
 
-    pointer-events: none;
     text-align: center;
     height: 37px;
     color: #556;
@@ -238,9 +253,6 @@ canvas {
     .face {
       height: 40px;
       font-size: 14px;
-    }
-    &.cripple {
-      display: none;
     }
   }
 }
@@ -3108,42 +3120,11 @@ const FFdown = (e_) => {
         rubberband();
         dragcard = false;
       }
-    } else if (e_.target.classList.contains('keycap') || e_.target.classList.contains('keycap2')) {
-      yeetdim[tooie] = e_.target.getBoundingClientRect();
-      yeetCode[tooie] = e_.target.dataset.code;
-      if (wasd.some((k) => k === yeetCode[tooie])) {
-        joystick[tooie] = wasd;
-        yeetCodes[tooie].push(yeetCode[tooie]);
-      } else if (tfgh.some((k) => k === yeetCode[tooie])) {
-        joystick[tooie] = tfgh;
-        yeetCodes[tooie].push(yeetCode[tooie]);
-      } else if (arrowks.some((k) => k === yeetCode[tooie])) {
-        joystick[tooie] = arrowks;
-        yeetCodes[tooie].push(yeetCode[tooie]);
-      } else {
-        joystick[tooie] = false;
-      }
-      if (joystick[tooie]) {
-        const where = KeypressX[joystick[tooie][0]].getBoundingClientRect();
-        deadzone[tooie] = {
-          x: Math.floor(where.left + where.width / 2),
-          y: Math.floor(where.bottom),
-        }
-        if (isTouch) {
-          deadzone[tooie].x += window.visualViewport.offsetLeft;
-          deadzone[tooie].y += window.visualViewport.offsetTop;
-        }
-        mouse[tooie].x = deadzone[tooie].x;
-        mouse[tooie].y = deadzone[tooie].y;
-      }
-      if (yeetCode[tooie] === 'CapsLock') {
-        lockpress(yeetCode[tooie], !Keypress['CapsLock']);
-      } else if (yeetCode[tooie] === 'ScrollLock') {
-        lockpress(yeetCode[tooie], !Keypress['ScrollLock']);
-      } else {
-        pressed(yeetCode[tooie], tooie, true);
-        repeatpress(tooie, true);
-      }
+    } else if (e_.target.id === 'keyboard') {
+      const t = document.elementFromPoint(mouse[tooie].x, mouse[tooie].y);
+      FFpress(tooie, t);
+    } else if (e_.target.classList.contains('keyswitch')) {
+      FFpress(tooie, e_.target);
     } else {
       ZOOKd = false;
       if (freecell || solitaire) {
@@ -3293,6 +3274,7 @@ const FFup = (e_) => {
         pressed(yeetCode[tooie], tooie);
         repeatpress(tooie, false);
       }
+      yeetCode[tooie] = 'Backspace';
 
       cursors[tooie].tail.style.display = 'none';
       cursordraw(tooie, false, true);
@@ -4588,8 +4570,8 @@ function pressed(code, tooie = 0, down) {
   if (down) {
     imawake();
     const cl = joystick[tooie] ? 'joystick' : 'pressed';
+    KeypressX[code].childNodes[0].childNodes[0].classList.add(cl);
     KeypressX[code].childNodes[0].classList.add(cl);
-    KeypressX[code].classList.add(cl);
     Keypress[code] = true;
 
     // glyph stuff
@@ -4600,8 +4582,8 @@ function pressed(code, tooie = 0, down) {
       glyph_update(code);
     }
   } else {
+    KeypressX[code].childNodes[0].childNodes[0].classList.remove('pressed', 'joystick');
     KeypressX[code].childNodes[0].classList.remove('pressed', 'joystick');
-    KeypressX[code].classList.remove('pressed', 'joystick');
     Keypress[code] = false;
 
     // glyph stuff
@@ -4616,6 +4598,46 @@ function lockpress(code, down) {
     pressed(code, 0, true);
   } else {
     pressed(code);
+  }
+}
+
+function FFpress(tooie, t) {
+  yeetdim[tooie] = t.getBoundingClientRect();
+  yeetCode[tooie] = t.dataset.code;
+
+  if (wasd.some((k) => k === yeetCode[tooie])) {
+    joystick[tooie] = wasd;
+    yeetCodes[tooie].push(yeetCode[tooie]);
+  } else if (tfgh.some((k) => k === yeetCode[tooie])) {
+    joystick[tooie] = tfgh;
+    yeetCodes[tooie].push(yeetCode[tooie]);
+  } else if (arrowks.some((k) => k === yeetCode[tooie])) {
+    joystick[tooie] = arrowks;
+    yeetCodes[tooie].push(yeetCode[tooie]);
+  } else {
+    joystick[tooie] = false;
+  }
+
+  if (joystick[tooie]) {
+    const where = KeypressX[joystick[tooie][0]].getBoundingClientRect();
+    deadzone[tooie] = {
+      x: Math.floor(where.left + where.width / 2),
+      y: Math.floor(where.bottom),
+    }
+    if (isTouch) {
+      deadzone[tooie].x += window.visualViewport.offsetLeft;
+      deadzone[tooie].y += window.visualViewport.offsetTop;
+    }
+    mouse[tooie].x = deadzone[tooie].x;
+    mouse[tooie].y = deadzone[tooie].y;
+  }
+  if (yeetCode[tooie] === 'CapsLock') {
+    lockpress(yeetCode[tooie], !Keypress['CapsLock']);
+  } else if (yeetCode[tooie] === 'ScrollLock') {
+    lockpress(yeetCode[tooie], !Keypress['ScrollLock']);
+  } else {
+    pressed(yeetCode[tooie], tooie, true);
+    repeatpress(tooie, true);
   }
 }
 
@@ -4837,6 +4859,7 @@ function touchFF(e_) {
     FFdown(e);
   });
   e_.addEventListener('touchmove', (e) => {
+    e.preventDefault();
     FFmove(e);
   });
   e_.addEventListener('touchend', (e) => {
@@ -4844,7 +4867,7 @@ function touchFF(e_) {
   });
 }
 
-function drawkeyboard(socket, codes, w, c = 'keycap', logo) {
+function drawkeyboard(socket, codes, c = 'keycap', w = 56, logo) {
   for (const code of codes) {
     const cap = document.createElement('DIV');
     cap.textContent = vCode[code][0];
@@ -4855,22 +4878,21 @@ function drawkeyboard(socket, codes, w, c = 'keycap', logo) {
 
     const keycap = document.createElement('DIV');
     keycap.classList = c;
-    if (vCode[code][2]) {
-      keycap.classList.add('cripple');
-    }
-    if (w) {
-      cap.style.width = 'calc(100% + 2px)';
-      keycap.style.width = w + 'px';
-    }
     keycap.appendChild(cap);
-    keycap.dataset.code = code;
-    KeypressX[code] = keycap;
 
-    if (isTouch) {
-      touchFF(keycap);
+    const keyswitch = document.createElement('DIV');
+    keyswitch.classList = 'keyswitch';
+    if (w) {
+      keyswitch.style.width = w + 'px';
     }
+    if (vCode[code][2]) {
+      keyswitch.classList.add('cripple');
+    }
+    keyswitch.dataset.code = code;
+    KeypressX[code] = keyswitch;
+    keyswitch.appendChild(keycap);
 
-    socket.appendChild(keycap);
+    socket.appendChild(keyswitch);
   }
 }
 
@@ -4898,9 +4920,13 @@ function windo(win) {
 var esc, f1, f5, f9, alphakeys, homekeys2, homekeys, arrows, numpad2, numpad;
 
 function createkeyboard() {
+  if (isTouch) {
+    touchFF(keyboard);
+  }
   const keydiv = (sockets, left, w, v = 'var(--small)') => {
     const d = document.createElement('DIV');
     d.style.display = v;
+    d.classList = 'keydiv';
 
     if (left) {
       d.style.marginLeft = left + 'px';
@@ -4951,6 +4977,7 @@ function createkeyboard() {
   alphakeys = keysocket(0, 12, 'calc(100% - 6px)');
 
   basekb = document.createElement('DIV');
+  basekb.classList = 'keydiv';
   basekb.style.width = '838px';
   basekb.style.maxWidth = '100%';
   basekb.style.display = 'inline-block';
@@ -4966,22 +4993,22 @@ function createkeyboard() {
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
   esc.appendChild(DOMwriter);
-  drawkeyboard(DOMwriter, ['Escape'], null, 'keycap2');
+  drawkeyboard(DOMwriter, ['Escape'], 'keycap2');
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
   f1.appendChild(DOMwriter);
-  drawkeyboard(DOMwriter, ['F1', 'F2', 'F3', 'F4'], 32);
+  drawkeyboard(DOMwriter, ['F1', 'F2', 'F3', 'F4']);
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
   f5.appendChild(DOMwriter);
-  drawkeyboard(DOMwriter, ['F5', 'F6', 'F7', 'F8'], 32, 'keycap2');
+  drawkeyboard(DOMwriter, ['F5', 'F6', 'F7', 'F8'], 'keycap2');
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
   f9.appendChild(DOMwriter);
-  drawkeyboard(DOMwriter, ['F9', 'F10', 'F11', 'F12'], 32);
+  drawkeyboard(DOMwriter, ['F9', 'F10', 'F11', 'F12']);
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
@@ -4992,8 +5019,8 @@ function createkeyboard() {
     keys.push('Digit' + (k + 1));
   }
   
-  drawkeyboard(DOMwriter, ['Backquote', ...keys, 'Digit0', 'Minus', 'Equal'], 32);
-  drawkeyboard(DOMwriter, ['Backspace'], 88, 'keycap2');
+  drawkeyboard(DOMwriter, ['Backquote', ...keys, 'Digit0', 'Minus', 'Equal']);
+  drawkeyboard(DOMwriter, ['Backspace'], 'keycap2', 113);
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
@@ -5004,9 +5031,9 @@ function createkeyboard() {
     keys.push('Key' + k);
   }
 
-  drawkeyboard(DOMwriter, ['Tab'], 58, 'keycap2');
-  drawkeyboard(DOMwriter, [...keys, 'BracketLeft', 'BracketRight'], 32);
-  drawkeyboard(DOMwriter, ['Backslash'], 59);
+  drawkeyboard(DOMwriter, ['Tab'], 'keycap2', 83);
+  drawkeyboard(DOMwriter, [...keys, 'BracketLeft', 'BracketRight']);
+  drawkeyboard(DOMwriter, ['Backslash'], 'keycap', 84);
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
@@ -5017,9 +5044,9 @@ function createkeyboard() {
     keys.push('Key' + k);
   }
 
-  drawkeyboard(DOMwriter, ['CapsLock'], 68, 'keycap2');
-  drawkeyboard(DOMwriter, [...keys, 'Semicolon', 'Quote'], 32);
-  drawkeyboard(DOMwriter, ['Enter'], 100, 'keycap2');
+  drawkeyboard(DOMwriter, ['CapsLock'], 'keycap2', 93);
+  drawkeyboard(DOMwriter, [...keys, 'Semicolon', 'Quote']);
+  drawkeyboard(DOMwriter, ['Enter'], 'keycap2', 125);
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
@@ -5030,22 +5057,22 @@ function createkeyboard() {
     keys.push('Key' + k);
   }
 
-  drawkeyboard(DOMwriter, ['ShiftLeft'], 95, 'keycap2');
-  drawkeyboard(DOMwriter, [...keys, 'Comma', 'Period', 'Slash'], 32);
-  drawkeyboard(DOMwriter, ['ShiftRight'], 124, 'keycap2');
+  drawkeyboard(DOMwriter, ['ShiftLeft'], 'keycap2', 120);
+  drawkeyboard(DOMwriter, [...keys, 'Comma', 'Period', 'Slash']);
+  drawkeyboard(DOMwriter, ['ShiftRight'], 'keycap2', 149);
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
   alphakeys.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, ['ControlLeft'], 43, 'keycap2');
-  drawkeyboard(DOMwriter, ['MetaLeft'], 43, 'keycap2', true);
-  drawkeyboard(DOMwriter, ['AltLeft'], 43, 'keycap2');
-  drawkeyboard(DOMwriter, ['Space'], 326);
-  drawkeyboard(DOMwriter, ['AltRight'], 43, 'keycap2');
-  drawkeyboard(DOMwriter, ['MetaRight'], 43, 'keycap2', true);
-  drawkeyboard(DOMwriter, ['Function'], 43, 'keycap2');
-  drawkeyboard(DOMwriter, ['ControlRight'], 43, 'keycap2');
+  drawkeyboard(DOMwriter, ['ControlLeft'], 'keycap2', 68);
+  drawkeyboard(DOMwriter, ['MetaLeft'], 'keycap2', 68, true);
+  drawkeyboard(DOMwriter, ['AltLeft'], 'keycap2', 68);
+  drawkeyboard(DOMwriter, ['Space'], 'keycap', 351);
+  drawkeyboard(DOMwriter, ['AltRight'], 'keycap2', 68);
+  drawkeyboard(DOMwriter, ['MetaRight'], 'keycap2', 68,true);
+  drawkeyboard(DOMwriter, ['Function'], 'keycap2', 68);
+  drawkeyboard(DOMwriter, ['ControlRight'], 'keycap2', 68);
 
 
   // TKL for small viewports
@@ -5060,7 +5087,7 @@ function createkeyboard() {
   DOMwriter.classList = 'keysocketrow';
   homekeys2.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, ['PrintScreen', 'ScrollLock', 'Pause'], 32, 'keycap2');
+  drawkeyboard(DOMwriter, ['PrintScreen', 'ScrollLock', 'Pause'], 'keycap2');
 
 
 
@@ -5068,13 +5095,13 @@ function createkeyboard() {
   DOMwriter.classList = 'keysocketrow';
   homekeys.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, ['Insert', 'Home', 'PageUp'], 32, 'keycap2');
+  drawkeyboard(DOMwriter, ['Insert', 'Home', 'PageUp'], 'keycap2');
 
   DOMwriter = document.createElement('DIV');
   DOMwriter.classList = 'keysocketrow';
   homekeys.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, ['Delete', 'End', 'PageDown'], 32, 'keycap2');
+  drawkeyboard(DOMwriter, ['Delete', 'End', 'PageDown'], 'keycap2');
 
 
   DOMwriter = document.createElement('DIV');
@@ -5086,7 +5113,7 @@ function createkeyboard() {
   plate.classList = 'plate right';
   DOMwriter.appendChild(plate);
 
-  drawkeyboard(DOMwriter, ['ArrowUp'], 32, 'keycap2');
+  drawkeyboard(DOMwriter, ['ArrowUp'], 'keycap2');
 
   plate = document.createElement('DIV');
   plate.innerHTML = '&nbsp;';
@@ -5099,48 +5126,62 @@ function createkeyboard() {
   DOMwriter.classList = 'keysocketrow';
   arrows.appendChild(DOMwriter);
 
-  drawkeyboard(DOMwriter, ['ArrowLeft', 'ArrowDown', 'ArrowRight'], 32, 'keycap2');
+  drawkeyboard(DOMwriter, ['ArrowLeft', 'ArrowDown', 'ArrowRight'], 'keycap2');
 
 
 
   // Shamefur dispray arr keys for unrestricted viewports
-  numpad2 = keysocket();
-  numpad = keysocket(0, 12);
-  DOMwriter = keydiv([numpad2, null, numpad], 6, null, 'var(--large)');
+  numpad2 = keysocket(0, 0, 'calc(100% - 6px)');
+  numpad = keysocket(0, 12, 'calc(100% - 6px)');
+  DOMwriter = keydiv([numpad2, null, numpad], 6, '231px', 'var(--large)');
   keyboard.append(DOMwriter);
 
-  drawkeyboard(numpad2, ['Calculator', 'VolumeMute', 'VolumeDown', 'VolumeUp'], 32, 'keycap2');
-  drawkeyboard(numpad, ['NumLock', 'NumpadDivide', 'NumpadMultiply', 'NumpadSubtract'], 32, 'keycap2');
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  numpad2.appendChild(DOMwriter);
 
-  DOMwriter = document.createElement('BR');
+  drawkeyboard(DOMwriter, ['Calculator', 'VolumeMute', 'VolumeDown', 'VolumeUp'], 'keycap2');
+
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
   numpad.appendChild(DOMwriter);
 
-  drawkeyboard(numpad, ['Numpad7', 'Numpad8', 'Numpad9'], 32);
+  drawkeyboard(DOMwriter, ['NumLock', 'NumpadDivide', 'NumpadMultiply', 'NumpadSubtract'], 'keycap2');
 
-  drawkeyboard(numpad, ['NumpadAdd'], 32, 'keycap2');
+  drawkeyboard(numpad, ['NumpadAdd'], 'keycap2');
   let key = KeypressX['NumpadAdd'];
-  key.childNodes[0].style.height = '92px';
+  key.childNodes[0].childNodes[0].style.height = '92px';
   key.style.float = 'right';
 
-  DOMwriter = document.createElement('BR');
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
   numpad.appendChild(DOMwriter);
 
-  drawkeyboard(numpad, ['Numpad4', 'Numpad5', 'Numpad6'], 32);
+  drawkeyboard(DOMwriter, ['Numpad7', 'Numpad8', 'Numpad9']);
 
-  DOMwriter = document.createElement('BR');
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
   numpad.appendChild(DOMwriter);
 
-  drawkeyboard(numpad, ['Numpad1', 'Numpad2', 'Numpad3'], 32);
-  drawkeyboard(numpad, ['NumpadEnter'], 32, 'keycap2');
+  drawkeyboard(DOMwriter, ['Numpad4', 'Numpad5', 'Numpad6']);
+
+  drawkeyboard(numpad, ['NumpadEnter'], 'keycap2');
   key = KeypressX['NumpadEnter'];
-  key.childNodes[0].style.height = '92px';
+  key.childNodes[0].childNodes[0].style.height = '92px';
   key.style.float = 'right';
 
-  DOMwriter = document.createElement('BR');
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
   numpad.appendChild(DOMwriter);
 
-  drawkeyboard(numpad, ['Numpad0'], 88);
-  drawkeyboard(numpad, ['NumpadDecimal'], 32);
+  drawkeyboard(DOMwriter, ['Numpad1', 'Numpad2', 'Numpad3']);
+
+  DOMwriter = document.createElement('DIV');
+  DOMwriter.classList = 'keysocketrow';
+  numpad.appendChild(DOMwriter);
+
+  drawkeyboard(DOMwriter, ['Numpad0'], 'keycap', 113);
+  drawkeyboard(DOMwriter, ['NumpadDecimal']);
 }
 
 function resize() {

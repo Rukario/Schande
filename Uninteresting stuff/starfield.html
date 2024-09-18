@@ -4886,6 +4886,35 @@ function rollkey(tooie) {
   }
 }
 
+const poppyFF = (e_, dragscroll) => {
+  e_.addEventListener('touchstart', (e) => {
+    FFdown(e);
+    if (busyclick) {
+      clearTimeout(busyclick);
+      busyclick = false;
+    } else {
+      busyclick = setTimeout(() => {
+        rightc(e);
+      }, 500);
+    }
+  });
+  e_.addEventListener('touchmove', (e) => {
+    if (!dragscroll) {
+      FFmove(e);
+    }
+    clearTimeout(busyclick);
+    busyclick = false;
+  });
+  e_.addEventListener('touchend', (e) => {
+    FFup(e);
+    clearTimeout(busyclick);
+    busyclick = false;
+  });
+  e_.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+  });
+};
+
 function touchFF(e_) {
   e_.addEventListener('touchstart', (e) => {
     FFdown(e);
@@ -5260,31 +5289,8 @@ window.addEventListener('load', () => {
   createkeyboard();
 
   if (isTouch) {
-    canvas.addEventListener('touchstart', (e_) => {
-      FFdown(e_);
-      if (busyclick) {
-        clearTimeout(busyclick);
-        busyclick = false;
-      } else {
-        busyclick = setTimeout(() => {
-          rightc(e_);
-        }, 500);
-      }
-    });
-    canvas.addEventListener('touchmove', (e_) => {
-      FFmove(e_);
-      clearTimeout(busyclick);
-      busyclick = false;
-    });
-    canvas.addEventListener('touchend', (e_) => {
-      FFup(e_);
-      clearTimeout(busyclick);
-      busyclick = false;
-    });
-    canvas.addEventListener('contextmenu', (e_) => {
-      e_.preventDefault();
-    });
-
+    poppyFF(canvas);
+    poppyFF(rescue, true);
     poppy.addEventListener('touchstart', (e_) => {
       if (e_.touches.length > 1) {
         ZOOKd = true;

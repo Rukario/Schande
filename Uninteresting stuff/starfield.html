@@ -702,19 +702,20 @@ var ccolor = '#000';
 var lastcolor = '#000';
 
 
-function echo(B, b) {
-  if (!b) {
-    B = '<br />' + B;
-  } else {
-    B = ' ' + B;
+function echo(B, cls = '<br>', echoer = stdout) {
+  if (cls === false) {
+    while (echoer.firstChild) {
+      echoer.lastChild.remove();
+    }
+    cls = '';
   }
-  stdout.insertAdjacentHTML('beforeend', B);
-  stdout.style.display = 'inline-block';
+  echoer.insertAdjacentHTML('beforeend', cls + B);
+  echoer.style.display = 'inline-block';
 }
 
 function speaker(B) {
-  dialogbox.style.display = 'inline-block';
   dialog.innerHTML = B;
+  dialogbox.style.display = 'inline-block';
   anger = 1;
   if (freecell) {
     repaint.freecell();
@@ -4859,7 +4860,7 @@ function rollkey(tooie) {
     joystick_move(tooie);
   }
 
-  const t = document.elementFromPoint(mouse[tooie].x, mouse[tooie].y);
+  const t = document.elementFromPoint(mouse[tooie].x - window.visualViewport.offsetLeft, mouse[tooie].y - window.visualViewport.offsetTop);
   const newCode = t.dataset.code;
 
   if (!newCode || joystick[tooie] || newCode === 'CapsLock' || newCode === 'ScrollLock') {
@@ -5373,6 +5374,8 @@ window.addEventListener('load', () => {
       rescue.style.left = window.visualViewport.offsetLeft + 40 + 'px';
       rescue.style.height = 5*5/window.visualViewport.scale + 'px';
       rescue.style.width = 5*5/window.visualViewport.scale + 2 + 'px';
+
+      result.style.bottom = document.documentElement.clientHeight - window.visualViewport.offsetTop - 30 + 'px';
     }
   });
   addEventListener('resize', () => {

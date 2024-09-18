@@ -71,18 +71,27 @@ body {
     position: absolute;
     bottom: 420px;
     z-index: 3;
-    color: #556;
-    background-color: var(--color-keyboard);
-    border-radius: 12px;
-    border: 2px solid var(--color-keyborder);
-    line-height: 1;
     font-size: 12px;
+    align-items: center;
     display: flex;
     justify-content: center;
+
     width: 14px;
-    height: 14px;
+    height: 12px;
+    padding-bottom: 2px;
     text-align: center;
     left: calc(50% - 10px);
+
+    margin: -3px;
+
+    border-width: 7px;
+    border-style: dashed;
+
+    color: #fff;
+    background-color: #a53;
+    border-color: #521;
+    border-top-color: #621;
+    border-bottom-color: #310;
   }
 
   #keyboard {
@@ -5356,7 +5365,8 @@ window.addEventListener('load', () => {
     if (isTouch) {
       rescue.style.bottom = document.documentElement.clientHeight - window.visualViewport.offsetTop - 90 + 'px';
       rescue.style.left = window.visualViewport.offsetLeft + 40 + 'px';
-      rescue.style.width = 10*5/window.visualViewport.scale + 'px';
+      rescue.style.height = 5*5/window.visualViewport.scale + 'px';
+      rescue.style.width = 5*5/window.visualViewport.scale + 2 + 'px';
     }
   });
   addEventListener('resize', () => {

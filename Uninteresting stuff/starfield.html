@@ -3901,19 +3901,40 @@ function drawqix(scr, pos, size = 0) {
       } else if (height < 0) {
         corner.x = 0;
         corner.y = 0;
+      } else {
+        return true;
       }
-
-      return true;
     }
-    return false;
   }
 
   if (size < 2) {
+    if (qix_tails.length) {
+      last.x = qix_tails[0][0];
+      last.y = qix_tails[0][1];
+    }
     for (const [x, y, width, height] of qix_tails) {
       if (find_corner(width, height)) {
+        if (0 > last.x - x) {
+          if (0 > last.y - y) {
+            corner.x = 1;
+            corner.y = 0;
+          } else {
+            corner.x = 0;
+            corner.y = 0;
+          }
+        } else if (last.x - x > 0) {
+          if (last.y - y > 0) {
+            corner.x = 0;
+            corner.y = 1;
+          } else {
+            corner.x = 1;
+            corner.y = 1;
+          }
+        }
         last.x = x;
         last.y = y;
       }
+
       last.width = width;
       last.height = height;
 
@@ -3960,15 +3981,33 @@ ${xx}px ${yy - 10 * size}px`);
 
     //echo('', false);
     for (const [x, y, width, height] of qix_tails.toReversed()) {
-      find_corner(-width, -height);
+      if (find_corner(-width, -height)) {
+        if (0 > last.x - x) {
+          if (0 > last.y - y) {
+            corner.x = 1;
+            corner.y = 0;
+          } else {
+            corner.x = 0;
+            corner.y = 0;
+          }
+        } else if (last.x - x > 0) {
+          if (last.y - y > 0) {
+            corner.x = 0;
+            corner.y = 1;
+          } else {
+            corner.x = 1;
+            corner.y = 1;
+          }
+        }
+        // buggy on diagonal
+        //echo((last.x-x) + ' ' + (last.y-y) + ' ' + corner.x + ' ' + corner.y);
+      }
+
       last.width = -width;
       last.height = -height;
 
       last.x = x + width;
       last.y = y + height;
-
-      // buggy on diagonal
-      // echo(last.width + ' ' + last.height + ' ' + corner.x + ' ' + corner.y);
 
       const xx = dim.x + (last.x + corner.x - qixpos.x) * qixsc;
       const yy = dim.y + (last.y + corner.y - qixpos.y) * qixsc;

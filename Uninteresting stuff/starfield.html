@@ -3855,7 +3855,7 @@ function drawqix(scr, pos, size = 0) {
     y: 0,
   };
 
-  const find_corner = (width, height) => {
+  const find_corner = (width, height, x, y) => {
     if (0 < last.width) {
       if (0 < height) {
         corner.x = 1;
@@ -3902,18 +3902,6 @@ function drawqix(scr, pos, size = 0) {
         corner.x = 0;
         corner.y = 0;
       } else {
-        return true;
-      }
-    }
-  }
-
-  if (size < 2) {
-    if (qix_tails.length) {
-      last.x = qix_tails[0][0];
-      last.y = qix_tails[0][1];
-    }
-    for (const [x, y, width, height] of qix_tails) {
-      if (find_corner(width, height)) {
         if (0 > last.x - x) {
           if (0 > last.y - y) {
             corner.x = 1;
@@ -3931,6 +3919,22 @@ function drawqix(scr, pos, size = 0) {
             corner.y = 1;
           }
         }
+        return true;
+      }
+      // but qix_tails.toReversed() need own implementation
+      //last.x = x;
+      //last.y = y;
+    }
+  }
+
+  if (size < 2) {
+    if (qix_tails.length) {
+      // delete this if I could have last.x and last.y from find_corner()
+      last.x = qix_tails[0][0];
+      last.y = qix_tails[0][1];
+    }
+    for (const [x, y, width, height] of qix_tails) {
+      if (find_corner(width, height, x, y)) {
         last.x = x;
         last.y = y;
       }
@@ -3981,24 +3985,7 @@ ${xx}px ${yy - 10 * size}px`);
 
     //echo('', false);
     for (const [x, y, width, height] of qix_tails.toReversed()) {
-      if (find_corner(-width, -height)) {
-        if (0 > last.x - x) {
-          if (0 > last.y - y) {
-            corner.x = 1;
-            corner.y = 0;
-          } else {
-            corner.x = 0;
-            corner.y = 0;
-          }
-        } else if (last.x - x > 0) {
-          if (last.y - y > 0) {
-            corner.x = 0;
-            corner.y = 1;
-          } else {
-            corner.x = 1;
-            corner.y = 1;
-          }
-        }
+      if (find_corner(-width, -height, x, y)) {
         // buggy on diagonal
         //echo((last.x-x) + ' ' + (last.y-y) + ' ' + corner.x + ' ' + corner.y);
       }

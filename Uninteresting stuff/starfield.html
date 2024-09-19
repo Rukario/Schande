@@ -988,7 +988,7 @@ reveal.addEventListener('load', () => {
   desk.style.opacity = 0.5;
   desk.style.display = isTouch ? 'inline-block' : 'none';
 
-  speaker("Move with WASD or arrow keys, hold mouse while moving to set up barriers.\n\nCheat with TFGH keys.");
+  speaker("Move with WASD or arrow keys, hold mouse while moving to set up barriers.\n\nMind control the boss with TFGH keys.");
   new_qix();
   qixupdate();
 });
@@ -3733,7 +3733,7 @@ function qixstep() {
     n: Keypress.KeyW || Keypress.ArrowUp,
   }
 
-  if (dir.w && face !==1 || dir.e && face !==2) {
+  if (dir.w && face !== 1 || dir.e && face !== 2) {
     face = dir.w ? 1 : 2;
   }
 
@@ -3744,10 +3744,11 @@ function qixstep() {
       y: 0,
     }
 
-    // death barrier
     if (dir.w && !dir.e || dir.e && !dir.w) {
       for (const x of Array(speed).keys()) {
         const pow = dir.w ? -x-1 : x+1;
+
+        // death barrier
         if (qixpos.x + pow >= 0 && qixpos.x + pow <= qixmask.width) {
           step.x = pow;
         } else {
@@ -3759,6 +3760,8 @@ function qixstep() {
     if (dir.n && !dir.s || dir.s && !dir.n) {
       for (const y of Array(speed).keys()) {
         const pow = dir.n ? -y-1 : y+1;
+
+        // death barrier
         if (qixpos.y + pow >= 0 && qixpos.y + pow <= qixmask.height) {
           step.y = pow;
         } else {
@@ -3814,20 +3817,84 @@ function qixstep() {
   repaint.qix();
 }
 
-function qixstep2(k = false) {
-  const speed = 1;
-  const step = {
-    x: k ? (Keypress.KeyH ? speed : 0) + (Keypress.KeyF ? -speed : 0) : Math.round((Math.random() - 0.5) * 8),
-    y: k ? (Keypress.KeyG ? speed : 0) + (Keypress.KeyT ? -speed : 0) : Math.round((Math.random() - 0.5) * 8),
+function qixstep2(mindcontrol = false) {
+  let intersected = false;
+  const dir = {
+    n: Keypress.KeyT,
+    e: Keypress.KeyH,
+    s: Keypress.KeyG,
+    w: Keypress.KeyF,
   }
 
-  if (
-    qixpos2.x + step.x >= 0 &&
-    qixpos2.y + step.y >= 0 &&
-    qixpos2.x + step.x <= qixmask.width*qixsc &&
-    qixpos2.y + step.y <= qixmask.height*qixsc
-  ) {
-    // death barrier
+  if (!mindcontrol) {
+    dir.n = Math.round(Math.random());
+    dir.e = Math.round(Math.random());
+    dir.s = Math.round(Math.random());
+    dir.w = Math.round(Math.random());
+  }
+
+  let speed = 1;
+  for (const frame of Array(120/fps.hz).keys()) {
+    const step = {
+      x: 0,
+      y: 0,
+    };
+
+    if (dir.w && !dir.e || dir.e && !dir.w) {
+      if (!mindcontrol) {
+        speed = Math.round(Math.random() * 4);
+      }
+      for (const x of Array(speed).keys()) {
+        const pow = dir.w ? -x-1 : x+1;
+
+        // provoke player
+        if (qixpos2.x + pow > qixpos.x*qixsc - 60 && qixpos2.x + pow < qixpos.x*qixsc + 60) {
+          intersected = true;
+        }
+
+        // death barrier
+        if (qixpos2.x + pow >= 0 && qixpos2.x + pow <= qixmask.width*qixsc) {
+          step.x = pow;
+        } else {
+          break;
+        }
+      }
+    }
+
+    if (dir.n && !dir.s || dir.s && !dir.n) {
+      if (!mindcontrol) {
+        speed = Math.round(Math.random() * 4);
+      }
+      for (const y of Array(speed).keys()) {
+        const pow = dir.n ? -y-1 : y+1;
+        // provoke player
+        if (intersected && qixpos2.y + pow > qixpos.y*qixsc - 60 && qixpos2.y + pow < qixpos.y*qixsc + 60) {
+          anger = 1;
+          repaint.qix();
+          setTimeout(() => {
+            stopqix = true;
+          }, 0);
+          setTimeout(() => {
+            anger = 0;
+            new_qix();
+            qixupdate();
+          }, 250);
+          return;
+        }
+
+        // death barrier
+        if (qixpos2.y + pow >= 0 && qixpos2.y + pow <= qixmask.height*qixsc) {
+          step.y = pow;
+        } else {
+          break;
+        }
+      }
+    }
+
+    if (step.x === 0 && step.y === 0) {
+      return;
+    }
+
     const toMask = {
       x: Math.floor((qixpos2.x + step.x)/qixsc),
       y: Math.floor((qixpos2.y + step.y)/qixsc),
@@ -4061,7 +4128,7 @@ function qixupdate() {
     qixstep2();
   }
 
-  drawqix(tailscr2, qixpos2, 2);
+  drawqix(tailscr2, qixpos2, 3);
   if (!qix || stopqix) {
     stopqix = false;
     return;

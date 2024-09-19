@@ -3843,150 +3843,154 @@ function qixstep2(k = false) {
 
 function drawqix(scr, pos, size = 0) {
   const tail = [];
-  let dir = {
+  let last = {
     x: 0,
     y: 0,
     width: 0,
     height: 0,
-    tailw: 0,
-    tailhe: 0,
   };
 
-  const updtail = (x, y, width, height) => {
-    if (dir.width > 0) {
-      if (height > 0) {
-        dir.tailw = 1;
-        dir.tailhe = 0;
+  let corner = {
+    x: 0,
+    y: 0,
+  };
+
+  const find_corner = (width, height) => {
+    if (0 < last.width) {
+      if (0 < height) {
+        corner.x = 1;
+        corner.y = 0;
       } else if (height < 0) {
-        dir.tailw = 0;
-        dir.tailhe = 0;
+        corner.x = 0;
+        corner.y = 0;
       }
-    } else if (dir.height > 0) {
+    } else if (0 < last.height) {
       if (width < 0) {
-        dir.tailw = 1;
-        dir.tailhe = 1;
-      } else if (width > 0) {
-        dir.tailw = 1;
-        dir.tailhe = 0;
+        corner.x = 1;
+        corner.y = 1;
+      } else if (0 < width) {
+        corner.x = 1;
+        corner.y = 0;
       }
-    } else if (dir.width < 0) {
+    } else if (last.width < 0) {
       if (height < 0) {
-        dir.tailw = 0;
-        dir.tailhe = 1;
-      } else if (height > 0) {
-        dir.tailw = 1;
-        dir.tailhe = 1;
+        corner.x = 0;
+        corner.y = 1;
+      } else if (0 < height) {
+        corner.x = 1;
+        corner.y = 1;
       }
-    } else if (dir.height < 0) {
-      if (width > 0) {
-        dir.tailw = 0;
-        dir.tailhe = 0;
+    } else if (last.height < 0) {
+      if (0 < width) {
+        corner.x = 0;
+        corner.y = 0;
       } else if (width < 0) {
-        dir.tailw = 0;
-        dir.tailhe = 1;
+        corner.x = 0;
+        corner.y = 1;
       }
     } else {
-      dir.x = x;
-      dir.y = y;
-      if (width > 0) {
-        dir.tailw = 1;
-        dir.tailhe = 0;
-      } else if (height > 0) {
-        dir.tailw = 1;
-        dir.tailhe = 1;
+      if (0 < width) {
+        corner.x = 1;
+        corner.y = 0;
+      } else if (0 < height) {
+        corner.x = 1;
+        corner.y = 1;
       } else if (width < 0) {
-        dir.tailw = 0;
-        dir.tailhe = 1;
+        corner.x = 0;
+        corner.y = 1;
       } else if (height < 0) {
-        dir.tailw = 0;
-        dir.tailhe = 0;
+        corner.x = 0;
+        corner.y = 0;
       }
-    };
+
+      return true;
+    }
+    return false;
   }
 
   if (size < 2) {
-    for (const area of qix_tails) {
-      const [x, y, width, height] = area;
-      updtail(x, y, width, height);
-      dir.width = width;
-      dir.height = height;
+    for (const [x, y, width, height] of qix_tails) {
+      if (find_corner(width, height)) {
+        last.x = x;
+        last.y = y;
+      }
+      last.width = width;
+      last.height = height;
 
-      // dir x and y updated by updtail
-
-      const xx = dim.x + (dir.x + dir.tailw - qixpos.x) * qixsc;
-      const yy = dim.y + (dir.y + dir.tailhe - qixpos.y) * qixsc;
+      const xx = dim.x + (last.x + corner.x - qixpos.x) * qixsc;
+      const yy = dim.y + (last.y + corner.y - qixpos.y) * qixsc;
       tail.push(`${xx}px ${yy}px`);
 
-      // for end tail
-      dir.x = x + width; // right
-      dir.y = y + height; // bottom
+      last.x = x + width;
+      last.y = y + height;
     };
     if (qix_tails.length) {
-      const xx = dim.x + (dir.x + dir.tailw - qixpos.x) * qixsc;
-      const yy = dim.y + (dir.y + dir.tailhe - qixpos.y) * qixsc;
+      const xx = dim.x + (last.x + corner.x - qixpos.x) * qixsc;
+      const yy = dim.y + (last.y + corner.y - qixpos.y) * qixsc;
       tail.push(`${xx}px ${yy}px`);
     }
   }
 
   if (size < 2) {
-    const x = spoiler.width / 2 + dim.x - qixdim.x * qixsc;
-    const y = spoiler.height / 2 + dim.y - qixdim.y * qixsc;
-    tail.push(`${x}px ${y}px`);
+    const xx = spoiler.width / 2 + dim.x - qixdim.x * qixsc;
+    const yy = spoiler.height / 2 + dim.y - qixdim.y * qixsc;
+    tail.push(`${xx}px ${yy}px`);
   } else {
-    const x = pos.x + 0.5 + dim.x - qixpos.x * qixsc;
-    const y = pos.y + 0.5 + dim.y - qixpos.y * qixsc;
-    tail.push(`${x}px ${y - 10 * size}px,
-${x + 10 * size}px ${y}px,
-${x}px ${y + 10 * size}px,
-${x - 10 * size}px ${y}px,
-${x}px ${y - 10 * size}px`);
+    const xx = pos.x + 0.5 + dim.x - qixpos.x * qixsc;
+    const yy = pos.y + 0.5 + dim.y - qixpos.y * qixsc;
+    tail.push(`${xx}px ${yy - 10 * size}px,
+${xx + 10 * size}px ${yy}px,
+${xx}px ${yy + 10 * size}px,
+${xx - 10 * size}px ${yy}px,
+${xx}px ${yy - 10 * size}px`);
   }
 
   if (size < 2) {
-    dir = {
+    last = {
       x: 0,
       y: 0,
       width: 0,
       height: 0,
-      tailw: 0,
-      tailhe: 0,
+    }
+
+    corner = {
+      x: 0,
+      y: 0,
     };
-    echo('', false);
-    for (const area of qix_tails.toReversed()) {
-      let [x, y, width, height] = area;
-      const right = x + width;
-      const bottom = y + height;
-      updtail(right, bottom, -width, -height);
-      dir.width = -width;
-      dir.height = -height;
+
+    //echo('', false);
+    for (const [x, y, width, height] of qix_tails.toReversed()) {
+      find_corner(-width, -height);
+      last.width = -width;
+      last.height = -height;
+
+      last.x = x + width;
+      last.y = y + height;
 
       // buggy on diagonal
-      //echo(dir.width + ' ' + dir.height + ' ' + dir.tailw + ' ' + dir.tailhe);
+      // echo(last.width + ' ' + last.height + ' ' + corner.x + ' ' + corner.y);
 
-      const xx = dim.x + (right + dir.tailw - qixpos.x) * qixsc;
-      const yy = dim.y + (bottom + dir.tailhe - qixpos.y) * qixsc;
+      const xx = dim.x + (last.x + corner.x - qixpos.x) * qixsc;
+      const yy = dim.y + (last.y + corner.y - qixpos.y) * qixsc;
       tail.push(`${xx}px ${yy}px`);
-
-      dir.x = right;
-      dir.y = bottom;
     };
     if (qix_tails.length) {
-      const area = qix_tails[0];
-      if (area[2] < 0) {
-        dir.tailw = 0;
-        dir.tailhe = 0;
-      } else if (area[3] < 0) {
-        dir.tailw = 1;
-        dir.tailhe = 0;
-      } else if (area[2] > 0) {
-        dir.tailw = 1;
-        dir.tailhe = 1;
-      } else if (area[3] > 0) {
-        dir.tailw = 0;
-        dir.tailhe = 1;
+      const [x, y, width, height] = qix_tails[0];
+      if (0 < -width) {
+        corner.x = 0;
+        corner.y = 0;
+      } else if (0 < -height) {
+        corner.x = 1;
+        corner.y = 0;
+      } else if (-width < 0) {
+        corner.x = 1;
+        corner.y = 1;
+      } else if (-height < 0) {
+        corner.x = 0;
+        corner.y = 1;
       }
-      const xx = dim.x + (area[0] + dir.tailw - qixpos.x) * qixsc;
-      const yy = dim.y + (area[1] + dir.tailhe - qixpos.y) * qixsc;
+      const xx = dim.x + (x + corner.x - qixpos.x) * qixsc;
+      const yy = dim.y + (y + corner.y - qixpos.y) * qixsc;
       tail.push(`${xx}px ${yy}px`);
     }
   }

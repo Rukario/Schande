@@ -3594,8 +3594,8 @@ function new_qix() {
     y: qixdim.y + 1,
   };
   qixpos2 = {
-    x: Math.floor((Math.random() * qixmask.width * qixsc - 2) + 1),
-    y: Math.floor((Math.random() * qixmask.height * qixsc - 2) + 1),
+    x: Math.floor((Math.random() * qixmask.width - 2) + 1),
+    y: Math.floor((Math.random() * qixmask.height - 2) + 1),
   };
   qix_tails = [];
   qixline = {
@@ -3620,14 +3620,14 @@ function new_qix() {
   qixmask.putImageData(qixmap, 0, 0);
 
   qix = true;
-  drawqix(tailscr, qixpos, 0.75);
-  drawqix(tailscr2, qixpos2, 2);
+  drawqix(tailscr, qixpos);
+  drawqix(tailscr2, qixpos2, 25);
 
   loadcards(repaint.qix);
 }
 
 function qixscan() {
-  const satellite = [Math.floor(qixpos2.x/qixsc), Math.floor(qixpos2.y/qixsc)];
+  const satellite = [qixpos2.x, qixpos2.y];
   const monstermap = new Uint8Array(qixmask.width*qixmask.height);
   let pixels = 0;
   for (const n of Array(qixmask.width*qixmask.height).keys()) {
@@ -3813,20 +3813,20 @@ function qixstep() {
       stepmap(0, step.y);
     }
   }
-  drawqix(tailscr, qixpos, 0.75);
+  drawqix(tailscr, qixpos);
   repaint.qix();
 }
 
+// https://stackoverflow.com/questions/12219802/
 function intersection(x0, y0, r0, x1, y1, r1) {
-  const d = Math.hypot(x1 - x0, y1 - y0);
+  const d = Math.hypot(...sub(x1, y1, x0, y0));
   if (d < (r0 + r1) && d > Math.abs(r0 - r1)) {
     return true;
   }
 }
 
-
-
-function intersection_line(x0, y0, x1, y1, x2, y2) {
+// https://stackoverflow.com/questions/1073336/
+function intersection_line(x0, y0, x1, y1, x2, y2, r) {
   const [Ax, Ay] = sub(x2, y2, x0, y0);
   const [Bx, By] = sub(x1, y1, x0, y0);
   const [Cx, Cy] = add(...proj(Ax, Ay, Bx, By), x0, y0);
@@ -3834,22 +3834,34 @@ function intersection_line(x0, y0, x1, y1, x2, y2) {
 
   const len = Math.abs(Bx) > Math.abs(By) ? Dx / Bx : Dy / By;
   if (len <= 0) {
-    return Math.sqrt(hypot2(x2, y2, x0, y0));
+    return Math.hypot(...sub(x2, y2, x0, y0)) < r;
   } else if (len >= 1) {
-    return Math.sqrt(hypot2(x2, y2, x1, y1));
+    return Math.hypot(...sub(x2, y2, x1, y1)) < r;
   } else {
-    return Math.sqrt(hypot2(x2, y2, Cx, Cy));
+    return Math.hypot(...sub(x2, y2, Cx, Cy)) < r;
   }
 }
 
-const add = (x0, y0, x1, y1) => [x0+x1, y0+y1];
-const sub = (x0, y0, x1, y1) => [x0-x1, y0-y1];
-const dot = (x0, y0, x1, y1) => x0*x1 + y0*y1;
-const hypot2 = (x0, y0, x1, y1) => dot(...sub(x0, y0, x1, y1), ...sub(x0, y0, x1, y1));
+const add = (x0, y0, x1, y1) => [x0 + x1, y0 + y1];
+const sub = (x0, y0, x1, y1) => [x0 - x1, y0 - y1];
 
 const proj = (x0, y0, x1, y1) => {
+  const dot = (x0, y0, x1, y1) => x0 * x1 + y0 * y1;
   const len = dot(x0, y0, x1, y1) / dot(x1, y1, x1, y1);
   return [len*x1, len*y1];
+}
+
+const gameover = () => {
+  anger = 1;
+  repaint.qix();
+  setTimeout(() => {
+    stopqix = true;
+  }, 0);
+  setTimeout(() => {
+    anger = 0;
+    new_qix();
+    qixupdate();
+  }, 250);
 }
 
 function qixstep2(mindcontrol = false) {
@@ -3877,13 +3889,13 @@ function qixstep2(mindcontrol = false) {
 
     if (dir.w && !dir.e || dir.e && !dir.w) {
       if (!mindcontrol) {
-        speed = Math.round(Math.random() * 4);
+        speed = Math.round(Math.random() * 2);
       }
       for (const x of Array(speed).keys()) {
         const pow = dir.w ? -x-1 : x+1;
 
         // death barrier
-        if (qixpos2.x + pow >= 0 && qixpos2.x + pow <= qixmask.width*qixsc) {
+        if (qixpos2.x + pow >= 0 && qixpos2.x + pow <= qixmask.width) {
           step.x = pow;
         } else {
           break;
@@ -3893,13 +3905,13 @@ function qixstep2(mindcontrol = false) {
 
     if (dir.n && !dir.s || dir.s && !dir.n) {
       if (!mindcontrol) {
-        speed = Math.round(Math.random() * 4);
+        speed = Math.round(Math.random() * 2);
       }
       for (const y of Array(speed).keys()) {
         const pow = dir.n ? -y-1 : y+1;
 
         // death barrier
-        if (qixpos2.y + pow >= 0 && qixpos2.y + pow <= qixmask.height*qixsc) {
+        if (qixpos2.y + pow >= 0 && qixpos2.y + pow <= qixmask.height) {
           step.y = pow;
         } else {
           break;
@@ -3913,48 +3925,22 @@ function qixstep2(mindcontrol = false) {
 
     // provoke player
     if (qix_tails.length > 0) {
-      let closesttail = Math.pow(10, 1000);
       for (const [x, y, width, height] of qix_tails) {
         if (!width && !height) {
           continue;
         }
-        closesttail = Math.min(closesttail, intersection_line(x*qixsc, y*qixsc, (x+width)*qixsc, (y+height)*qixsc, qixpos2.x, qixpos2.y));
-      }
-      if (closesttail < 20) {
-        anger = 1;
-        repaint.qix();
-        setTimeout(() => {
-          stopqix = true;
-        }, 0);
-        setTimeout(() => {
-          anger = 0;
-          new_qix();
-          qixupdate();
-        }, 250);
-        return;
+        if (intersection_line(x, y, x+width, y+height, qixpos2.x, qixpos2.y, 15)) {
+          gameover();
+          return;
+        }
       }
     }
-    const ans = intersection(qixpos2.x, qixpos2.y, 20, qixpos.x*qixsc, qixpos.y*qixsc, 10);
-    if (ans) {
-      anger = 1;
-      repaint.qix();
-      setTimeout(() => {
-        stopqix = true;
-      }, 0);
-      setTimeout(() => {
-        anger = 0;
-        new_qix();
-        qixupdate();
-      }, 250);
+    if (intersection(qixpos2.x, qixpos2.y, 15, qixpos.x, qixpos.y, 5)) {
+      gameover();
       return;
     }
 
-    const toMask = {
-      x: Math.floor((qixpos2.x + step.x)/qixsc),
-      y: Math.floor((qixpos2.y + step.y)/qixsc),
-    }
-
-    const datapos = Math.floor(toMask.x + qixmask.width * toMask.y);
+    const datapos = Math.floor((qixpos2.x + step.x) + qixmask.width * (qixpos2.y + step.y));
     if (qixmap.data[datapos * 4 + 3] === 255) {
       qixpos2.x += step.x;
       qixpos2.y += step.y;
@@ -4048,7 +4034,7 @@ function drawqix(scr, pos, size = 0) {
     }
   }
 
-  if (size < 2) {
+  if (!size) {
     if (qix_tails.length) {
       // delete this if I could have last.x and last.y from find_corner()
       last.x = qix_tails[0][0];
@@ -4077,21 +4063,21 @@ function drawqix(scr, pos, size = 0) {
     }
   }
 
-  if (size < 2) {
+  if (!size) {
     const xx = spoiler.width / 2 + dim.x - qixdim.x * qixsc;
     const yy = spoiler.height / 2 + dim.y - qixdim.y * qixsc;
     tail.push(`${xx}px ${yy}px`);
   } else {
-    const xx = pos.x + 0.5 + dim.x - qixpos.x * qixsc;
-    const yy = pos.y + 0.5 + dim.y - qixpos.y * qixsc;
-    tail.push(`${xx}px ${yy - 10 * size}px,
-${xx + 10 * size}px ${yy}px,
-${xx}px ${yy + 10 * size}px,
-${xx - 10 * size}px ${yy}px,
-${xx}px ${yy - 10 * size}px`);
+    const xx = spoiler.width / 2 + dim.x - qixdim.x * qixsc + (pos.x - qixpos.x) * qixsc;
+    const yy = spoiler.height / 2 + dim.y - qixdim.y * qixsc + (pos.y - qixpos.y) * qixsc;
+    tail.push(`${xx}px ${yy - size}px,
+${xx + size}px ${yy}px,
+${xx}px ${yy + size}px,
+${xx - size}px ${yy}px,
+${xx}px ${yy - size}px`);
   }
 
-  if (size < 2) {
+  if (!size) {
     last = {
       x: 0,
       y: 0,
@@ -4170,7 +4156,7 @@ function qixupdate() {
     if (qix_tails.length === 0) {
       mouse[0].hold = 0;
     }
-    drawqix(tailscr, qixpos, 0.75);
+    drawqix(tailscr, qixpos);
     repaint.qix();
   } else if ('WASD'.split('').some((k) => Keypress['Key' + k]) || ['Left', 'Up', 'Right', 'Down'].some((k) => Keypress['Arrow' + k])) {
     qixstep();
@@ -4182,7 +4168,7 @@ function qixupdate() {
     qixstep2();
   }
 
-  drawqix(tailscr2, qixpos2, 2.5);
+  drawqix(tailscr2, qixpos2, 25);
   if (!qix || stopqix) {
     stopqix = false;
     return;

@@ -3817,6 +3817,13 @@ function qixstep() {
   repaint.qix();
 }
 
+function intersection(x0, y0, r0, x1, y1, r1) {
+  const d = Math.hypot(x1 - x0, y1 - y0);
+  if (d < (r0 + r1) && d > Math.abs(r0 - r1)) {
+    return true;
+  }
+}
+
 function qixstep2(mindcontrol = false) {
   let intersected = false;
   const dir = {
@@ -3847,11 +3854,6 @@ function qixstep2(mindcontrol = false) {
       for (const x of Array(speed).keys()) {
         const pow = dir.w ? -x-1 : x+1;
 
-        // provoke player
-        if (qixpos2.x + pow > qixpos.x*qixsc - 60 && qixpos2.x + pow < qixpos.x*qixsc + 60) {
-          intersected = true;
-        }
-
         // death barrier
         if (qixpos2.x + pow >= 0 && qixpos2.x + pow <= qixmask.width*qixsc) {
           step.x = pow;
@@ -3867,20 +3869,6 @@ function qixstep2(mindcontrol = false) {
       }
       for (const y of Array(speed).keys()) {
         const pow = dir.n ? -y-1 : y+1;
-        // provoke player
-        if (intersected && qixpos2.y + pow > qixpos.y*qixsc - 60 && qixpos2.y + pow < qixpos.y*qixsc + 60) {
-          anger = 1;
-          repaint.qix();
-          setTimeout(() => {
-            stopqix = true;
-          }, 0);
-          setTimeout(() => {
-            anger = 0;
-            new_qix();
-            qixupdate();
-          }, 250);
-          return;
-        }
 
         // death barrier
         if (qixpos2.y + pow >= 0 && qixpos2.y + pow <= qixmask.height*qixsc) {
@@ -3889,6 +3877,22 @@ function qixstep2(mindcontrol = false) {
           break;
         }
       }
+    }
+
+    // provoke player
+    const ans = intersection(qixpos2.x, qixpos2.y, 20, qixpos.x*qixsc, qixpos.y*qixsc, 20);
+    if (ans) {
+      anger = 1;
+      repaint.qix();
+      setTimeout(() => {
+        stopqix = true;
+      }, 0);
+      setTimeout(() => {
+        anger = 0;
+        new_qix();
+        qixupdate();
+      }, 250);
+      return;
     }
 
     if (step.x === 0 && step.y === 0) {

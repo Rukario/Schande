@@ -2021,7 +2021,7 @@ const repaint = {
     context.fillStyle = qixdb.color;
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    context.drawImage(spoiler.canvas, dim.x - qixpos.x*qixsc, dim.y - qixpos.y*qixsc, spoiler.width, spoiler.height);
+    context.drawImage(spoiler.canvas, dim.x - qixscr.x * qixsc, dim.y - qixscr.y * qixsc, spoiler.width, spoiler.height);
 
     spoilermask.clearRect(0, 0, spoilermask.width, spoilermask.height);
     spoilermask.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
@@ -2029,9 +2029,9 @@ const repaint = {
     spoilermask.drawImage(silhouette, 0, 0, spoilermask.width, spoilermask.height);
     spoilermask.globalCompositeOperation = 'source-over';
 
-    context.drawImage(spoilermask.canvas, dim.x - qixpos.x*qixsc, dim.y - qixpos.y*qixsc, spoilermask.width, spoilermask.height);
+    context.drawImage(spoilermask.canvas, dim.x - qixscr.x * qixsc, dim.y - qixscr.y * qixsc, spoilermask.width, spoilermask.height);
 
-    context.drawImage(cards['freemon'], 38*face, 38*anger, 38, 38, dim.x-19, dim.y-19, 38, 38);
+    context.drawImage(cards['freemon'], 38*face, 38*anger, 38, 38, dim.x-19 + (qixpos.x-qixscr.x)*qixsc, dim.y-19 + (qixpos.y-qixscr.y)*qixsc, 38, 38);
   },
 }
 
@@ -3501,7 +3501,7 @@ var qixmask = newCanvas();
 var spoiler = newCanvas();
 var spoilermask = newCanvas();
 var qixmap = null;
-var qixdim, qixpos, qix_tails, qixline;
+var qixdim, qixpos, qixscr, qix_tails, qixline;
 var qixsates = [];
 var qixmobs = [];
 var glyphm = newCanvas();
@@ -3626,6 +3626,10 @@ function new_qix() {
     x: qixdim.x + 1,
     y: qixdim.y + 1,
   };
+  qixscr = {
+    x: qixpos.x,
+    y: qixpos.y,
+  }
   qix_tails = [];
   qixline = {
     x: 0,
@@ -3848,6 +3852,16 @@ function stixpath(nx, land) {
   }
 }
 
+const securitycam = (pos) => {
+  if (dim.x/qixsc - 64 < pos.x && pos.x < qixmask.width - dim.x/qixsc + 64) {
+    qixscr.x = pos.x;
+  }
+
+  if (dim.y/qixsc - 64 < pos.y && pos.y < qixmask.height - dim.y/qixsc + 64) {
+    qixscr.y = pos.y;
+  }
+}
+
 function qixstep() {
   const dir = {
     e: Keypress.KeyD || Keypress.ArrowRight,
@@ -3907,6 +3921,8 @@ function qixstep() {
       stixpath(x, true);
       qixpos.x += x;
       qixpos.y += y;
+      securitycam(qixpos);
+
       if (mouse[0].hold) {
         mouse[0].hold = 0;
         if (qix_tails.length > 1 || qix_tails.length > 0 && (Math.abs(qix_tails[0][2]) > 1 || Math.abs(qix_tails[0][3]) > 1)) {
@@ -3931,13 +3947,14 @@ function qixstep() {
       stixpath(step.x);
       qixpos.x += step.x;
       qixpos.y += step.y;
+      securitycam(qixpos);
     } else if (cleared(qixpos.x + step.x + qixmask.width * qixpos.y)) {
       stepmap(step.x, 0);
     } else if (cleared(qixpos.x + qixmask.width * (qixpos.y + step.y))) {
       stepmap(0, step.y);
     }
   }
-  draw_tail(tailscr, qixpos);
+  draw_tail(tailscr);
   repaint.qix();
 }
 
@@ -4158,7 +4175,7 @@ const find_corner = (width, height, x, y, last) => {
 }
 
 const clipPathTail = [];
-function draw_tail(scr, pos) {
+function draw_tail(scr) {
   clipPathTail.length = 0;
 
   // Drawing to tail base
@@ -4190,8 +4207,8 @@ function draw_tail(scr, pos) {
     last.width = width;
     last.height = height;
 
-    const xx = dim.x + (last.x + corner.x - qixpos.x) * qixsc;
-    const yy = dim.y + (last.y + corner.y - qixpos.y) * qixsc;
+    const xx = dim.x + (last.x + corner.x - qixscr.x) * qixsc;
+    const yy = dim.y + (last.y + corner.y - qixscr.y) * qixsc;
     clipPathTail.push(`${xx}px ${yy}px`);
 
     last.x = x + width;
@@ -4199,14 +4216,14 @@ function draw_tail(scr, pos) {
   };
 
   if (qix_tails.length) {
-    const xx = dim.x + (last.x + corner.x - qixpos.x) * qixsc;
-    const yy = dim.y + (last.y + corner.y - qixpos.y) * qixsc;
+    const xx = dim.x + (last.x + corner.x - qixscr.x) * qixsc;
+    const yy = dim.y + (last.y + corner.y - qixscr.y) * qixsc;
     clipPathTail.push(`${xx}px ${yy}px`);
   }
 
   // Tail base
-  const xx = spoiler.width / 2 + dim.x - qixdim.x * qixsc;
-  const yy = spoiler.height / 2 + dim.y - qixdim.y * qixsc;
+  const xx = spoiler.width / 2 + dim.x - qixdim.x * qixsc + (qixpos.x - qixscr.x) * qixsc;
+  const yy = spoiler.height / 2 + dim.y - qixdim.y * qixsc + (qixpos.y - qixscr.y) * qixsc;
   clipPathTail.push(`${xx}px ${yy}px`);
 
   // Reverse to tail end
@@ -4233,8 +4250,8 @@ function draw_tail(scr, pos) {
     last.x = x + width;
     last.y = y + height;
 
-    const xx = dim.x + (last.x + corner.x - qixpos.x) * qixsc;
-    const yy = dim.y + (last.y + corner.y - qixpos.y) * qixsc;
+    const xx = dim.x + (last.x + corner.x - qixscr.x) * qixsc;
+    const yy = dim.y + (last.y + corner.y - qixscr.y) * qixsc;
     clipPathTail.push(`${xx}px ${yy}px`);
   };
 
@@ -4254,8 +4271,8 @@ function draw_tail(scr, pos) {
       corner.x = 0;
       corner.y = 1;
     }
-    const xx = dim.x + (x + corner.x - qixpos.x) * qixsc;
-    const yy = dim.y + (y + corner.y - qixpos.y) * qixsc;
+    const xx = dim.x + (x + corner.x - qixscr.x) * qixsc;
+    const yy = dim.y + (y + corner.y - qixscr.y) * qixsc;
     clipPathTail.push(`${xx}px ${yy}px`);
   }
 
@@ -4266,8 +4283,8 @@ function draw_tail(scr, pos) {
 function draw_diamond(mob) {
   const pos = mob.pos;
   const size = mob.size;
-  const xx = spoiler.width / 2 + dim.x - qixdim.x * qixsc + (pos.x - qixpos.x) * qixsc;
-  const yy = spoiler.height / 2 + dim.y - qixdim.y * qixsc + (pos.y - qixpos.y) * qixsc;
+  const xx = spoiler.width / 2 + dim.x - qixdim.x * qixsc + (pos.x - qixscr.x) * qixsc;
+  const yy = spoiler.height / 2 + dim.y - qixdim.y * qixsc + (pos.y - qixscr.y) * qixsc;
   clipPathTail.push(`${xx}px ${yy - size}px,
 ${xx + size}px ${yy}px,
 ${xx}px ${yy + size}px,
@@ -4277,8 +4294,8 @@ ${xx}px ${yy - size}px`);
 
 function draw_square(mob, size) {
   const pos = mob.pos;
-  const xx = spoiler.width / 2 + dim.x - qixdim.x * qixsc + (pos.x - qixpos.x) * qixsc;
-  const yy = spoiler.height / 2 + dim.y - qixdim.y * qixsc + (pos.y - qixpos.y) * qixsc;
+  const xx = spoiler.width / 2 + dim.x - qixdim.x * qixsc + (pos.x - qixscr.x) * qixsc;
+  const yy = spoiler.height / 2 + dim.y - qixdim.y * qixsc + (pos.y - qixscr.y) * qixsc;
   clipPathTail.push(`${xx - size}px ${yy - size}px,
 ${xx + size}px ${yy - size}px,
 ${xx + size}px ${yy + size}px,
@@ -4303,12 +4320,13 @@ function qixupdate() {
         }
         qixpos.x = (stix[0] + stix[2]);
         qixpos.y = (stix[1] + stix[3]);
+        securitycam(qixpos);
       }
     }
     if (qix_tails.length === 0) {
       mouse[0].hold = 0;
     }
-    draw_tail(tailscr, qixpos);
+    draw_tail(tailscr);
     repaint.qix();
   } else if ('WASD'.split('').some((k) => Keypress['Key' + k]) || ['Left', 'Up', 'Right', 'Down'].some((k) => Keypress['Arrow' + k])) {
     qixstep();

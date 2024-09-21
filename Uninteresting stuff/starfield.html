@@ -356,10 +356,38 @@ canvas {
   z-index: 3;
 }
 
+#qixsatescr, #qixmobscr {
+  display: none;
+}
+
 .hint {
   display: none;
   width: 100%;
   height: 100%;
+
+  &.mob {
+    position: absolute;
+    background: repeating-linear-gradient(
+      45deg,
+      #37a,
+      #37a 6px,
+      #ffd 6px,
+      #ffd 12px,
+      #d62 12px,
+      #d62 18px
+    );
+  }
+
+  &.sate {
+    position: absolute;
+    background: repeating-linear-gradient(
+      45deg,
+      #50a,
+      #50a 10px,
+      #80f 10px,
+      #80f 20px
+    );
+  }
 }
 
 #hint1, #tailscr {
@@ -399,29 +427,6 @@ canvas {
     #fff 10px,
     #000 10px,
     #000 20px
-  );
-}
-
-.bulletscr {
-  position: absolute;
-  background: repeating-linear-gradient(
-    45deg,
-    #37a,
-    #37a 6px,
-    #ffd 6px,
-    #ffd 12px,
-    #d62 12px,
-    #d62 18px
-  );
-}
-
-#tailscr2 {
-  background: repeating-linear-gradient(
-    45deg,
-    #50a,
-    #50a 10px,
-    #80f 10px,
-    #80f 20px
   );
 }
 
@@ -999,7 +1004,6 @@ reveal.addEventListener('load', () => {
 
   spoiler.drawImage(reveal, 0, 0, spoiler.width, spoiler.height);
 
-  tailscr2.style.display = 'block';
   desk.style.opacity = 0.5;
   desk.style.display = isTouch ? 'inline-block' : 'none';
 
@@ -3486,8 +3490,9 @@ var qixmask = newCanvas();
 var spoiler = newCanvas();
 var spoilermask = newCanvas();
 var qixmap = null;
-var qixdim, qixpos, qixboss, qix_tails, qixline;
-var qixzombies = [];
+var qixdim, qixpos, qix_tails, qixline;
+var qixsates = [];
+var qixmobs = [];
 var glyphm = newCanvas();
 var glyphc = newCanvas();
 var glyph_chars = 46;
@@ -3617,30 +3622,73 @@ function new_qix() {
   };
   tailscr.style.display = 'none';
 
-  qixboss = {
-    x: Math.floor((Math.random() * qixmask.width - 2) + 1),
-    y: Math.floor((Math.random() * qixmask.height - 2) + 1),
-  };
+  while (qixsatescr.firstChild) {
+    qixsatescr.lastChild.remove();
+  }
+  qixsatescr.style.display = 'block';
+  qixsates.length = 0;
+
+  const sate = document.createElement('DIV');
+  sate.classList = 'hint sate';
+  sate.style.display = 'block';
+  qixsatescr.appendChild(sate);
+
+  qixsates.push({
+    el: sate,
+    pos: {
+      x: Math.floor((Math.random() * qixmask.width - 2) + 1),
+      y: Math.floor((Math.random() * qixmask.height - 2) + 1),
+    },
+    dir: {
+      n: 0,
+      e: 0,
+      s: 0,
+      w: 0,
+    },
+    speed: {
+      x: 0,
+      y: 0,
+    },
+  });
+
+
+  while (qixmobscr.firstChild) {
+    qixmobscr.lastChild.remove();
+  }
+  qixmobscr.style.display = 'block';
+  qixmobs.length = 0;
+
   clearInterval(mobspawner);
   mobspawner = setInterval(() => {
-    if (qixzombies.length < 6) {
+    if (qixmobs.length < 6) {
       const zombie = document.createElement('DIV');
-      zombie.classList = 'hint bulletscr';
+      zombie.classList = 'hint mob';
       zombie.style.display = 'block';
-      qixmobs.appendChild(zombie);
+      qixmobscr.appendChild(zombie);
 
-      qixzombies.push([zombie, {
-        x: Math.floor((Math.random() * qixmask.width - 2) + 1),
-        y: Math.floor((Math.random() * qixmask.height - 2) + 1),
-      }]);
+      const x = Math.round(Math.random());
+      const y = Math.round(Math.random());
+      qixmobs.push({
+        el: zombie,
+        pos: {
+          x: Math.floor((Math.random() * qixmask.width - 2) + 1),
+          y: Math.floor((Math.random() * qixmask.height - 2) + 1),
+        }, 
+        dir: {
+          n: x,
+          e: y,
+          s: Math.abs(x-1),
+          w: Math.abs(y-1),
+        },
+        speed: {
+          x: Math.ceil(Math.random() * 2),
+          y: Math.ceil(Math.random() * 2),
+        },
+      });
 
-      console.log(qixzombies.length, 'zombies', qixmobs.childNodes);
+      //console.log(qixmobs.length, 'zombies', qixmobscr.childNodes);
     }
   }, 2500);
-  qixzombies.length = 0;
-  while (qixmobs.firstChild) {
-    qixmobs.lastChild.remove();
-  }
 
   qixmap = qixmask.getImageData(0, 0, qixmask.width, qixmask.height);
   for (const n of Array(qixmap.data.length/4).keys()) {
@@ -3660,21 +3708,23 @@ function new_qix() {
 
   qix = true;
 
-  draw_diamond(qixboss, 25);
-  tailscr2.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
-  clipPathTail.length = 0;
+  for (const sate of qixsates) {
+    draw_diamond(sate, 25);
+    sate.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
+    clipPathTail.length = 0;
+  }
 
-  for (const [zombie, pos] of qixzombies) {
-    draw_diamond(pos, 14);
-    zombie.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
+  for (const zombie of qixmobs) {
+    draw_diamond(zombie, 14);
+    zombie.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
     clipPathTail.length = 0;
   }
 
   loadcards(repaint.qix);
 }
 
-function qixscan() {
-  const satellite = [qixboss.x, qixboss.y];
+function qixscan(sate) {
+  const satellite = [sate.pos.x, sate.pos.y];
   const monstermap = new Uint8Array(qixmask.width*qixmask.height);
   let pixels = 0;
   for (const n of Array(qixmask.width*qixmask.height).keys()) {
@@ -3840,7 +3890,9 @@ function qixstep() {
         qixmask.putImageData(qixmap, 0, 0);
         qix_tails = [];
         tailscr.style.display = 'none';
-        qixscan();
+        for (const sate of qixsates) {
+          qixscan(sate);
+        }
       }
     }
 
@@ -3914,7 +3966,10 @@ const gameover = () => {
   }, 250);
 }
 
-function qixmobstep(mob, dir, r, speed = {x: 1, y: 1}) {
+function qixmobstep(mob, r) {
+  const pos = mob.pos;
+  const dir = mob.dir;
+  const speed = mob.speed;
   for (const frame of Array(120/fps.hz).keys()) {
     const step = {
       x: 0,
@@ -3926,7 +3981,7 @@ function qixmobstep(mob, dir, r, speed = {x: 1, y: 1}) {
         const pow = dir.w ? -x-1 : x+1;
 
         // death barrier
-        if (mob.x + pow >= 0 && mob.x + pow <= qixmask.width) {
+        if (pos.x + pow >= 0 && pos.x + pow <= qixmask.width) {
           step.x = pow;
         } else {
           break;
@@ -3939,7 +3994,7 @@ function qixmobstep(mob, dir, r, speed = {x: 1, y: 1}) {
         const pow = dir.n ? -y-1 : y+1;
 
         // death barrier
-        if (mob.y + pow >= 0 && mob.y + pow <= qixmask.height) {
+        if (pos.y + pow >= 0 && pos.y + pow <= qixmask.height) {
           step.y = pow;
         } else {
           break;
@@ -3953,25 +4008,54 @@ function qixmobstep(mob, dir, r, speed = {x: 1, y: 1}) {
 
     // provoke player
     if (qix_tails.length > 0) {
+      let last = null;
       for (const [x, y, width, height] of qix_tails) {
         if (!width && !height) {
+          if (!last) {
+            last = {
+              x: x,
+              y: y,
+            }
+          }
           continue;
         }
-        if (intersection_line(x, y, x+width, y+height, mob.x, mob.y, r)) {
+        if (last) {
+          if (intersection_line(last.x, last.y, x, y, pos.x, pos.y, r)) {
+            gameover();
+            return;
+          }
+          last = null;
+        }
+        if (intersection_line(x, y, x+width, y+height, pos.x, pos.y, r)) {
           gameover();
           return;
         }
       }
+      if (last) {
+        if (intersection_line(last.x, last.y, qixpos.x, qixpos.y, pos.x, pos.y, r)) {
+          gameover();
+          return;
+        }
+        last = null;
+      }
     }
-    if (intersection(mob.x, mob.y, r, qixpos.x, qixpos.y, 5)) {
+    if (intersection(pos.x, pos.y, r, qixpos.x, qixpos.y, 5)) {
       gameover();
       return;
     }
 
-    const datapos = Math.floor((mob.x + step.x) + qixmask.width * (mob.y + step.y));
+    const datapos = Math.floor((pos.x + step.x) + qixmask.width * (pos.y + step.y));
     if (qixmap.data[datapos * 4 + 3] === 255) {
-      mob.x += step.x;
-      mob.y += step.y;
+      pos.x += step.x;
+      pos.y += step.y;
+    } else {
+      const oldirN = dir.n;
+      dir.n = dir.s;
+      dir.s = oldirN;
+
+      const oldirE = dir.e;
+      dir.e = dir.w;
+      dir.w = oldirE;
     }
   }
 }
@@ -4159,7 +4243,8 @@ function draw_tail(scr, pos) {
   clipPathTail.length = 0;
 };
 
-function draw_diamond(pos, size) {
+function draw_diamond(mob, size) {
+  const pos = mob.pos;
   const xx = spoiler.width / 2 + dim.x - qixdim.x * qixsc + (pos.x - qixpos.x) * qixsc;
   const yy = spoiler.height / 2 + dim.y - qixdim.y * qixsc + (pos.y - qixpos.y) * qixsc;
   clipPathTail.push(`${xx}px ${yy - size}px,
@@ -4197,46 +4282,32 @@ function qixupdate() {
     qixstep();
   }
 
-  if ('TFGH'.split('').some((k) => Keypress['Key' + k])) {
-    const dir = {
-      n: Keypress.KeyT,
-      e: Keypress.KeyH,
-      s: Keypress.KeyG,
-      w: Keypress.KeyF,
+  for (const sate of qixsates) {
+    if ('TFGH'.split('').some((k) => Keypress['Key' + k])) {
+      sate.dir.n = Keypress.KeyT;
+      sate.dir.e = Keypress.KeyH;
+      sate.dir.s = Keypress.KeyG;
+      sate.dir.w = Keypress.KeyF;
+      sate.speed.x = 1;
+      sate.speed.y = 1;
+    } else {
+      sate.dir.n = Math.round(Math.random());
+      sate.dir.e = Math.round(Math.random());
+      sate.dir.s = Math.round(Math.random());
+      sate.dir.w = Math.round(Math.random());
+      sate.speed.x = Math.round(Math.random() * 4);
+      sate.speed.y = Math.round(Math.random() * 4);
     }
-    qixmobstep(qixboss, dir, 15);
-  } else {
-    const dir = {
-      n: Math.round(Math.random()),
-      e: Math.round(Math.random()),
-      s: Math.round(Math.random()),
-      w: Math.round(Math.random()),
-    }
-    const speed = {
-      x: Math.round(Math.random() * 4),
-      y: Math.round(Math.random() * 4),
-    }
-    qixmobstep(qixboss, dir, 15, speed);
+    qixmobstep(sate, 15);
+    draw_diamond(sate, 25);
+    sate.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
+    clipPathTail.length = 0;
   }
 
-  draw_diamond(qixboss, 25);
-  tailscr2.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
-  clipPathTail.length = 0;
-
-  for (const [zombie, pos] of qixzombies) {
-    const dir = {
-      n: Math.round(Math.random()),
-      e: Math.round(Math.random()),
-      s: Math.round(Math.random()),
-      w: Math.round(Math.random()),
-    }
-    const speed = {
-      x: Math.round(Math.random() * 8),
-      y: Math.round(Math.random() * 8),
-    }
-    qixmobstep(pos, dir, 10, speed);
-    draw_diamond(pos, 14);
-    zombie.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
+  for (const zombie of qixmobs) {
+    qixmobstep(zombie, 10);
+    draw_diamond(zombie, 14);
+    zombie.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
     clipPathTail.length = 0;
   }
 
@@ -4419,7 +4490,8 @@ function makemenu() {
 
       qix = false;
       tailscr.style.display = 'none';
-      tailscr2.style.display = 'none';
+      qixsatescr.style.display = 'none';
+      qixmobscr.style.display = 'none';
 
       glyph = false;
       glyphscr.style.display = 'none';
@@ -4452,7 +4524,8 @@ function makemenu() {
 
       qix = false;
       tailscr.style.display = 'none';
-      tailscr2.style.display = 'none';
+      qixsatescr.style.display = 'none';
+      qixmobscr.style.display = 'none';
 
       glyph = false;
       glyphscr.style.display = 'none';
@@ -4529,7 +4602,8 @@ ${x}px ${y + 18}px
 
         hintb.style.display = 'none';
         stopscr = true;
-        tailscr2.style.display = 'none';
+        qixsatescr.style.display = 'none';
+        qixmobscr.style.display = 'none';
         document.body.style.backgroundColor = '#dbe';
 
         new_glyph(true);
@@ -4589,7 +4663,8 @@ ${x}px ${y + 18}px
 
       qix = false;
       tailscr.style.display = 'none';
-      tailscr2.style.display = 'none';
+      qixsatescr.style.display = 'none';
+      qixmobscr.style.display = 'none';
 
       glyph = false;
       glyphscr.style.display = 'none';
@@ -4666,7 +4741,8 @@ ${x}px ${y + 18}px
         qix = false;
         desk.style.display = 'none';
         tailscr.style.display = 'none';
-        tailscr2.style.display = 'none';
+        qixsatescr.style.display = 'none';
+        qixsatescr.style.display = 'none';
         stopscr = true;
         drawn = 1;
         loadcards(game.sol);
@@ -5664,8 +5740,8 @@ window.addEventListener('load', () => {
 <div class='hintscreen'><div class='hint' id='hint4'></div></div>
 <div class='hintscreen'><div class='hint' id='hintb'></div></div>
 <div class='hintscreen'><div class='hint' id='tailscr'></div></div>
-<div class='hintscreen'><div class='hint' id='tailscr2'></div></div>
-<div class='hintscreen' id='qixmobs'></div>
+<div class='hintscreen' id='qixsatescr'></div>
+<div class='hintscreen' id='qixmobscr'></div>
 <div id='result'></div>
 <div id='stdout'>Output:</div>
 <div class='poppy' id='poppy'></div>

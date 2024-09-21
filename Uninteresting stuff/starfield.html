@@ -3675,10 +3675,10 @@ function new_qix() {
   mobspawner = setInterval(() => {
     if (qixmobs.length < 6) {
       const zombie = document.createElement('DIV');
-      let size = 14;
+      let size = 26;
       if (Math.round(Math.random())) {
         zombie.classList = 'hint mob';
-        size = 26;
+        size = 14;
       } else {
         zombie.classList = 'hint ammo';
       }
@@ -3778,7 +3778,6 @@ function qixscan(sate) {
   if (Math.floor((pixels/monstermap.length)*10000)/100 > 99) {
     setTimeout(() => {
       stopqix = true;
-      clearInterval(mobspawner);
       winsoln += 2;
       savestar('winsol=', winsoln);
       makemenu();
@@ -3787,6 +3786,7 @@ function qixscan(sate) {
       new_qix();
       qixupdate();
     }, 1500);
+    clearInterval(mobspawner);
   }
   qixmask.putImageData(qixmap, 0, 0);
   repaint.qix();
@@ -3909,7 +3909,7 @@ function qixstep() {
       qixpos.y += y;
       if (mouse[0].hold) {
         mouse[0].hold = 0;
-        if (qix_tails.length > 1 || qix_tails.length > 0 && (Math.abs(qix_tails[0][2]) > 1 || Math.abs(qix_tails[0][3] > 1))) {
+        if (qix_tails.length > 1 || qix_tails.length > 0 && (Math.abs(qix_tails[0][2]) > 1 || Math.abs(qix_tails[0][3]) > 1)) {
           for (const area of qix_tails) {
             clearSq(...area);
           }
@@ -3980,13 +3980,13 @@ const gameover = () => {
   repaint.qix();
   setTimeout(() => {
     stopqix = true;
-    clearInterval(mobspawner);
   }, 0);
   setTimeout(() => {
     anger = 0;
     new_qix();
     qixupdate();
   }, 250);
+  clearInterval(mobspawner);
 }
 
 const hemipi = Math.PI / 2;

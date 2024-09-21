@@ -370,11 +370,11 @@ canvas {
     background: repeating-linear-gradient(
       45deg,
       #223,
-      #223 6px,
-      #b53 6px,
-      #b53 12px,
-      #eca 12px,
-      #eca 18px
+      #223 8px,
+      #b53 8px,
+      #b53 16px,
+      #eca 16px,
+      #eca 24px
     );
   }
 
@@ -386,6 +386,17 @@ canvas {
       #50a 10px,
       #80f 10px,
       #80f 20px
+    );
+  }
+
+  &.ammo {
+    position: absolute;
+    background: repeating-linear-gradient(
+      45deg,
+      #87a,
+      #87a 10px,
+      #dcf 10px,
+      #dcf 20px
     );
   }
 
@@ -3635,9 +3646,10 @@ function new_qix() {
 
   qixsates.push({
     el: sate,
+    size: 20, 
     pos: {
-      x: Math.floor((Math.random() * qixmask.width - 2) + 1),
-      y: Math.floor((Math.random() * qixmask.height - 2) + 1),
+      x: Math.ceil((Math.random() * qixmask.width - 2)),
+      y: Math.ceil((Math.random() * qixmask.height - 2)),
     },
     dir: {
       n: 0,
@@ -3668,12 +3680,14 @@ function new_qix() {
 
       const x = Math.round(Math.random());
       const y = Math.round(Math.random());
+      const sx = Math.floor(Math.random() * 3);
       qixmobs.push({
         el: zombie,
+        size: 14,
         pos: {
-          x: Math.floor((Math.random() * qixmask.width - 2) + 1),
-          y: Math.floor((Math.random() * qixmask.height - 2) + 1),
-        }, 
+          x: Math.ceil((Math.random() * qixmask.width - 2)),
+          y: Math.ceil((Math.random() * qixmask.height - 2)),
+        },
         dir: {
           n: x,
           e: y,
@@ -3681,8 +3695,8 @@ function new_qix() {
           w: Math.abs(y-1),
         },
         speed: {
-          x: Math.ceil(Math.random() * 2),
-          y: Math.ceil(Math.random() * 2),
+          x: sx,
+          y: sx ? Math.floor(Math.random() * 3) : Math.ceil(Math.random() * 2),
         },
       });
 
@@ -3709,13 +3723,13 @@ function new_qix() {
   qix = true;
 
   for (const sate of qixsates) {
-    draw_diamond(sate, 20);
+    draw_diamond(sate);
     sate.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
     clipPathTail.length = 0;
   }
 
   for (const zombie of qixmobs) {
-    draw_diamond(zombie, 14);
+    draw_diamond(zombie);
     zombie.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
     clipPathTail.length = 0;
   }
@@ -3966,7 +3980,10 @@ const gameover = () => {
   }, 250);
 }
 
-function qixmobstep(mob, r) {
+const hemipi = Math.PI / 2;
+
+function qixmobstep(mob) {
+  const r = mob.size / hemipi;
   const pos = mob.pos;
   const dir = mob.dir;
   const speed = mob.speed;
@@ -4237,8 +4254,9 @@ function draw_tail(scr, pos) {
   clipPathTail.length = 0;
 };
 
-function draw_diamond(mob, size) {
+function draw_diamond(mob) {
   const pos = mob.pos;
+  const size = mob.size;
   const xx = spoiler.width / 2 + dim.x - qixdim.x * qixsc + (pos.x - qixpos.x) * qixsc;
   const yy = spoiler.height / 2 + dim.y - qixdim.y * qixsc + (pos.y - qixpos.y) * qixsc;
   clipPathTail.push(`${xx}px ${yy - size}px,
@@ -4303,15 +4321,15 @@ function qixupdate() {
       sate.speed.x = Math.round(Math.random() * 4);
       sate.speed.y = Math.round(Math.random() * 4);
     }
-    qixmobstep(sate, 12);
-    draw_diamond(sate, 20);
+    qixmobstep(sate);
+    draw_diamond(sate);
     sate.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
     clipPathTail.length = 0;
   }
 
   for (const zombie of qixmobs) {
-    qixmobstep(zombie, 8);
-    draw_diamond(zombie, 14);
+    qixmobstep(zombie);
+    draw_diamond(zombie);
     zombie.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
     clipPathTail.length = 0;
   }

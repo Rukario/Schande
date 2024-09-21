@@ -388,16 +388,16 @@ canvas {
       #80f 20px
     );
   }
-}
 
-#hint1, #tailscr {
-  background: repeating-linear-gradient(
-    45deg,
-    #f0f,
-    #f0f 10px,
-    #0f0 10px,
-    #0f0 20px
-  );
+  &.tail {
+    background: repeating-linear-gradient(
+      45deg,
+      #f0f,
+      #f0f 10px,
+      #0f0 10px,
+      #0f0 20px
+    );
+  }
 }
 
 #hint2 {
@@ -5592,7 +5592,7 @@ window.addEventListener('load', () => {
     document.body.appendChild(DOMwriter);
 
     const tail = document.createElement('DIV');
-    tail.classList = 'hint';
+    tail.classList = 'hint tail';
     DOMwriter.appendChild(tail);
 
     cursors.push({
@@ -5739,12 +5739,12 @@ window.addEventListener('load', () => {
 </head>
 <body>
 <div id='shaderscr'></div>
-<div class='hintscreen'><div class='hint' id='hint1'></div></div>
+<div class='hintscreen'><div class='hint tail' id='hint1'></div></div>
 <div class='hintscreen'><div class='hint' id='hint2'></div></div>
 <div class='hintscreen'><div class='hint' id='hint3'></div></div>
 <div class='hintscreen'><div class='hint' id='hint4'></div></div>
-<div class='hintscreen'><div class='hint' id='hintb'></div></div>
-<div class='hintscreen'><div class='hint' id='tailscr'></div></div>
+<div class='hintscreen'><div class='hint tail' id='hintb'></div></div>
+<div class='hintscreen'><div class='hint tail' id='tailscr'></div></div>
 <div class='hintscreen' id='qixsatescr'></div>
 <div class='hintscreen' id='qixmobscr'></div>
 <div id='result'></div>

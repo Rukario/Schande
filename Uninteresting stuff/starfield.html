@@ -369,12 +369,12 @@ canvas {
     position: absolute;
     background: repeating-linear-gradient(
       45deg,
-      #37a,
-      #37a 6px,
-      #ffd 6px,
-      #ffd 12px,
-      #d62 12px,
-      #d62 18px
+      #223,
+      #223 6px,
+      #b53 6px,
+      #b53 12px,
+      #eca 12px,
+      #eca 18px
     );
   }
 
@@ -3709,7 +3709,7 @@ function new_qix() {
   qix = true;
 
   for (const sate of qixsates) {
-    draw_diamond(sate, 25);
+    draw_diamond(sate, 20);
     sate.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
     clipPathTail.length = 0;
   }
@@ -3794,6 +3794,10 @@ function clearSq(x, y, w, h, co = 0) {
       qixmap.data[(scnmask + x + row) * 4 + 3] = co;
     }
   }
+}
+
+const cleared = (pow) => {
+  return qixmap.data[pow * 4 + 3] !== 255;
 }
 
 function stixpath(nx, land) {
@@ -3896,10 +3900,6 @@ function qixstep() {
       }
     }
 
-    const cleared = (pow) => {
-      return qixmap.data[pow * 4 + 3] !== 255;
-    }
-
     if (cleared(qixpos.x + step.x + qixmask.width * (qixpos.y + step.y))) {
       stepmap(step.x, step.y);
     } else if (mouse[0].down) {
@@ -3981,9 +3981,12 @@ function qixmobstep(mob, r) {
         const pow = dir.w ? -x-1 : x+1;
 
         // death barrier
-        if (pos.x + pow >= 0 && pos.x + pow <= qixmask.width) {
+        if (pos.x + pow >= 0 && pos.x + pow <= qixmask.width && !cleared(pos.x + pow + qixmask.width * pos.y)) {
           step.x = pow;
         } else {
+          const oldirE = dir.e;
+          dir.e = dir.w;
+          dir.w = oldirE;
           break;
         }
       }
@@ -3994,9 +3997,12 @@ function qixmobstep(mob, r) {
         const pow = dir.n ? -y-1 : y+1;
 
         // death barrier
-        if (pos.y + pow >= 0 && pos.y + pow <= qixmask.height) {
+        if (pos.y + pow >= 0 && pos.y + pow <= qixmask.height && !cleared(pos.x + step.x + qixmask.width * (pos.y + pow))) {
           step.y = pow;
         } else {
+          const oldirN = dir.n;
+          dir.n = dir.s;
+          dir.s = oldirN;
           break;
         }
       }
@@ -4005,6 +4011,8 @@ function qixmobstep(mob, r) {
     if (step.x === 0 && step.y === 0) {
       return;
     }
+    pos.x += step.x;
+    pos.y += step.y;
 
     // provoke player
     if (qix_tails.length > 0) {
@@ -4042,20 +4050,6 @@ function qixmobstep(mob, r) {
     if (intersection(pos.x, pos.y, r, qixpos.x, qixpos.y, 5)) {
       gameover();
       return;
-    }
-
-    const datapos = Math.floor((pos.x + step.x) + qixmask.width * (pos.y + step.y));
-    if (qixmap.data[datapos * 4 + 3] === 255) {
-      pos.x += step.x;
-      pos.y += step.y;
-    } else {
-      const oldirN = dir.n;
-      dir.n = dir.s;
-      dir.s = oldirN;
-
-      const oldirE = dir.e;
-      dir.e = dir.w;
-      dir.w = oldirE;
     }
   }
 }
@@ -4254,6 +4248,17 @@ ${xx - size}px ${yy}px,
 ${xx}px ${yy - size}px`);
 }
 
+function draw_square(mob, size) {
+  const pos = mob.pos;
+  const xx = spoiler.width / 2 + dim.x - qixdim.x * qixsc + (pos.x - qixpos.x) * qixsc;
+  const yy = spoiler.height / 2 + dim.y - qixdim.y * qixsc + (pos.y - qixpos.y) * qixsc;
+  clipPathTail.push(`${xx - size}px ${yy - size}px,
+${xx + size}px ${yy - size}px,
+${xx + size}px ${yy + size}px,
+${xx - size}px ${yy + size}px,
+${xx - size}px ${yy - size}px`);
+}
+
 var stopqix = false;
 
 function qixupdate() {
@@ -4298,14 +4303,14 @@ function qixupdate() {
       sate.speed.x = Math.round(Math.random() * 4);
       sate.speed.y = Math.round(Math.random() * 4);
     }
-    qixmobstep(sate, 15);
-    draw_diamond(sate, 25);
+    qixmobstep(sate, 12);
+    draw_diamond(sate, 20);
     sate.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
     clipPathTail.length = 0;
   }
 
   for (const zombie of qixmobs) {
-    qixmobstep(zombie, 10);
+    qixmobstep(zombie, 8);
     draw_diamond(zombie, 14);
     zombie.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
     clipPathTail.length = 0;

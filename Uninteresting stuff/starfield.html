@@ -371,10 +371,10 @@ canvas {
       45deg,
       #223,
       #223 8px,
-      #b53 8px,
-      #b53 16px,
-      #eca 16px,
-      #eca 24px
+      #a53 8px,
+      #a53 16px,
+      #dc9 16px,
+      #dc9 24px
     );
   }
 
@@ -3630,6 +3630,7 @@ function new_qix() {
   qixline = {
     x: 0,
     y: 0,
+    d: 'x',
   };
   tailscr.style.display = 'none';
 
@@ -3648,8 +3649,8 @@ function new_qix() {
     el: sate,
     size: 20, 
     pos: {
-      x: Math.ceil((Math.random() * qixmask.width - 2)),
-      y: Math.ceil((Math.random() * qixmask.height - 2)),
+      x: Math.floor((Math.random() * qixmask.width - 2) + 2),
+      y: Math.floor((Math.random() * qixmask.height - 2) + 2),
     },
     dir: {
       n: 0,
@@ -3674,7 +3675,13 @@ function new_qix() {
   mobspawner = setInterval(() => {
     if (qixmobs.length < 6) {
       const zombie = document.createElement('DIV');
-      zombie.classList = 'hint mob';
+      let size = 14;
+      if (Math.round(Math.random())) {
+        zombie.classList = 'hint mob';
+        size = 26;
+      } else {
+        zombie.classList = 'hint ammo';
+      }
       zombie.style.display = 'block';
       qixmobscr.appendChild(zombie);
 
@@ -3683,10 +3690,10 @@ function new_qix() {
       const sx = Math.floor(Math.random() * 3);
       qixmobs.push({
         el: zombie,
-        size: 14,
+        size: size,
         pos: {
-          x: Math.ceil((Math.random() * qixmask.width - 2)),
-          y: Math.ceil((Math.random() * qixmask.height - 2)),
+          x: Math.floor((Math.random() * qixmask.width - 2) + 2),
+          y: Math.floor((Math.random() * qixmask.height - 2) + 2),
         },
         dir: {
           n: x,
@@ -3902,15 +3909,17 @@ function qixstep() {
       qixpos.y += y;
       if (mouse[0].hold) {
         mouse[0].hold = 0;
-        for (const area of qix_tails) {
-          clearSq(...area);
+        if (qix_tails.length > 1 || qix_tails.length > 0 && (Math.abs(qix_tails[0][2]) > 1 || Math.abs(qix_tails[0][3] > 1))) {
+          for (const area of qix_tails) {
+            clearSq(...area);
+          }
+          qixmask.putImageData(qixmap, 0, 0);
+          tailscr.style.display = 'none';
+          for (const sate of qixsates) {
+            qixscan(sate);
+          }
         }
-        qixmask.putImageData(qixmap, 0, 0);
         qix_tails = [];
-        tailscr.style.display = 'none';
-        for (const sate of qixsates) {
-          qixscan(sate);
-        }
       }
     }
 

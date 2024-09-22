@@ -1028,7 +1028,7 @@ reveal.addEventListener('load', () => {
   desk.style.opacity = 0.5;
   desk.style.display = isTouch ? 'inline-block' : 'none';
 
-  speaker("Move with WASD or arrow keys, hold mouse while moving to set up barriers.\n\nMind control the boss with TFGH keys.");
+  speaker("Move player with WASD or arrow keys, hold mouse while moving to set up barriers.\n\nCapsLock to un/freeze enemies, Shift/Space to accelerate X/Y.\n\nMind control the boss with TFGH keys.");
   new_qix();
   qixupdate();
 });
@@ -3654,29 +3654,31 @@ function new_qix() {
   qixsatescr.style.display = 'block';
   qixsates.length = 0;
 
-  const sate = document.createElement('DIV');
-  sate.classList = 'hint sate';
-  sate.style.display = 'block';
-  qixsatescr.appendChild(sate);
+  for (const n of Array(2).keys()) {
+    const sate = document.createElement('DIV');
+    sate.classList = 'hint sate';
+    sate.style.display = 'block';
+    qixsatescr.appendChild(sate);
 
-  qixsates.push({
-    el: sate,
-    size: 20, 
-    pos: {
-      x: Math.floor((Math.random() * qixmask.width - 2) + 2),
-      y: Math.floor((Math.random() * qixmask.height - 2) + 2),
-    },
-    dir: {
-      n: 0,
-      e: 0,
-      s: 0,
-      w: 0,
-    },
-    speed: {
-      x: 0,
-      y: 0,
-    },
-  });
+    qixsates.push({
+      el: sate,
+      size: 20, 
+      pos: {
+        x: Math.floor((Math.random() * qixmask.width - 2) + 2),
+        y: Math.floor((Math.random() * qixmask.height - 2) + 2),
+      },
+      dir: {
+        n: 0,
+        e: 0,
+        s: 0,
+        w: 0,
+      },
+      speed: {
+        x: 0,
+        y: 0,
+      },
+    });
+  }
 
 
   while (qixmobscr.firstChild) {
@@ -3758,8 +3760,7 @@ function new_qix() {
   loadcards(repaint.qix);
 }
 
-function qixscan(sate) {
-  const satellite = [sate.pos.x, sate.pos.y];
+function qixscan(satellite) {
   const monstermap = new Uint8Array(qixmask.width*qixmask.height);
   let pixels = 0;
   for (const n of Array(qixmask.width*qixmask.height).keys()) {
@@ -3802,8 +3803,6 @@ function qixscan(sate) {
     }, 1500);
     clearInterval(mobspawner);
   }
-  qixmask.putImageData(qixmap, 0, 0);
-  repaint.qix();
 }
 
 function clearSq(x, y, w, h, co = 0) {
@@ -3922,11 +3921,14 @@ function qixstep() {
         for (const area of qix_tails) {
           clearSq(...area);
         }
-        qixmask.putImageData(qixmap, 0, 0);
         tailscr.style.display = 'none';
+        const satellite = [];
         for (const sate of qixsates) {
-          qixscan(sate);
+          satellite.push(sate.pos.x, sate.pos.y);
         }
+        qixscan(satellite);
+        qixmask.putImageData(qixmap, 0, 0);
+        repaint.qix();
       }
       qix_tails = [];
     }

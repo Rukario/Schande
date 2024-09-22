@@ -2037,7 +2037,13 @@ const repaint = {
     context.fillStyle = qixdb.color;
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    context.drawImage(spoiler.canvas, dim.x - qixscr.x * qixsc, dim.y - qixscr.y * qixsc, spoiler.width, spoiler.height);
+    const worldmap = {
+      x: dim.x - qixscr.x * qixsc*qixzoom,
+      y: dim.y - qixscr.y * qixsc*qixzoom,
+      width: spoiler.width*qixzoom,
+      height: spoiler.height*qixzoom,
+    }
+    context.drawImage(spoiler.canvas, worldmap.x, worldmap.y, worldmap.width, worldmap.height);
 
     spoilermask.clearRect(0, 0, spoilermask.width, spoilermask.height);
     spoilermask.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
@@ -2045,9 +2051,9 @@ const repaint = {
     spoilermask.drawImage(silhouette, 0, 0, spoilermask.width, spoilermask.height);
     spoilermask.globalCompositeOperation = 'source-over';
 
-    context.drawImage(spoilermask.canvas, dim.x - qixscr.x * qixsc, dim.y - qixscr.y * qixsc, spoilermask.width, spoilermask.height);
+    context.drawImage(spoilermask.canvas, worldmap.x, worldmap.y, worldmap.width, worldmap.height);
 
-    context.drawImage(cards['freemon'], 38*face, 38*anger, 38, 38, dim.x-19 + (qixpos.x-qixscr.x)*qixsc, dim.y-19 + (qixpos.y-qixscr.y)*qixsc, 38, 38);
+    context.drawImage(cards['freemon'], 38*face, 38*anger, 38, 38, dim.x-19*qixzoom + (qixpos.x-qixscr.x)*qixsc, dim.y-19*qixzoom + (qixpos.y-qixscr.y)*qixsc, 38*qixzoom, 38*qixzoom);
   },
 }
 
@@ -3633,6 +3639,7 @@ ${x}px ${y+18}px)`;
 
 
 let mobspawner;
+let qixzoom = 1;
 function new_qix() {
   qixdim = {
     x: Math.floor(qixmask.width / 2),
@@ -3733,6 +3740,7 @@ function new_qix() {
     }
   }, 2500);
 
+  qixzoom = 1;
   qixmap = qixmask.getImageData(0, 0, qixmask.width, qixmask.height);
   for (const n of Array(qixmap.data.length/4).keys()) {
     qixmap.data[n*4] = 0;
@@ -4380,6 +4388,15 @@ function qixupdate() {
     repaint.qix();
   } else if ('WASD'.split('').some((k) => Keypress['Key' + k]) || ['Left', 'Up', 'Right', 'Down'].some((k) => Keypress['Arrow' + k])) {
     qixstep();
+  }
+
+  if (Keypress.KeyE || Keypress.KeyC || Keypress.KeyZ) {
+    if (Keypress.KeyZ) {
+      qixzoom = 1;
+    } else {
+      qixzoom = Keypress.KeyE ? qixzoom*1.01 : qixzoom/1.01;
+    }
+    repaint.qix();
   }
 
   for (const sate of qixsates) {

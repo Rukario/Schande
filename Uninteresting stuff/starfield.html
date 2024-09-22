@@ -1036,7 +1036,7 @@ reveal.addEventListener('load', () => {
 
   spoiler.drawImage(reveal, 0, 0, spoiler.width, spoiler.height);
 
-  desk.style.opacity = 0.5;
+  //desk.style.opacity = 0.5;
   desk.style.display = isTouch ? 'inline-block' : 'none';
 
   speaker("Move player with WASD or arrow keys, hold mouse while moving to set up barriers.\n\nCapsLock to un/freeze enemies, Shift/Space to accelerate X/Y.\n\nMind control the boss with TFGH keys.");
@@ -3135,14 +3135,14 @@ function imawake() {
       }
 
       if (qix) {
-        desk.style.opacity = 0.5;
+        //desk.style.opacity = 0.5;
         desk.style.display = isTouch ? 'inline-block' : 'none';
         qixupdate();
         repaint.qix();
       }
 
       if (glyph) {
-        desk.style.opacity = 1;
+        //desk.style.opacity = 1;
         desk.style.display = 'inline-block';
         tailscr.style.display = 'block';
         new_glyph();
@@ -3563,7 +3563,7 @@ function new_glyph(clear) {
   context.clearRect(0, 0, canvas.width, canvas.height);
 
   glyphscr.style.display = 'block';
-  desk.style.opacity = 1;
+  //desk.style.opacity = 1;
   desk.style.display = 'inline-block';
   if (clear) {
     editor.textContent = '';
@@ -3653,6 +3653,7 @@ ${x}px ${y+18}px)`;
 
 let mobspawner;
 let qixzoom = 1;
+let qixkeyboard = isTouch ? 180 : 0;
 function new_qix() {
   qixdim = {
     x: Math.floor(qixmask.width / 2),
@@ -3664,7 +3665,7 @@ function new_qix() {
   };
   qixscr = {
     x: qixpos.x,
-    y: qixpos.y,
+    y: qixpos.y + qixkeyboard/2,
   }
   qix_tails = [];
   qixline = {
@@ -3888,8 +3889,8 @@ const securitycam = (pos) => {
     qixscr.x = pos.x;
   }
 
-  if (dim.y/qixsc - 64 < pos.y && pos.y < qixmask.height - dim.y/qixsc + 64) {
-    qixscr.y = pos.y;
+  if ((dim.y - qixkeyboard)/qixsc - 64 < pos.y && pos.y < qixmask.height - (dim.y + qixkeyboard)/qixsc + 64) {
+    qixscr.y = pos.y + qixkeyboard/2;
   }
 }
 

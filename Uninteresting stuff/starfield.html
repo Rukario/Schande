@@ -3996,9 +3996,6 @@ const gameover = () => {
   anger = 1;
   repaint.qix();
   setTimeout(() => {
-    stopqix = true;
-  }, 0);
-  setTimeout(() => {
     anger = 0;
     new_qix();
     qixupdate();
@@ -4006,10 +4003,8 @@ const gameover = () => {
   clearInterval(mobspawner);
 }
 
-const hemipi = Math.PI / 2;
-
 function qixmobstep(mob) {
-  const r = mob.size / hemipi;
+  const r = mob.size / 1.5;
   const pos = mob.pos;
   const dir = mob.dir;
   const speed = mob.speed;
@@ -4072,27 +4067,23 @@ function qixmobstep(mob) {
         }
         if (last) {
           if (intersection_line(last.x, last.y, x, y, pos.x, pos.y, r)) {
-            gameover();
-            return;
+            return true;
           }
           last = null;
         }
         if (intersection_line(x, y, x+width, y+height, pos.x, pos.y, r)) {
-          gameover();
-          return;
+          return true;
         }
       }
       if (last) {
         if (intersection_line(last.x, last.y, qixpos.x, qixpos.y, pos.x, pos.y, r)) {
-          gameover();
-          return;
+          return true;
         }
         last = null;
       }
     }
     if (intersection(pos.x, pos.y, r, qixpos.x, qixpos.y, 5)) {
-      gameover();
-      return;
+      return true;
     }
   }
 }
@@ -4348,14 +4339,21 @@ function qixupdate() {
       sate.speed.x = Math.round(Math.random() * 4);
       sate.speed.y = Math.round(Math.random() * 4);
     }
-    qixmobstep(sate);
+          
+    if (qixmobstep(sate)) {
+      gameover();
+      return;
+    }
     draw_diamond(sate);
     sate.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
     clipPathTail.length = 0;
   }
 
   for (const zombie of qixmobs) {
-    qixmobstep(zombie);
+    if (qixmobstep(zombie)) {
+      gameover();
+      return;
+    }
     draw_diamond(zombie);
     zombie.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
     clipPathTail.length = 0;

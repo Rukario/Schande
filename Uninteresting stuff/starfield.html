@@ -1062,31 +1062,37 @@ const fps_history_slots = 10;
 function screensaver(resolve) {
   let frameThen = then = performance.now();
   let fps_increase = 0;
+  let fps_frames = 0;
   let fpshistory = [];
   const update = () => {
     if (stopscr) {
       return resolve(true);
     }
     requestAnimationFrame(update);
-    fps_increase++;
 
-    const frameNow = now = performance.now();
+    const now = performance.now();
     const sinceStart = now - scrTime;
     const msec = now - startTime;
     fpshistory.unshift(msec);
 
-    if (frameNow >= frameThen) {
-      frameThen = frameNow + 1000;
-      fps.hz = fps_increase > 70 ? 120 : 60;
-      fps_increase = 0;
-    }
-
     if (fpshistory.length > fps_history_slots) {
-      const sec = (Math.round(msec / 1000 * 100) / 100).toFixed(2).padStart(3, '0');
       const fps_last = fpshistory.pop();
-      const fps_display = Math.floor(1000 * fps_history_slots / (msec - fps_last)).toFixed(2).padStart(3, '0');
-      //const fps_display = fps_increase.toFixed(2).padStart(3, '0');
-      result.textContent = `Uninterrupted for ${sec} seconds @ ${fps_display} fps`;
+      const findhz = Math.floor(1000 * fps_history_slots / (msec - fps_last));
+      fps.hz = findhz > 70 ? 120 : 60;
+
+      if (fps.display) {
+        fps_increase++;
+        if (now >= frameThen) {
+          frameThen = now + 1000;
+          fps_frames = fps_increase;
+          //fps.hz = fps_increase > 70 ? 120 : 60;
+          fps_increase = 0;
+        }
+        const sec = (Math.round(msec / 1000 * 100) / 100).toFixed(2).padStart(3, '0');
+        result.textContent = 'Uninterrupted for ' + sec +  ' seconds @ ' + String(findhz).padStart(3, '0') + ' fps ' + String(fps_frames).padStart(3, '0') + ' frames';
+      } else {
+        fps_increase = -1;
+      }
     }
 
     const elapsed = now - then;

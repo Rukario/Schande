@@ -356,7 +356,7 @@ canvas {
   z-index: 3;
 }
 
-#qixsatescr, #qixmobscr {
+#qixsatescr, #qixmobscr, #qixprojscr {
   display: none;
 }
 
@@ -407,6 +407,17 @@ canvas {
       #f0f 10px,
       #0f0 10px,
       #0f0 20px
+    );
+  }
+
+  &.bguncher {
+    position: absolute;
+    background: repeating-linear-gradient(
+      45deg,
+      #959,
+      #959 10px,
+      #c9d 10px,
+      #c9d 20px
     );
   }
 }
@@ -3176,6 +3187,7 @@ function repeatpress(tooie, down) {
 }
 
 const FFdown = (e_) => {
+  imawake();
   const tooies = [0];
   if (isTouch) {
     tooies.length = 0;
@@ -3526,6 +3538,7 @@ var qixmap = null;
 var qixdim, qixpos, qixscr, qix_tails, qixline;
 var qixsates = [];
 var qixmobs = [];
+var qixprojs = [];
 var glyphm = newCanvas();
 var glyphc = newCanvas();
 var glyph_chars = 46;
@@ -3661,38 +3674,40 @@ function new_qix() {
   };
   tailscr.style.display = 'none';
 
-  while (qixsatescr.firstChild) {
-    qixsatescr.lastChild.remove();
-  }
-  qixsatescr.style.display = 'block';
-  qixsates.length = 0;
+  const new_mob = (type, scr, size, c) => {
+    const mob = document.createElement('DIV');
+    mob.classList = c;
+    mob.style.display = 'block';
+    scr.appendChild(mob);
 
-  for (const n of Array(2).keys()) {
-    const sate = document.createElement('DIV');
-    sate.classList = 'hint sate';
-    sate.style.display = 'block';
-    qixsatescr.appendChild(sate);
-
-    qixsates.push({
-      el: sate,
-      size: 20, 
+    const x = Math.round(Math.random());
+    const y = Math.round(Math.random());
+    const sx = Math.floor(Math.random() * 3);
+    type.push({
+      el: mob,
+      size: size,
       pos: {
         x: Math.floor((Math.random() * qixmask.width - 2) + 2),
         y: Math.floor((Math.random() * qixmask.height - 2) + 2),
       },
       dir: {
-        n: 0,
-        e: 0,
-        s: 0,
-        w: 0,
+        n: x,
+        e: y,
+        s: Math.abs(x-1),
+        w: Math.abs(y-1),
       },
       speed: {
-        x: 0,
-        y: 0,
+        x: sx,
+        y: sx ? Math.floor(Math.random() * 3) : Math.ceil(Math.random() * 2),
       },
     });
   }
 
+  while (qixsatescr.firstChild) {
+    qixsatescr.lastChild.remove();
+  }
+  qixsatescr.style.display = 'block';
+  qixsates.length = 0;
 
   while (qixmobscr.firstChild) {
     qixmobscr.lastChild.remove();
@@ -3700,43 +3715,30 @@ function new_qix() {
   qixmobscr.style.display = 'block';
   qixmobs.length = 0;
 
+  while (qixprojscr.firstChild) {
+    qixprojscr.lastChild.remove();
+  }
+  qixprojscr.style.display = 'block';
+  qixprojs.length = 0;
+
+  for (const n of Array(2).keys()) {
+    new_mob(qixsates, qixsatescr, 20, 'hint sate');
+  }
+
+  //for (const n of Array(8).keys()) {
+  //  new_mob(qixprojs, qixprojscr, 6, 'hint bguncher');
+  //}
+
   clearInterval(mobspawner);
   mobspawner = setInterval(() => {
     if (qixmobs.length < 6) {
-      const zombie = document.createElement('DIV');
-      let size = 26;
       if (Math.round(Math.random())) {
-        zombie.classList = 'hint mob';
-        size = 14;
+        new_mob(qixmobs, qixmobscr, 14, 'hint mob');
       } else {
-        zombie.classList = 'hint ammo';
+        new_mob(qixmobs, qixmobscr, 26, 'hint ammo');
       }
-      zombie.style.display = 'block';
-      qixmobscr.appendChild(zombie);
-
-      const x = Math.round(Math.random());
-      const y = Math.round(Math.random());
-      const sx = Math.floor(Math.random() * 3);
-      qixmobs.push({
-        el: zombie,
-        size: size,
-        pos: {
-          x: Math.floor((Math.random() * qixmask.width - 2) + 2),
-          y: Math.floor((Math.random() * qixmask.height - 2) + 2),
-        },
-        dir: {
-          n: x,
-          e: y,
-          s: Math.abs(x-1),
-          w: Math.abs(y-1),
-        },
-        speed: {
-          x: sx,
-          y: sx ? Math.floor(Math.random() * 3) : Math.ceil(Math.random() * 2),
-        },
-      });
-
-      //console.log(qixmobs.length, 'zombies', qixmobscr.childNodes);
+      
+      //echo(qixmobs.length + ' mobs ', false);
     }
   }, 2500);
 
@@ -3768,6 +3770,12 @@ function new_qix() {
   for (const zombie of qixmobs) {
     draw_diamond(zombie);
     zombie.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
+    clipPathTail.length = 0;
+  }
+
+  for (const proj of qixprojs) {
+    draw_diamond(proj);
+    proj.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
     clipPathTail.length = 0;
   }
 
@@ -4071,7 +4079,7 @@ const gameover = () => {
 }
 
 function qixmobstep(mob) {
-  const r = mob.size / 1.5;
+  const r = mob.size / 4;
   const pos = mob.pos;
   const dir = mob.dir;
   const speed = Keypress.CapsLock ? {x:0, y:0} : mob.speed;
@@ -4425,13 +4433,29 @@ function qixupdate() {
     clipPathTail.length = 0;
   }
 
-  for (const zombie of qixmobs) {
-    if (qixmobstep(zombie)) {
+  for (const [n, proj] of qixprojs.entries()) {
+    sate = qixsates[n % qixsates.length];
+    proj.pos.x = sate.pos.x - 12 + 8*Math.floor(n/2);
+    //proj.pos.y = sate.pos.y + 5 + 4*Math.floor(n/2);
+    proj.pos.y = sate.pos.y;
+    proj.speed.x = 0;
+    proj.speed.y = 1;
+    if (qixmobstep(proj)) {
       gameover();
       return;
     }
-    draw_diamond(zombie);
-    zombie.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
+    draw_diamond(proj);
+    proj.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
+    clipPathTail.length = 0;
+  }
+
+  for (const mob of qixmobs) {
+    if (qixmobstep(mob)) {
+      gameover();
+      return;
+    }
+    draw_diamond(mob);
+    mob.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
     clipPathTail.length = 0;
   }
 
@@ -4616,6 +4640,7 @@ function makemenu() {
       tailscr.style.display = 'none';
       qixsatescr.style.display = 'none';
       qixmobscr.style.display = 'none';
+      qixprojscr.style.display = 'none';
 
       glyph = false;
       glyphscr.style.display = 'none';
@@ -4650,6 +4675,7 @@ function makemenu() {
       tailscr.style.display = 'none';
       qixsatescr.style.display = 'none';
       qixmobscr.style.display = 'none';
+      qixprojscr.style.display = 'none';
 
       glyph = false;
       glyphscr.style.display = 'none';
@@ -4728,6 +4754,7 @@ ${x}px ${y + 18}px
         stopscr = true;
         qixsatescr.style.display = 'none';
         qixmobscr.style.display = 'none';
+        qixprojscr.style.display = 'none';
         document.body.style.backgroundColor = '#dbe';
 
         new_glyph(true);
@@ -4740,7 +4767,7 @@ ${x}px ${y + 18}px
     poppy.append(unlock(['Glyph (', ')'], 5));
   }
 
-  poppy.append(newmenu('Options', submenu, false, options));
+  poppy.append(newmenu('Manual', submenu, false, options));
 
   listener = (e) => {
     e.addEventListener(tc, () => {
@@ -4789,6 +4816,7 @@ ${x}px ${y + 18}px
       tailscr.style.display = 'none';
       qixsatescr.style.display = 'none';
       qixmobscr.style.display = 'none';
+      qixprojscr.style.display = 'none';
 
       glyph = false;
       glyphscr.style.display = 'none';
@@ -5866,6 +5894,7 @@ window.addEventListener('load', () => {
 <div class='hintscreen'><div class='hint tail' id='tailscr'></div></div>
 <div class='hintscreen' id='qixsatescr'></div>
 <div class='hintscreen' id='qixmobscr'></div>
+<div class='hintscreen' id='qixprojscr'></div>
 <div id='result'></div>
 <div id='stdout'>Output:</div>
 <div class='poppy' id='poppy'></div>

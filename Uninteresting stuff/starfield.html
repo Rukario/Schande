@@ -441,6 +441,16 @@ canvas {
   );
 }
 
+#hint5 {
+  background: repeating-linear-gradient(
+    45deg,
+    #730,
+    #730 10px,
+    #f70 10px,
+    #f70 20px
+  );
+}
+
 #result, #stdout, #glyphscr {
   white-space: pre-wrap;
   display: none;
@@ -3862,6 +3872,36 @@ const securitycam = (pos) => {
   }
 }
 
+function aliasedline(x0, y0, x1, y1) {
+  const pixels = new Array();
+
+  const dx = Math.abs(x1 - x0);
+  const dy = Math.abs(y1 - y0);
+  const sx = Math.sign(x1 - x0);
+  const sy = Math.sign(y1 - y0);
+  let err = dx - dy;
+
+  pixels.push([x0, y0]);
+  while (true) {
+    if (x0 === x1 && y0 === y1) {
+      break;
+    }
+
+    const e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x0 += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y0 += sy;
+    }
+    pixels.push([x0, y0]);
+  }
+
+  return pixels;
+}
+
 function qixstep() {
   const dir = {
     e: Keypress.KeyD || Keypress.ArrowRight,
@@ -3874,20 +3914,37 @@ function qixstep() {
     face = dir.w ? 1 : 2;
   }
 
-  const speed = 1;
+  // invisible barrier    
+  const landed = () => {
+    if (mouse[0].hold) {
+      mouse[0].hold = 0;
+      if (qix_tails.length > 1 || qix_tails.length > 0 && (Math.abs(qix_tails[0][2]) > 1 || Math.abs(qix_tails[0][3]) > 1)) {
+        for (const area of qix_tails) {
+          clearSq(...area);
+        }
+        qixmask.putImageData(qixmap, 0, 0);
+        tailscr.style.display = 'none';
+        for (const sate of qixsates) {
+          qixscan(sate);
+        }
+      }
+      qix_tails = [];
+    }
+  }
+
   for (const frame of Array(120/fps.hz).keys()) {
-    const step = {
+    const interstep = {
       x: 0,
       y: 0,
     }
 
     if (dir.w && !dir.e || dir.e && !dir.w) {
-      for (const x of Array(speed).keys()) {
+      for (const x of Array((Keypress.ShiftLeft || Keypress.ShiftRight) ? 2 : 1).keys()) {
         const pow = dir.w ? -x-1 : x+1;
 
         // death barrier
         if (qixpos.x + pow >= 0 && qixpos.x + pow <= qixmask.width) {
-          step.x = pow;
+          interstep.x = pow;
         } else {
           break;
         }
@@ -3895,64 +3952,56 @@ function qixstep() {
     }
 
     if (dir.n && !dir.s || dir.s && !dir.n) {
-      for (const y of Array(speed).keys()) {
+      for (const y of Array(Keypress.Space ? 2 : 1).keys()) {
         const pow = dir.n ? -y-1 : y+1;
 
         // death barrier
         if (qixpos.y + pow >= 0 && qixpos.y + pow <= qixmask.height) {
-          step.y = pow;
+          interstep.y = pow;
         } else {
           break;
         }
       }
     }
 
-    if (step.x === 0 && step.y === 0) {
+    if (interstep.x === 0 && interstep.y === 0) {
       return;
     }
+
+    for (const [width, height] of aliasedline(0, 0, interstep.x, interstep.y)) {
+      if (!width && !height) {
+        continue;
+      }
+      if (cleared(qixpos.x + width + qixmask.width * (qixpos.y + height))) {
+        stixpath(width, true);
+        landed();
+        qixpos.x += Math.sign(width);
+        qixpos.y += Math.sign(height);
+      } else if (mouse[0].down) {
+        // on adventure
+        mouse[0].hold = 1;
+        stixpath(width);
+        qixpos.x += Math.sign(width);
+        qixpos.y += Math.sign(height);
+      } else if (cleared(qixpos.x + width + qixmask.width * qixpos.y)) {
+        stixpath(width, true);
+        landed();
+        qixpos.x += Math.sign(width);
+      } else if (cleared(qixpos.x + qixmask.width * (qixpos.y + height))) {
+        stixpath(width, true);
+        landed();
+        qixpos.y += Math.sign(height);
+      } else {
+        break;
+      }
+    }
+
+    securitycam(qixpos);
 
     //if (step.x !== 0 && step.y !== 0) {
     //  step.x /= 2;
     //  step.y /= 2;
     //}
-
-    // invisible barrier    
-    const stepmap = (x, y) => {
-      stixpath(x, true);
-      qixpos.x += x;
-      qixpos.y += y;
-      securitycam(qixpos);
-
-      if (mouse[0].hold) {
-        mouse[0].hold = 0;
-        if (qix_tails.length > 1 || qix_tails.length > 0 && (Math.abs(qix_tails[0][2]) > 1 || Math.abs(qix_tails[0][3]) > 1)) {
-          for (const area of qix_tails) {
-            clearSq(...area);
-          }
-          qixmask.putImageData(qixmap, 0, 0);
-          tailscr.style.display = 'none';
-          for (const sate of qixsates) {
-            qixscan(sate);
-          }
-        }
-        qix_tails = [];
-      }
-    }
-
-    if (cleared(qixpos.x + step.x + qixmask.width * (qixpos.y + step.y))) {
-      stepmap(step.x, step.y);
-    } else if (mouse[0].down) {
-      // on adventure
-      mouse[0].hold = 1;
-      stixpath(step.x);
-      qixpos.x += step.x;
-      qixpos.y += step.y;
-      securitycam(qixpos);
-    } else if (cleared(qixpos.x + step.x + qixmask.width * qixpos.y)) {
-      stepmap(step.x, 0);
-    } else if (cleared(qixpos.x + qixmask.width * (qixpos.y + step.y))) {
-      stepmap(0, step.y);
-    }
   }
   draw_tail(tailscr);
   repaint.qix();
@@ -4007,9 +4056,9 @@ function qixmobstep(mob) {
   const r = mob.size / 1.5;
   const pos = mob.pos;
   const dir = mob.dir;
-  const speed = mob.speed;
+  const speed = Keypress.CapsLock ? {x:0, y:0} : mob.speed;
   for (const frame of Array(120/fps.hz).keys()) {
-    const step = {
+    const interstep = {
       x: 0,
       y: 0,
     };
@@ -4020,7 +4069,7 @@ function qixmobstep(mob) {
 
         // death barrier
         if (pos.x + pow >= 0 && pos.x + pow <= qixmask.width && !cleared(pos.x + pow + qixmask.width * pos.y)) {
-          step.x = pow;
+          interstep.x = pow;
         } else {
           const oldirE = dir.e;
           dir.e = dir.w;
@@ -4035,8 +4084,8 @@ function qixmobstep(mob) {
         const pow = dir.n ? -y-1 : y+1;
 
         // death barrier
-        if (pos.y + pow >= 0 && pos.y + pow <= qixmask.height && !cleared(pos.x + step.x + qixmask.width * (pos.y + pow))) {
-          step.y = pow;
+        if (pos.y + pow >= 0 && pos.y + pow <= qixmask.height && !cleared(pos.x + interstep.x + qixmask.width * (pos.y + pow))) {
+          interstep.y = pow;
         } else {
           const oldirN = dir.n;
           dir.n = dir.s;
@@ -4046,11 +4095,11 @@ function qixmobstep(mob) {
       }
     }
 
-    if (step.x === 0 && step.y === 0) {
+    if (interstep.x === 0 && interstep.y === 0) {
       return;
     }
-    pos.x += step.x;
-    pos.y += step.y;
+    pos.x += interstep.x;
+    pos.y += interstep.y;
 
     // provoke player
     if (qix_tails.length > 0) {

@@ -3972,25 +3972,27 @@ function qixstep() {
       if (!width && !height) {
         continue;
       }
-      if (cleared(qixpos.x + width + qixmask.width * (qixpos.y + height))) {
-        stixpath(width, true);
+      const x = Math.sign(width);
+      const y = Math.sign(height);
+      if (cleared(qixpos.x + x + qixmask.width * (qixpos.y + y))) {
+        stixpath(x, true);
         landed();
-        qixpos.x += Math.sign(width);
-        qixpos.y += Math.sign(height);
+        qixpos.x += x;
+        qixpos.y += y;
       } else if (mouse[0].down) {
         // on adventure
         mouse[0].hold = 1;
-        stixpath(width);
-        qixpos.x += Math.sign(width);
-        qixpos.y += Math.sign(height);
+        stixpath(x);
+        qixpos.x += x;
+        qixpos.y += y;
       } else if (cleared(qixpos.x + width + qixmask.width * qixpos.y)) {
-        stixpath(width, true);
+        stixpath(x, true);
         landed();
-        qixpos.x += Math.sign(width);
-      } else if (cleared(qixpos.x + qixmask.width * (qixpos.y + height))) {
-        stixpath(width, true);
+        qixpos.x += x;
+      } else if (cleared(qixpos.x + qixmask.width * (qixpos.y + y))) {
+        stixpath(x, true);
         landed();
-        qixpos.y += Math.sign(height);
+        qixpos.y += y;
       } else {
         break;
       }

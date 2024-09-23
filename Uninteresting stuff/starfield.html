@@ -3653,7 +3653,7 @@ ${x}px ${y+18}px)`;
 
 let mobspawner;
 let qixzoom = 1;
-let qixkeyboard = isTouch ? 180 : 0;
+let qixkeyboard = isTouch ? 200 : 0;
 function new_qix() {
   qixdim = {
     x: Math.floor(qixmask.width / 2),
@@ -3889,7 +3889,7 @@ const securitycam = (pos) => {
     qixscr.x = pos.x;
   }
 
-  if ((dim.y - qixkeyboard)/qixsc - 64 < pos.y && pos.y < qixmask.height - (dim.y + qixkeyboard)/qixsc + 64) {
+  if ((dim.y - qixkeyboard)/qixsc - 64 < pos.y && pos.y < qixmask.height - (dim.y - qixkeyboard)/qixsc + 64) {
     qixscr.y = pos.y + qixkeyboard/2;
   }
 }

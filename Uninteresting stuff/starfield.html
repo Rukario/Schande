@@ -3654,7 +3654,11 @@ ${x}px ${y+18}px)`;
 
 let mobspawner;
 let qixzoom = 1;
-let qixkeyboard = isTouch ? 200 : 0;
+let qixkeyboard = 0;
+if (isTouch) {
+  qixkeyboard = canvas.width > 854 ? 200 : 180;
+}
+
 function new_qix() {
   winanim = false;
   anger = 0;
@@ -3918,9 +3922,9 @@ const securitycam = (pos) => {
     pos.y > top &&
     pos.y < bottom 
   ) {
-    qixscr.y = pos.y + qixkeyboard/2;
+    qixscr.y = pos.y + qixkeyboard/2/qixzoom;
   } else if (pos.y > top) {
-    qixscr.y = qixmask.height - dim.y / qixsc / qixzoom + outstanding.height / qixzoom + 1 + qixkeyboard;
+    qixscr.y = qixmask.height - dim.y / qixsc / qixzoom + outstanding.height / qixzoom + 1 + qixkeyboard/qixzoom;
   } else {
     qixscr.y = (dim.y / qixsc - outstanding.height) / qixzoom + 1;
   }
@@ -5758,6 +5762,9 @@ function resize() {
   dim.y = Math.floor(canvas.height/2);
   scr.friction.x = Math.ceil(canvas.width/canvas.height);
   scr.friction.y = Math.ceil(canvas.height/canvas.width);
+  if (isTouch) {
+    qixkeyboard = canvas.width > 854 ? 200 : 180;
+  }
 }
 
 const cursors = [];

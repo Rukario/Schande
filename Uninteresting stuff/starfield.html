@@ -2056,15 +2056,16 @@ const repaint = {
     }
     context.drawImage(spoiler.canvas, worldmap.x, worldmap.y, worldmap.width, worldmap.height);
 
-    spoilermask.clearRect(0, 0, spoilermask.width, spoilermask.height);
-    spoilermask.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
-    spoilermask.globalCompositeOperation = 'source-in';
-    spoilermask.drawImage(silhouette, 0, 0, spoilermask.width, spoilermask.height);
-    spoilermask.globalCompositeOperation = 'source-over';
+    if (!winanim) {
+      spoilermask.clearRect(0, 0, spoilermask.width, spoilermask.height);
+      spoilermask.drawImage(qixmask.canvas, 0, 0, qixmask.width*qixsc, qixmask.height*qixsc);
+      spoilermask.globalCompositeOperation = 'source-in';
+      spoilermask.drawImage(silhouette, 0, 0, spoilermask.width, spoilermask.height);
+      spoilermask.globalCompositeOperation = 'source-over';
+      context.drawImage(spoilermask.canvas, worldmap.x, worldmap.y, worldmap.width, worldmap.height);
 
-    context.drawImage(spoilermask.canvas, worldmap.x, worldmap.y, worldmap.width, worldmap.height);
-
-    context.drawImage(cards['freemon'], 38*face, 38*anger, 38, 38, dim.x-19*qixzoom + (qixpos.x-qixscr.x)*qixsc, dim.y-19*qixzoom + (qixpos.y-qixscr.y)*qixsc, 38*qixzoom, 38*qixzoom);
+      context.drawImage(cards['freemon'], 38*face, 38*anger, 38, 38, dim.x-19*qixzoom + (qixpos.x-qixscr.x)*qixsc, dim.y-19*qixzoom + (qixpos.y-qixscr.y)*qixsc, 38*qixzoom, 38*qixzoom);
+    }
   },
 }
 
@@ -3655,6 +3656,8 @@ let mobspawner;
 let qixzoom = 1;
 let qixkeyboard = isTouch ? 200 : 0;
 function new_qix() {
+  winanim = false;
+  anger = 0;
   qixdim = {
     x: Math.floor(qixmask.width / 2),
     y: Math.floor(qixmask.height / 2),
@@ -3815,15 +3818,21 @@ function qixscan(satellite) {
 
   if (Math.floor((pixels/monstermap.length)*10000)/100 > 99) {
     setTimeout(() => {
-      stopqix = true;
+      //stopqix = true;
+      winanim = true;
+      speaker('Press Q + R to restart the game.\n\nE and C to zoom in/out, Z to reset zooming.');
+      qixsatescr.style.display = 'none';
+      qixmobscr.style.display = 'none';
+      qixprojscr.style.display = 'none';
       winsoln += 2;
       savestar('winsol=', winsoln);
       makemenu();
+      repaint.qix();
     }, 0);
-    setTimeout(() => {
-      new_qix();
-      qixupdate();
-    }, 1500);
+    //setTimeout(() => {
+    //  new_qix();
+    //  qixupdate();
+    //}, 1500);
     clearInterval(mobspawner);
   }
 }
@@ -3885,12 +3894,35 @@ function stixpath(nx, land) {
 }
 
 const securitycam = (pos) => {
-  if (dim.x/qixsc - 64 < pos.x && pos.x < qixmask.width - dim.x/qixsc + 64) {
-    qixscr.x = pos.x;
+  const outstanding = {
+    width: Math.max(64, Math.floor(dim.x / qixsc - qixdim.x * qixzoom)),
+    height: Math.max(64, Math.floor(dim.y / qixsc - qixdim.y * qixzoom)),
   }
 
-  if ((dim.y - qixkeyboard)/qixsc - 64 < pos.y && pos.y < qixmask.height - (dim.y - qixkeyboard)/qixsc + 64) {
+  const left = (dim.x / qixsc - outstanding.width) / qixzoom;
+  const right = (qixmask.width * qixzoom - dim.x / qixsc + outstanding.width) / qixzoom;
+  if (
+    pos.x > left &&
+    pos.x < right
+  ) {
+    qixscr.x = pos.x;
+  } else if (pos.x > left) {
+    qixscr.x = qixmask.width - dim.x / qixsc / qixzoom + outstanding.width / qixzoom + 1;
+  } else {
+    qixscr.x = (dim.x / qixsc - outstanding.width) / qixzoom + 1;
+  }
+
+  const top = ((dim.y - qixkeyboard) / qixsc - outstanding.height) / qixzoom;
+  const bottom = ((qixmask.height * qixzoom - (dim.y - qixkeyboard) / qixsc) + outstanding.height) / qixzoom;
+  if (
+    pos.y > top &&
+    pos.y < bottom 
+  ) {
     qixscr.y = pos.y + qixkeyboard/2;
+  } else if (pos.y > top) {
+    qixscr.y = qixmask.height - dim.y / qixsc / qixzoom + outstanding.height / qixzoom + 1 + qixkeyboard/2;
+  } else {
+    qixscr.y = (dim.y / qixsc - outstanding.height) / qixzoom + 1 + qixkeyboard/2;
   }
 }
 
@@ -3999,7 +4031,7 @@ function qixstep() {
       }
       const x = Math.sign(width);
       const y = Math.sign(height);
-      if (cleared(qixpos.x + x + qixmask.width * (qixpos.y + y))) {
+      if (winanim || cleared(qixpos.x + x + qixmask.width * (qixpos.y + y))) {
         stixpath(x, true);
         landed();
         qixpos.x += x;
@@ -4071,8 +4103,8 @@ const proj = (x0, y0, x1, y1) => {
 const gameover = () => {
   anger = 1;
   repaint.qix();
+
   setTimeout(() => {
-    anger = 0;
     new_qix();
     qixupdate();
   }, 250);
@@ -4399,15 +4431,6 @@ function qixupdate() {
     qixstep();
   }
 
-  if (Keypress.KeyE || Keypress.KeyC || Keypress.KeyZ) {
-    if (Keypress.KeyZ) {
-      qixzoom = 1;
-    } else {
-      qixzoom = Keypress.KeyE ? qixzoom*1.01 : qixzoom/1.01;
-    }
-    repaint.qix();
-  }
-
   for (const sate of qixsates) {
     if ('TFGH'.split('').some((k) => Keypress['Key' + k])) {
       sate.dir.n = Keypress.KeyT;
@@ -4434,30 +4457,46 @@ function qixupdate() {
     clipPathTail.length = 0;
   }
 
-  for (const [n, proj] of qixprojs.entries()) {
-    sate = qixsates[n % qixsates.length];
-    proj.pos.x = sate.pos.x - 12 + 8*Math.floor(n/2);
-    //proj.pos.y = sate.pos.y + 5 + 4*Math.floor(n/2);
-    proj.pos.y = sate.pos.y;
-    proj.speed.x = 0;
-    proj.speed.y = 1;
-    if (qixmobstep(proj)) {
-      gameover();
-      return;
+  if (!winanim) {
+    for (const [n, proj] of qixprojs.entries()) {
+      sate = qixsates[n % qixsates.length];
+      proj.pos.x = sate.pos.x - 12 + 8*Math.floor(n/2);
+      //proj.pos.y = sate.pos.y + 5 + 4*Math.floor(n/2);
+      proj.pos.y = sate.pos.y;
+      proj.speed.x = 0;
+      proj.speed.y = 1;
+      if (qixmobstep(proj)) {
+        gameover();
+        return;
+      }
+      draw_diamond(proj);
+      proj.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
+      clipPathTail.length = 0;
     }
-    draw_diamond(proj);
-    proj.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
-    clipPathTail.length = 0;
-  }
 
-  for (const mob of qixmobs) {
-    if (qixmobstep(mob)) {
-      gameover();
-      return;
+    for (const mob of qixmobs) {
+      if (qixmobstep(mob)) {
+        gameover();
+        return;
+      }
+      draw_diamond(mob);
+      mob.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
+      clipPathTail.length = 0;
     }
-    draw_diamond(mob);
-    mob.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
-    clipPathTail.length = 0;
+  } else {
+    if (Keypress.KeyE || Keypress.KeyC || Keypress.KeyZ) {
+      if (Keypress.KeyZ) {
+        qixzoom = 1;
+      } else {
+        qixzoom = Keypress.KeyE ? qixzoom*1.01 : qixzoom/1.01;
+      }
+      securitycam(qixpos);
+      repaint.qix();
+    }
+    
+    if (Keypress.KeyQ && Keypress.KeyR) {
+      new_qix();
+    }
   }
 
   if (!qix || stopqix) {
@@ -5844,7 +5883,7 @@ window.addEventListener('load', () => {
     }
   });
   addEventListener('resize', () => {
-    if (!winanim) {
+    if (!solitaire || !winanim) {
       resize();
     }
 

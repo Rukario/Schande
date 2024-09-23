@@ -3920,9 +3920,9 @@ const securitycam = (pos) => {
   ) {
     qixscr.y = pos.y + qixkeyboard/2;
   } else if (pos.y > top) {
-    qixscr.y = qixmask.height - dim.y / qixsc / qixzoom + outstanding.height / qixzoom + 1 + qixkeyboard/2;
+    qixscr.y = qixmask.height - dim.y / qixsc / qixzoom + outstanding.height / qixzoom + 1 + qixkeyboard;
   } else {
-    qixscr.y = (dim.y / qixsc - outstanding.height) / qixzoom + 1 + qixkeyboard/2;
+    qixscr.y = (dim.y / qixsc - outstanding.height) / qixzoom + 1;
   }
 }
 

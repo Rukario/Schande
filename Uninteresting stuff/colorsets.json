@@ -1089,10 +1089,10 @@
   "Sheath colors (✨ = exclusive to sheaths)":true,
   "Chance Sheath's Natural":[[149, 1271]],
   "Chance Sheath's Signature":[[148, 1272]],
-  "Crackers' Sheath Signature Legacy":[290],
-  "Crackers' Sheath Natural Legacy":[291],
-  "Crackers' Sheath Natural":[[153, 1265]],
-  "Crackers' Sheath Signature":[[152, 1266]],
+  "Crackers' Sheath Natural":[[1509, 1265]],
+  "Crackers' Sheath Natural Legacy":[[153, 291]],
+  "Crackers' Sheath Signature":[[1510, 1266]],
+  "Crackers' Sheath Signature Legacy":[[152, 290]],
   "David's Sheath Natural":[[155, 1108, 852]],
   "David's Sheath Natural Legacy":[295],
   "David's Sheath Signature":[[154, 1107, 294]],
@@ -1261,10 +1261,6 @@
   "Crackers' Natural Legacy":[[null, 794], "???", 0, 0],
 
   "Retired/Mislabelled":true,
-  "Morning Dew":[null],
-  "Splendid Violet":[null],
-  "Satin Green":[null],
-  "Luster Blue":[null],
   "Surprise Me":[304, "???", 0, 0],
   "Black":[371, "???", 0, 0],
   "Birthday Cake":[455],
@@ -1273,5 +1269,9 @@
   "Rogue":[1187],
   "bruce's old natural":[1261, "???", 0, 0],
   "Constellation":[1298],
-  "duke's natural*":[1302, "???", 0, 0]
+  "duke's natural*":[1302, "???", 0, 0],
+  "Luster Blue":[1332, "???", 0, 0],
+  "Splendid Violet":[1333, "???", 0, 0],
+  "Satin Green":[1334, "???", 0, 0],
+  "Morning Dew":[1335, "???", 0, 0]
 }

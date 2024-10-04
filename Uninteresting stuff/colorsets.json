@@ -867,10 +867,10 @@
   "Sandy Claus":[1460, "???", 0, 0],
   "Holly Berry":[1461, "???", 0, 0],
   "Butterfly Kissed":[1464, "???", 0, 0],
-  "Amped Up":[1494, "???", 0, 0],
-  "Far Out":[1495, "???", 0, 0],
   "Clown Prince":[1501, "???", 0, 0],
   "Doll Face":[1502, "???", 0, 0],
+  "Frank's Berries":[1516, "???", 0, 0],
+  "Thriller":[1517, "???", 0, 0],
 
   "Con":true,
   "Con Trash Bandit":[492, "ocean blue", 0, 0, "cream", 2, 0],
@@ -969,6 +969,8 @@
   "Radical Rainbow":[1299],
   "Chill Pill":[1300],
   "Gnarly":[1301],
+  "Amped Up":[1494],
+  "Far Out":[1495],
 
   "Mas version may be orderable/customizable":true,
   "Con Taboo":[[1152, 1153], "scarlet", 0, 0, "cream", 3, 0, "wine", 0, 0, "anubis", 0, 0],

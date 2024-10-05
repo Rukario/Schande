@@ -21,11 +21,21 @@
 body {
   caret-color: #ff8228;
   font-family: courier;
-  font-size: 14px;
-  -webkit-text-size-adjust: none;
   margin: 0;
   padding: 0;
   white-space: pre-wrap;
+
+  @media (width < 800px) {
+    font-size: 26px;
+    line-height: 26px;
+    -webkit-text-size-adjust: 128%;
+  }
+
+  @media (width >= 800px) {
+    font-size: 14px;
+    line-height: 14px;
+    -webkit-text-size-adjust: none;
+  }
 }
 
 ::selection {
@@ -224,10 +234,7 @@ ul {
   border-top: 1px solid #033;
   border-bottom: 1px solid #033;
   margin: -4px 2px;
-  bottom: 4px;
-  padding: 8px 5px 9px;
   text-align: center;
-  width: 34px;
   display: inline-block;
   clip-path: polygon(
 14% 12%,
@@ -238,12 +245,17 @@ ul {
 18% 100%,
 0% 68%
 );
-}
 
-  .aczo28 {
+  @media (width < 800px) {
     bottom: 5px;
     padding: 10px 7px 11px;
     width: 44px;
+  }
+
+  @media (width >= 800px) {
+    bottom: 4px;
+    padding: 8px 5px 9px;
+    width: 34px;
   }
 }
 
@@ -604,15 +616,9 @@ function isUTF8(ext) {
   }
 }
 
-function echo(B, b) {
-  if (!b) {
-    B = '<br>' + B;
-  } else {
-    B = ' ' + B;
-  }
-
-  stdout.insertAdjacentHTML('beforeend', B);
-  stdout.style.display = 'inline-block';
+function echo(B, b = '<br>', echoer = stdout) {
+  echoer.insertAdjacentHTML('beforeend', b + B);
+  echoer.style.display = 'inline-block';
 }
 
 function edit() {
@@ -1064,8 +1070,8 @@ function new_editor(utf8 = '<br>', hex = false) {
   label.insertAdjacentHTML("beforeend", " " + filel[4] + " -(Open");
   DOMwriter.appendChild(label);
 
-  picker = fileup(easter, filel[0]);
-  pickerdiff = fileup(easter, filel[1], true)[0];
+  picker = fileup(easter ? 'next aczo' : 'next', filel[0]);
+  pickerdiff = fileup(easter ? 'next aczo' : 'next', filel[1], true)[0];
   pickerdiff.id = "pickerdiff_relic";
   DOMwriter.appendChild(pickerdiff);
   DOMwriter.insertAdjacentHTML("beforeend", ") ");
@@ -1123,6 +1129,12 @@ function new_editor(utf8 = '<br>', hex = false) {
 
   editor.addEventListener("mouseup", FFup);
   //editor.addEventListener("touchend", FFup);
+  //editor.addEventListener('touchstart', (e) => {
+  //  //e.preventDefault();
+  //  stdout.textContent = 'whoops';
+  //  stdout.style.display = 'block';
+  //});
+
   editor.addEventListener("mousedown", () => {
     downmove = true;
   });
@@ -1310,10 +1322,9 @@ var dirs = [];
 var hljs = false;
 var canihljs = false;
 var bigdoc = false;
-var aczo28 = true;
 var filel = ["File", "Diff", "File 1", "File 2", "🦦"];
 var ut = 0;
-var easter = "next";
+let easter = false;
 
 const new_stdout = () => {
   DOMwriter = document.createElement("DIV");
@@ -1340,32 +1351,15 @@ window.onload = () => {
   document.title = 'New Text.txt';
   new_stdout();
 
-  let scale = '26px';
-  let adju = '128%';
-
-  if (window.screen.width > 800) {
-    scale = '14px';
-    adju = 'none';
-    aczo28 = false;
-  }
-
-  document.body.style.fontSize = scale;
-  document.body.style.lineHeight = scale;
-  document.body.style.webkitTextSizeAdjust = adju;
-
   for (const [val, key] of new URLSearchParams(window.location.search)) {
-    if (!val) {
-      if (Number(key)) {
-        ut = key;
-      } else if (key === '🦦') {
-        if (aczo28) {
-          easter = 'next aczo aczo28';
-        } else {
-          easter = 'next aczo';
-        }
+    if (key || val) {
+      if (Number(val)) {
+        ut = val;
+      } else if (val === '🦦') {
+        easter = true;
         filel = ["❨'▾'❩", "❨ ꊱ ❩", "❨ 1 ❩", "❨ 2 ❩", "🦦"];
       } else {
-        filel[4] = key;
+        filel[4] = val;
       }
     }
   };

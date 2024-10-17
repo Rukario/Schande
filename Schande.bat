@@ -140,7 +140,41 @@ Keypress_prompt = [False]
 Keypress_buffer = [""]
 Keypress_time = [0, 0, 0]
 Fast_presser = 0.5
-Keypress = [False]*27
+
+Keypress = {
+  "KeyA": False,
+  "KeyB": False,
+  "KeyC": False,
+  "KeyD": False,
+  "KeyE": False,
+
+  "KeyF": False,
+  "KeyG": False,
+  "KeyH": False,
+  "KeyI": False,
+  "KeyJ": False,
+
+  "KeyK": False,
+  "KeyL": False,
+  "KeyM": False,
+  "KeyN": False,
+  "KeyO": False,
+
+  "KeyP": False,
+  "KeyQ": False,
+  "KeyR": False,
+  "KeyS": False,
+  "KeyT": False,
+
+  "KeyU": False,
+  "KeyV": False,
+  "KeyW": False,
+  "KeyX": False,
+  "KeyY": False,
+
+  "KeyZ": False
+}
+
 task = {
   "httpserver": [],
   "transmission": False,
@@ -148,6 +182,7 @@ task = {
   "makedirs": set(),
   "nodirs": set()
 }
+
 retries = [0]
 sf = [0]
 
@@ -1732,8 +1767,8 @@ def timer(e="", listen=[], antalisten=[], clock=navigator["timeout"]):
                 pgtime[0] = int(time.time()/5)
                 pg[0] = 0
                 title(monitor())
-            if Keypress[26]:
-                Keypress[26] = False
+            if Keypress["KeyZ"]:
+                Keypress["KeyZ"] = False
                 break
             if now > end-2 or any(Keypress[n] for n in listen) or any(not Keypress[n] for n in antalisten):
                 break
@@ -1747,32 +1782,32 @@ def timer(e="", listen=[], antalisten=[], clock=navigator["timeout"]):
 Keypress_err = ["Some error happened. (R)etry un(P)ause (S)kip once (X)auto defuse antibot with (F)irefox: "]
 def retry(stderr):
     # Developer note: urllib has slight memory leak
-    Keypress[18] = False
+    Keypress["KeyR"] = False
     while True:
         if not Keypress_prompt[0]:
             Keypress_prompt[0] = True
             if stderr:
-                if Keypress[16]:
+                if Keypress["KeyP"]:
                     e = f"{retries[0]} retries (R)etry now (P)ause (S)kip once (X)auto"
-                    if Keypress[20]:
-                        timer(f"{e} (T)imer off, reloading in", listen=[18, 19], antalisten=[16, 20, 24])
+                    if Keypress["KeyT"]:
+                        timer(f"{e} (T)imer off, reloading in", listen=["KeyR", "KeyS"], antalisten=[16, 20, 24])
                     else:
                         echo(f"{e} (T)imer on")
-                    Keypress[18] = True if Keypress[16] else False
-                if not Keypress[18]:
+                    Keypress["KeyR"] = True if Keypress["KeyP"] else False
+                if not Keypress["KeyR"]:
                     title(monitor())
                     Keypress_err[0] = f"{stderr} (R)etry un(P)ause (S)kip once (X)auto defuse antibot with (F)irefox"
                     while True:
                         echo(Keypress_err[0])
                         ticking[0].clear()
-                        if Keypress[18] or Keypress[16]:
+                        if Keypress["KeyR"] or Keypress["KeyP"]:
                             break
-                        if Keypress[19]:
-                            Keypress[19] = False
+                        if Keypress["KeyS"]:
+                            Keypress["KeyS"] = False
                             Keypress_prompt[0] = False
                             return
-                        if Keypress[6]:
-                            Keypress[6] = False
+                        if Keypress["KeyF"]:
+                            Keypress["KeyF"] = False
                             return 2
                         ticking[0].wait()
                     ticking[0].set()
@@ -1783,8 +1818,8 @@ def retry(stderr):
             title(monitor())
             Keypress_prompt[0] = False
             return 1
-        elif Keypress[18]:
-            time.sleep(0.1) # so I don't return too soon to turn off another Keypress[18] used to turn off Keypress_prompt.
+        elif Keypress["KeyR"]:
+            time.sleep(0.1) # so I don't return too soon to turn off another Keypress["KeyR"] used to turn off Keypress_prompt.
             return True
         time.sleep(0.1)
 
@@ -1826,16 +1861,16 @@ def fetch(url, stderr="", dl=0, threadn=0, data=None, method=None, hydra=None):
             resp = request.urlopen(request.Request(saint(url=url), headers=headers, data=data, method=method if method else "POST" if data else "GET"))
             break
         except HTTPError as e:
-            if stderr or Keypress[24] and not Keypress[19]:
+            if stderr or Keypress["KeyX"] and not Keypress["KeyS"]:
                 el = retry(f"{stderr} ({e.code} {e.reason})")
                 if el == 2:
                     driver(saint(url=url))
                     Keypress_prompt[0] = False
-                    Keypress[18] = True
+                    Keypress["KeyR"] = True
                 elif not el:
                     return 0, str(e.code)
             else:
-                Keypress[19] = False
+                Keypress["KeyS"] = False
                 return 0, str(e.code)
         except URLError as e:
             if "CERTIFICATE_VERIFY_FAILED" in str(e.reason):
@@ -1844,23 +1879,23 @@ def fetch(url, stderr="", dl=0, threadn=0, data=None, method=None, hydra=None):
                     kill(f""" {e.reason}\n\n They fucked up deploying their certificates (probably).\n Add "theyfuckedup" to {rulefile} to bypass this kind of error if you're willing to take risks.""")
                 else:
                     kill(f""" {e.reason}\n\n Either they fucked up deploying their certificates or this Python is just having shitty certificate validator.\n Try execute optional prerequisites in another command prompt with:\n\n{echo_pip()} install certifi""")
-            if stderr or Keypress[24] and not Keypress[19]:
+            if stderr or Keypress["KeyX"] and not Keypress["KeyS"]:
                 if not retry(f"{stderr} ({e.reason})"):
                     return 0, e.reason
             else:
-                Keypress[19] = False
+                Keypress["KeyS"] = False
                 return 0, e.reason
         except:
-            if stderr or Keypress[24] and not Keypress[19]:
+            if stderr or Keypress["KeyX"] and not Keypress["KeyS"]:
                 el = retry(f"{stderr} (closed by host)")
                 if el == 2:
                     echo(" BROWSER: Maybe not.", 0, 1)
                     Keypress_prompt[0] = False
-                    Keypress[18] = True
+                    Keypress["KeyR"] = True
                 elif not el:
                     return 0, "closed by host"
             else:
-                Keypress[19] = False
+                Keypress["KeyS"] = False
                 return 0, "closed by host"
     return resp, 0
 
@@ -1879,7 +1914,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
             dl = os.path.getsize(todisk + ".part")
     else:
         echo(threadn, "0 MB")
-    Keypress[26] = False
+    Keypress["KeyZ"] = False
     while echothreadn and echothreadn.index(threadn) >= dlslot[0]:
         time.sleep(0.1)
     resp, err = fetch(url, stderr, dl, threadn)
@@ -1946,13 +1981,13 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                 dl += Bytes
                 echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
                 echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {url}""", clamp='█', friction=True)
-                if Keypress[26]:
+                if Keypress["KeyZ"]:
                     resp, err = fetch(url, stderr, dl, threadn)
                     if not resp:
                         return 0, err
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
-                    Keypress[26] = False
+                    Keypress["KeyZ"] = False
         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
         os.rename(todisk + ".part", todisk)
         if Keypress_prompt[0]:
@@ -1976,13 +2011,13 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                                 except:
                                     todisk = saint(parse.unquote(url.split("/")[-1]))
                                     echo(f" Not an UTF-8 file! Save on disk as {todisk} to open it in another program? (S)ave or discard and (C)ontinue: ", flush=True)
-                                    Keypress[3] = False
-                                    Keypress[19] = False
-                                    while not Keypress[3] and not Keypress[19]:
+                                    Keypress["KeyC"] = False
+                                    Keypress["KeyS"] = False
+                                    while not Keypress["KeyC"] and not Keypress["KeyS"]:
                                         time.sleep(0.1)
-                                    Keypress[3] = False
-                                    if Keypress[19]:
-                                        Keypress[19] = False
+                                    Keypress["KeyC"] = False
+                                    if Keypress["KeyS"]:
+                                        Keypress["KeyS"] = False
                                         with open(todisk, 'wb') as f:
                                             f.write(data);
                                         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
@@ -2023,14 +2058,14 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
             dl += Bytes
             echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
             echo(threadn, f"{int(dl/1048576)} MB", friction=True)
-            if Keypress[26]:
+            if Keypress["KeyZ"]:
                 resp, err = fetch(url, stderr, dl, threadn)
                 if not resp:
                     return 0, err
                 if resp.status == 200:
                     data = bytearray()
                     dl = 0
-                Keypress[26] = False
+                Keypress["KeyZ"] = False
 
 
 
@@ -2139,13 +2174,13 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
                 if not dir in task["makedirs"] and not task["makedirs"].add(dir) and not os.path.exists(dir):
                     if makedirs == 2:
                         echo(f"(C)ontinue or (S)kip making a new directory: {dir}", 0, 1)
-                        Keypress[19] = False
-                        Keypress[3] = False
-                        while not Keypress[19] and not Keypress[3]:
+                        Keypress["KeyS"] = False
+                        Keypress["KeyC"] = False
+                        while not Keypress["KeyS"] and not Keypress["KeyC"]:
                             time.sleep(0.1)
-                        Keypress[3] = False
-                        if Keypress[19]:
-                            Keypress[19] = False
+                        Keypress["KeyC"] = False
+                        if Keypress["KeyS"]:
+                            Keypress["KeyS"] = False
                             task["nodirs"].add(dir)
                     if not dir in task["nodirs"]:
                         try:
@@ -2174,13 +2209,13 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
         if makedirs and not dir in task["makedirs"] and not task["makedirs"].add(dir) and not os.path.exists(dir):
             if makedirs == 2:
                 echo(f"(C)ontinue or (S)kip making a new directory: {dir}", 0, 1)
-                Keypress[19] = False
-                Keypress[3] = False
-                while not Keypress[19] and not Keypress[3]:
+                Keypress["KeyS"] = False
+                Keypress["KeyC"] = False
+                while not Keypress["KeyS"] and not Keypress["KeyC"]:
                     time.sleep(0.1)
-                Keypress[3] = False
-                if Keypress[19]:
-                    Keypress[19] = False
+                Keypress["KeyC"] = False
+                if Keypress["KeyS"]:
+                    Keypress["KeyS"] = False
                     task["nodirs"].add(dir)
             if not dir in task["nodirs"]:
                 try:
@@ -2430,10 +2465,10 @@ def new_driver():
             echo("", 0, 1)
             echo(f" SELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install selenium", 0, 2)
             echo("(C)ontinue when finished installing required prerequisites.")
-            Keypress[3] = False
-            while not Keypress[3]:
+            Keypress["KeyC"] = False
+            while not Keypress["KeyC"]:
                 time.sleep(0.1)
-            Keypress[3] = False
+            Keypress["KeyC"] = False
     if os.path.isfile(batchdir + "chromedriver.exe"):
         if not os.path.exists(batchdir + "chromedriver"):
             os.makedirs(batchdir + "chromedriver")
@@ -2516,10 +2551,10 @@ def driver(url):
         echo(f" BROWSER: My user-agent didn't match to an user-agent spoofer.", 0, 1)
     # ff_login(url)
     echo("(C)ontinue when finished defusing.")
-    Keypress[3] = False
-    while not Keypress[3]:
+    Keypress["KeyC"] = False
+    while not Keypress["KeyC"]:
         time.sleep(0.1)
-    Keypress[3] = False
+    Keypress["KeyC"] = False
     try:
         for bc in driver_running[0].get_cookies():
             if "httpOnly" in bc:
@@ -3117,8 +3152,8 @@ def pick_in_page():
                 if pick["break"]:
                     proceed = True
                 else:
-                    timer(f"{alerted[0]}, resuming unalerted pages in" if alerted[0] else "Not quite as expected! Reloading in", listen=[3, 19])
-                    if not Keypress[19]:
+                    timer(f"{alerted[0]}, resuming unalerted pages in" if alerted[0] else "Not quite as expected! Reloading in", listen=["KeyC", "KeyS"])
+                    if not Keypress["KeyS"]:
                         more_pages += [[start, page, pagen]]
                         proceed = False
         if proceed and any(pick[x] for x in ["folder", "pages", "html", "icon", "dict", "file", "file_after"]) and not data:
@@ -3443,13 +3478,13 @@ def nextshelf(fromhtml):
                                 stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
                         stdout += "\n"
         echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or return to (M)ain menu: """, flush=True)
-        Keypress[13] = False
-        Keypress[3] = False
-        while not Keypress[13] and not Keypress[3]:
+        Keypress["KeyM"] = False
+        Keypress["KeyC"] = False
+        while not Keypress["KeyM"] and not Keypress["KeyC"]:
             time.sleep(0.1)
-        Keypress[3] = False
-        if Keypress[13]:
-            Keypress[13] = False
+        Keypress["KeyC"] = False
+        if Keypress["KeyM"]:
+            Keypress["KeyM"] = False
             return
     downloadtodisk(fromhtml, "Autosave declared completion.", makedirs=2)
 
@@ -3506,14 +3541,14 @@ def scrape(startpages):
             if not more_pages:
                 echo(alerted[0])
                 time.sleep(1)
-            if Keypress[3]:
-                Keypress[3] = False
+            if Keypress["KeyC"]:
+                Keypress["KeyC"] = False
                 pages += alerted_pages
                 alerted_pages = []
                 alerted[0] = False
                 choice(bg=["2e", "%color%"])
-            elif Keypress[19]:
-                Keypress[19] = False
+            elif Keypress["KeyS"]:
+                Keypress["KeyS"] = False
                 alerted_pages = []
                 alerted[0] = False
                 choice(bg=["2e", "%color%"])
@@ -4304,47 +4339,67 @@ var FFdown = (e) => {
   }
 }
 
-var FFclick = function(e) {
-  var t = e.target;
-  var a = t.parentNode;
-  if (a.classList != undefined && a.classList.contains("fileThumb")) {
+const FFclick = (e) => {
+  const t = e.target;
+  const a = t.parentNode;
+  if (
+    a.classList &&
+    a.classList.contains('fileThumb')
+  ) {
     e.preventDefault();
     if(t.hasAttribute("data-src")) {
-      var c = document.createElement("img");
-      c.setAttribute("src", a.getAttribute("href"));
-      c.style.display = "none";
-      a.appendChild(c);
-      t.style.opacity = "0.75";
-      setTimeout(Expand, 10, c, t);
+      const img = document.createElement('IMG');
+      img.src = a.getAttribute('href');
+      img.style.display = 'none';
+      a.appendChild(img);
+      t.style.opacity = '0.75';
+      setTimeout(Expand, 10, img, t);
     } else {
-      a.firstChild.style.display = "";
+      a.firstChild.style.display = '';
       a.removeChild(t);
-      a.offsetTop < window.pageYOffset && a.scrollIntoView({block: "start", behavior: "smooth"});
+      outbound();
+      a.offsetTop < window.pageYOffset && a.scrollIntoView({block: 'start', behavior: 'smooth'});
     }
   }
 };
 
-var FFmove = function(e) {
-  var t = e.target;
-  if (t.hasAttribute("data-tooltip")) {
-    tooltip.style.left = (e.pageX + 10) + "px";
-    tooltip.style.top = (e.pageY + 10) + "px";
-    tooltip.style.display = "inline-block";
-    tooltip.innerHTML = t.getAttribute("data-tooltip");
+const FFmove = (e) => {
+  const t = e.target;
+  if (t.dataset.tooltip) {
+    tooltip.style.left = e.pageX + 10 + 'px';
+    tooltip.style.top = e.pageY + 10 + 'px';
+    tooltip.style.display = 'inline-block';
+    tooltip.innerHTML = t.dataset.tooltip;
   } else {
-    tooltip.style.display = "none";
+    tooltip.style.display = 'none';
   }
 }
 
-var FFover = function(e) {
-  var t = e.target;
-  var a = t.parentNode;
-  if(a.classList != undefined && a.classList.contains("fileThumb") && !a.parentNode.hasAttribute("busy")) {
+var outbound;
+const FFover = (e) => {
+  const t = e.target;
+  let a = t.parentNode;
+  if (
+    a.classList &&
+    a.classList.contains('fileThumb') &&
+    !a.parentNode.hasAttribute('busy')
+  ) {
     a = a.parentNode;
-    var d = document.createElement("div");
-    d.innerHTML = "<div class='schande save'>Save</div><div class='schande' style='left:48px;'>Schande!</div>";
+
+    const d = document.createElement('DIV');
+    const save = document.createElement('DIV');
+    save.classList = 'schande save';
+    save.textContent = 'Save';
+
+    const schande = document.createElement('DIV');
+    schande.classList = 'schande';
+    schande.style.left = '48px';
+    schande.textContent = 'Schande!';
+
+    d.append(save, schande);
     a.appendChild(d);
-    let isover = function(g) {
+
+    const isover = (g) => {
       g.target.style.opacity = 1
       if (g.target.classList.contains("schande")) {
         g.target.setAttribute("data-schande", t.getAttribute("data-src"))
@@ -4356,51 +4411,39 @@ var FFover = function(e) {
       }
       g.target.addEventListener("mouseleave", left);
     }
-    d.addEventListener("mouseover", isover);
-    let left = () => {
-      setTimeout(function(){
+    d.addEventListener('mouseover', isover);
+    outbound = () => {
+      setTimeout(() => {
         a.removeChild(d);
       }, 1)
-      a.removeAttribute("busy")
-      a.removeEventListener("mouseleave", left);
+      a.removeAttribute('busy');
+      a.removeEventListener('mouseleave', outbound);
     }
-    a.setAttribute("busy", true)
-    a.addEventListener("mouseleave", left);
+    a.setAttribute('busy', true)
+    a.addEventListener('mouseleave', outbound);
   }
 }
 
-Filters = {};
-Filters.tmpCtx = document.createElement('canvas').getContext('2d');
 
-Filters.createImageData = function (w,h) {
-  return this.tmpCtx.createImageData(w,h);
-};
 
 function Convolute(pixels, weights) {
-  var side = Math.round(Math.sqrt(weights.length));
-  var halfSide = Math.floor(side/2);
+  const side = Math.round(Math.sqrt(weights.length));
+  const halfSide = Math.floor(side / 2);
 
-  var src = pixels.data;
-  var sw = pixels.width;
-  var sh = pixels.height;
+  const [w, h] = [pixels.width, pixels.height];
+  const output = newCanvas().createImageData(w, h);
+  const [src, dst] = [pixels.data, output.data];
 
-  var w = sw;
-  var h = sh;
-  var output = Filters.createImageData(w, h);
-  var dst = output.data;
-
-  for (var y = 0; y < h; y++) {
-    for (var x = 0; x < w; x++) {
-      var sy = y;
-      var sx = x;
-      var dstOff = (y * w + x) * 4;
+  for (const y of Array(h).keys()) {
+    for (const x of Array(w).keys()) {
+      const dstOff = (y * w + x) * 4;
       let [r, g, b, a] = [0, 0, 0, 0];
-      for (var cy = 0; cy < side; cy++) {
-        for (var cx = 0; cx < side; cx++) {
-          var scy = Math.min(sh - 1, Math.max(0, sy + cy - halfSide));
-          var scx = Math.min(sw - 1, Math.max(0, sx + cx - halfSide));
-          var srcOff = (scy * sw + scx) * 4;
-          var wt = weights[cy * side + cx];
+      for (const cy of Array(side).keys()) {
+        for (const cx of Array(side).keys()) {
+          const scy = Math.min(h - 1, Math.max(0, y + cy - halfSide));
+          const scx = Math.min(w - 1, Math.max(0, x + cx - halfSide));
+          const srcOff = (scy * w + scx) * 4;
+          const wt = weights[cy * side + cx];
           r += src[srcOff] * wt;
           g += src[srcOff+1] * wt;
           b += src[srcOff+2] * wt;
@@ -4413,6 +4456,7 @@ function Convolute(pixels, weights) {
       dst[dstOff+3] = 255;
     }
   }
+
   return output;
 };
 
@@ -4448,14 +4492,15 @@ function quicklook(e) {
 
           isTainted = true;
           img.onload = () => {
-            const cgl = document.createElement('CANVAS');
-            const gl = cgl.getContext('webgl2');
+            //const cgl = document.createElement('CANVAS');
+            //const gl = cgl.getContext('webgl2');
+            // ctx = gl;
             if (geistauge === 'reverse') {
-              img2.onload = difference(img2, img.width, img.height, img, ctx, gl, side = true);
+              img2.onload = difference(img2, img.width, img.height, img, ctx, side = true);
             } else if (geistauge === 'tangerine') {
-              img2.onload = difference(img, img.width, img.height, img2, ctx, gl, side = true);
+              img2.onload = difference(img, img.width, img.height, img2, ctx, side = true);
             } else {
-              img2.onload = difference(img, img.width, img.height, img2, ctx, gl);
+              img2.onload = difference(img, img.width, img.height, img2, ctx);
             }
             isTainted = false;
             delete t.dataset.tooltip;
@@ -4580,7 +4625,7 @@ function darkdiff(a, b) {
 
 var rgb, rgb2;
 
-function difference(s, cw, ch, fp, ctx, gl, side=false) {
+function difference(s, cw, ch, fp, ctx, side = false) {
   ctx.drawImage(s, 0, 0, cw, ch);
   rgb = ctx.getImageData(0, 0, cw, ch);
   ctx.drawImage(fp, 0, 0, cw, ch);
@@ -6387,7 +6432,7 @@ def unrecognized(k):
 
 def pressed(k, s=True):
     echo("", 1)
-    Keypress["?ABCDEFGHIJKLMNOPQRSTUVWXYZ".index(k)] = s
+    Keypress[k] = s
     if not busy[0]:
         ready_input()
     if ticking[0]:
@@ -6406,14 +6451,18 @@ def has(i, x):
 
 def keylistener():
     while True:
-        el = input("", ["All", *"bcdefghijklmnopqrstuvwxyz0123456789"], double="jp")
-        if el == 1:
+        index = input("", ["All", *"bcdefghijklmnopqrstuvwxyz0123456789"], double="jp")
+        if index < 0:
+            code = "Slow" + "?ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[-index];
+        else:
+            code = "Key" + "?ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[index];
+        if code == "KeyA":
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             echo(f"Reading {textfile} . . .", 0, 1)
             task["run"].put((2, opensav(textfile).splitlines()))
-        elif el == 2:
+        elif code == "KeyB":
             if sys.platform == "win32":
                 if not Browser:
                     choice(bg=True)
@@ -6426,23 +6475,23 @@ def keylistener():
                 echo(" BROWSER: Maybe not.", 0, 1)
             if not busy[0]:
                 ready_input()
-        elif el == 3:
-            pressed("C")
-        elif el == 4:
+        elif code == "KeyC":
+            pressed(code)
+        elif code == "KeyD":
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             delmode()
             ready_input()
-        elif el == 5:
+        elif code == "KeyE":
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             echo(help(), 0, 1)
             ready_input()
-        elif el == 6:
-            pressed("F")
-        elif el == 7:
+        elif code == "KeyF":
+            pressed(code)
+        elif code == "KeyG":
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
@@ -6452,9 +6501,9 @@ def keylistener():
             else:
                 tohtml_geistauge()
             ready_input()
-        elif el == 8:
-            unrecognized("H")
-        elif el == 9:
+        elif code == "KeyH":
+            unrecognized(code)
+        elif code == "KeyI":
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
@@ -6463,7 +6512,7 @@ def keylistener():
             else:
                 echo("", 1)
                 echo("", 1)
-        elif el == 10:
+        elif code == "KeyJ":
             echo("", 1)
             if Keypress_time[0] < Keypress_time[2]:
                 echo(" HTTP SERVER: 10-second demo", 0, 1)
@@ -6476,14 +6525,14 @@ def keylistener():
             Keypress_time[2] = Keypress_time[0] + Fast_presser*4
             if not busy[0]:
                 ready_input()
-        elif el == -10:
+        elif code == "SlowJ":
             if not task["httpserver"] or portkilled():
                 echo("Press J twice in fast sequence to start server.", 1, 1)
             else:
                 echo("Press J twice in fast sequence to stop server.", 1, 1)
             if not busy[0]:
                 ready_input()
-        elif el == 11:
+        elif code == "KeyK":
             c = False
             for c in cookies:
                 echo(str(c), 1, 2)
@@ -6491,7 +6540,7 @@ def keylistener():
                 echo("No cookies!", 1, 1)
             if not busy[0]:
                 ready_input()
-        elif el == 12:
+        elif code == "KeyL":
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
@@ -6528,15 +6577,15 @@ def keylistener():
                     echo("Canceled", 1, 2)
                     ready_input()
                     break
-        elif el == 13:
+        elif code == "KeyM":
             if busy[0]:
-                pressed("M")
+                pressed(code)
                 continue
             echo("", 1)
             torrent_get()
             echo("", 1)
             ready_input()
-        elif el == 14:
+        elif code == "KeyN":
             if busy[1]:
                 echo("", 1)
                 Keypress_buffer[0] = input(Keypress_err[0])
@@ -6547,49 +6596,49 @@ def keylistener():
                 Keypress_buffer[0] = True
             if not busy[0]:
                 ready_input()
-        elif el == 15:
+        elif code == "KeyO":
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             finish_sort()
             ready_input()
-        elif el == 16:
+        elif code == "KeyP":
             echo("Unpaused", 1, 2)
-            pressed("P")
-            Keypress[24] = True
-        elif el == -16:
+            pressed(code)
+            Keypress["KeyX"] = True
+        elif code == "SlowP":
             echo("Paused (press P twice in fast sequence to unpause)", 1, 2)
-            pressed("P", False)
-        elif el == 17:
+            pressed(code, False)
+        elif code == "KeyQ":
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             task["run"].put((3, True))
-        elif el == 18:
-            pressed("R")
-        elif el == 19:
-            pressed("S")
-        elif el == 20:
+        elif code == "KeyR":
+            pressed(code)
+        elif code == "KeyS":
+            pressed(code)
+        elif code == "KeyT":
             if navigator["timeout"]:
-                echo(f"""COOLDOWN {"DISABLED" if Keypress[20] else "ENABLED"}""", 1, 2)
+                echo(f"""COOLDOWN {"DISABLED" if Keypress["KeyT"] else "ENABLED"}""", 1, 2)
             else:
                 echo(f"""Timer not enabled, please add "#-# seconds rarity 100% 00:00" in {rulefile}, add another timer to manipulate rarity.""", 1, 2)
-            pressed("T", False if Keypress[20] else True)
-        elif el == 21:
-            unrecognized("U")
-        elif el == 22:
+            pressed(code, False if Keypress["KeyT"] else True)
+        elif code == "KeyU":
+            unrecognized(code)
+        elif code == "KeyV":
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
             source_view()
             ready_input()
-        elif el == 23:
-            unrecognized("W")
-        elif el == 24:
-            echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if Keypress[24] else "RETRY"}""", 1, 2)
-            pressed("X", False if Keypress[24] else True)
-            Keypress[16] = True
-        elif el == 25:
+        elif code == "KeyW":
+            unrecognized(code)
+        elif code == "KeyX":
+            echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if Keypress["KeyX"] else "RETRY"}""", 1, 2)
+            pressed(code, False if Keypress["KeyX"] else True)
+            Keypress["KeyP"] = True
+        elif code == "KeyY":
             if sys.platform == "linux":
                 # Developer note: Update to use htop if iSH app adds support to use it.
                 os.system("top")
@@ -6601,16 +6650,16 @@ def keylistener():
                     echo(f"Save ntop.exe from https://github.com/gsass1/NTop/releases to {subdir} and then try again.", 0, 1)
             if not busy[0]:
                 ready_input()
-        elif el == 26:
-            pressed("Z")
-        elif 0 <= (n := min(el-27, 8)) < 9:
+        elif code == "KeyZ":
+            pressed(code)
+        elif 0 <= (n := min(index-27, 8)) < 9:
             echo(f"""MAX PARALLEL DOWNLOAD SLOT: {n} {"(pause)" if not n else ""}""", 1, 1)
             dlslot[0] = n
             if not busy[0]:
                 ready_input()
         else:
             echo("", 1)
-            pressed("Z")
+            pressed("KeyZ")
 Thread(target=keylistener, daemon=True).start()
 print(f"""
  Key listener:

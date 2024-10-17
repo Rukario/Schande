@@ -202,6 +202,12 @@ ul {
   background-color: #066;
 }
 
+.ahref {
+  text-decoration: none;
+  font-size: 12px;
+  font-family: sans-serif;
+}
+
 .previous {
   color: #6fe;
   background-color: #399;
@@ -799,7 +805,7 @@ function makelinks(cs) {
         ta.push(' ꍯ ' + c[0][1]);
       }
     } else {
-      ta.push(c[0]);
+      ta.push('' + c[0]);
     }
   }
   let lowkey = cs.toLowerCase();
@@ -1264,8 +1270,7 @@ function FFup() {
     const a = document.createElement('A');
     a.href = link.innerHTML;
     a.target = '_blank';
-    a.classList = 'next';
-    a.style = 'text-decoration: none; font-size: 12px; font-family: sans-serif;';
+    a.classList = 'next ahref';
     a.textContent = 'Open';
     cursor_tooltip.append(a);
     cursor_tooltip.style.display = 'inline-block';
@@ -1367,8 +1372,8 @@ var Expand = (c, t) => {
 };
 
 var FFclick = (e) => {
-  var t = e.target;
-  var a = t.parentNode;
+  const t = e.target;
+  const a = t.parentNode;
   if (
     a.classList &&
     a.classList.contains('fileThumb')

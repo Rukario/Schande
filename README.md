@@ -29,7 +29,7 @@ Download and serve files, you define how are they downloaded and sorted!
 3. Follow one for your system:
     - Windows: Double click on it and read the CLI message.
     - Linux/MacOS (Terminal): `python3 -x /drag/n/drop/Schande.bat`
-    - iOS/iPadOS (iSH Shell app): `python3 -x /mnt/Schande.bat`
+    - iOS/iPadOS (iSH Shell app): `(cat /dev/location > /dev/null &); python3 -x /mnt/Schande.bat`
 
 4. Schande.bat on first run will create a new file: Schande.cd, open it in your favorite text editor to edit rules, refer to the premade Schande.cd for inspiration.
 

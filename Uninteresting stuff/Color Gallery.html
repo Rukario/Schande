@@ -62,7 +62,7 @@ h1, h2, h3, h4, h5, h6 {
   margin: 4px;
 }
 
-.colorset {
+.colorset, .colorview {
   color: #bfddc6;
   cursor: pointer;
   display: inline-block;
@@ -440,7 +440,7 @@ var palette = [
 var colorsets = {};
 var pictures = {};
 var swatches = {};
-function opendb(file, callback) {
+function opendb(file, callback, resolve) {
   const xhr = new XMLHttpRequest();
   let isTainted = true;
   xhr.overrideMimeType('application/json');
@@ -452,6 +452,7 @@ function opendb(file, callback) {
     if (xhr.readyState === 4) {
       if (xhr.status !== 404 && xhr.responseText) {
         callback(JSON.parse(xhr.responseText));
+        resolve(true);
       } else if (xhr.responseText) {
         local_tooltip.style.display = 'inline-block';
         local_tooltip.textContent = '⚠';
@@ -795,7 +796,7 @@ function echoIMG(src) {
   return '<img style="vertical-align: middle;" src="' + src + '">';
 }
 
-function makelinks(cs) {
+function makelinks(cs, cl = 'colorset') {
   const c = colorsets[cs];
   const ta = [];
   if (c[0]) {
@@ -832,7 +833,7 @@ function makelinks(cs) {
     }
   }
   const d = document.createElement('DIV');
-  d.classList.add('colorset');
+  d.classList.add(cl);
   if (Array.isArray(c[0])) {
     d.dataset.colorTheme = c[0][0];
     if (c[0][1]) {
@@ -1362,7 +1363,7 @@ function edit() {
 }
 
 var Expand = (c, t) => {
-  if(!c.naturalWidth) {
+  if (!c.naturalWidth) {
     return setTimeout(Expand, 10, c, t);
   }
   c.style.maxWidth = '100%';
@@ -1387,9 +1388,9 @@ var FFclick = (e) => {
       t.style.opacity = '0.75';
       setTimeout(Expand, 10, img, t);
     } else {
-      a.firstChild.style.display = 'block';
+      a.firstChild.style.display = '';
       a.removeChild(t);
-      outbound()
+      outbound();
       a.offsetTop < window.pageYOffset && a.scrollIntoView({block: 'start', behavior: 'smooth'});
     }
   }
@@ -1417,7 +1418,7 @@ var FFover = (e) => {
     schande.textContent = 'Schande!';
 
     d.append(save, schande);
-    a.append(d);
+    a.appendChild(d);
 
     listener = (z) => {
       z.target.style.opacity = 1;
@@ -1464,7 +1465,16 @@ var FFmove = (e) => {
 }
 
 function hyperlink(utf8) {
-  return utf8.replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| |$)/g, '<span class="hyperlink">$1</span>$2');
+  utf8 = utf8.replace(/(https:\/\/.*?)(\"|&quot;|\'|&#x27;|\n|<|&lt;|\)| |$)/g, '<span class="hyperlink">$1</span>$2');
+  const new_utf8 = [];
+  for (const line of utf8.split('\n')) {
+    if (line in colorsets && colorsets[line] != true) {
+      new_utf8.push(makelinks(line, 'colorview').outerHTML);
+    } else {
+      new_utf8.push(line);
+    }
+  }
+  return new_utf8.join('\n');
 }
 
 var cursor_focus, cursor_tooltip, gallery_tooltip, local_tooltip, tooltip;
@@ -1664,8 +1674,7 @@ window.onload = () => {
     makeDIV('Save'),
     ' to save fade bar for next page visit.\n ◦ Fade ends on non-color line.\n\nBe mindful of translucent silicones\n• Translucent silicones may overpower to each other especially darkened and/or pigmented ones if not become dull or muddled.\n• Use fade bar for blend test of translucent silicones, they become pronounced of that.\n• Solid silicones can create contours on translucent silicones or 3D depth behind translucent silicones.\nOpen ',
     makeDIV('Gallery'),
-    ' for color set named ',
-    makeDIV('Arctic Ice', null, 'colorset'),
+    ' for color set named <div class="colorview">Arctic Ice</div>',
     ...makedots(['sky blue', 3, 0], 0),
     ' from sky blue (',
     ...makedots(['sky blue', 0, 0], 0),
@@ -1840,6 +1849,7 @@ window.onload = () => {
     }
   }, false);
 
+  let utf8 = '';
   const cookies = document.cookie.split(';');
   for (const cookie of cookies) {
     let c = cookie;
@@ -1849,8 +1859,7 @@ window.onload = () => {
     };
 
     if (c.indexOf('gallerysave=') == 0) {
-      const utf8 = decodeURIComponent(c.substring('gallerysave='.length, c.length));
-      editor.innerHTML = hyperlink(utf8);
+      utf8 = decodeURIComponent(c.substring('gallerysave='.length, c.length));
     }
   }
 
@@ -1873,10 +1882,26 @@ window.onload = () => {
 
 
 
-  opendb('colorsets.json', (x) => {colorsets = x});
-  opendb('pictures.json', (x) => {pictures = x});
-  opendb('swatches.json', (x) => {swatches = x});
-  opendb('toys.json', (x) => {toys = x});
+  const promises = [];
+  promises.push(new Promise((resolve) => {
+    opendb('colorsets.json', (x) => {colorsets = x}, resolve);
+  }));
+
+  promises.push(new Promise((resolve) => {
+    opendb('pictures.json', (x) => {pictures = x}, resolve);
+  }));
+
+  promises.push(new Promise((resolve) => {
+    opendb('swatches.json', (x) => {swatches = x}, resolve);
+  }));
+
+  promises.push(new Promise((resolve) => {
+    opendb('toys.json', (x) => {toys = x}, resolve);
+  }));
+
+  Promise.all(promises).then(() => {
+    editor.innerHTML = hyperlink(utf8);
+  });
 
 
 

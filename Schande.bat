@@ -823,10 +823,11 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             self.handle_one_request()
 
     def AUTH(self, ondisk):
-        if self.qs.startswith(HTTPserver):
-            return True
+        for q in self.qs.split('&'):
+            if q == HTTPserver:
+                return True
         buffer = ondisk.replace("/", "\\")
-        echo(f"""{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorz("CCCCCC")}{buffer}{tcolorx} use {tcolorg}?{HTTPserver}{tcolorx} query string to authorize this connection.""", 0, 1)
+        echo(f"""{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorz("CCCCCC")}{buffer}{tcolorx} use {tcolorg}?{HTTPserver}{tcoloro}{'&' + tcolorb + self.qs if self.qs else ''}{tcolorx} query string to authorize this connection.""", 0, 1)
         self.close_connection = False
 
     def do_GET(self):
@@ -897,12 +898,9 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             title = parent.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;").replace("/", "\\")
 
         enc = sys.getfilesystemencoding()
-        htmldata = False
 
-        if os.path.exists(f"{ondisk}/partition.json") or self.qs.endswith(".json"):
-            echo('found partition', 0, 1)
+        if any(q.endswith(".savx") or q.endswith(".json") for q in self.qs.split('&')) or any(os.path.exists(f"{ondisk}/{p}") for p in ["partition.json"]): # f"{batchname}.savx"
             if os.path.exists(s := f"{ondisk}/savelink.URL"):
-                echo(f'found {s}', 0, 1)
                 with open(s, 'r') as f:
                     page = f.read().splitlines()[1].replace("URL=", "")
                 get_pick = [x for x in navigator["pickers"].keys() if page.startswith(x)]
@@ -910,15 +908,9 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
                     kill(f"\n  {page}\n\nCouldn't recognize this url, I must exit!")
                 pattern = navigator["pickers"][get_pick[0]]["pattern"]
             else:
-                echo(f'{s} not found', 0, 1)
                 pattern = [[], []]
             htmldata = new_html(pattern).encode(enc, 'surrogateescape')
-        elif os.path.exists(f"{ondisk}/{batchname}.savx"):
-            echo('found savx', 0, 1)
-            pattern = [[], []]
-            htmldata = new_html(pattern).encode(enc, 'surrogateescape')
-
-        if not htmldata:
+        else:
             try:
                 list = sorted(os.listdir(ondisk), key=lambda a: a.lower())
             except OSError:
@@ -5048,8 +5040,7 @@ window.onload = () => {
 
   if (savxdb) {
     opensav();
-  }
-  if (partitiondb) {
+  } else if (partitiondb) {
     loadpart();
   }
 }

@@ -4799,9 +4799,7 @@ function hideDetails(e) {
   }
 }
 
-function hideParts(tagName, className, filterNode) {
-  const nodes = document.querySelectorAll('.cell');
-
+function hideParts(tagName, className) {
   // shamefur dispray
   if (!tagName) {
     for (const node of nodes) {
@@ -4943,7 +4941,17 @@ function registerFilter(filterNode, op_text, bar) {
   filterNode[bar].push(text);
 }
 
-function rebuildFilter(filterNode, f, bar) {
+const filterNode = {
+  keyword: [],
+  search: [],
+  ignore: [],
+  contains: [],
+  excluding: [],
+  autocomplete: null,
+  controller: null,
+};
+
+function rebuildFilter(f, bar) {
   const farray = f.match(/(?:\\.|[^"])+|^/g);
   // Quote delimiter
   for (const [n, t] of farray.entries()) {
@@ -4973,6 +4981,19 @@ function rebuildFilter(filterNode, f, bar) {
   }
 }
 
+function refilter() {
+  filterNode.keyword = [];
+  filterNode.search = [];
+  filterNode.ignore = [];
+  filterNode.contains = [];
+  filterNode.excluding = [];
+  filterNode.autocomplete = null;
+  filterNode.controller = null;
+  rebuildFilter(search.value, 'search');
+  rebuildFilter(ignore.value, 'ignore');
+  hideParts('h2', '.postMessage');
+}
+
 var busytyping;
 function hidePattern() {
   if (
@@ -4984,20 +5005,8 @@ function hidePattern() {
 
   clearTimeout(busytyping);
 
-  const filterNode = {
-    keyword: [],
-    search: [],
-    ignore: [],
-    contains: [],
-    excluding: [],
-    autocomplete: null,
-    controller: null,
-  };
-
   busytyping = setTimeout(() => {
-    rebuildFilter(filterNode, search.value, 'search');
-    rebuildFilter(filterNode, ignore.value, 'ignore');
-    hideParts('h2', '.postMessage', filterNode);
+    refilter();
   }, 500);
 }
 
@@ -5231,8 +5240,8 @@ function readschande() {
   }
 }
 
+const nodes = [];
 function readpart(part) {
-  const ignored = ignore.value.toLowerCase().split(' ');
   let linksinthishtml = false;
   for (const key of Object.keys(part)) {
     const cell = document.createElement('DIV');
@@ -5255,10 +5264,6 @@ function readpart(part) {
       } else if (!part[key].html) {
         continue;
       }
-    }
-
-    if (ignored.some((x) => x && keywords[0].includes(x))) {
-      cell.style.display = 'none';
     }
 
     if (keywords.length > 1) {
@@ -5380,9 +5385,11 @@ Keywords: ${afterkeys}`;
       edits.innerHTML = 'Rebuild HTML with a different login/tier may be required to view';
       cell.appendChild(edits);
     }
-
-    document.body.appendChild(cell);
+    nodes.push(cell);
   }
+
+  refilter();
+  document.body.append(...nodes);
 
   if (!linksinthishtml) {
     alllinks.textContent = 'Maybe in another page.';

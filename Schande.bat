@@ -5036,8 +5036,13 @@ window.onload = () => {
     if (key.endsWith('.json')) {
       partitiondb = key;
     }
+
     if (key.endsWith('.savx')) {
       savxdb = key;
+    }
+
+    if (key === 'search') {
+      search.value = value;
     }
   }
 

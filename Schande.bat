@@ -4899,6 +4899,7 @@ function registerFilter(filterNode, op_text, bar) {
       }
 
       if (op) {
+        text_array = text_array.filter((x) => x);
         c.push(text_array);
       } else {
         c.at(-1).push(...text_array);
@@ -4926,6 +4927,9 @@ const filterNode = {
 };
 
 function rebuildFilter(f, bar) {
+  filterNode.autocomplete = null;
+  filterNode.controller = null;
+
   const farray = f.match(/(?:\\.|[^"])+|^/g);
   // Quote delimiter
   for (const [n, t] of farray.entries()) {
@@ -4964,9 +4968,6 @@ function refilter() {
 
   filterNode.contains = [];
   filterNode.excluding = [];
-
-  filterNode.autocomplete = null;
-  filterNode.controller = null;
 
   rebuildFilter(search.value, 'search');
   rebuildFilter(ignore.value, 'ignore');

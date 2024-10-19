@@ -4791,9 +4791,9 @@ function hideDetails(e) {
   }
 }
 
-function hideParts(tagName, className) {
+function hideParts(components) {
   // shamefur dispray
-  if (!tagName) {
+  if (components.length === 0) {
     for (const node of nodes) {
       node.style.display = 'inline-block';
     }
@@ -4803,60 +4803,39 @@ function hideParts(tagName, className) {
 
   for (const node of nodes) {
     let hide = false;
-    let tagNode = node.getElementsByTagName(tagName);
-    let classNode = node.querySelectorAll(className);
+    for (const component of components) {
+      let classNode = node.querySelectorAll(component.selector);
+      const contains = component.contains;
+      const excluding = component.excluding;
+      if (classNode.length > 0) {
+        classNode = classNode[0].textContent.toLowerCase();
+      } else {
+        // no content no dispray!
+        node.style.display = 'none';
+        continue;
+      }
 
-    if (tagNode.length > 0) {
-      tagNode = tagNode[0].textContent.toLowerCase();
-    } else {
-      // no content no dispray!
-      node.style.display = 'none';
-      continue;
-    }
-
-    if (filterNode.ignore.length > 0) {
-      for (const p of filterNode.ignore) {
-        if (p && tagNode.includes(p)) {
-          hide = true;
-          break;
+      if (excluding.length > 0) {
+        for (const e of excluding) {
+          if (e && classNode.includes(e)) {
+            hide = true;
+            break;
+          }
         }
       }
-    }
 
-    if (!hide && filterNode.search.length > 0) {
-      hide = true;
-      for (const p of filterNode.search) {
-        if (p && tagNode.includes(p)) {
-          hide = false;
-          break;
+      if (!hide && contains.length > 0) {
+        hide = true;
+        for (const c of contains) {
+          if (c && classNode.includes(c)) {
+            hide = false;
+            break;
+          }
         }
       }
-    }
 
-    if (classNode.length > 0) {
-      classNode = classNode[0].textContent.toLowerCase();
-    } else {
-      // no content no dispray!
-      node.style.display = 'none';
-      continue;
-    }
-
-    if (!hide && filterNode.excluding.length > 0) {
-      for (const p of filterNode.excluding) {
-        if (p && classNode.includes(p)) {
-          hide = true;
-          break;
-        }
-      }
-    }
-
-    if (!hide && filterNode.contains.length > 0) {
-      hide = true;
-      for (const p of filterNode.contains) {
-        if (p && classNode.includes(p)) {
-          hide = false;
-          break;
-        }
+      if (hide) {
+        break;
       }
     }
 
@@ -4866,18 +4845,20 @@ function hideParts(tagName, className) {
 
 function registerFilter(filterNode, op_text, bar) {
   const op_keywords = {
-    keyword: ['kw:'],
     search: ['fi:'],
     ignore: ['fk:'],
+    keyword: ['kw:'],
+    wrongkey: ['wk:'],
     contains: ['in:'],
     excluding: ['xl:'],
     status: ['is:'],
   };
 
   const search_ops = [
-    [op_keywords.keyword, 'keyword'],
     [op_keywords.search, 'search'],
     [op_keywords.ignore, 'ignore'],
+    [op_keywords.keyword, 'keyword'],
+    [op_keywords.wrongkey, 'wrongkey'],
     [op_keywords.contains, 'contains'],
     [op_keywords.excluding, 'excluding'],
     [
@@ -4934,9 +4915,10 @@ function registerFilter(filterNode, op_text, bar) {
 }
 
 const filterNode = {
-  keyword: [],
   search: [],
   ignore: [],
+  keyword: [],
+  wrongkey: [],
   contains: [],
   excluding: [],
   autocomplete: null,
@@ -4974,16 +4956,37 @@ function rebuildFilter(f, bar) {
 }
 
 function refilter() {
-  filterNode.keyword = [];
   filterNode.search = [];
   filterNode.ignore = [];
+
+  filterNode.keyword = [];
+  filterNode.wrongkey = [];
+
   filterNode.contains = [];
   filterNode.excluding = [];
+
   filterNode.autocomplete = null;
   filterNode.controller = null;
+
   rebuildFilter(search.value, 'search');
   rebuildFilter(ignore.value, 'ignore');
-  hideParts('h2', '.postMessage');
+  hideParts([
+    {
+      'selector': 'h2',
+      'contains': filterNode.search,
+      'excluding': filterNode.ignore,
+    },
+    {
+      'selector': '.time',
+      'contains': filterNode.keyword,
+      'excluding': filterNode.wrongkey,
+    },
+    {
+      'selector': '.postMessage',
+      'contains': filterNode.contains,
+      'excluding': filterNode.excluding,
+    }
+  ]);
 }
 
 var busytyping;
@@ -5419,7 +5422,7 @@ Keywords: ${afterkeys}`;
     <button class="next" onclick="hideDetails(this)">Filename</button>""" + f"""
     <input class="next" id="search" type="text" oninput="hidePattern();" value='{" ".join(pattern[1])}' placeholder='Search title'>
     <input class="next" id="ignore" type="text" oninput="hidePattern();" value='{" ".join(pattern[0])}' placeholder='Ignore title'>""" + """
-    <button class="next" onclick="hideParts('.edits')">Edits</button>
+    <button class="next" onclick="hideParts(['.edits'])">Edits</button>
     <button class="next" onclick="hideParts()">&times;</button>
     <div class="dark local_tooltip" id="local_tooltip"></div>
     <div class="stdout" id="stdout" style="display:none;" onpaste="plaintext(this, event);" contenteditable="plaintext-only" spellcheck=false></div>

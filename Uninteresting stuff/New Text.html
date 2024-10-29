@@ -187,6 +187,12 @@ ul {
   background-color: #066;
 }
 
+.ahref {
+  text-decoration: none;
+  font-size: 12px;
+  font-family: sans-serif;
+}
+
 .previous {
   color: #6fe;
   background-color: #399;
@@ -532,14 +538,14 @@ document.addEventListener("click", FFdown);
 
 const makelink = (t, c) => {
   const a = document.createElement('A');
-  a.classList = 'next';
+  a.classList = 'next ahref';
   a.target = '_blank';
   a.id = c;
   a.textContent = t;
   return a;
 }
 
-var FFup = () => {
+const FFup = () => {
   const sel = editor.ownerDocument.defaultView.getSelection();
   const len = sel.toString().length;
   if (link && link.classList.contains('hyperlink')) {
@@ -547,12 +553,13 @@ var FFup = () => {
     cursor_tooltip.style.display = 'none';
   }
   link = sel.anchorNode.parentNode;
-  let ans = false;
-  if (link.classList.contains('hyperlink')) {
-    while (cursor_tooltip.firstChild) {
-      cursor_tooltip.lastChild.remove();
-    }
+  let ans = null;
 
+  while (cursor_tooltip.firstChild) {
+    cursor_tooltip.lastChild.remove();
+  }
+
+  if (link.classList.contains('hyperlink')) {
     link.classList.add('pulse');
     where = link.getBoundingClientRect();
     cursor_tooltip.style.left = (window.scrollX + where.left + 6) + 'px';
@@ -565,14 +572,14 @@ var FFup = () => {
     if (!updatesel){
       updatesel = window.setInterval(() => {
         const seln = editor.ownerDocument.defaultView.getSelection().toString().length;
-        if (seln !== updateseln){
+        if (seln !== updateseln) {
           updateseln = seln;
           FFup();
         }
       }, 500);
     }
     try {
-      ans = new Function('return ' + sel.toString().replace(/(\r|\n)/g, ""))().toFixed(10)*1;
+      ans = new Function('return ' + sel.toString().replace(/(\r|\n)/g, ""))().toFixed(10) * 1;
     } catch {
       cursor_tooltip.style.display = 'none';
     }
@@ -584,12 +591,16 @@ var FFup = () => {
   if (sel.rangeCount) {
     const pos = sel.getRangeAt(0);
     const preCaretRange = pos.cloneRange();
-    if (ans !== false) {
+    if (ans) {
       where = preCaretRange.getBoundingClientRect()
       cursor_tooltip.style.left = (window.scrollX + where.left) + 'px';
       cursor_tooltip.style.top = (window.scrollY + where.top + 36) + 'px';
-      cursor_tooltip.classList = 'tangerine cursed';
-      cursor_tooltip.innerHTML = "<span style='font-size:14px;'>" + ans + "</span>";
+
+      const s = document.createElement('SPAN');
+      s.classList = 'tangerine cursed';
+      s.style.fontSize = '14px';
+      s.textContent = ans;
+      cursor_tooltip.append(s);
       cursor_tooltip.style.display = 'inline-block';
     };
     preCaretRange.selectNodeContents(editor);

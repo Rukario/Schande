@@ -875,6 +875,11 @@
   "Doll Face":[1502, "???", 0, 0],
   "Frank's Berries":[[1516, 1518], "???", 0, 0],
   "Thriller":[[1517, 1519], "???", 0, 0],
+  "Papillion Kissed":[1526, "???", 0, 0],
+  "Swallowtail Kissed":[1525, "???", 0, 0],
+  "Farfalle Kissed":[1523, "???", 0, 0],
+  "Monarch Kissed":[1524, "???", 0, 0],
+  "Mariposa Kissed":[1522, "???", 0, 0],
 
   "Con":true,
   "Con Trash Bandit":[492, "ocean blue", 0, 0, "cream", 2, 0],

@@ -737,16 +737,16 @@ var qix = false;
 var scale = 1;
 
 var dim = {x:0, y:0};
-const maxtouches = 5;
-const mouse = [];
-for (const n of Array(maxtouches).keys()) {
-  mouse.push({
+const max_touches = 5;
+const pointers = Array.from({ length: max_touches }).map(() => {
+  return {
     x: 0,
     y: 0,
-    down: false,
-  });
-}
-var rubbermouse = {x:0, y:0};
+    down: null,
+    identifier: null,
+  };
+});
+var rubberpointers = {x:0, y:0};
 
 const isTouch = 'ontouchstart' in window;
 var busyclick = false;
@@ -823,8 +823,8 @@ function canvasToAB(c, ext = 'png') {
   }
 }
 
-function canvasToFrame(mask, callback, interFrameN) {
-  let promise = new Promise(canvasToAB(mask, 'png'));
+function canvasToFrame(c, callback, interFrameN) {
+  let promise = new Promise(canvasToAB(c, 'png'));
   promise.then(function(arri) {
     callback(interFrameN, ABtoIMG(ABtoAB(arri)));
   });
@@ -908,13 +908,13 @@ function starry(vmsec, msec, vfps) {
   }
 
   const drift = {
-    x: (mouse[0].x - dim.x) / (200 / scr.levitate) / (vfps / 60) / star.life - (mouse[0].x - rubbermouse.x) / scr.friction.x * scr.drift,
-    y: (mouse[0].y - dim.y) / (200 / scr.levitate) / (vfps / 60) / star.life - (mouse[0].y - rubbermouse.y) / scr.friction.y * scr.drift,
+    x: (pointers[0].x - dim.x) / (200 / scr.levitate) / (vfps / 60) / star.life - (pointers[0].x - rubberpointers.x) / scr.friction.x * scr.drift,
+    y: (pointers[0].y - dim.y) / (200 / scr.levitate) / (vfps / 60) / star.life - (pointers[0].y - rubberpointers.y) / scr.friction.y * scr.drift,
   }
 
   const off = {
-    x: scr.fly ? (mouse[0].x - dim.x) / 5 : 0,
-    y: scr.fly ? (mouse[0].y - dim.x) / 5 : 0,
+    x: scr.fly ? (pointers[0].x - dim.x) / 5 : 0,
+    y: scr.fly ? (pointers[0].y - dim.x) / 5 : 0,
   }
 
   context.fillStyle = ccolor;
@@ -928,10 +928,10 @@ function starry(vmsec, msec, vfps) {
   };
 
   if (scr.glide) {
-    bound.x += Math.min(mouse[0].x - canvas.width, -dim.x);
-    bound.y += Math.min(mouse[0].y - canvas.height, -dim.y);
-    bound.dx += Math.max(mouse[0].x, dim.x);
-    bound.dy += Math.max(mouse[0].y, dim.y);
+    bound.x += Math.min(pointers[0].x - canvas.width, -dim.x);
+    bound.y += Math.min(pointers[0].y - canvas.height, -dim.y);
+    bound.dx += Math.max(pointers[0].x, dim.x);
+    bound.dy += Math.max(pointers[0].y, dim.y);
   } else {
     bound.x += -dim.x;
     bound.y += -dim.y;
@@ -952,8 +952,8 @@ function starry(vmsec, msec, vfps) {
       //const scanline = n % channel / channel + Math.random() / channel;
       const scanline = Math.random();
 
-      ishtar.x = (horizon - 0.5) * canvas.width * scr.frustum + (scr.glide ? (mouse[0].x - dim.x) / scr.friction.x : 0);
-      ishtar.y = (scanline - 0.5) * canvas.height * scr.frustum + (scr.glide ? (mouse[0].y - dim.y) / scr.friction.y : 0);
+      ishtar.x = (horizon - 0.5) * canvas.width * scr.frustum + (scr.glide ? (pointers[0].x - dim.x) / scr.friction.x : 0);
+      ishtar.y = (scanline - 0.5) * canvas.height * scr.frustum + (scr.glide ? (pointers[0].y - dim.y) / scr.friction.y : 0);
     }
 
     if (scr.glide) {
@@ -966,8 +966,8 @@ function starry(vmsec, msec, vfps) {
       x: Math.ceil(ishtar.boost / (speli / star.x)),
       y: Math.ceil(ishtar.boost / (speli / star.y)),
     };
-    const sx = (ishtar.x + off.x) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(mouse[0].x - dim.x) / (900 * scr.friction.x)) : 0);
-    const sy = (ishtar.y + off.y) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(mouse[0].y - dim.y) / (900 * scr.friction.y)) : 0);
+    const sx = (ishtar.x + off.x) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(pointers[0].x - dim.x) / (900 * scr.friction.x)) : 0);
+    const sy = (ishtar.y + off.y) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(pointers[0].y - dim.y) / (900 * scr.friction.y)) : 0);
 
     if (false) {
       if (ishtar.x < dim.x) {
@@ -1003,8 +1003,8 @@ function starry(vmsec, msec, vfps) {
       }
     }
   }
-  rubbermouse.x = mouse[0].x;
-  rubbermouse.y = mouse[0].y;
+  rubberpointers.x = pointers[0].x;
+  rubberpointers.y = pointers[0].y;
 }
 
 const alpha = new Image();
@@ -1039,7 +1039,7 @@ reveal.addEventListener('load', () => {
   //desk.style.opacity = 0.5;
   desk.style.display = isTouch ? 'inline-block' : 'none';
 
-  speaker("Move player with WASD or arrow keys, hold mouse while moving to set up barriers.\n\nCapsLock to un/freeze enemies, Shift/Space to accelerate X/Y.\n\nMind control the boss with TFGH keys.");
+  speaker("Move player with WASD or arrow keys, click and hold while moving to set up barriers.\n\nCapsLock to un/freeze enemies, Shift/Space to accelerate X/Y.\n\nMind control the boss with TFGH keys.");
   new_qix();
   qixupdate();
 });
@@ -1227,7 +1227,15 @@ function starmask(color, img, branch) {
     //
     //mask.translate(img.width, img.height);
     //
-    //const fol = newCanvas(img.width, img.height);
+    ////const fol = newCanvas(img.width, img.height);
+    //const fol = document.createElement('CANVAS').getContext('webgl', {antialias: false, preserveDrawingBuffer: true});
+    //fol.width = fol.canvas.width = img.width;
+    //fol.height = fol.canvas.height = img.height;
+    ////fol.imageSmoothingEnabled = false;
+    //fol.texImage2D(fol.TEXTURE_2D, 0, fol.RGBA, fol.RGBA, fol.UNSIGNED_BYTE, img);
+    //echoCanvas(fol.canvas);
+    //return;
+    //
     //fol.drawImage(img, 0, 0);
     //fol.globalCompositeOperation = 'source-in';
     //mask.rotate(360 / 2 / branch * Math.PI / 180);
@@ -1281,8 +1289,8 @@ function new_stars() {
     foliage.src = 'spruce.png';
     foliage.addEventListener('load', () => {
       const ntimes = scr.density / xarray.length * (xarray.length - 1);
-      //['#033201', '#0E600C', '#033201', '#233A0D', '#065001', '#0E600C']
       canvasToFrame(starmask(null, foliage, 15), variant, ntimes);
+      //canvasToFrame(starmask(['#033201', '#0E600C', '#033201', '#233A0D', '#065001', '#0E600C'], foliage, 15), variant, ntimes);
     });
 
     for (const color of xarray) {
@@ -2233,8 +2241,8 @@ const vector = (x, y, slot, depth, dest) => {
   if (computerspeed) {
     dragcard.x = x;
     dragcard.y = y;
-    dragcard.dx = mouse[0].x;
-    dragcard.dy = mouse[0].y;
+    dragcard.dx = pointers[0].x;
+    dragcard.dy = pointers[0].y;
     setTimeout(FFup, computerspeed * 3);
   } else {
     draginto(dest, computer.sol);
@@ -2616,10 +2624,10 @@ var pickcard = () => {
   returncard = false;
   const area = (x, y, dx = 0, dy = 0, gapx = gap.x, gapy = gap.y) => {
     return (
-      mouse[0].x >= cardsize[0] * x + gapx * (x + 1) &&
-      mouse[0].x < cardsize[0] * (x + 1) + gapx * (x + 1) + dx &&
-      mouse[0].y >= cardsize[1] * y + gapy * (y + 1) &&
-      mouse[0].y < cardsize[1] * (y + 1) + gapy * (y + 1) + dy
+      pointers[0].x >= cardsize[0] * x + gapx * (x + 1) &&
+      pointers[0].x < cardsize[0] * (x + 1) + gapx * (x + 1) + dx &&
+      pointers[0].y >= cardsize[1] * y + gapy * (y + 1) &&
+      pointers[0].y < cardsize[1] * (y + 1) + gapy * (y + 1) + dy
     )
   };
 
@@ -2627,8 +2635,8 @@ var pickcard = () => {
   const undoloc = solitaire ? gap.x * 3 + cardsize[0] * 2 : cardsize[0] * 4;
   const undoarea = solitaire ? area(2, 0) : area(4, 0, -10, 0, 0, 11);
   // Menu
-  if (undoarea && mouse[0].x >= undoloc + undo3gap) {
-    if (solitaire && mouse[0].y < cardsize[1] / 2 + gap.y) {
+  if (undoarea && pointers[0].x >= undoloc + undo3gap) {
+    if (solitaire && pointers[0].y < cardsize[1] / 2 + gap.y) {
       // Undo draw
       const slot = slots[0];
       if (draw.draw > -1) {
@@ -2658,7 +2666,7 @@ var pickcard = () => {
           deck.push(slot[1][d]);
         }
       }
-    } else if (mouse[0].x <= undoloc + (cardsize[0] + undo3gap) / 2) {
+    } else if (pointers[0].x <= undoloc + (cardsize[0] + undo3gap) / 2) {
       // Undo card movement
       winanim = false;
       if (rev) {
@@ -2690,7 +2698,7 @@ var pickcard = () => {
   if (!winanim && area(8, 0, 0, 0, 11)) {
     let pos = 0;
 
-    if (mouse[0].y < gap.y + cardsize[1] / 2) {
+    if (pointers[0].y < gap.y + cardsize[1] / 2) {
       solcomputer = !computerspeed ? true : !solcomputer;
       computerspeed = 30;
     } else {
@@ -2743,8 +2751,8 @@ var pickcard = () => {
       dragcard = {
         x: gap.x*2 + cardsize[0]*1 + repeat*2 + dep*scale*14,
         y: gap.y*1 + cardsize[1]*0 + repeat + dep*scale,
-        dx: mouse[0].x,
-        dy: mouse[0].y,
+        dx: pointers[0].x,
+        dy: pointers[0].y,
         slot: slots[0],
       };
     }
@@ -2758,8 +2766,8 @@ var pickcard = () => {
           dragcard = {
             x: gap.x * (pos + 4) + cardsize[0] * (pos + 3) + repeat * scale * 2,
             y: gap.y * 1 + repeat * scale,
-            dx: mouse[0].x,
-            dy: mouse[0].y,
+            dx: pointers[0].x,
+            dy: pointers[0].y,
             slot: slot,
             draw: slot[1].length-1,
           };
@@ -2775,12 +2783,12 @@ var pickcard = () => {
       const dy = gap.dn * slot[0].length + gap.up * slot[1].length + (slot[1].length > 0 ? -gap.up : 0);
       if (area(pos, 1, 0, dy)) {
         if (slots[pos+5][1].length) {
-          const depth = Math.min(Math.floor(Math.max(mouse[0].y - (gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length), 0) / 15 / scale), slot[1].length-1);
+          const depth = Math.min(Math.floor(Math.max(pointers[0].y - (gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length), 0) / 15 / scale), slot[1].length-1);
           dragcard = {
             x: gap.x * (pos + 1) + cardsize[0] * pos,
             y: gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length + gap.up * depth,
-            dx: mouse[0].x,
-            dy: mouse[0].y,
+            dx: pointers[0].x,
+            dy: pointers[0].y,
             slot: slot,
             draw: depth,
           };
@@ -2804,8 +2812,8 @@ var pickcard = () => {
           dragcard = {
             x: cardsize[0] * pos + repeat * scale * 2,
             y: repeat * scale,
-            dx: mouse[0].x,
-            dy: mouse[0].y,
+            dx: pointers[0].x,
+            dy: pointers[0].y,
             slot: slot,
             draw: slot[1].length-1,
           };
@@ -2821,7 +2829,7 @@ var pickcard = () => {
       const dy = gap.dn * slot[0].length + gap.up * slot[1].length + (slot[1].length > 0 ? -gap.up : 0);
       if (area(pos, 1, 0, dy)) {
         if (slot[1].length) {
-          const depth = Math.min(Math.floor(Math.max(mouse[0].y - (gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length), 0) / 18 / scale), slot[1].length-1);
+          const depth = Math.min(Math.floor(Math.max(pointers[0].y - (gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length), 0) / 18 / scale), slot[1].length-1);
           const stack = slot[1].slice(depth);
           let pickable = true;
           if (stack.length-1 > 0) {
@@ -2839,8 +2847,8 @@ var pickcard = () => {
             dragcard = {
               x: gap.x * (pos + 1) + cardsize[0] * pos,
               y: gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length + depth * gap.up,
-              dx: mouse[0].x,
-              dy: mouse[0].y,
+              dx: pointers[0].x,
+              dy: pointers[0].y,
               slot: slot,
               draw: depth,
             };
@@ -2888,8 +2896,8 @@ function rubberband() {
     requestAnimationFrame(update);
     let des = 0;
     for (const card of returncards) {
-      const x = rubberstep / rubbersize * (mouse[0].x - returncard.dx) + returncard.x;
-      const y = rubberstep / rubbersize * (mouse[0].y - returncard.dy) + returncard.y + des;
+      const x = rubberstep / rubbersize * (pointers[0].x - returncard.dx) + returncard.x;
+      const y = rubberstep / rubbersize * (pointers[0].y - returncard.dy) + returncard.y + des;
       context.drawImage(cards[card], x, y, ...cardsize);
       des += gap.up;
     }
@@ -2921,10 +2929,10 @@ const draginto = (slot, callback) => {
 const releasecard = () => {
   const area = (x, y, dx = 0, dy = 0, gapx = gap.x, gapy = gap.y) => {
     return (
-      mouse[0].x - dragcard.dx + dragcard.x + cardsize[0] > cardsize[0] * x + gapx * (x + 1) &&
-      mouse[0].x - dragcard.dx + dragcard.x < cardsize[0] * (x + 1) + dx + gapx * (x + 1) &&
-      mouse[0].y - dragcard.dy + dragcard.y + cardsize[1] > cardsize[1] * y + gapy * y &&
-      mouse[0].y - dragcard.dy + dragcard.y < cardsize[1] * (y + 1) + dy + gapy * (y + 1)
+      pointers[0].x - dragcard.dx + dragcard.x + cardsize[0] > cardsize[0] * x + gapx * (x + 1) &&
+      pointers[0].x - dragcard.dx + dragcard.x < cardsize[0] * (x + 1) + dx + gapx * (x + 1) &&
+      pointers[0].y - dragcard.dy + dragcard.y + cardsize[1] > cardsize[1] * y + gapy * y &&
+      pointers[0].y - dragcard.dy + dragcard.y < cardsize[1] * (y + 1) + dy + gapy * (y + 1)
     )
   };
 
@@ -3160,21 +3168,8 @@ function imawake() {
 var crosshint, givehint;
 var hints = 1;
 var ZOOKd = null;
-const fader = Array(maxtouches).fill(false);
-const repeatyeets = Array(maxtouches).fill(false);
-const taketh = Array(maxtouches).fill(false);
-
-function giveth(t) {
-  for (let i = 0; i < taketh.length; i++) {
-    if (taketh[i] && taketh[i].identifier === t.identifier) {
-      return i;
-    }
-  }
-}
-
-function copyTouch({ identifier, clientX, clientY }) {
-  return { identifier, clientX, clientY };
-}
+const fader = Array.from({ length: max_touches }).fill(false);
+const repeatyeets = Array.from({ length: max_touches }).fill(false);
 
 function repeatpress(tooie, down) {
   clearTimeout(repeatyeets[tooie]); // clearTimeout and clearInterval are interchangeable
@@ -3187,27 +3182,46 @@ function repeatpress(tooie, down) {
   }
 }
 
+const update_pointers = (e_, callback, touchstart = false) => {
+  for (const touch of e_.changedTouches) {
+    for (const [index, pointer] of pointers.entries()) {
+      if (
+        touchstart &&
+        !pointer.identifier ||
+        pointer.identifier === touch.identifier
+      ) {
+        callback(pointer, index, touch);
+        break;
+      }
+    }
+  }
+};
+
 const FFdown = (e_) => {
   imawake();
   const tooies = [0];
   if (isTouch) {
     tooies.length = 0;
-    for (const t of e_.changedTouches) {
-      for (let i = 0; i < taketh.length; i++) {
-        if (!taketh[i]) {
-          taketh[i] = copyTouch(t);
-          break;
-        }
-      }
-      tooies.push(giveth(t));
-    }
+    update_pointers(
+      e_,
+      (pointer, index, touch) => {
+        const { identifier, pageX, pageY } = touch;
+        pointer.x = pageX;
+        pointer.y = pageY;
+        pointer.down = true;
+        pointer.identifier = identifier;
+        tooies.push(index);
+        cursordraw(index, true);
+      },
+      true,
+    );
+  } else {
+    pointers[0].x = e_.x;
+    pointers[0].y = e_.y;
+    pointers[0].down = true;
   }
 
   for (const tooie of tooies) {
-    mouse[tooie].down = true;
-    mouse[tooie].x = isTouch ? taketh[tooie].clientX + window.visualViewport.offsetLeft : e_.x;
-    mouse[tooie].y = isTouch ? taketh[tooie].clientY + window.visualViewport.offsetTop : e_.y;
-
     if (e_.target.classList.contains('graphboard')) {
       graphdrawing = e_;
       graphdraw(e_);
@@ -3221,7 +3235,7 @@ const FFdown = (e_) => {
         dragcard = false;
       }
     //} else if (e_.target.id === 'keyboard') {
-    //  const t = document.elementFromPoint(mouse[tooie].x, mouse[tooie].y);
+    //  const t = document.elementFromPoint(pointers[tooie].x, pointers[tooie].y);
     //  FFpress(tooie, t);
     } else if (e_.target.classList.contains('keyswitch')) {
       FFpress(tooie, e_.target);
@@ -3231,8 +3245,6 @@ const FFdown = (e_) => {
         pickcard();
       }
     }
-
-    cursordraw(tooie, true);
   }
 }
 
@@ -3248,11 +3260,19 @@ const FFmove = (e_) => {
     const tooies = [0];
     if (isTouch) {
       tooies.length = 0;
-      for (const t of e_.changedTouches) {
-        const tooie = giveth(t);
-        taketh[tooie] = copyTouch(t);
-        tooies.push(tooie);
-      }
+      update_pointers(
+        e_,
+        (pointer, index, touch) => {
+          const { identifier, pageX, pageY } = touch;
+          pointer.x = pageX;
+          pointer.y = pageY;
+          tooies.push(index);
+          cursordraw(index);
+        },
+      );
+    } else {
+      pointers[0].x = e_.x;
+      pointers[0].y = e_.y;
     }
 
     if (!isTouch || e_.touches.length === 1) {
@@ -3260,24 +3280,21 @@ const FFmove = (e_) => {
     }
 
     for (tooie of tooies) {
-      mouse[tooie].x = isTouch ? taketh[tooie].clientX + window.visualViewport.offsetLeft : e_.x;
-      mouse[tooie].y = isTouch ? taketh[tooie].clientY + window.visualViewport.offsetTop : e_.y;
-
-      if (mouse[tooie].down) {
+      if (pointers[tooie].down) {
         rollkey(tooie);
       }
-      cursordraw(tooie);
-      graphdraw(e_);
-      leverdraw(e_);
     }
+
+    graphdraw(e_);
+    leverdraw(e_);
   }
 
   if (freecell || solitaire && !winanim) {
     if (
-      mouse[0].x > 11*9 + cardsize[0]*8 + cardsize[0]/2 - 16*scale &&
-      mouse[0].x < 11*9 + cardsize[0]*8 + cardsize[0]/2 + 16*scale &&
-      mouse[0].y > gap.y*1 + cardsize[1]*0 + cardsize[1]/2 - 8*scale &&
-      mouse[0].y < gap.y*1 + cardsize[1]*0 + cardsize[1]/2 + 8*scale
+      pointers[0].x > 11*9 + cardsize[0]*8 + cardsize[0]/2 - 16*scale &&
+      pointers[0].x < 11*9 + cardsize[0]*8 + cardsize[0]/2 + 16*scale &&
+      pointers[0].y > gap.y*1 + cardsize[1]*0 + cardsize[1]/2 - 8*scale &&
+      pointers[0].y < gap.y*1 + cardsize[1]*0 + cardsize[1]/2 + 8*scale
     ) {
       if (!crosshint) {
         givehint = !givehint;
@@ -3303,10 +3320,10 @@ const FFmove = (e_) => {
   }
 
   if (freecell) {
-    if (face === 2 && mouse[0].x < cardsize[0]*4*scale) {
+    if (face === 2 && pointers[0].x < cardsize[0]*4*scale) {
       face = 1;
       repaint.freecell();
-    } else if (face === 1 && mouse[0].x >= cardsize[0]*4*scale+62) {
+    } else if (face === 1 && pointers[0].x >= cardsize[0]*4*scale+62) {
       face = 2;
       repaint.freecell();
     }
@@ -3323,7 +3340,7 @@ const FFmove = (e_) => {
     }
 
     for (const card of dragcards){
-      context.drawImage(cards[card], mouse[0].x - dragcard.dx + dragcard.x, mouse[0].y - dragcard.dy + dragcard.y + des, ...cardsize);
+      context.drawImage(cards[card], pointers[0].x - dragcard.dx + dragcard.x, pointers[0].y - dragcard.dy + dragcard.y + des, ...cardsize);
       des += gap.up;
     }
   }
@@ -3337,14 +3354,17 @@ const FFup = (e_) => {
     const tooies = [0];
     if (isTouch) {
       tooies.length = 0;
-      for (const t of e_.changedTouches) {
-        tooies.push(giveth(t));
-      }
-      for (const tooie of tooies) {
-        if (tooie >= 0) {
-          taketh[tooie] = false;
-        }
-      } 
+      update_pointers(
+        e_,
+        (pointer, index, touch) => {
+          pointer.down = false;
+          pointer.identifier = false;
+          tooies.push(index);
+          cursordraw(index, false, true);
+        },
+      );
+    } else {
+      pointers[0].down = false;
     }
 
     if (!ZOOKd) {
@@ -3364,7 +3384,6 @@ const FFup = (e_) => {
     }
 
     for (const tooie of tooies) {
-      mouse[tooie].down = false;
       joystick[tooie] = false;
       for (const k of yeetCodes[tooie]) {
         pressed(k, tooie);
@@ -3375,9 +3394,7 @@ const FFup = (e_) => {
         repeatpress(tooie, false);
       }
       yeetCode[tooie] = 'Backspace';
-
       cursors[tooie].tail.style.display = 'none';
-      cursordraw(tooie, false, true);
     }
     e_.preventDefault();
   }
@@ -3389,7 +3406,7 @@ const FFup = (e_) => {
 
 
 
-var rightc = (e_) => {
+const right_click = (e_) => {
   if (isTouch && e_.touches.length > 1) {
     return;
   } else if (!isTouch) {
@@ -3402,19 +3419,15 @@ var rightc = (e_) => {
   }
   poppy.style.display = 'block';
   const x = Math.min(
-    isTouch
-      ? e_.touches[0].clientX + window.visualViewport.offsetLeft
-      : e_.x,
+    pointers[0].x,
     document.documentElement.clientWidth - poppy.clientWidth,
   );
   const y = Math.min(
-    isTouch
-      ? e_.touches[0].clientY + window.visualViewport.offsetTop
-      : e_.y,
+    pointers[0].y,
     document.documentElement.clientHeight - poppy.clientHeight,
   );
-  poppy.style.left = (x > 0 ? x : 0) + 'px';
-  poppy.style.top = (y > 0 ? y : 0) + 'px';
+  poppy.style.left = Math.max(x, 0) + 'px';
+  poppy.style.top = Math.max(y, 0) + 'px';
 
   ZOOKd = true;
   e_.preventDefault();
@@ -3442,40 +3455,38 @@ var graphdrawing = false;
 var leverdrawing = false;
 
 function cursordraw(tooie, start, end) {
-  if (isTouch) {
-    const sc = window.visualViewport.scale;
-    const size = 3 / sc;
-    const border = 1 / sc;
-    const center = size / 2;
-    if (start) {
-      clearTimeout(fader[tooie]);
+  const sc = window.visualViewport.scale;
+  const size = 3 / sc;
+  const border = 1 / sc;
+  const center = size / 2;
+  if (start) {
+    clearTimeout(fader[tooie]);
 
-      cursors[tooie].pos.style.display = 'block';
-      cursors[tooie].pos.style.animation = 'none';
-      cursors[tooie].pos.style.top = mouse[tooie].y - border - center + 'px';
-      cursors[tooie].pos.style.left = mouse[tooie].x - border - center + 'px';
+    cursors[tooie].pos.style.display = 'block';
+    cursors[tooie].pos.style.animation = 'none';
+    cursors[tooie].pos.style.top = pointers[tooie].y - border - center + 'px';
+    cursors[tooie].pos.style.left = pointers[tooie].x - border - center + 'px';
 
-      cursors[tooie].dot.style.display = 'block';
-      cursors[tooie].dot.style.animation = 'none';
-    }
+    cursors[tooie].dot.style.display = 'block';
+    cursors[tooie].dot.style.animation = 'none';
+  }
 
-    cursors[tooie].pos.style.width = size + 'px';
-    cursors[tooie].pos.style.height = size + 'px';
-    cursors[tooie].pos.style.borderWidth = border + 'px';
+  cursors[tooie].pos.style.width = size + 'px';
+  cursors[tooie].pos.style.height = size + 'px';
+  cursors[tooie].pos.style.borderWidth = border + 'px';
 
-    cursors[tooie].dot.style.width = size + 'px';
-    cursors[tooie].dot.style.height = size + 'px';
-    cursors[tooie].dot.style.top = mouse[tooie].y - center + 'px';
-    cursors[tooie].dot.style.left = mouse[tooie].x - center + 'px';
+  cursors[tooie].dot.style.width = size + 'px';
+  cursors[tooie].dot.style.height = size + 'px';
+  cursors[tooie].dot.style.top = pointers[tooie].y - center + 'px';
+  cursors[tooie].dot.style.left = pointers[tooie].x - center + 'px';
 
-    if (end) {
-      cursors[tooie].pos.style.animation = '';
-      cursors[tooie].dot.style.animation = '';
-      fader[tooie] = setTimeout(() => {
-        cursors[tooie].pos.style.display = 'none';
-        cursors[tooie].dot.style.display = 'none';
-      }, 900);
-    }
+  if (end) {
+    cursors[tooie].pos.style.animation = '';
+    cursors[tooie].dot.style.animation = '';
+    fader[tooie] = setTimeout(() => {
+      cursors[tooie].pos.style.display = 'none';
+      cursors[tooie].dot.style.display = 'none';
+    }, 900);
   }
 }
 
@@ -3974,8 +3985,8 @@ function qixstep() {
 
   // invisible barrier    
   const landed = () => {
-    if (mouse[0].hold) {
-      mouse[0].hold = 0;
+    if (pointers[0].hold) {
+      pointers[0].hold = 0;
       if (qix_tails.length > 1 || qix_tails.length > 0 && (Math.abs(qix_tails[0][2]) > 1 || Math.abs(qix_tails[0][3]) > 1)) {
         for (const area of qix_tails) {
           clearSq(...area);
@@ -4040,9 +4051,9 @@ function qixstep() {
         landed();
         qixpos.x += x;
         qixpos.y += y;
-      } else if (mouse[0].down) {
+      } else if (pointers[0].down) {
         // on adventure
-        mouse[0].hold = 1;
+        pointers[0].hold = 1;
         stixpath(x);
         qixpos.x += x;
         qixpos.y += y;
@@ -4409,7 +4420,7 @@ ${xx - size}px ${yy - size}px`);
 var stopqix = false;
 
 function qixupdate() {
-  if (qix_tails.length > 0 && !mouse[0].down) {
+  if (qix_tails.length > 0 && !pointers[0].down) {
     const speed = 1;
     for (const frame of Array(120/fps.hz).keys()) {
       if (qix_tails.length > 0) {
@@ -4427,7 +4438,7 @@ function qixupdate() {
       }
     }
     if (qix_tails.length === 0) {
-      mouse[0].hold = 0;
+      pointers[0].hold = 0;
     }
     draw_tail(tailscr);
     repaint.qix();
@@ -4632,7 +4643,13 @@ function makemenu() {
   const submenu = (e) => {
     e.addEventListener('mousedown', (e_) => {
       const t = e.lastChild.lastChild;
-      if (!e_.target.classList.contains('right') && !e_.target.parentNode.classList.contains('right') && !e_.target.classList.contains('left') && !e_.target.parentNode.classList.contains('left') && t.style.display === 'block') {
+      if (
+        !e_.target.classList.contains('right') &&
+        !e_.target.parentNode.classList.contains('right') &&
+        !e_.target.classList.contains('left') &&
+        !e_.target.parentNode.classList.contains('left') &&
+        t.style.display === 'block'
+      ) {
         dismissed = true;
         t.style.display = 'none';
       }
@@ -5168,8 +5185,8 @@ function FFpress(tooie, t) {
       deadzone[tooie].x += window.visualViewport.offsetLeft;
       deadzone[tooie].y += window.visualViewport.offsetTop;
     }
-    mouse[tooie].x = deadzone[tooie].x;
-    mouse[tooie].y = deadzone[tooie].y;
+    pointers[tooie].x = deadzone[tooie].x;
+    pointers[tooie].y = deadzone[tooie].y;
   }
   if (yeetCode[tooie] === 'CapsLock') {
     lockpress(yeetCode[tooie], !Keypress['CapsLock']);
@@ -5282,28 +5299,24 @@ for (const [n, k] of '←↑→↓'.split('').entries()) {
 
 const Keypress = Object.fromEntries(Object.keys(vCode).map((k) => [k, false]));
 const KeypressX = {};
-const yeetdim = Array(maxtouches);
-const yeetCode = Array(maxtouches).fill('Backspace');
-const joystick = Array(maxtouches).fill(false);
-const yeetCodes = Array(maxtouches).fill([]);
-const deadzone = [];
-for (const n of Array(maxtouches).keys()) {
-  deadzone.push({
-    x: 0,
-    y: 0,
-  });
-}
+const yeetdim = Array.from({ length: max_touches});
+const yeetCode = Array.from({ length: max_touches}).fill('Backspace');
+const joystick = Array.from({ length: max_touches}).fill(false);
+const yeetCodes = Array.from({ length: max_touches}).fill([]);
+const deadzone = Array.from({ length: max_touches}).map(() => {
+  return { x: 0, y: 0 };
+});
 
 const wasd = ['KeyW', 'KeyA', 'KeyS', 'KeyD'];
 const tfgh = ['KeyT', 'KeyF', 'KeyG', 'KeyH'];
 const arrowks = ['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight'];
 
 function joystick_move(tooie) {
-  const x = mouse[tooie].x - deadzone[tooie].x;
-  const y = mouse[tooie].y - deadzone[tooie].y;
+  const x = pointers[tooie].x - deadzone[tooie].x;
+  const y = pointers[tooie].y - deadzone[tooie].y;
 
   cursors[tooie].tail.style.display = 'inline-block';
-  drawhint_line(cursors[tooie].tail, deadzone[tooie].x, deadzone[tooie].y, mouse[tooie].x, mouse[tooie].y);
+  drawhint_line(cursors[tooie].tail, deadzone[tooie].x, deadzone[tooie].y, pointers[tooie].x, pointers[tooie].y);
 
   const ks = [];
   if (Math.abs(x) > Math.abs(y)*2) {
@@ -5368,7 +5381,7 @@ function rollkey(tooie) {
     joystick_move(tooie);
   }
 
-  const t = document.elementFromPoint(mouse[tooie].x - window.visualViewport.offsetLeft, mouse[tooie].y - window.visualViewport.offsetTop);
+  const t = document.elementFromPoint(pointers[tooie].x - window.visualViewport.offsetLeft, pointers[tooie].y - window.visualViewport.offsetTop);
   const newCode = t.dataset.code;
 
   if (!newCode || joystick[tooie] || newCode === 'CapsLock' || newCode === 'ScrollLock') {
@@ -5378,10 +5391,10 @@ function rollkey(tooie) {
   const rect = t.getBoundingClientRect();
   if (Keypress[yeetCode[tooie]]) {
     if (
-      mouse[tooie].x <= Math.floor(yeetdim[tooie].left) ||
-      mouse[tooie].x >= Math.floor(yeetdim[tooie].right) ||
-      mouse[tooie].y <= Math.floor(yeetdim[tooie].top) ||
-      mouse[tooie].y >= Math.floor(yeetdim[tooie].bottom)
+      pointers[tooie].x <= Math.floor(yeetdim[tooie].left) ||
+      pointers[tooie].x >= Math.floor(yeetdim[tooie].right) ||
+      pointers[tooie].y <= Math.floor(yeetdim[tooie].top) ||
+      pointers[tooie].y >= Math.floor(yeetdim[tooie].bottom)
     ) {
       // come here if you see stuck keypresses
       pressed(yeetCode[tooie], tooie);
@@ -5403,7 +5416,7 @@ const poppyFF = (e_, dragscroll) => {
       busyclick = false;
     } else {
       busyclick = setTimeout(() => {
-        rightc(e);
+        right_click(e);
       }, 500);
     }
   });
@@ -5767,12 +5780,12 @@ function resize() {
   }
 }
 
-const cursors = [];
+var cursors;
 window.addEventListener('load', () => {
   result.style.display = fps.display ? 'block' : 'none';
   document.title = 'Starfield';
 
-  for (const c of Array(maxtouches).keys()) {
+  cursors = Array.from({ length: max_touches }).map(() => {
     const pos = document.createElement('DIV');
     pos.classList = 'touchloc';
     document.body.appendChild(pos);
@@ -5789,12 +5802,8 @@ window.addEventListener('load', () => {
     tail.classList = 'hint tail';
     DOMwriter.appendChild(tail);
 
-    cursors.push({
-      pos,
-      dot,
-      tail,
-    });
-  }
+    return { pos, dot, tail };
+  });
 
   editor = neweditor();
 
@@ -5813,7 +5822,7 @@ window.addEventListener('load', () => {
     document.addEventListener('mouseup', FFup);
     document.addEventListener('mousemove', FFmove);
     document.addEventListener('contextmenu', (e_) => {
-      rightc(e_);
+      right_click(e_);
     });
   }
 
@@ -5912,8 +5921,8 @@ window.addEventListener('load', () => {
 
   dim.x = Math.floor(canvas.width/2)
   dim.y = Math.floor(canvas.height/2);
-  mouse[0].x = dim.x;
-  mouse[0].y = dim.y;
+  pointers[0].x = dim.x;
+  pointers[0].y = dim.y;
   scr.friction.x = Math.ceil(canvas.width/canvas.height);
   scr.friction.y = Math.ceil(canvas.height/canvas.width);
 

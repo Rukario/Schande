@@ -226,6 +226,7 @@
   "Xar's Natural":[[100, 798], "rouge", 0, 0, "beeswax", 0, 0],
   "Xerxes' Natural":[[53, 755, 269], "arctic", 0, 0],
   "Zaratan's Natural":[[321, 705], "rose", 0, 0, "mold", 0, 0],
+  "Zephyr's Natural":[1532, "???", 0, 0],
 
   "Natural mas":true,
   "Alice's Natural":[[121, 956], "white", 0, 0, "smoke", 0, 0],
@@ -364,6 +365,7 @@
   "Xar's Signature":[[99, 797], "tennis ball", 3, 0, "sky blue", 3, 0, "ghost white", 3, 0],
   "Xerxes' Signature":[[52, 756, 268], "garnet", 0, 0, "caramel", 0, 0],
   "Zaratan's Signature":[[322, 1057], "smoke", 0, 0, "black", 2, 0],
+  "Zephyr's signature":[[1533, 1563], "???", 0, 0],
 
   "Signature mas":true,
   "Alice's Signature":[[120, 957], "red", 0, 0, "grape", 0, 0],
@@ -895,6 +897,12 @@
   "Birthday Cake Cascade":[1540, "???", 0, 0],
   "Space Mountain Cascade":[1539, "???", 0, 0],
   "Cutie Pie":[1543, "???", 0, 0],
+  "Dancing Queen":[1560, "???", 0, 0],
+  "Rhapsody in Blue":[1557, "???", 0, 0],
+  "Easy Elegance":[1554, "???", 0, 0],
+  "Lady in Red":[1556, "???", 0, 0],
+  "Port Sunlight":[1555, "???", 0, 0],
+  "Pink Pony":[1559, "???", 0, 0],
 
   "Con":true,
   "Con Trash Bandit":[492, "ocean blue", 0, 0, "cream", 2, 0],
@@ -954,6 +962,9 @@
   "Split Con Violette Spice":[1351, "machine", 0, 0, "lazuli", 2, 0, "magenta", 2, 0, "purple", 3, 0],
   "Con Peach Bellini":[[1342, 1350], "robin egg", 0, 0, "orange", 0, 0, "lemon", 3, 0, "rose", 2, 0],
   "Split Con Peach Bellini":[1352, "magenta", 0, 0, "robin egg", 0, 0, "orange", 0, 0, "lemon", 3, 0],
+
+  "Con FWA 2025":[[1566, 1568], "???", 0, 0],
+  "Split Con FWA 2025":[1567, "???", 0, 0],
 
   "Rhinestone Cowpoke (✨ = orderable unaltered & no swap)":true,
   "Rhinestone Seraphina's Natural":[1418],
@@ -1049,6 +1060,7 @@
   "Dark Freeze":[1514],
   "Frost Demon":[1515],
   "Nothing":[1534],
+  "Neverending":[1535],
 
   "Retired Natural/Signature (confirmed retired)":true,
   "Austin's Signature (Retired)":[17],

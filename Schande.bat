@@ -1,6 +1,6 @@
 @echo off && goto loaded
 
-"""
+r"""
 ::MacOS:           open /Applications/Python\ 3.10/Install\ Certificates.command
 ::Linux/MacOS:     python3 -x /drag/n/drop/the/batchfile
 
@@ -18,11 +18,11 @@ if exist "%~n0.cd" (set tcd=%~n0.cd&&set TXT=%~dpn0.cd) else if exist "%~n0.txt"
 
 setlocal enabledelayedexpansion
 chcp 65001>nul
-if not "!TXT!"=="" for /f "delims=" %%i in ('findstr /b /i "Python = " "!TXT!"') do set string=%%i&& set string=!string:~9!&& goto check
-:check
+if not "!TXT!"=="" for /f "delims=" %%i in ('findstr /b /i "Python = " "!TXT!"') do set string=%%i&& set string=!string:~9!&&chcp 437>nul&& goto check
 chcp 437>nul
+:check
 if not "!string!"=="" (set pythondir=!string!)
-set x=Python 3.10
+set x=Python 3.13
 set cute=!x:.=!
 set cute=!cute: =!
 set pythondirx=!pythondir!!cute!
@@ -75,7 +75,7 @@ goto start
 
 
 import os, sys, io, ssl, socket, time, json, zlib, inspect, smtplib, hashlib, subprocess, mimetypes
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from fnmatch import fnmatch
 from http import cookiejar
 from http.server import BaseHTTPRequestHandler
@@ -240,14 +240,14 @@ def mainmenu():
 def ready_input():
     echo(f"Your key: ", flush=True)
 def skull():
-    return """                                    
+    return r"""                                    
               ______                
            .-"      "-.             
-          /            \\            
+          /            \            
          |'  .-.  .-.  '|           
     /\   | )(__/  \__)( |           
   _ \/   |/     /\     \|           
- \_\/    (_ \   ^^   / _)   .-==/~\\ 
+ \_\/    (_ \   ^^   / _)   .-==/~\ 
 ---,---,---|-|HHHHHH|-|---,\'-' {{~} 
            \          /     '-==\}/ 
             '--------'              
@@ -528,7 +528,7 @@ def whereami(e="echoed", b=0, f=1, kill=False, pause=False):
 
 def echo_pip():
     if sys.platform == "win32":
-        return f"{sys.exec_prefix}\Scripts\pip.exe"
+        return rf"{sys.exec_prefix}\Scripts\pip.exe"
     elif sys.platform == "darwin":
         return "sudo python3 -m pip"
     elif sys.platform == "linux":
@@ -827,7 +827,7 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             if q == HTTPserver:
                 return True
         buffer = ondisk.replace("/", "\\")
-        echo(f"""{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorz("CCCCCC")}{buffer}{tcolorx} use {tcolorg}?{HTTPserver}{tcoloro}{'&' + tcolorb + self.qs if self.qs else ''}{tcolorx} query string to authorize this connection.""", 0, 1)
+        echo(f"""{(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorz("CCCCCC")}{buffer}{tcolorx} use {tcolorg}?{HTTPserver}{tcoloro}{'&' + tcolorb + self.qs if self.qs else ''}{tcolorx} query string to authorize this connection.""", 0, 1)
         self.close_connection = False
 
     def do_GET(self):
@@ -1062,7 +1062,7 @@ h1, h2, h3, h4, h5, h6 {
         buffer = '' if dead else f' {size} bytes'
         ondisk = http2ondisk(self.path, self.directory).replace("/", "\\")
         if not ondisk.rsplit("\\", 1)[-1] in mute404:
-            echo(f"{(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorr if dead else tcolorb}{ondisk}{tcolorx}{buffer}", 0, 1)
+            echo(f"{(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorr if dead else tcolorb}{ondisk}{tcolorx}{buffer}", 0, 1)
 
         if not hasattr(self, '_headers_buffer'):
             self._headers_buffer = []
@@ -1310,7 +1310,7 @@ def declare(rule, boolean=False):
     return rule[1]
 
 offset = declare(rules[5])
-date = datetime.utcnow() + timedelta(hours=int(offset))
+date = datetime.now(UTC) + timedelta(hours=int(offset))
 fdate = date.strftime('%Y') + "-" + date.strftime('%m') + "-XX"
 
 
@@ -1714,7 +1714,7 @@ def timer(e="", listen=[], antalisten=[], clock=navigator["timeout"]):
             clock.update({0:[4, 8]})
             echo(f"""\n"#-# seconds rarity 100% 00:00" in {rulefile} to customize timer, add another timer to manipulate rarity/schedule.\n""", 1, 1)
 
-        now = int((datetime.utcnow() + timedelta(hours=int(offset))).strftime('%H%M'))
+        now = int((datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%H%M'))
         time_at = None
         next_clock = 0
         big_clock = 0
@@ -1734,12 +1734,12 @@ def timer(e="", listen=[], antalisten=[], clock=navigator["timeout"]):
         r = clock[time_at][randindex]
         s = r[0]+int((r[1]-r[0]+1)*random())
         if next_clock:
-            next_clock = int((datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y%m%d') + f'{next_clock:04}')
-            end = int((datetime.utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%Y%m%d%H%M'))
+            next_clock = int((datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y%m%d') + f'{next_clock:04}')
+            end = int((datetime.now(UTC) + timedelta(hours=int(offset), seconds=s)).strftime('%Y%m%d%H%M'))
             if end > next_clock:
                 s = int(datetime.strptime(str(next_clock), '%Y%m%d%H%M').timestamp()) - int(time.time())
         end = int(time.time()) + s
-        endclock = (datetime.utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%H:%M')
+        endclock = (datetime.now(UTC) + timedelta(hours=int(offset), seconds=s)).strftime('%H:%M')
         while True:
             ticking[0].clear()
             now = int(time.time())
@@ -6041,7 +6041,7 @@ def source_view():
 
 
 def list_remote(remote, nolist):
-    echo(f" - - {(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
+    echo(f" - - {(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
     with subprocess.Popen([remote, "-l"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
         listed = False
         for line in p.stdout:
@@ -6220,7 +6220,7 @@ def start_remote(remote):
                         pos2 += 10
                         echo("", 1)
                     elif i == 16:
-                        echo(f" - - {(datetime.utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
+                        echo(f" - - {(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
                         with subprocess.Popen([remote, "-t", str(el-1+pos), "-f"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as p:
                             listed = False
                             buffer = p.communicate()[0].decode().splitlines()

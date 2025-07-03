@@ -222,9 +222,9 @@
   "Vasu's Natural":[[60, 762], "maroon", 0, 0, "black", 0, 0],
   "Vector's Natural":[[905, 860], "magenta", 0, 0, "lazuli", 2, 0, "white", 0, 0],
   "Vergil's Natural":[1651, "???", 0, 0],
-  "Votan's Natural":[[458, 693], "magenta", 0, 0, "electric indigo", 3, 0, "indigo", 0, 0],
-  "Water Horse's Natural":[562, "jovial", 0, 0, "lavender", 0, 2, "smoke", 0, 2],
-  "winston's Tail's Natural":[1688, "???", 0, 0],
+  "Votan's Natural":[1695, "???", 0, 0],
+  "Water Horse's Natural":[1693, "???", 0, 0],
+  "Winston's Tail's Natural":[1688, "???", 0, 0],
   "Winston's Tongue's Natural":[84, "???", 0, 0],
   "Xar's Natural":[1691, "???", 0, 0],
   "Xerxes' Natural":[53, "???", 0, 0],
@@ -364,7 +364,8 @@
   "Vasu's Signature":[[59, 761], "copper", 2, 0, "anubis", 0, 2, "chocolate", 0, 0, "caramel", 0, 0],
   "Vector's Signature":[[906, 861], "robin egg", 0, 0, "lazuli", 0, 2, "indigo", 0, 2, "machine", 0, 2],
   "Vergil's Signature":[1652, "???", 0, 0],
-  "Votan's Signature":[[459, 694], "lazuli", 0, 0, "ink", 0, 2, "indigo", 0, 2],
+  "Votan's Signature":[1696, "???", 0, 0],
+  "Water Horse's Signature":[1694, "???", 0, 0],
   "Winston's Tail's Signature":[1687, "???", 0, 0],
   "Winston's Tongue's Signature":[[83, 782, 270], "lazuli", 0, 0, "electric indigo", 0, 2, "ink", 0, 0],
   "Xar's Signature":[1692, "???", 0, 0],
@@ -416,7 +417,7 @@
 
 
   "Legacies":true,
-  "Abyss' Natural Legacy":[1278, "cerulean", 2, 0, "machine", 2, 0],
+  "Abyss' Natural Legacy":[[1278, 1275], "cerulean", 2, 0, "machine", 2, 0],
   "Abyss' Signature Legacy":[[1277, 1276], "gold", 0, 0, "orange", 0, 2, "maroon", 0, 2, "galaxy", 0, 0],
   "Apollo's Signature Legacy":[69, "???", 0, 0],
   "Blaze's Signature Legacy":[[8, 709], "cerulean", 0, 0, "ink", 0, 0, "machine", 0, 0],
@@ -479,6 +480,9 @@
   "Tyson's Natural (Legacy)":[18, "???", 0, 0],
   "Vergil's Natural Legacy":[[80, 784], "puce", 0, 0, "rouge", 0, 0],
   "Vergil's Signature Legacy":[[79, 785], "crimson", 0, 0, "lime", 0, 0, "beige", 2, 0],
+  "Votan's Natural Legacy":[[458, 693], "magenta", 0, 0, "electric indigo", 3, 0, "indigo", 0, 0],
+  "Votan's Signature Legacy":[[459, 694], "lazuli", 0, 0, "ink", 0, 2, "indigo", 0, 2],
+  "Water Horse's Natural Legacy":[562, "jovial", 0, 0, "lavender", 0, 2, "smoke", 0, 2],
   "Winston's Tail Natural Legacy":[[94, 791], "crimson", 0, 3, "black", 0, 0],
   "Winston's Tail Signature Legacy":[486, "lavender", 0, 3, "teal", 0, 0, "white", 0, 0],
   "Winston's Tongue's Natural Legacy":[[84, 783, 271], "scarlet", 0, 0, "maroon", 0, 2],
@@ -486,6 +490,8 @@
   "Xar's Signature Legacy":[[99, 797], "tennis ball", 3, 0, "sky blue", 3, 0, "ghost white", 3, 0],
   "Xerxes' Natural Legacy":[[53, 755, 269], "arctic", 0, 0],
   "Xerxes' Signature Legacy":[[52, 756, 268], "garnet", 0, 0, "caramel", 0, 0],
+
+
 
   "Legacies mas":true,
   "Anje's Natural Legacy":[[456, 948], "grass", 0, 0],
@@ -1076,6 +1082,9 @@
   "Con FWA 2025":[[1566, 1568], "???", 0, 0],
   "Split Con FWA 2025":[1567, "???", 0, 0],
 
+  "Con Megaplex 2025":[[1698, 1697], "???", 0, 0],
+  "Split Con Megaplex 2025":[1699, "???", 0, 0],
+
   "Rhinestone Cowpoke (✨ = orderable unaltered & no swap)":true,
   "Rhinestone Seraphina's Natural":[1418],
   "Rhinestone Seraphina's Signature":[1419],
@@ -1404,6 +1413,8 @@
   "Naming issues":true,
   "Abyss's Natural":[[null, 1275], "???", 0, 0],
   "Abyss's Signature":[[null, 1276], "???", 0, 0],
+  "Crackers' Sheath Legacy Natural":[[null, 1265], "???", 0, 0],
+  "Crackers' Sheath Legacy Signature":[[null, 1266], "???", 0, 0],
   "Fenrir Legacy's Signature":[[4, 752], "???", 0, 0],
   "Fenrir Legacy's Natural":[[50, 751], "???", 0, 0],
   "Haiku Natural":[[null, 1155], "???", 0, 0],

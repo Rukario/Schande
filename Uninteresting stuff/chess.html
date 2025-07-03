@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<link rel="icon" href="data:,">
+<title>Chess</title>
+<style>
+html,
+body {
+  background-color:#000;
+  margin:0;
+  font-family: Helvetica,Arial,Sans-Serif;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
+
+canvas {
+  position: absolute;
+}
+
+#dialogbox {
+  display: none;
+  position: absolute;
+  background-color: #fff;
+  color: #000;
+  z-index: 1;
+  top: 100px;
+  left: 100px;
+  padding: 10px;
+}
+
+#close {
+  cursor: pointer;
+  font-size: 20px;
+  display: inline-block;
+}
+</style>
+<script>
+function getBoundingWindow() {
+  if (window.innerWidth >= window.innerHeight) {
+    return [Math.floor(window.innerWidth * (window.innerHeight / window.innerWidth)), window.innerHeight];
+  } else { 
+    return [window.innerWidth, Math.floor(window.innerHeight * (window.innerWidth / window.innerHeight))];
+  }
+}
+
+var c = document.createElement('CANVAS');
+var [x, y] = getBoundingWindow();
+c.width = x;
+c.height = y;
+
+var context = c.getContext('2d');
+context.imageSmoothingEnabled = false;
+
+var tile = (c.width-12)/8;
+var board = tile*8;
+var state = [];
+var sel = [0, 0, 0];
+var whiteturn = true;
+
+function echo(B) {
+  dialogbox.style.display = 'inline-block';
+  dialog.innerHTML = B;
+}
+
+function makeboard() {
+  context.fillStyle = "#ca8";
+  context.fillRect(0, 0, board+12, board+12);
+  context.fillStyle = "#ece";
+  context.fillRect(2, 2, board+8, board+8);
+  context.fillStyle = "#ca8";
+  context.fillRect(4, 4, board+4, board+4);
+  context.fillStyle = "#ece";
+  for (var r=0; r<8; r++) {
+    let pos = r*tile;
+    for (let c=0; c<8; c++) {
+      if (r%2 == 0 && c%2 == 0 || r%2 == 1 && c%2 == 1) {
+        let pos2 = c*tile;
+        context.fillRect(pos+6, pos2+6, tile, tile);
+      }
+    }
+  }
+  for (let p=0; p<state.length; p++) {
+    let x = (p%8)*tile + tile/8+6;
+    let y = Math.floor(p/8)*tile + tile/8+6;
+    if (state[p] > 0) {
+      let size = 0;
+      if (state[p] > 9) {
+        context.fillStyle = "#fff";
+        size = state[p]%9/6;
+      } else {
+        context.fillStyle = "#000";
+        size = state[p]/6;
+      }
+      if (state[p] == 1 || state[p] == 2 || state[p] == 5 || state[p] == 6 || state[p] == 0xa || state[p] == 0xb || state[p] == 0xe || state[p] == 0xf) {
+        context.fillRect(Math.floor(x+tile/3-tile*size/3), Math.floor(y+tile/3-tile*size/3), Math.floor(tile/1.33*size), Math.floor(tile/1.33*size));
+      }
+      if (state[p] == 4 || state[p] == 5 || state[p] == 6 || state[p] == 0xd || state[p] == 0xe || state[p] == 0xf) {
+        context.beginPath();
+        context.moveTo(Math.floor(x+tile/2.5-tile*size/1.9)+tile*size/2, Math.floor(y+tile/2.5-tile*size/1.9));
+        context.lineTo(Math.floor(x+tile/2.5-tile*size/1.9)+tile*size, Math.floor(y+tile/2.5-tile*size/1.9)+tile*size/2);
+        context.lineTo(Math.floor(x+tile/2.5-tile*size/1.9)+tile*size/2, Math.floor(y+tile/2.5-tile*size/1.9)+tile*size);
+        context.lineTo(Math.floor(x+tile/2.5-tile*size/1.9), Math.floor(y+tile/2.5-tile*size/1.9)+tile*size/2);
+        context.closePath();
+        context.fill();
+      }
+      if (state[p] == 3 || state[p] == 0xc) {
+        context.beginPath();
+        context.moveTo(Math.floor(x+tile/2.5-tile*size/1.9)+tile*size/2, Math.floor(y+tile/2.5-tile*size/1.9));
+        context.lineTo(Math.floor(x+tile/2.5-tile*size/1.9)+tile*size/2, Math.floor(y+tile/2.5-tile*size/1.9)+tile*size);
+        context.lineTo(Math.floor(x+tile/2.5-tile*size/1.9), Math.floor(y+tile/2.5-tile*size/1.9)+tile*size/2);
+        context.closePath();
+        context.fill();
+      }
+    }
+  }
+  if (sel[2]) {
+    context.fillStyle = 'rgba(128, 128, 255, 0.5)';
+    context.fillRect(sel[0]*tile+6, sel[1]*tile+6, tile, tile);
+  }
+}
+
+function iscrossing(x, y) {
+  if (sel[2] == 2 || sel[2] == 0xb || sel[2] == 4 || sel[2] == 0xd || sel[2] == 5 || sel[2] == 0xe || sel[2] == 6 || sel[2] == 0xf) {
+    let xx = [...Array(Math.abs(sel[0]-x)).keys()].map((p) => {return p+(sel[0] < x ? sel[0]: x)}).slice(1);
+    if (sel[0]-x > 0) xx.reverse();
+    let yy = [...Array(Math.abs(sel[1]-y)).keys()].map((p) => {return p+(sel[1] < y ? sel[1]: y)}).slice(1);
+    if (sel[1]-y > 0) yy.reverse();
+    for (let n=0;n<(xx.length?xx.length:yy.length);n++) {
+      if (state[(xx.length?xx[n]:sel[0])+((yy.length?yy[n]:sel[1]))*8]) {
+        return true;
+      }
+    }
+  }
+}
+
+var castling = [false, false];
+
+function gameover(kingiskilled){
+  if (kingiskilled){
+    state = [
+      2, 3, 4, 6, 5, 4, 3, 2,
+      1, 1, 1, 1, 1, 1, 1, 1,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa,
+      0xb, 0xc, 0xd, 0xf, 0xe, 0xd, 0xc, 0xb,
+    ];
+    makeboard();
+    echo("Good game!");
+  }
+}
+
+function move(x, y) {
+  let i = x+y*8;
+  let kingiskilled = false;
+  if (state[i] == 6 || state[i]%9 == 6){
+    kingiskilled = true;
+  }
+  turn = false;
+  if (sel[2] == 1 && (sel[1] >= y || (sel[1] < y-2 || sel[1] > 1 && sel[1] < y-1))) {
+    echo("PAWN can only move toward by one! (or two if it's first time moving)");
+  } else if (sel[2] == 1 && state[i] && !(sel[0]-1 == x || sel[0]+1 == x)) {
+    echo("PAWN can't attack what it is facing.");
+  } else if (sel[2] == 1 && !state[i] && sel[0] != x) {
+    echo("PAWN can't move forward-diagonally without attacking someone.");
+  } else if (sel[2] == 1 && y == 7) {
+    whiteturn = !whiteturn;
+    state[sel[0]+sel[1]*8] = 0;
+    state[i] = 5;
+    gameover(kingiskilled);
+  } else if (sel[2] == 0xa && (sel[1] <= y || (sel[1] > y+2 || sel[1] < 6 && sel[1] > y+1))) {
+    echo("PAWN can only move toward by one! (or two if it's first time moving)");
+  } else if (sel[2] == 0xa && state[i] && !(sel[0]-1 == x || sel[0]+1 == x)) {
+    echo("PAWN can't attack what it is facing.");
+  } else if (sel[2] == 0xa && !state[i] && sel[0] != x) {
+    echo("PAWN can't move forward-diagonally without attacking someone.");
+  } else if (sel[2] == 0xa && y == 0) {
+    whiteturn = !whiteturn;
+    state[sel[0]+sel[1]*8] = 0;
+    state[i] = 0xe;
+    gameover(kingiskilled);
+  } else if ((sel[2] == 2 || sel[2] == 0xb) && !(sel[0] == x || sel[1] == y)) {
+    echo("ROOK can only move in cross fashion!");
+  } else if ((sel[2] == 3 || sel[2] == 0xc) && !((sel[0]-1 == x && (sel[1]-2 == y || sel[1]+2 == y) || sel[0]+1 == x && (sel[1]-2 == y || sel[1]+2 == y)) || (sel[0]-2 == x && (sel[1]-1 == y || sel[1]+1 == y) || sel[0]+2 == x && (sel[1]-1 == y || sel[1]+1 == y)))) {
+    echo("KNIGHT can only move in L fashion!");
+  } else if ((sel[2] == 4 || sel[2] == 0xd) && !(sel[0]-x == sel[1]-y || -(sel[0]-x) == sel[1]-y || sel[0]-x == -(sel[1]-y))) {
+    echo("BISHOP can only move diagonally!");
+  } else if ((sel[2] == 5 || sel[2] == 0xe) && !((sel[0] == x || sel[1] == y) || (sel[0]-x == sel[1]-y || -(sel[0]-x) == sel[1]-y || sel[0]-x == -(sel[1]-y)))) {
+    echo("QUEEN can only move diagonally or in cross fashion!");
+  } else if ((sel[2] == 6 || sel[2] == 0xf) && !(state[i] == 2 || state[i] == 0xb) && (sel[0] > x+1 || sel[0] < x-1 || sel[1] > y+1 || sel[1] < y-1)) {
+    echo("KING can only move by one!");
+  } else if ((sel[2] == 6 || sel[2] == 0xf || sel[2] == 2 || sel[2] == 0xb) && (state[i] == 6 || state[i] == 0xf || state[i] == 2 || state[i] == 0xb)) {
+    if (iscrossing(x, y)) {
+      echo("Can't castle right now");
+    } else {
+      echo("Castling unimplemented");
+    }
+  } else if (state[i] && Math.floor(sel[2]/9) == Math.floor(state[i]/9)) {
+    echo("You can't attack your own!");
+  } else if (iscrossing(x, y)) {
+    echo("You can't cross anyone!");
+  } else {
+    whiteturn = !whiteturn;
+    state[sel[0]+sel[1]*8] = 0;
+    state[i] = sel[2];
+    gameover(kingiskilled);
+  }
+  sel = [0, 0, 0];
+}
+
+window.onload = () => {
+  document.body.appendChild(c);
+  state = [
+    2, 3, 4, 6, 5, 4, 3, 2,
+    1, 1, 1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa,
+    0xb, 0xc, 0xd, 0xf, 0xe, 0xd, 0xc, 0xb,
+  ];
+  makeboard();
+  addEventListener('resize', () => {
+    [x, y] = getBoundingWindow();
+    c.width = x;
+    c.height = y;
+    context.imageSmoothingEnabled = false;
+    tile = (c.width-12)/8;
+    board = tile*8;
+    makeboard();
+  });
+  c.addEventListener('click', (e) => {
+    let x = Math.floor(e.x/tile);
+    let y = Math.floor(e.y/tile);
+    if (dialogbox.style.display != 'none') {
+      dialogbox.style.display = 'none';
+    }
+    if (sel[2] && sel[0] == x && sel[1] == y || x == 8 || y == 8) {
+      sel = [0, 0, 0];
+    } else if (sel[2]) {
+      move(x, y);
+    } else {
+      if (!state[x+y*8]) {
+        return;
+      } else if (whiteturn == Math.floor(state[x+y*8]/9)) {
+        sel = [x, y, state[x+y*8]];
+      } else {
+        echo("Don't move my piece!");
+      };
+    }
+    makeboard();
+  });
+  c.addEventListener('mousemove', (e) => {
+    let x = Math.floor((e.x-6)/tile);
+    let y = Math.floor((e.y-6)/tile);
+    if (x == -1 || y == -1 || x > 7 || y > 7) return;
+    makeboard();
+    context.fillStyle = 'rgba(128, 128, 255, 0.5)';
+    context.fillRect(x*tile+6, y*tile+6, tile, tile);
+  });
+  c.addEventListener('mouseleave', () => {
+    makeboard();
+  })
+  const close = document.getElementById('close');
+  close.addEventListener('click', () => {
+    dialogbox.style.display = 'none';
+  });
+}
+</script>
+<body><div id="dialogbox"><div id="close">&times;</div><div id="dialog"></div></div></body>
+</html>

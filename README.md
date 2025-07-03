@@ -41,7 +41,7 @@ Download and serve files, you define how are they downloaded and sorted!
 
 Here's some other uninteresting stuff
 
-  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/Ferchel.bat">Ferchel.bat</a> - Filelist snapshot and compare folders for a manual "incremental backup"/folder-merging-esque and file-merging-esque with helps of a certain text editor, to make copies round up between PC and iOS/iPadOS storage (through iTunes saving selected folders to a temporary space) a bit more manageable. The truth of my life on a 5GB iCloud storage plan.
+  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/Ferchel.bat">Ferchel.bat</a> - Filelist snapshot and compare folders for manual "incremental backup"/folder-merging-esque. Supports UTF-8 files file-merging-esque with helps of a certain text editor.
   - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/APNG%20Maker.html">APNG Maker.html</a> - APNG production (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/APNG%20Maker.html">demo</a>)
   - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/Color%20Gallery.html">Color Gallery.html</a> - WIP BD color finder (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/Color%20Gallery.html">demo</a>)
   - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/starfield.html">starfield.html</a> - Flying Windows / starfield Windows 95 screensaver replication in JavaScript (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/starfield.html">demo</a>, right-click in demo for different stars)

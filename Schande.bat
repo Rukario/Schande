@@ -140,40 +140,7 @@ Keypress_prompt = [False]
 Keypress_buffer = [""]
 Keypress_time = [0, 0, 0]
 Fast_presser = 0.5
-
-Keypress = {
-  "KeyA": False,
-  "KeyB": False,
-  "KeyC": False,
-  "KeyD": False,
-  "KeyE": False,
-
-  "KeyF": False,
-  "KeyG": False,
-  "KeyH": False,
-  "KeyI": False,
-  "KeyJ": False,
-
-  "KeyK": False,
-  "KeyL": False,
-  "KeyM": False,
-  "KeyN": False,
-  "KeyO": False,
-
-  "KeyP": False,
-  "KeyQ": False,
-  "KeyR": False,
-  "KeyS": False,
-  "KeyT": False,
-
-  "KeyU": False,
-  "KeyV": False,
-  "KeyW": False,
-  "KeyX": False,
-  "KeyY": False,
-
-  "KeyZ": False
-}
+Keypress = {"Key" + letter: False for letter in map(chr, range(65, 91))}
 
 task = {
   "httpserver": [],
@@ -6060,7 +6027,7 @@ def list_remote(remote, nolist):
 
 
 def killdaemon(el):
-    if el < 0:
+    if el == "SlowK":
         echo(f"Press K twice in fast sequence to kill transmission-daemon and return to main menu.", 1, 1)
         return
     if sys.platform == "linux":
@@ -6071,7 +6038,7 @@ def killdaemon(el):
     return True
 
 def uninstdaemon(el):
-    if el < 0:
+    if el == "SlowU":
         echo(f"Press U twice in fast sequence to uninstall Transmission and return to main menu.", 1, 1)
         return
     if sys.platform == "linux":
@@ -6082,9 +6049,8 @@ def uninstdaemon(el):
 
 def start_remote(remote):
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
-    keys = [*"0123456789", "All", *"dfsglmkurei"]
     pos = 0
-    sel = 14
+    last_el = "KeyS"
     remove = []
     switch = "STOP"
     if not task["transmission"]:
@@ -6100,30 +6066,32 @@ def start_remote(remote):
   > Press R, E, I to (R)emove torrent, view fil(E)s of selected torrent, or (I)nput new torrent.""", 0, 2)
     while True:
         if task["transmission"]:
-            el = input(f"Select TORRENT by number to {switch}: {f'{pos/10:g}' if pos else ''}", keys if sel == 19 else keys[:10] + keys[11:], double="lku")
-            if not sel == 19 and abs(el) > 10:
-                el += 1 if el > 0 else -1
+            index = input(f"Select TORRENT by number to {switch}: {f'{pos/10:g}' if pos else ''}", ["All", *"defgiklmrsu0123456789"], double="klu")
+            if index < 0:
+                el = "Slow" + "?ADEFGIKLMRSU0123456789"[-index]
+            else:
+                el = "Key" + "?ADEFGIKLMRSU0123456789"[index]
+            num = index - len("?ADEFGIKLMRSU")
         else:
-            el = 15 + input("(I)nput new torrent, (L)ist or return to (M)ain menu: ", [keys[15], keys[16], keys[20]])
-            if el == 18:
-                el = 21
+            index = input("(I)nput new torrent, (L)ist or return to (M)ain menu: ", [*"ilm"])
+            el = "Key" + "?ILM"[index]
             task["transmission"] = True
-        if el == 12:
+        if el == "KeyD":
             pos -= 10 if pos > 0 else 0
             echo("", 1)
-        elif el == 13:
+        elif el == "KeyF":
             pos += 10
             echo("", 1)
-        elif el in [16, -16]:
-            if sel == 19 and remove:
-                if el == -16:
+        elif el in ["KeyL", "SlowL"]:
+            if last_el == "KeyR" and remove:
+                if el == "SlowL":
                     echo(f"Press L twice in fast sequence to remove: {' '.join(x for x in remove)}", 1, 1)
                     continue
                 for r in remove:
                     subprocess.Popen([remote, "-t", r, "-r"], **shuddup)
                 remove = []
                 pos = 0
-                sel = 14
+                last_el = "KeyS"
                 switch = "STOP"
                 time.sleep(0.5)
                 echo("", 1)
@@ -6131,17 +6099,17 @@ def start_remote(remote):
             else:
                 echo("", 1)
                 list_remote(remote, "No torrents to list!")
-        elif el == 17:
+        elif el == "KeyM":
             return
-        elif el in [18, -18]:
+        elif el in ["KeyK", "SlowK"]:
             if killdaemon(el):
                 return
             continue
-        elif el in [19, -19]:
+        elif el in ["KeyU", "SlowU"]:
             if uninstdaemon(el):
                 return
             continue
-        elif el == 22:
+        elif el == "KeyI":
             echo("", 1)
             buffer = "cancel"
             while True:
@@ -6159,7 +6127,7 @@ def start_remote(remote):
                     subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", i, "-sr", "0"], **shuddup)
                     buffer = "finish"
                     pos = 0
-                    sel = 15
+                    last_el = "KeyG"
                     switch = "START"
                 elif not i:
                     echo("", 1)
@@ -6169,59 +6137,59 @@ def start_remote(remote):
                 else:
                     choice(bg=True)
                     echo("Invalid input", 0, 2)
-        elif el > 13:
-            sel = el
+        elif not el[-1].isdigit() and not el == "KeyA":
+            last_el = el
             pos = 0
             remove = []
-            if el == 14:
+            if el == "KeyS":
                 switch = "STOP"
-            elif el == 15:
+            elif el == "KeyG":
                 switch = "START"
-            elif el == 20:
+            elif el == "KeyR":
                 switch = "REMOVE, (A)ll"
-            elif el == 21:
+            elif el == "KeyE":
                 switch = "VIEW file list"
             echo("", 1)
         else:
-            if sel == 14:
-                if el == 11:
+            if last_el == "KeyS":
+                if el == "KeyA":
                     echo("", 1)
                 else:
-                    subprocess.Popen([remote, "-t", str(el-1+pos), "-S"], **shuddup)
-            elif sel == 15:
-                if el == 11:
+                    subprocess.Popen([remote, "-t", str(num+pos), "-S"], **shuddup)
+            elif last_el == "KeyG":
+                if el == "KeyA":
                     echo("", 1)
                 else:
-                    subprocess.Popen([remote, "-t", str(el-1+pos), "-s"], **shuddup)
-            elif sel == 19:
-                if el == 11:
+                    subprocess.Popen([remote, "-t", str(num+pos), "-s"], **shuddup)
+            elif last_el == "KeyR":
+                if el == "KeyA":
                     subprocess.Popen([remote, "-t", "all", "-r"], **shuddup)
                     remove = []
-                    sel = 14
+                    last_el = "KeyS"
                     time.sleep(0.5)
                     echo("", 1)
                     list_remote(remote, "All torrents removed!")
                 else:
-                    remove += [str(el-1+pos)]
+                    remove += [str(num+pos)]
                     switch = "REMOVE, (A)ll, press L twice to confirm above, press R to clear"
-            elif sel == 20:
-                if el == 11:
+            elif last_el == "KeyE":
+                if el == "KeyA":
                     echo("", 1)
                     continue
                 pos2 = 0
-                sel2 = 14
+                last_i = "KeyS"
                 switch2 = "STOP getting"
-                i = 16
+                i = "KeyE"
                 while True:
-                    if i == 12:
+                    if i == "KeyD":
                         pos2 -= 10 if pos2 > 0 else 0
                         echo("", 1)
-                    elif i == 13:
+                    elif i == "KeyF":
                         pos2 += 10
                         echo("", 1)
-                    elif i == 16:
+                    elif i == "KeyE":
                         echo(f" - - {(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
-                        with subprocess.Popen([remote, "-t", str(el-1+pos), "-f"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as p:
+                        with subprocess.Popen([remote, "-t", str(num+pos), "-f"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as p:
                             listed = False
                             buffer = p.communicate()[0].decode().splitlines()
                             for line in buffer:
@@ -6237,34 +6205,37 @@ def start_remote(remote):
                             if not listed:
                                 echo("No files to list!", 0, 1)
                             echo("", 0, 1)
-                    elif i == 17:
+                    elif i == "KeyM":
                         echo("", 1)
                         break
-                    elif i in [18, -18]:
+                    elif i in ["KeyK", "SlowK"]:
                         if killdaemon(i):
                             return
-                        i = input(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", keys[:18], double="k")
-                        continue
-                    elif i > 13:
-                        sel2 = i
+                    elif not i[-1].isdigit() and not i == "KeyA":
+                        last_i = i
                         pos2 = 0
-                        if i == 14:
+                        if i == "KeyS":
                             switch2 = "STOP getting"
-                        elif i == 15:
+                        elif i == "KeyG":
                             switch2 = "GET"
                         echo("", 1)
                     else:
-                        if sel2 == 14:
-                            if i == 11:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", "all"], **shuddup)
+                        if last_i == "KeyS":
+                            if i == "KeyA":
+                                subprocess.Popen([remote, "-t", str(num+pos), "-G", "all"], **shuddup)
                             else:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-G", str(i-2+pos2)], **shuddup)
-                        elif sel2 == 15:
-                            if i == 11:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", "all"], **shuddup)
+                                subprocess.Popen([remote, "-t", str(num+pos), "-G", str(num2+pos2)], **shuddup)
+                        elif last_i == "KeyG":
+                            if i == "KeyA":
+                                subprocess.Popen([remote, "-t", str(num+pos), "-g", "all"], **shuddup)
                             else:
-                                subprocess.Popen([remote, "-t", str(el-1+pos), "-g", str(i-2+pos2)], **shuddup)
-                    i = input(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", keys[:18], double="k")
+                                subprocess.Popen([remote, "-t", str(num+pos), "-g", str(num2+pos2)], **shuddup)
+                    index = input(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", ["All", *"defgkms0123456789"], double="k")
+                    if index < 0:
+                        i = "Slow" + "?ADEFGKMS0123456789"[-index]
+                    else:
+                        i = "Key" + "?ADEFGKMS0123456789"[index]
+                    num2 = index - len("?ADEFGKMS")
 
 
 
@@ -6460,9 +6431,9 @@ def keylistener():
     while True:
         index = input("", ["All", *"bcdefghijklmnopqrstuvwxyz0123456789"], double="jp")
         if index < 0:
-            code = "Slow" + "?ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[-index];
+            code = "Slow" + "?ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[-index]
         else:
-            code = "Key" + "?ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[index];
+            code = "Key" + "?ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[index]
         if code == "KeyA":
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)

@@ -12,7 +12,7 @@ r"""
 set color=0e && set stopcolor=06
 color %color%
 set batchfile=%~0
-if %cd:~-1%==\ (set batchdir=%cd%) else (set batchdir=%cd%\)
+if %cd:~-1%==\ (set batchdi=%cd:~0,-1%&&set batchdir=%cd%) else (set batchdi=%cd%&&set batchdir=%cd%\)
 set pythondir=%userprofile%\AppData\Local\Programs\Python\
 if exist "%~n0.cd" (set tcd=%~n0.cd&&set TXT=%~dpn0.cd) else if exist "%~n0.txt" (set tcd=%~n0.txt&&set TXT=%~dpn0.txt)
 
@@ -63,7 +63,7 @@ pause
 :start
 cls
 color %color%
-python.exe -x "!batchfile!" "!filelist!" "!pythondir!" "!batchdir!"
+python.exe -x "!batchfile!" "!filelist!" "!pythondir!" "!batchdi!" "!batchdir!"
 set filelist=
 color %stopcolor%
 echo.
@@ -93,17 +93,19 @@ class Queue(Queue):
 
 batchfile = os.path.basename(__file__)
 batchname = os.path.splitext(batchfile)[0]
-batchdir = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
+batchdi = batchdir = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
 filelist = []
 schande_filelist = [[], []]
 pythondir = ""
 
-if len(sys.argv) > 3:
+if len(sys.argv) > 4:
     filelist = list(filter(None, sys.argv[1].replace("\\", "/").split("//")))
     pythondir = sys.argv[2].replace("\\\\", "\\").replace("\\", "/")
-    # batchdir = sys.argv[3].replace("\\\\", "\\").replace("\\", "/") # grabs "start in" argument
+    # batchdi = batchdir = sys.argv[3].replace("\\\\", "\\").replace("\\", "/") # grabs "start in" argument
 if "/" in batchdir and not batchdir.endswith("/"):
     batchdir += "/"
+else:
+    batchdi = batchdir[:-1]
 os.chdir(batchdir)
 
 cd = batchname + " cd/"
@@ -6012,7 +6014,7 @@ def list_remote(remote, nolist):
     with subprocess.Popen([remote, "-l"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
         listed = False
         for line in p.stdout:
-            if not line.startswith(tuple(["Sum: ", "    ID   Done"])):
+            if not any(x for x in ["Sum:    ", "ID    Done"] if x in line):
                 listed = True
                 line = line.rstrip()
                 id = line[:6].strip()
@@ -6194,7 +6196,7 @@ def start_remote(remote):
                             buffer = p.communicate()[0].decode().splitlines()
                             for line in buffer:
                                 line = line.rstrip()
-                                if line and not line.startswith("  #  Done") and not line.endswith("files):"):
+                                if line and not any(x for x in [" files):", "  Done"] if x in line):
                                     listed = True
                                     id = line[:3].strip()
                                     percent = line[5:10].strip()
@@ -6224,12 +6226,12 @@ def start_remote(remote):
                             if i == "KeyA":
                                 subprocess.Popen([remote, "-t", str(num+pos), "-G", "all"], **shuddup)
                             else:
-                                subprocess.Popen([remote, "-t", str(num+pos), "-G", str(num2+pos2)], **shuddup)
+                                subprocess.Popen([remote, "-t", str(num+pos), "-G", str(num2-1+pos2)], **shuddup)
                         elif last_i == "KeyG":
                             if i == "KeyA":
                                 subprocess.Popen([remote, "-t", str(num+pos), "-g", "all"], **shuddup)
                             else:
-                                subprocess.Popen([remote, "-t", str(num+pos), "-g", str(num2+pos2)], **shuddup)
+                                subprocess.Popen([remote, "-t", str(num+pos), "-g", str(num2-1+pos2)], **shuddup)
                     index = input(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", ["All", *"defgkms0123456789"], double="k")
                     if index < 0:
                         i = "Slow" + "?ADEFGKMS0123456789"[-index]
@@ -6244,6 +6246,8 @@ def torrent_get(fp=""):
     if sys.platform == "win32":
         daemon = "C:/Program Files/Transmission/transmission-daemon.exe"
         remote = "C:/Program Files/Transmission/transmission-remote.exe"
+        # daemon = f"{batchdir}bin/transmission-daemon.exe"
+        # remote = f"{batchdir}bin/transmission-remote.exe"
         if not os.path.exists(daemon) or not os.path.exists(remote):
             echo(" Download and install Transmission x64 for Windows in default location from https://github.com/transmission/transmission/releases and then try again.", 0, 1)
             return

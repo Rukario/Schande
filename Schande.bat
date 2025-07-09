@@ -173,19 +173,27 @@ def ansi_color(b=False, f="F9F1A5"):
 
 def title(t):
     sys.stdout.write("\033]0;" + t + "\007")
-cls = "\033[H\033[2J"
-tcolor = ansi_color("0")
-tcolorr = ansi_color("0", "1")
-tcolorg = ansi_color("0", "2")
-tcolorb = ansi_color("0", "3B78FF")
-tcoloro = ansi_color("0", "FF9030")
-if sys.platform == "darwin":
-    tcolorx = ansi_color()
-else:
-    tcolorx = ansi_color("005A80", "6")
-    # tcolorx = ansi_color("2A211C", "BDAE9D")
+if not sys.platform == "darwin":
     os.system("")
 title(batchfile)
+
+cls = "\033[H\033[2J"
+class tcolor:
+    r = ansi_color("0", "1")
+    g = ansi_color("0", "2")
+    b = ansi_color("0", "3B78FF")
+    o = ansi_color("0", "FF9030")
+    if sys.platform == "darwin":
+        x = ansi_color()
+    else:
+        x = ansi_color("005A80", "6")
+        # x = ansi_color("2A211C", "BDAE9D")
+    def __call__(self):
+        return ansi_color("0")
+    def z(c):
+        if not len(c) == 6:
+            kill("Bad color code")
+        return f"\033[40;38;2;{int(c[:2],16)};{int(c[2:4],16)};{int(c[4:6],16)}m"
 
 
 
@@ -462,21 +470,14 @@ def alert(m, s, d=False):
 
 def kill(threadn, e=None, r=None):
     if not e:
-        echo(f"{tcolorr}{threadn}{tcolorx}", 0, 1)
+        echo(f"{tcolor.r}{threadn}{tcolor.x}", 0, 1)
     elif r:
         echo(f"""
  {e}
  Please update or remove {r} from {rulefile} then restart CLI.""", 0, 1)
     else:
-        echo(f"""{tcolorr}Thread {threadn} was killed {"by" if "(" in e else "because"} {e}{tcolorx}""", 0, 1)
+        echo(f"""{tcolor.r}Thread {threadn} was killed {"by" if "(" in e else "because"} {e}{tcolor.x}""", 0, 1)
     sys.exit()
-
-
-
-def tcolorz(c):
-    if not len(c) == 6:
-        kill("Bad color code")
-    return f"\033[40;38;2;{int(c[:2],16)};{int(c[2:4],16)};{int(c[4:6],16)}m"
 
 
 
@@ -485,7 +486,7 @@ def whereami(e="echoed", b=0, f=1, kill=False, pause=False):
     for x in inspect.stack()[1:3]:
         c = inspect.getframeinfo(x[0])
         dep = [f"line {c.lineno} in {c.function}()"] + dep
-    echo(f"""{" > ".join(dep)}: {tcolorr if kill else tcolorz("CCCCCC")}{e}{tcolorx}""", b, f)
+    echo(f"""{" > ".join(dep)}: {tcolor.r if kill else tcolor.z("CCCCCC")}{e}{tcolor.x}""", b, f)
     if kill:
         while True:
             input("")
@@ -514,7 +515,7 @@ def choice(keys="", bg=[], double=False):
                 bg = ["%stopcolor%", "%color%"]
             for b in bg:
                 os.system(f"color {b}")
-            echo(tcolorx)
+            echo(tcolor.x)
         if keys:
             lostfocus[0] = False
             el = os.system(f"choice /c:{keys} /n")
@@ -585,7 +586,7 @@ Mozilla/5.0 for http
 
 
 
-sys.stdout.write(tcolorx + cls)
+sys.stdout.write(tcolor.x + cls)
 
 if not os.path.exists(rulefile):
     open(rulefile, 'w').close()
@@ -796,7 +797,7 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             if q == HTTPserver:
                 return True
         buffer = ondisk.replace("/", "\\")
-        echo(f"""{(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorz("CCCCCC")}{buffer}{tcolorx} use {tcolorg}?{HTTPserver}{tcoloro}{'&' + tcolorb + self.qs if self.qs else ''}{tcolorx} query string to authorize this connection.""", 0, 1)
+        echo(f"""{(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolor.g}{self.client_address[0]} {tcolor.r}<- {tcolor.z("CCCCCC")}{buffer}{tcolor.x} use {tcolor.g}?{HTTPserver}{tcolor.o}{'&' + tcolor.b + self.qs if self.qs else ''}{tcolor.x} query string to authorize this connection.""", 0, 1)
         self.close_connection = False
 
     def do_GET(self):
@@ -1031,7 +1032,7 @@ h1, h2, h3, h4, h5, h6 {
         buffer = '' if dead else f' {size} bytes'
         ondisk = http2ondisk(self.path, self.directory).replace("/", "\\")
         if not ondisk.rsplit("\\", 1)[-1] in mute404:
-            echo(f"{(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolorg}{self.client_address[0]} {tcolorr}<- {tcolorr if dead else tcolorb}{ondisk}{tcolorx}{buffer}", 0, 1)
+            echo(f"{(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolor.g}{self.client_address[0]} {tcolor.r}<- {tcolor.r if dead else tcolor.b}{ondisk}{tcolor.x}{buffer}", 0, 1)
 
         if not hasattr(self, '_headers_buffer'):
             self._headers_buffer = []
@@ -1528,27 +1529,27 @@ def getrule(rule):
         site["dir"] = rule.split("\\", 1)[1]
         if site["dir"].endswith("\\"):
             if site["dir"] in sorter["dirs"]:
-                print(f"""{tcoloro} SORTER: \\{site["dir"]} must be announced only once.{tcolorx}""")
+                print(f"""{tcolor.o} SORTER: \\{site["dir"]} must be announced only once.{tcolor.x}""")
             sorter["dirs"].update({site["dir"]: [False]})
         else:
             dir = site["dir"].rsplit("\\", 1)
             dir[0] += "\\"
             site["dir"] = dir[0]
             if dir[0] in sorter["dirs"]:
-                print(f"""{tcoloro} SORTER: \\{dir[0]} must be announced only once.{tcolorx}""")
+                print(f"""{tcolor.o} SORTER: \\{dir[0]} must be announced only once.{tcolor.x}""")
             sorter["dirs"].update({dir[0]: [False, dir[1]]})
     elif rule.startswith("!\\"):
         site["dir"] = rule.split("!\\", 1)[1]
         if site["dir"].endswith("\\"):
             if site["dir"] in sorter["dirs"]:
-                print(f"""{tcoloro} SORTER: \\{site["dir"]} must be announced only once.{tcolorx}""")
+                print(f"""{tcolor.o} SORTER: \\{site["dir"]} must be announced only once.{tcolor.x}""")
             sorter["dirs"].update({site["dir"]: [True]})
         else:
             dir = site[1].rsplit("\\", 1)
             dir[0] += "\\"
             site["dir"] = dir[0]
             if dir[0] in sorter["dirs"]:
-                print(f"{tcoloro} SORTER: \\{dir[0]} must be announced only once.{tcolorx}")
+                print(f"{tcolor.o} SORTER: \\{dir[0]} must be announced only once.{tcolor.x}")
             sorter["dirs"].update({dir[0]: [True, dir[1]]})
     elif rule.startswith("http"):
         for n in range(site["seqN"]):
@@ -1589,8 +1590,8 @@ site = {"http":"inline", "dir":"", "seqN":0}
 # Loading referer, sort, and custom dir rules, pickers, and inline file rejection by file types from rulefile
 loadrule()
 if cli["bgcolor"]:
-    tcolorx = ansi_color(cli["bgcolor"], cli["fgcolor"])
-    sys.stdout.write(tcolorx + cls)
+    tcolor.x = ansi_color(cli["bgcolor"], cli["fgcolor"])
+    sys.stdout.write(tcolor.x + cls)
 
 
 
@@ -1666,10 +1667,10 @@ print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 
 if not cli["dismiss"]:
     choice(bg=["4c", "%color%"])
-    buffer = f"\n{tcoloro} TO YOURSELF: {rulefile} contains personal information\n like mail, password, cookies. Edit {rulefile} before sharing!"
+    buffer = f"\n{tcolor.o} TO YOURSELF: {rulefile} contains personal information\n like mail, password, cookies. Edit {rulefile} before sharing!"
     if HTTPserver:
         buffer += f"\n{skull()}\n HTTP SERVER: Anyone accessing your server can open {rulefile} reading personal information\n like mail, password, cookies."
-    echo(f"""{buffer}\n\nAdd "shuddup" to {rulefile} to dismiss this message.{tcolorx}""", 0, 1)
+    echo(f"""{buffer}\n\nAdd "shuddup" to {rulefile} to dismiss this message.{tcolor.x}""", 0, 1)
 
 
 
@@ -2106,9 +2107,9 @@ def isrej(filename, pattern):
         rejected = check(filename, inline[0])
     if rejected and cli["showpreview"]:
         if rejected in filename.lower():
-            print(f"{tcolor}{origin:>18}: {dir}{filename.lower().replace(rejected, tcolorr + rejected + tcolor)}{tcolorx}")
+            print(f"{tcolor}{origin:>18}: {dir}{filename.lower().replace(rejected, tcolor.r + rejected + tcolor)}{tcolor.x}")
         else:
-            print(f"{tcolor}  Not in whitelist: {dir}{tcolorb}{filename}{tcolorx}")
+            print(f"{tcolor}  Not in whitelist: {dir}{tcolor.b}{filename}{tcolor.x}")
     return rejected
 
 
@@ -2668,7 +2669,7 @@ def linear(d, z, v):
                     try:
                         dj = json.loads(dc)
                         if y[0] in dj:
-                            echo(f"{tcoloro} > {y[0]}{tcolorx} appears to be the first dict-in-dict key, please use {tcoloro} >> {y[0]}{tcolorx} instead.", 0, 1)
+                            echo(f"{tcolor.o} > {y[0]}{tcolor.x} appears to be the first dict-in-dict key, please use {tcolor.o} >> {y[0]}{tcolor.x} instead.", 0, 1)
                     except:
                         pass
                 return
@@ -2729,7 +2730,7 @@ def branch(d, z, v):
             return ds
     else:
         if v and t in ["str", "int"]:
-            ds += [[f"{tcoloro}VIEWER: > 0 was used to access {tcolorz('ffffff')}{d}"]]
+            ds += [[f"{tcolor.o}VIEWER: > 0 was used to access {tcolor.z('ffffff')}{d}"]]
             return ds
         elif not t in ["list", "dict"]:
             return ds
@@ -3153,7 +3154,7 @@ def pick_in_page():
                 fromhtml["folder"] = folder
                 fromhtml["name"] = folder
                 echo("", 0, 1)
-                echo(f"Folder assets assembled! From now on the downloaded files will go to this directory: {tcolorg}\\{folder}{tcolorx}*\nAdditional folders are made by custom dir rules in {rulefile}.", 0, 2)
+                echo(f"Folder assets assembled! From now on the downloaded files will go to this directory: {tcolor.g}\\{folder}{tcolor.x}*\nAdditional folders are made by custom dir rules in {rulefile}.", 0, 2)
             elif proceed and (x := pick["savelink"]):
                 fromhtml["page"] = new_link(page, x, 0)
         if proceed and pick["pages"]:
@@ -3365,15 +3366,15 @@ Paginate picker is broken, captured string must be digit for calculator +/- mode
                     for file in htmlpart[k]["files"]:
                         x = get_cd("", file, pattern, preview=True)
                         buffer = x[1].replace("/", "\\")
-                        stdout += f"{tcolorb}{x[0]}{tcolorr} -> {tcolorg}\\{buffer}\n"
+                        stdout += f"{tcolor.b}{x[0]}{tcolor.r} -> {tcolor.g}\\{buffer}\n"
                     for h in htmlpart[k]["html"]:
                         if h[1]:
                             x = get_cd("", h[1], pattern, preview=True)
                             buffer = x[1].replace("/", "\\")
-                            stdout += f"{tcolorb}{x[0]}{tcolorr} -> {tcolorg}\\{buffer}\n"
+                            stdout += f"{tcolor.b}{x[0]}{tcolor.r} -> {tcolor.g}\\{buffer}\n"
                 if not x:
-                    stdout += f"{tcolorr} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference." + "\n"
-                echo(stdout + tcolorx)
+                    stdout += f"{tcolor.r} No files found in this page (?) Check pattern, add more file pickers, using cookies can make a difference." + "\n"
+                echo(stdout + tcolor.x)
         if proceed and not pick["ready"]:
             fromhtml["ready"] = False
         echothreadn.remove(threadn)
@@ -3417,28 +3418,28 @@ def nextshelf(fromhtml):
         htmlpart = fromhtml["partition"]
         stdout = ""
         if fromhtml["makehtml"]:
-            stdout += f"\n Then create " + tcolorg + fromhtml["folder"] + "gallery.html" + tcolorx + " with\n"
+            stdout += f"\n Then create " + tcolor.g + fromhtml["folder"] + "gallery.html" + tcolor.x + " with\n"
             if x := fromhtml["icons"]:
-                stdout += f"""{tcolorg}█{"█ █".join([i["name"] for i in x])}█\n"""
+                stdout += f"""{tcolor.g}█{"█ █".join([i["name"] for i in x])}█\n"""
             if x := fromhtml["page"]:
-                stdout += f"""{tcoloro}<h2><a href="{x["link"]}">{x["name"]}</a></h2>\n"""
+                stdout += f"""{tcolor.o}<h2><a href="{x["link"]}">{x["name"]}</a></h2>\n"""
             for k in htmlpart.keys():
                 if htmlpart[k]["keywords"] or htmlpart[k]["html"] or htmlpart[k]["files"]:
                     keywords = htmlpart[k]["keywords"]
                     title = keywords[0] if keywords and keywords[0] else f"ꍯ Part {k} ꍯ"
                     timestamp = keywords[1] if len(keywords) > 1 and keywords[1] else "No timestamp"
                     afterwords = ", ".join(f"{kw}" for kw in keywords[2:]) if len(keywords) > 2 else "None"
-                    stdout += f"{tcolorx}{k} :: {tcolor}{tcolorb}{title} [{tcolor}{timestamp}{tcolorr} Keywords: {afterwords}{tcolorb}]\n"
+                    stdout += f"{tcolor.x}{k} :: {tcolor}{tcolor.b}{title} [{tcolor}{timestamp}{tcolor.r} Keywords: {afterwords}{tcolor.b}]\n"
                     for file in htmlpart[k]["files"]:
-                        stdout += tcolorg + file["name"].rsplit("\\")[-1] + "\n"
+                        stdout += tcolor.g + file["name"].rsplit("\\")[-1] + "\n"
                     if html := htmlpart[k]["html"]:
                         for h in html:
                             if h[0]:
-                                stdout += tcoloro + h[0]
+                                stdout += tcolor.o + h[0]
                             if h[1]:
-                                stdout += tcolorg + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
+                                stdout += tcolor.g + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
                         stdout += "\n"
-        echo(f"""{stdout}{tcolorx} ({tcolorb}Download file {tcolorr}-> {tcolorg}to disk{tcolorx}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or return to (M)ain menu: """, flush=True)
+        echo(f"""{stdout}{tcolor.x} ({tcolor.b}Download file {tcolor.r}-> {tcolor.g}to disk{tcolor.x}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or return to (M)ain menu: """, flush=True)
         Keypress["KeyM"] = False
         Keypress["KeyC"] = False
         while not Keypress["KeyM"] and not Keypress["KeyC"]:
@@ -3493,7 +3494,7 @@ def scrape(startpages):
         more_pages = [x for x in more_pages if not x[1] in seen and not seen.add(x[1])]
         for _, page, _ in more_pages:
             if page in visited and not visited.add(page):
-                print(f"{tcolorr}Already visited {page} loophole warning{tcolorx}")
+                print(f"{tcolor.r}Already visited {page} loophole warning{tcolor.x}")
                 # more_pages.remove(page)
         if not more_pages and not alerted_pages:
             break
@@ -5671,9 +5672,9 @@ def savenow(trashdir=False):
                     break
             if all(next_new):
                 new_savs += [next_new[0].split(" ", 1)[0] + " " + " ".join(next_new[1].split(" ", 4)[:4])]
-                buffer += f" Save: {tcolorg}{ondisk}{tcolorx}\n"
+                buffer += f" Save: {tcolor.g}{ondisk}{tcolor.x}\n"
             else:
-                buffer += f" Unscanned: {tcolorb}{ondisk}{tcolorx}\n"
+                buffer += f" Unscanned: {tcolor.b}{ondisk}{tcolor.x}\n"
         echo(buffer, 0, 1)
         if not new_savs:
             echo("No files to save!", 0, 1)
@@ -5696,7 +5697,7 @@ def delnow():
                 trashlist.update({dir:[]})
             trashlist[dir] += [file]
             buffer = dir.replace("/", "\\")
-            stdout += f"{tcolorb}{buffer}\\{file}{tcolorr} -> {tcolorg}{buffer} Trash\\{file}{tcolorx}\n"
+            stdout += f"{tcolor.b}{buffer}\\{file}{tcolor.r} -> {tcolor.g}{buffer} Trash\\{file}{tcolor.x}\n"
     if not trashlist:
         echo("No schande'd files!", 0, 1)
         return
@@ -5823,9 +5824,9 @@ def compare(fp):
                 else:
                     indb = True
         if not found and indb:
-            print(f" {tcolorg}Featuring image is unique!{tcolorx} But come on, let's compile HTML from database so you can find duplication faster.")
+            print(f" {tcolor.g}Featuring image is unique!{tcolor.x} But come on, let's compile HTML from database so you can find duplication faster.")
         elif not found:
-            print(f" {tcolorg}Featuring image is unique! Nothing like it in database!{tcolorx}")
+            print(f" {tcolor.g}Featuring image is unique! Nothing like it in database!{tcolor.x}")
         else:
             print(f"{hash} {fp} (featuring image)\nSame file found! (C)ontinue")
             choice("c", ["2e"])
@@ -5836,13 +5837,13 @@ def compare(fp):
         try:
             hash2 = ph(s)
         except:
-            print(f"\n {tcolorr}Reference image is corrupted.{tcolorx}")
+            print(f"\n {tcolor.r}Reference image is corrupted.{tcolor.x}")
             return
         if hash == hash2:
             fp = whsm(fp)
             print(f"\n Featuring: {fp[0]} x {fp[1]}\n Reference: {label(m, whsm(s))}")
         else:
-            print(f"\n {tcolorg}Use your eyes, they're different{tcolorx}")
+            print(f"\n {tcolor.g}Use your eyes, they're different{tcolor.x}")
     print(f"total runtime: {time.time()-start}")
 
 
@@ -5877,20 +5878,20 @@ def finish_sort():
                         found = True
                         break
                 if not found:
-                    print(f"{tcolorb}{batchname}\\ {tcolorr}-> {tcolorg}{dir}{tcolor}{file}{tcolorx}")
+                    print(f"{tcolor.b}{batchname}\\ {tcolor.r}-> {tcolor.g}{dir}{tcolor}{file}{tcolor.x}")
                     mover.update({file:dir})
                     break
             else:
                 for n in sorter["dirs"][dir][1:]:
                     if fnmatch(file, n):
-                        print(f"{tcolorb}{batchname}\\ {tcolorr}-> {tcolorg}{dir}{tcolor}{file}{tcolorx}")
+                        print(f"{tcolor.b}{batchname}\\ {tcolor.r}-> {tcolor.g}{dir}{tcolor}{file}{tcolor.x}")
                         mover.update({file:dir})
                         break
     if not mover:
         choice(bg=True)
         print(f" Nothing to sort! Check and add or update pattern if there are files in \\{batchname}\\ needed to be sorted.")
         return
-    echo(f" ({tcolorb}From directory {tcolorr}-> {tcolorg}to a more deserving directory{tcolorx}) {tcd} for non-existent directories - (C)ontinue ", flush=True)
+    echo(f" ({tcolor.b}From directory {tcolor.r}-> {tcolor.g}to a more deserving directory{tcolor.x}) {tcd} for non-existent directories - (C)ontinue ", flush=True)
     if not choice("c") == 1:
         whereami("Bad choice", kill=True)
     for file, dir in mover.items():
@@ -5921,16 +5922,16 @@ def finish_sort():
 def syntax(html, api=False):
     if api:
         x = html.split("{")
-        html = [tcolorz("ffffff") + x[0]]
+        html = [tcolor.z("ffffff") + x[0]]
         c = 0xffffff
         for y in x[1:]:
             c -= 0x224400
             y = y.split("}")
-            html += ["{" + tcolorz(str(hex(c if c > 0 else 0x111111)[2:])) + y[0]]
+            html += ["{" + tcolor.z(str(hex(c if c > 0 else 0x111111)[2:])) + y[0]]
             for z in y[1:]:
                 c += 0x224400
-                html += [tcolorz(str(hex(c if c > 0 else 0x111111)[2:])) + "}" + z]
-        return ''.join(html + [tcolorx])
+                html += [tcolor.z(str(hex(c if c > 0 else 0x111111)[2:])) + "}" + z]
+        return ''.join(html + [tcolor.x])
     a = [[html,""]]
     for z in ["http://", "https://", "/"]:
         m = ['', '', '>', '', '', '']
@@ -5940,12 +5941,12 @@ def syntax(html, api=False):
     for x in a:
         y = tcolor
         if x[1][-4:-1] == ".js":
-            y = tcoloro
+            y = tcolor.o
         elif ".json" in x[1] or "/api/" in x[1]:
-            y = tcolorb
+            y = tcolor.b
         elif x[1][1:5] == "http":
-            y = tcolorg
-        z += [x[0] + y + x[1] + tcolorx]
+            y = tcolor.g
+        z += [x[0] + y + x[1] + tcolor.x]
     return "".join(z)
 
 
@@ -5958,19 +5959,19 @@ def view_in_page(data, z, a):
                 echo(syntax(f"{y[0]}", True), 0, 1)
                 savepage[0]["part"] += [y[0]]
             if not z[1][0][0]:
-                echo(f"{tcoloro} Last key > 0 is view only. You must establish a next key for use in picker rules.{tcolorx}", 0, 1)
+                echo(f"{tcolor.o} Last key > 0 is view only. You must establish a next key for use in picker rules.{tcolor.x}", 0, 1)
         else:
-            echo(f"{tcoloro}Last few keys doesn't exist, try again.{tcolorx}", 0, 1)
+            echo(f"{tcolor.o}Last few keys doesn't exist, try again.{tcolor.x}", 0, 1)
     else:
         if len(z[1][0][0].split("*")) > 1:
             if len(c := carrots([[data, ""]], z)) > 1:
                 for x in c[:-1]:
-                    echo(f"{tcolorz('ffffff')}{x[1]}{tcolorx}" if x[1] else f"{tcoloro}zero-width{tcolorx}", 0, 1)
+                    echo(f"{tcolor.z('ffffff')}{x[1]}{tcolor.x}" if x[1] else f"{tcolor.o}zero-width{tcolor.x}", 0, 1)
                     savepage[0]["part"] += [x[1]]
             else:
-                echo(f"{tcoloro}No match found in page, try again.{tcolorx}", 0, 1)
+                echo(f"{tcolor.o}No match found in page, try again.{tcolor.x}", 0, 1)
         else:
-            echo(f"Please use asterisk {tcoloro}*{tcolorx} or right arrow key {tcoloro} > {tcolorx} (single-key use {tcoloro}api > ...{tcolorx}) to start finding in page.", 0, 1)
+            echo(f"Please use asterisk {tcolor.o}*{tcolor.x} or right arrow key {tcolor.o} > {tcolor.x} (single-key use {tcolor.o}api > ...{tcolor.x}) to start finding in page.", 0, 1)
 
 def source_view():
     while True:
@@ -6009,12 +6010,12 @@ def source_view():
 
 
 
-def list_remote(remote, nolist):
+def remote_echo(remote, nolist):
     echo(f" - - {(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
     with subprocess.Popen([remote, "-l"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
         listed = False
         for line in p.stdout:
-            if not any(x for x in ["Sum:    ", "ID    Done"] if x in line):
+            if not any(x for x in ["Sum:    ", "ID    Done", "ID   Done"] if x in line):
                 listed = True
                 line = line.rstrip()
                 id = line[:6].strip()
@@ -6024,6 +6025,25 @@ def list_remote(remote, nolist):
                 echo(f"{id:>3} {status} {percent} {name}", 0, 1, clamp='█')
         if not listed:
             echo(nolist, 0, 1)
+        echo("", 0, 1)
+
+def remote_echo_files(remote, torrent_id):
+    echo(f" - - {(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
+    with subprocess.Popen([remote, "-t", str(torrent_id), "-f"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as p:
+        listed = False
+        buffer = p.communicate()[0].decode().splitlines()
+        for line in buffer:
+            line = line.rstrip()
+            if line and not any(x for x in [" files):", "  Done"] if x in line):
+                listed = True
+                id = line[:3].strip()
+                percent = line[5:10].strip()
+                status = line[19:23].strip()
+                size = line[24:33].strip() 
+                name = line[34:].strip()
+                echo(f"{int(id)+1:>3} {'Include' if status == 'Yes' else 'Ignore '} {percent} {size:>9}  {name}", 0, 1, clamp='█')
+        if not listed:
+            echo("No files to list!", 0, 1)
         echo("", 0, 1)
 
 
@@ -6040,12 +6060,14 @@ def killdaemon(el):
     return True
 
 def uninstdaemon(el):
-    if el == "SlowU":
-        echo(f"Press U twice in fast sequence to uninstall Transmission and return to main menu.", 1, 1)
-        return
     if sys.platform == "linux":
-        os.system("apk del transmission-daemon")
-        os.system("apk del transmission-cli")
+        if el == "SlowU":
+            echo(f"Press U twice in fast sequence to uninstall Transmission and return to main menu.", 1, 1)
+        else:
+            os.system("apk del transmission-daemon")
+            os.system("apk del transmission-cli")
+    else:
+        echo("Keypress U makes use of 'apk del' command which is only understood by Linux computers,\nother computers should uninstall Daemon through their app management.", 1, 3)
     return True
 
 
@@ -6097,10 +6119,10 @@ def start_remote(remote):
                 switch = "STOP"
                 time.sleep(0.5)
                 echo("", 1)
-                list_remote(remote, "All torrents removed!")
+                remote_echo(remote, "All torrents removed!")
             else:
                 echo("", 1)
-                list_remote(remote, "No torrents to list!")
+                remote_echo(remote, "No torrents to list!")
         elif el == "KeyM":
             return
         elif el in ["KeyK", "SlowK"]:
@@ -6134,7 +6156,7 @@ def start_remote(remote):
                 elif not i:
                     echo("", 1)
                     if buffer == "finish":
-                        list_remote(remote, "Daemon's dead, Jim.")
+                        remote_echo(remote, "Daemon's dead, Jim.")
                     break
                 else:
                     choice(bg=True)
@@ -6170,7 +6192,7 @@ def start_remote(remote):
                     last_el = "KeyS"
                     time.sleep(0.5)
                     echo("", 1)
-                    list_remote(remote, "All torrents removed!")
+                    remote_echo(remote, "All torrents removed!")
                 else:
                     remove += [str(num+pos)]
                     switch = "REMOVE, (A)ll, press L twice to confirm above, press R to clear"
@@ -6190,23 +6212,7 @@ def start_remote(remote):
                         pos2 += 10
                         echo("", 1)
                     elif i == "KeyE":
-                        echo(f" - - {(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
-                        with subprocess.Popen([remote, "-t", str(num+pos), "-f"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as p:
-                            listed = False
-                            buffer = p.communicate()[0].decode().splitlines()
-                            for line in buffer:
-                                line = line.rstrip()
-                                if line and not any(x for x in [" files):", "  Done"] if x in line):
-                                    listed = True
-                                    id = line[:3].strip()
-                                    percent = line[5:10].strip()
-                                    status = line[19:23].strip()
-                                    size = line[24:33].strip() 
-                                    name = line[34:].strip()
-                                    echo(f"{int(id)+1:>3} {'Include' if status == 'Yes' else 'Ignore '} {percent} {size:>9}  {name}", 0, 1, clamp='█')
-                            if not listed:
-                                echo("No files to list!", 0, 1)
-                            echo("", 0, 1)
+                        remote_echo_files(remote, num+pos)
                     elif i == "KeyM":
                         echo("", 1)
                         break
@@ -6221,17 +6227,10 @@ def start_remote(remote):
                         elif i == "KeyG":
                             switch2 = "GET"
                         echo("", 1)
-                    else:
-                        if last_i == "KeyS":
-                            if i == "KeyA":
-                                subprocess.Popen([remote, "-t", str(num+pos), "-G", "all"], **shuddup)
-                            else:
-                                subprocess.Popen([remote, "-t", str(num+pos), "-G", str(num2-1+pos2)], **shuddup)
-                        elif last_i == "KeyG":
-                            if i == "KeyA":
-                                subprocess.Popen([remote, "-t", str(num+pos), "-g", "all"], **shuddup)
-                            else:
-                                subprocess.Popen([remote, "-t", str(num+pos), "-g", str(num2-1+pos2)], **shuddup)
+                    elif last_i == "KeyS" or last_i == "KeyG":
+                        KeyGet = "-G" if last_i == "KeyS" else "-g"
+                        KeyAll = "all" if i == "KeyA" else str(num2-1+pos2)
+                        subprocess.Popen([remote, "-t", str(num+pos), KeyGet, KeyAll], **shuddup)
                     index = input(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", ["All", *"defgkms0123456789"], double="k")
                     if index < 0:
                         i = "Slow" + "?ADEFGKMS0123456789"[-index]
@@ -6262,9 +6261,9 @@ def torrent_get(fp=""):
                 getcli = "apk add transmission-cli"
             else:
                 return
-            echo(f"{tcolorb}{getdae}{tcolorx}", 0, 1)
+            echo(f"{tcolor.b}{getdae}{tcolor.x}", 0, 1)
             os.system(getdae)
-            echo(f"{tcolorb}{getcli}{tcolorx}", 0, 1)
+            echo(f"{tcolor.b}{getcli}{tcolor.x}", 0, 1)
             os.system(getcli)
         daemon = "transmission-daemon"
         remote = "transmission-remote"
@@ -6536,8 +6535,8 @@ def keylistener():
                 continue
             textread = [x for x in textread if saint(url=x, scheme=False).lower().startswith(d)]
             for line in textread:
-                line = line.replace(d, f"{tcolorg}{d}{tcoloro}", 1)
-                echo(f" > {tcolorb}{line}{tcolorx}", 0, 1)
+                line = line.replace(d, f"{tcolor.g}{d}{tcolor.o}", 1)
+                echo(f" > {tcolor.b}{line}{tcolor.x}", 0, 1)
             urls = textread
             while True:
                 i = input(f"Enter url containing, (C)ontinue or enter nothing to cancel: ").lower()
@@ -6553,8 +6552,8 @@ def keylistener():
                     urls = [x for x in textread if i in saint(url=x, scheme=False).lower()]
                     echo(f"{len(urls)} result(s)", 1, 1)
                     for line in urls:
-                        line = line.replace(d, f"{tcolor}{d}{tcoloro}", 1).replace(i, f"{tcolorg}{i}{tcoloro}", 1)
-                        echo(f" > {tcolorb}{line}{tcolorx}", 0, 1)
+                        line = line.replace(d, f"{tcolor}{d}{tcolor.o}", 1).replace(i, f"{tcolor.g}{i}{tcolor.o}", 1)
+                        echo(f" > {tcolor.b}{line}{tcolor.x}", 0, 1)
                 else:
                     echo("Canceled", 1, 2)
                     ready_input()

@@ -120,6 +120,7 @@ textfile = batchname + ".txt"
 archivefile = [".7z", ".rar", ".zip"]
 imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png", ".heic"]
 videofile = [".mkv", ".mp4", ".webm"]
+utf8file = ['txt', 'bat', 'json', 'js', 'css', 'html']
 notstray = ["mediocre.txt", "autosave.txt", "gallery.html", "keywords.json", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
 mute404 = [
   "favicon.ico",
@@ -860,16 +861,22 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
     def list_directory(self, ondisk, ntime=False):
         parent = parse.unquote(self.path)
         parent += "" if parent.endswith("/") else "/ (please fix missing slash in url)"
-        if parent == "/":
-            title = "Top directory"
-            if not self.AUTH(ondisk):
-                return
-        else:
-            title = parent.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;").replace("/", "\\")
+        if parent == "/" and not self.AUTH(ondisk):
+            return
 
         enc = sys.getfilesystemencoding()
 
-        if any(q.endswith(".savx") or q.endswith(".json") for q in self.qs.split('&')) or any(os.path.exists(f"{ondisk}/{p}") for p in ["partition.json"]): # f"{batchname}.savx"
+        load_from_qs = False
+        for q in self.qs.split('&'):
+            if q.endswith(".savx") or q.endswith(".json"):
+                load_from_qs = "Gallery"
+            if q.endswith(tuple(utf8file)):
+                load_from_qs = "Editor"
+        for p in ["partition.json"]: # f"{batchname}.savx"
+            if os.path.exists(f"{ondisk}/{p}"):
+                load_from_qs = "Gallery"
+
+        if load_from_qs == "Gallery":
             if os.path.exists(s := f"{ondisk}/savelink.URL"):
                 with open(s, 'r') as f:
                     page = f.read().splitlines()[1].replace("URL=", "")
@@ -880,63 +887,34 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             else:
                 pattern = [[], []]
             htmldata = new_html(pattern).encode(enc, 'surrogateescape')
+        elif load_from_qs:
+            echo(f"{tcolor.o}I might load text editor{tcolor.x}", 0, 1)
+            return
         else:
             try:
                 list = sorted(os.listdir(ondisk), key=lambda a: a.lower())
             except OSError:
                 self.send_error(404, "No permission to list directory")
                 return
-
+            if not ondisk.endswith("/"):
+                ondisk += "/"
             dirs = []
             files = []
-            ondisk += "" if ondisk.endswith("/") else "/"
             for name in list:
                 fullname = f"{ondisk}{name}"
-                label = name.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
-                link = parse.quote(name)
-                ut = f" {os.path.getmtime(fullname):.7f}" if ntime else "&gt;"
+                ut = f"{os.path.getmtime(fullname):.7f}" if ntime else None
                 if os.path.isdir(fullname):
-                    label = "\\" + label + "\\"
-                    parts = ""
-                    for partfn in ["partition.json", "partition A.json", "partition B.json", "partition C.json", "partition D.json", "Schande.savx"]:
+                    parts = []
+                    for partfn in ["partition.json", "partition A.json", "partition B.json", "partition C.json", "partition D.json", "partition E.json", "partition F.json", "Schande.savx"]:
                         if os.path.exists(fullname + "/" + partfn):
-                            parts += f' - <a href="{link}/?{partfn}">{partfn}</a>'
-                    dirs.append(f' {ut} <a href="{link}/">{label}</a>{parts}')
+                            parts += [partfn]
+                    dirs.append([ut, name, parts])
                 elif os.path.isfile(fullname):
-                    files.append(f' {ut}  <a href="{link}">{label}</a>')
-            buffer = '\n'.join(dirs + files)
-
-            style = """body {
-  white-space: pre;
-  background-color: #10100c;
-  color: #088;
-  font-family: courier;
-  font-size: 14px;
-}
-
-a {
-  color: #cb7;
-  text-decoration: none;
-}
-
-a:visited {
-  color: #efdfa8;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  margin: 4px;
-}"""
-
-            htmldata = f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8"/>
-<meta name="format-detection" content="telephone=no">
-<title>{title}</title>
-<style>{style}</style>
-</head>
-<body><h2>{title}</h2>{buffer}</body>
-</html>""".encode(enc, 'surrogateescape')
+                    enable_qs = False
+                    if fullname.endswith(tuple(utf8file)):
+                        enable_qs = True 
+                    files.append([ut, name, enable_qs])
+            htmldata = new_list_html(parent, dirs, files).encode(enc, 'surrogateescape')
 
         f = io.BytesIO()
         f.write(htmldata)
@@ -3665,6 +3643,69 @@ def container(ondisk, label=''):
         buffer = f"""<a href="{link}">{label}</a>"""
         buffer += f"""<a href="{ondisk.rsplit(".", 1)[0].replace("#", "%23")}"><div class="aqua" style="height:174px;"><i class="aqua" style="border-width:0 3px 3px 0; padding:3px; -webkit-transform: rotate(-45deg); margin-top:82px;"></i></div></a>"""
         return buffer
+
+
+
+def new_list_html(parent, dirs, files):
+    if parent == "/":
+        title = "Top directory"
+    else:
+        title = parent.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;").replace("/", "\\")
+
+    buffer = []
+    for ut, name, parts in dirs:
+        link = parse.quote(name)
+        label = name.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
+        parts_html = ''
+        for part in parts:
+            parts_html += f' - <a href="{link}/?{part}" class="viewer">{part}</a>'
+        buffer += [f' {ut if ut else "&gt;"} <a href="{link}/">\\{label}\\</a>{parts_html}']
+
+    for ut, name, enable_qs in files:
+        link = parse.quote(name)
+        label = name.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
+        as_qs = f' - <a href="?{name}" class="viewer">view source</a>' if enable_qs else ''
+        buffer += [f' {ut if ut else "&gt;"}  <a href="{link}">{label}</a>{as_qs}']
+
+    style = """body {
+  white-space: pre;
+  background-color: #10100c;
+  color: #088;
+  font-family: courier;
+  font-size: 14px;
+}
+
+a {
+  color: #cb7;
+  text-decoration: none;
+
+  &:visited {
+    color: #efdfa8;
+  }
+
+  &.viewer {
+    color: #6cb;
+
+    &:visited {
+      color: #bfe;
+    }
+  }
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 4px;
+}"""
+
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<meta name="format-detection" content="telephone=no">
+<title>{title}</title>
+<style>{style}</style>
+</head>
+<body><h2>{title}</h2>{'\n'.join(buffer)}</body>
+</html>"""
 
 
 

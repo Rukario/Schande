@@ -190,11 +190,13 @@ if not sys.platform == "darwin":
 title(batchfile)
 
 cls = "\033[H\033[2J"
+clean = "\033[K"
 class tcolor:
     r = ansi_color("0", "1")
     g = ansi_color("0", "2")
     b = ansi_color("0", "3B78FF")
     o = ansi_color("0", "FF9030")
+    w = ansi_color("401707", "6")
     if sys.platform == "darwin":
         x = ansi_color()
     else:
@@ -214,7 +216,7 @@ def mainmenu():
  - - - - {batchname} HTML - - - -
  + Press J twice to start or stop HTTP server. Server's dead, (J)im.
  | Press B to launch HTML in your favorite browser.
- | Press G to re/compile HTML from Geistauge's database (your browser will be used as comparison GUI).
+ | Press G to re/make SAVX from SAV (your browser will be used as comparison GUI).
  + Press D to open delete mode.
 
  - - - - Drag'n'drop / Input - - - -
@@ -222,12 +224,11 @@ def mainmenu():
  + Drag'n'drop and enter image file to compare with another image, while scanning new folder, or find in database.
 
  - - - - Input - - - -
- + Enter partition.json to rebuild HTML.
- | Enter http(s):// to download file. Press V for page source viewing.
+ + Enter http(s):// to download file. Press V for page source viewing.
  + Enter valid site to start a scraper.
 """
 def ready_input():
-    echo(f"Your key: ", flush=True)
+    echo(f"{tcolor.w}{clean}Your key: ", flush=True)
 def skull():
     return r"""                                    
               ______                
@@ -2179,7 +2180,7 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
 
 
 
-def downloadtodisk(fromhtml, oncomplete, makedirs=False):
+def downloadtodisk(fromhtml, makedirs=False):
     if not "download" in task:
         task.update({"download":Queue()})
         for i in range(8):
@@ -2207,7 +2208,7 @@ def downloadtodisk(fromhtml, oncomplete, makedirs=False):
 
 
 
-    # Partition and rebuild HTML
+    # Partition
     filelist = [[], []]
     # whereami("Getting filelist")
     for key in htmlpart.keys():
@@ -3437,7 +3438,7 @@ def nextshelf(fromhtml):
         if Keypress["KeyM"]:
             Keypress["KeyM"] = False
             return
-    downloadtodisk(fromhtml, "Autosave declared completion.", makedirs=2)
+    downloadtodisk(fromhtml, makedirs=2)
 
 
 
@@ -4710,7 +4711,7 @@ def read_file(textread):
             fromhtml["partition"]["0"]["files"] += [new_link(line, name, 0)]
     nextpages += [startpages]
     if fromhtml["partition"]["0"]["files"]:
-        downloadtodisk(fromhtml, "Autosave declared completion.")
+        downloadtodisk(fromhtml)
     elif nextpages:
         resume = False
         for startpages in nextpages:
@@ -4775,6 +4776,7 @@ def keylistener():
             code = "Slow" + "?ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[-index]
         else:
             code = "Key" + "?ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[index]
+        echo(f"{tcolor.x}{clean}")
 
         if code == "KeyA":
             if busy[0]:
@@ -4832,6 +4834,8 @@ def keylistener():
             else:
                 echo("", 1)
                 echo("", 1)
+            if not busy[0]:
+                ready_input()
         elif code == "KeyJ":
             echo("", 1)
             if Keypress_time[0] < Keypress_time[2]:
@@ -5012,11 +5016,11 @@ while True:
     elif i == 1:
         x = new_part()
         x["partition"]["0"]["files"] = [new_link(m, parse.unquote(m.split("/")[-1]), 0)]
-        downloadtodisk(x, "Autosave declared completion.")
+        downloadtodisk(x)
     elif i == 2:
         read_file(m)
     elif i == 3:
-        downloadtodisk(False, "Key listener test")
+        downloadtodisk(False)
     busy[0] = False
     if sys.platform == "linux" and not task["httpserver"] and not task["transmission"]:
         os.system("killall -9 cat")

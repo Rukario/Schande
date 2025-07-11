@@ -40,7 +40,7 @@ Download and serve files, you define how are they downloaded and sorted!
     - Leave it in background for HTML server if enabled
 
 Schande.bat can launch HTTP server for directory listing, armed with several "viewer" HTMLs
-
+  - <a href="https://github.com/Rukario/Schande/raw/main/View.html">View.html</a> - Viewer (<a href="https://rukario.github.io/Schande/View.html">demo</a>, however not much to see here on GitHub)
   - <a href="https://github.com/Rukario/Schande/raw/main/New%20Text.html">New Text.html</a> - A good UTF-8 text editor for neglected OS but has good browser (<a href="https://rukario.github.io/Schande/New%20Text.html">demo</a> | <a href="https://rukario.github.io/Schande/New%20Text.html?🦦">easter egg</a>), collaborate with New Text and Save Text for iOS Shortcuts app
 
 New Text - https://www.icloud.com/shortcuts/4a4a4580207540e5a4865c4d7c9781ae

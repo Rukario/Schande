@@ -861,20 +861,18 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
     def list_directory(self, ondisk, ntime=False):
         parent = parse.unquote(self.path)
         parent += "" if parent.endswith("/") else "/ (please fix missing slash in url)"
-        if parent == "/" and not self.AUTH(ondisk):
-            return
-
-        enc = sys.getfilesystemencoding()
 
         load_from_qs = False
         for q in self.qs.split('&'):
-            if q.endswith(".savx") or q.endswith(".json"):
+            if q.endswith(tuple([".savx", ".json"])):
                 load_from_qs = "Gallery"
-            if q.endswith(tuple(utf8file)):
-                load_from_qs = "Editor"
-        for p in ["partition.json"]: # f"{batchname}.savx"
-            if os.path.exists(f"{ondisk}/{p}"):
-                load_from_qs = "Gallery"
+        # for p in ["partition.json"]: # f"{batchname}.savx"
+        #     if os.path.exists(f"{ondisk}/{p}"):
+        #         load_from_qs = "Gallery"
+
+        if parent == "/" and not load_from_qs and not self.AUTH(ondisk):
+            return
+        enc = sys.getfilesystemencoding()
 
         if load_from_qs == "Gallery":
             if os.path.exists(s := f"{ondisk}/savelink.URL"):
@@ -886,10 +884,7 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
                 pattern = navigator["pickers"][get_pick[0]]["pattern"]
             else:
                 pattern = [[], []]
-            htmldata = new_html(pattern).encode(enc, 'surrogateescape')
-        elif load_from_qs:
-            echo(f"{tcolor.o}I might load text editor{tcolor.x}", 0, 1)
-            return
+            htmldata = new_gallery_html(pattern).encode(enc, 'surrogateescape')
         else:
             try:
                 list = sorted(os.listdir(ondisk), key=lambda a: a.lower())
@@ -910,10 +905,10 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
                             parts += [partfn]
                     dirs.append([ut, name, parts])
                 elif os.path.isfile(fullname):
-                    enable_qs = False
+                    alt_view = False
                     if fullname.endswith(tuple(utf8file)):
-                        enable_qs = True 
-                    files.append([ut, name, enable_qs])
+                        alt_view = True 
+                    files.append([ut, name, alt_view])
             htmldata = new_list_html(parent, dirs, files).encode(enc, 'surrogateescape')
 
         f = io.BytesIO()
@@ -3646,6 +3641,43 @@ def container(ondisk, label=''):
 
 
 
+def new_html(title, style, script, body):
+    style_scale = """
+h1, h2, h3, h4, h5, h6 {
+  margin: 4px;
+}
+
+[contenteditable], input {
+  &:focus {
+    outline: none;
+  }
+}
+
+body {
+  font-family: courier;
+  font-size: 14px;
+  line-height: 16px;
+  -webkit-text-size-adjust: none;
+}
+"""
+
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="white">
+<meta name="format-detection" content="telephone=no">
+<meta name="viewport" content="user-scalable=0">
+<title>{title}</title>
+<style>{style_scale}{style}</style>
+<script>{script}</script>
+</head>
+<body class="exitmenu">{body}</body>
+</html>"""
+
+
+
 def new_list_html(parent, dirs, files):
     if parent == "/":
         title = "Top directory"
@@ -3658,21 +3690,20 @@ def new_list_html(parent, dirs, files):
         label = name.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
         parts_html = ''
         for part in parts:
-            parts_html += f' - <a href="{link}/?{part}" class="viewer">{part}</a>'
+            parts_html += f' - <a href="{link}/?partition={part}" class="viewer">{part}</a>'
         buffer += [f' {ut if ut else "&gt;"} <a href="{link}/">\\{label}\\</a>{parts_html}']
 
-    for ut, name, enable_qs in files:
+    for ut, name, alt_view in files:
         link = parse.quote(name)
         label = name.replace(">", "&gt;").replace("<", "&lt;").replace("&", "&amp;")
-        as_qs = f' - <a href="?{name}" class="viewer">view source</a>' if enable_qs else ''
+        as_qs = f' - <a href="/New Text.html?open={parent}{name}" class="viewer">view source</a>' if alt_view else ''
         buffer += [f' {ut if ut else "&gt;"}  <a href="{link}">{label}</a>{as_qs}']
 
-    style = """body {
+    style = """
+body {
   white-space: pre;
   background-color: #10100c;
   color: #088;
-  font-family: courier;
-  font-size: 14px;
 }
 
 a {
@@ -3691,37 +3722,18 @@ a {
     }
   }
 }
+"""
 
-h1, h2, h3, h4, h5, h6 {
-  margin: 4px;
-}"""
-
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8"/>
-<meta name="format-detection" content="telephone=no">
-<title>{title}</title>
-<style>{style}</style>
-</head>
-<body><h2>{title}</h2>{'\n'.join(buffer)}</body>
-</html>"""
+    body = f"<h2>{title}</h2>{'\n'.join(buffer)}"
+    return new_html(title, style, "", body)
 
 
 
-def new_html(pattern=[[], []], imgsize=200):
-    return r"""<!DOCTYPE html>
-<html>
-<meta charset="UTF-8"/>
-<meta name="format-detection" content="telephone=no">
-<meta name="viewport" content="user-scalable=0">
-<style>
+def new_gallery_html(pattern=[[], []], imgsize=200):
+    style = r"""
 body {
   background-color: #10100c;
   color: #088 /*088 cb7*/;
-  font-family: consolas, courier;
-  font-size: 14px;
-  -webkit-text-size-adjust: none;
 }
 
 a {
@@ -3748,18 +3760,8 @@ img {
  scroll-margin-top: 100px;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  margin: 4px;
-}
-
 button {
   padding: 1px 4px;
-}
-
-[contenteditable], input {
-  &:focus {
-    outline: none;
-  }
 }
 
 input[type='text'] {
@@ -3966,10 +3968,10 @@ input[type='text'] {
   background-color: #110c13;
 }
 
-.exitmenu {
-  color: #f45;
-  background-color: #2d0710;
-}
+//.exitmenu {
+//  color: #f45;
+//  background-color: #2d0710;
+//}
 
 .stdout {
   white-space: pre-wrap;
@@ -4049,8 +4051,10 @@ input[type='text'] {
     transform: rotate(360deg);
   }
 }
-</style>
-<script>
+"""
+
+
+    script = r"""
 var imagefile = ['.gif', '.jpe', '.jpeg', '.jpg', '.png', '.heif'];
 var videofile = ['.mkv', '.mp4', '.webm'];
 
@@ -4137,10 +4141,10 @@ function loadkeys() {
   }
 }
 
-function loadpart() {
+function loadpart(partition) {
   const xhr = new XMLHttpRequest();
   xhr.overrideMimeType('application/json');
-  xhr.open('GET', partitiondb, true);
+  xhr.open('GET', partition, true);
   xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
   xhr.send();
   xhr.onreadystatechange = () => {
@@ -4148,7 +4152,7 @@ function loadpart() {
       if (xhr.status !== 404 && xhr.responseText) {
         readpart(JSON.parse(xhr.responseText));
       } else if (xhr.responseText) {
-        console.log(partitiondb + ' not found');
+        console.log(partition + ' not found');
         lazyload();
         loadkeys();
       } else {
@@ -5040,12 +5044,12 @@ window.onload = () => {
   }
 
   for (const [key, value] of new URLSearchParams(window.location.search)) {
-    if (key.endsWith('.json')) {
-      partitiondb = key;
-    }
-
-    if (key.endsWith('.savx')) {
-      savxdb = key;
+    if (key === 'partition') {
+      if (value.endsWith('.json')) {
+        partitiondb = value;
+      } else if (value.endsWith('.savx')) {
+        savxdb = value;
+      }
     }
 
     if (key === 'search') {
@@ -5056,7 +5060,7 @@ window.onload = () => {
   if (savxdb) {
     opensav();
   } else if (partitiondb) {
-    loadpart();
+    loadpart(partitiondb);
   }
 }
 
@@ -5409,38 +5413,43 @@ Keywords: ${afterkeys}`;
   lazyload();
   loadkeys();
 }
-</script>
-<body>
-  <div class='dark close_button cursor_tooltip' id='tooltip'></div>
-  <div style='height: 20px;'></div>
-  <div class="container" style="display:none;">
-    <button class='dark' onclick="this.parentElement.style.display = 'none'">&times;</button>
-    <div id='alllinks'></div>
-  </div>
-  <div style='height: 10px;'></div>
+"""
 
-  <div style="background:#0c0c0c; height:20px; border-radius: 0 0 12px 0; position:fixed; padding:6px; top:0px; z-index:1;">
-    <button class="next" onclick="alllinks.parentElement.style.display = 'inline-block'">Links in this HTML</button>
-    <button class="next" onclick="resizeImg('{imgsize}px')">1x</button>
-    <button class="next" onclick="resizeImg('{imgsize*2}px')">2x</button>
-    <button class="next" onclick="resizeImg('{imgsize*4}px')">4x</button>
-    <button class="next" onclick="resizeImg('auto')">1:1</button>
-    <button class="next" onclick="resizeCell('calc(100% - 30px)')">&nbsp;.&nbsp;</button>
-    <button class="next" onclick="resizeCell('calc(50% - 33px)')">. .</button>
-    <button class="next" onclick="resizeCell('calc(33.33% - 34px)')">...</button>
-    <button class="next" onclick="resizeCell('calc(25% - 35px)')">....</button>
-    <button id="fi" class="next" onclick="preview(this)" data-sel="Preview, Preview [ ], Preview 1:1" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel<br>Choose 1:1 mode to enable shift key.">Preview</button>
-    <button id="ge" class="next" onclick="previewg(this)" data-sel="Original, vs left, vs left &lt;, vs left &gt;, Find Edge" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
-    <button class="next" onclick="hideDetails(this)">Filename</button>""" + f"""
-    <input class="next" id="search" type="text" oninput="hidePattern();" value='{" ".join(pattern[1])}' placeholder='Search title'>
-    <input class="next" id="ignore" type="text" oninput="hidePattern();" value='{" ".join(pattern[0])}' placeholder='Ignore title'>""" + """
-    <button class="next" onclick="hideParts(['.edits'])">Edits</button>
-    <button class="next" onclick="hideParts()">&times;</button>
-    <div class="dark local_tooltip" id="local_tooltip"></div>
-    <div class="stdout" id="stdout" style="display:none;" onpaste="plaintext(this, event);" contenteditable="plaintext-only" spellcheck=false></div>
-  </div>
-</body>
-</html>"""
+
+    body = r"""
+<div class='dark close_button cursor_tooltip' id='tooltip'></div>
+<div style='height: 20px;'></div>
+<div class="container" style="display:none;">
+  <button class='dark' onclick="this.parentElement.style.display = 'none'">&times;</button>
+  <div id='alllinks'></div>
+</div>
+<div style='height: 10px;'></div>
+
+<div style="background:#0c0c0c; height:20px; border-radius: 0 0 12px 0; position:fixed; padding:6px; top:0px; z-index:1;">
+  <button class="next" onclick="alllinks.parentElement.style.display = 'inline-block'">Links in this HTML</button>
+  <button class="next" onclick="resizeImg('{imgsize}px')">1x</button>
+  <button class="next" onclick="resizeImg('{imgsize*2}px')">2x</button>
+  <button class="next" onclick="resizeImg('{imgsize*4}px')">4x</button>
+  <button class="next" onclick="resizeImg('auto')">1:1</button>
+  <button class="next" onclick="resizeCell('calc(100% - 30px)')">&nbsp;.&nbsp;</button>
+  <button class="next" onclick="resizeCell('calc(50% - 33px)')">. .</button>
+  <button class="next" onclick="resizeCell('calc(33.33% - 34px)')">...</button>
+  <button class="next" onclick="resizeCell('calc(25% - 35px)')">....</button>
+  <button id="fi" class="next" onclick="preview(this)" data-sel="Preview, Preview [ ], Preview 1:1" data-tooltip="Shift down - fit image to screen<br>Shift up - pixel by pixel<br>Choose 1:1 mode to enable shift key.">Preview</button>
+  <button id="ge" class="next" onclick="previewg(this)" data-sel="Original, vs left, vs left &lt;, vs left &gt;, Find Edge" data-tooltip="W - Edge detect<br>A - Geistauge: compare to left<br>S - Geistauge: bright both<br>D - Geistauge: compare to right (this)<br>Enable preview from toolbar then mouse-over an image while holding a key to see effects.">Original</button>
+  <button class="next" onclick="hideDetails(this)">Filename</button>""" + f"""
+  <input class="next" id="search" type="text" oninput="hidePattern();" value='{" ".join(pattern[1])}' placeholder='Search title'>
+  <input class="next" id="ignore" type="text" oninput="hidePattern();" value='{" ".join(pattern[0])}' placeholder='Ignore title'>""" + """
+  <button class="next" onclick="hideParts(['.edits'])">Edits</button>
+  <button class="next" onclick="hideParts()">&times;</button>
+  <div class="dark local_tooltip" id="local_tooltip"></div>
+  <div class="stdout" id="stdout" style="display:none;" onpaste="plaintext(this, event);" contenteditable="plaintext-only" spellcheck=false></div>
+</div>
+"""
+
+
+
+    return new_html("", style, script, body)
 
 
 
@@ -6478,6 +6487,7 @@ def keylistener():
             code = "Slow" + "?ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[-index]
         else:
             code = "Key" + "?ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[index]
+
         if code == "KeyA":
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
@@ -6674,14 +6684,17 @@ def keylistener():
                 ready_input()
         elif code == "KeyZ":
             pressed(code)
-        elif 0 <= (n := min(index-27, 8)) < 9:
-            echo(f"""MAX PARALLEL DOWNLOAD SLOT: {n} {"(pause)" if not n else ""}""", 1, 1)
-            dlslot[0] = n
+        elif code[-1].isdigit():
+            dlslot[0] = int(code[-1])
+            echo(f"""MAX PARALLEL DOWNLOAD SLOT: {dlslot[0]} {"(pause)" if not dlslot[0] else ""}""", 1, 1)
             if not busy[0]:
                 ready_input()
         else:
             echo("", 1)
             pressed("KeyZ")
+
+
+
 Thread(target=keylistener, daemon=True).start()
 print(f"""
  Key listener:

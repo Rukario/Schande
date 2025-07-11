@@ -13,27 +13,38 @@ set color=0e && set stopcolor=06
 color %color%
 set batchfile=%~0
 if %cd:~-1%==\ (set batchdi=%cd:~0,-1%&&set batchdir=%cd%) else (set batchdi=%cd%&&set batchdir=%cd%\)
-set pythondir=%userprofile%\AppData\Local\Programs\Python\
-if exist "%~n0.cd" (set tcd=%~n0.cd&&set TXT=%~dpn0.cd) else if exist "%~n0.txt" (set tcd=%~n0.txt&&set TXT=%~dpn0.txt)
 
 setlocal enabledelayedexpansion
-chcp 65001>nul
-if not "!TXT!"=="" for /f "delims=" %%i in ('findstr /b /i "Python = " "!TXT!"') do set string=%%i&& set string=!string:~9!&&chcp 437>nul&& goto check
-chcp 437>nul
-:check
-if not "!string!"=="" (set pythondir=!string!)
+set pythondir=%userprofile%\AppData\Local\Programs\Python\
 set x=Python 3.13
 set cute=!x:.=!
 set cute=!cute: =!
-set pythondirx=!pythondir!!cute!
-if exist "!pythondirx!\python.exe" (cd /d "!pythondirx!" && color %color%) else (color %stopcolor%
-echo.
-if "!string!"=="" (echo  I can't seem to find \!cute!\python.exe^^! Install !x! in default location please, or edit this batch file.&&echo.&&echo  Download the latest !x!.x from https://www.python.org/downloads/) else (echo  Please fix path to \!cute!\python.exe in "Python =" setting in !tcd!)
-echo.
-echo  I must exit^^!
-pause%>nul
-exit)
-set pythondir=!pythondir:\=\\!
+set pythondir=!pythondir!!cute!\
+
+if exist "!pythondir!python.exe" goto check
+set warn1= SCRIPT: Got python.exe from command 'where python ^| find /V "WindowsApps"' and may run, %~nx0 is written
+set warn2= for !x! in non-existent location %%userprofile%%\AppData\Local\Programs\Python\!cute!\python.exe
+chcp 65001>nul
+for /f "delims=" %%i in ('where python ^| find /V "WindowsApps"') do set pythondir=%%~dpi&&chcp 437>nul&&goto check
+chcp 437>nul
+:check
+
+if exist "!pythondir!python.exe" (
+  cd /d "!pythondir!"
+  color %color%
+) else (
+  color %stopcolor%
+  echo  I can't seem to find python.exe^^! Install in the default location or check your path setting.
+  echo  Execute in another command prompt with:
+  echo.
+  echo where python ^| find /V "WindowsApps"
+  echo.
+  echo  It shouldn't come out as empty. Download the latest !x! from https://www.python.org/downloads/
+  echo.
+  echo  I must exit^^!
+  pause%>nul
+  exit
+)
 
 set batchdir=!batchdir:\=\\!
 set filelist=
@@ -53,7 +64,7 @@ if exist Lib\site-packages\ (goto start) else (echo.)
 
 :install
 echo  Hold on . . . I need to install the missing packages.
-if exist "Scripts\pip.exe" (echo.) else (color %stopcolor% && echo  PIP.exe doesn't seem to exist . . . Please install Python properly^^! I must exit^^! && pause>nul && exit)
+if exist "Scripts\pip.exe" (echo.) else (color %stopcolor%&&echo  PIP.exe doesn't seem to exist . . . Please install Python properly^^! I must exit^^!&&pause>nul&&exit)
 python -m pip install --upgrade pip
 ::Scripts\pip.exe install name_of_the_missing_package
 ::Scripts\pip.exe install what_else
@@ -62,13 +73,15 @@ pause
 
 :start
 cls
+if not [!warn1!]==[] echo !warn1!
+if not [!warn2!]==[] echo !warn2!
 color %color%
-python.exe -x "!batchfile!" "!filelist!" "!pythondir!" "!batchdi!" "!batchdir!"
+python.exe -x "!batchfile!" "!filelist!" "!batchdi!" "!batchdir!"
 set filelist=
 color %stopcolor%
 echo.
 echo Restart CLI? Press any key to continue . . .
-pause >nul
+pause>nul
 goto start
 """
 
@@ -96,11 +109,9 @@ batchname = os.path.splitext(batchfile)[0]
 batchdi = batchdir = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
 filelist = []
 schande_filelist = [[], []]
-pythondir = ""
 
-if len(sys.argv) > 4:
+if len(sys.argv) > 3:
     filelist = list(filter(None, sys.argv[1].replace("\\", "/").split("//")))
-    pythondir = sys.argv[2].replace("\\\\", "\\").replace("\\", "/")
     # batchdi = batchdir = sys.argv[3].replace("\\\\", "\\").replace("\\", "/") # grabs "start in" argument
 if "/" in batchdir and not batchdir.endswith("/"):
     batchdir += "/"
@@ -599,7 +610,7 @@ else:
 
 new_setting = False
 pos = 0
-settings = ["Launch HTTP server = ", "Browser = ", "Mail = ", "Geistauge = No", "Python = " + pythondir, f"UTC offset = {datetime.now().astimezone().strftime('%z')[:-2]}", "Proxy = socks5://"]
+settings = ["Launch HTTP server = ", "Browser = ", "Mail = ", "Geistauge = No", f"UTC offset = {datetime.now().astimezone().strftime('%z')[:-2]}", "Proxy = socks5://"]
 for setting in settings:
     if not rules[pos].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if pos == 0:
@@ -1257,7 +1268,7 @@ def declare(rule, boolean=False):
         return
     return rule[1]
 
-offset = declare(rules[5])
+offset = declare(rules[4])
 date = datetime.now(UTC) + timedelta(hours=int(offset))
 fdate = date.strftime('%Y') + "-" + date.strftime('%m') + "-XX"
 
@@ -1579,7 +1590,7 @@ if HTTPserver == "No":
 Browser = declare(rules[1])
 Mail = declare(rules[2])
 Geistauge = declare(rules[3], True)
-proxy = declare(rules[6])
+proxy = declare(rules[5])
 if HTTPserver:
     restartserver()
 else:

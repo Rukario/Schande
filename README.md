@@ -39,13 +39,9 @@ Download and serve files, you define how are they downloaded and sorted!
     - Pirates: open torrent (M)anager
     - Leave it in background for HTML server if enabled
 
-Here's some other uninteresting stuff
+Schande.bat can launch HTTP server for directory listing, armed with several "viewer" HTMLs
 
-  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/Ferchel.bat">Ferchel.bat</a> - Filelist snapshot and compare folders for manual "incremental backup"/folder-merging-esque. Supports UTF-8 files file-merging-esque with helps of a certain text editor.
-  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/APNG%20Maker.html">APNG Maker.html</a> - APNG production (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/APNG%20Maker.html">demo</a>)
-  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/Color%20Gallery.html">Color Gallery.html</a> - WIP BD color finder (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/Color%20Gallery.html">demo</a>)
-  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/starfield.html">starfield.html</a> - Flying Windows / starfield Windows 95 screensaver replication in JavaScript (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/starfield.html">demo</a>, right-click in demo for different stars)
-  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/New%20Text.html">New Text.html</a> - A good UTF-8 text editor for neglected OS but has good browser (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/New%20Text.html">demo</a> | <a href="https://rukario.github.io/Schande/Uninteresting%20stuff/New%20Text.html?🦦">easter egg</a>), collaborate with New Text and Save Text for iOS Shortcuts app
+  - <a href="https://github.com/Rukario/Schande/raw/main/New%20Text.html">New Text.html</a> - A good UTF-8 text editor for neglected OS but has good browser (<a href="https://rukario.github.io/Schande/New%20Text.html">demo</a> | <a href="https://rukario.github.io/Schande/New%20Text.html?🦦">easter egg</a>), collaborate with New Text and Save Text for iOS Shortcuts app
 
 New Text - https://www.icloud.com/shortcuts/4a4a4580207540e5a4865c4d7c9781ae
 
@@ -58,3 +54,10 @@ New Text - https://www.icloud.com/shortcuts/4a4a4580207540e5a4865c4d7c9781ae
 Save Text - https://www.icloud.com/shortcuts/b7023779316f492facc3b594d7f665a4
 
 - Choose from share sheet on the text editor to save your precious document on iCloud/Ask where to save.
+
+Here's some other uninteresting stuff
+
+  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/Ferchel.bat">Ferchel.bat</a> - Filelist snapshot and compare folders for manual "incremental backup"/folder-merging-esque. Supports UTF-8 files file-merging-esque with helps of a certain text editor.
+  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/APNG%20Maker.html">APNG Maker.html</a> - APNG production (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/APNG%20Maker.html">demo</a>)
+  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/Color%20Gallery.html">Color Gallery.html</a> - WIP BD color finder (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/Color%20Gallery.html">demo</a>)
+  - <a href="https://github.com/Rukario/Schande/raw/main/Uninteresting%20stuff/starfield.html">starfield.html</a> - Flying Windows / starfield Windows 95 screensaver replication in JavaScript (<a href="https://rukario.github.io/Schande/Uninteresting%20stuff/starfield.html">demo</a>, right-click in demo for different stars)

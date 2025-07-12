@@ -220,7 +220,7 @@ def mainmenu():
  + Press D to open delete mode.
 
  - - - - Drag'n'drop / Input - - - -
- + Drag'n'drop and enter folder to add to Geistauge's database.
+ + Drag'n'drop and enter folder to re/scan to SAV.
  + Drag'n'drop and enter image file to compare with another image, while scanning new folder, or find in database.
 
  - - - - Input - - - -
@@ -243,27 +243,28 @@ def skull():
             '--------'              
                                     """
 def help():
+    wild_html = f"{tcolor.b}...{tcolor.o}*{tcolor.b}..."
+    wild_api = f"{tcolor.b}.{tcolor.g} > {tcolor.b}.{tcolor.g} > {tcolor.b}."
     return f"""
  {rulefile} is {batchname}'s only setting file and only place to follow your rules how files are downloaded and sorted.
 
 
- - - - - Geistauge - - - -
+ - - - - Make SAVX - - - -
   Wildcard: None, non-anchored start/end.
 
- > Arbitrary rule (unless # commented out) in {rulefile} will become Geistauge's pattern exemption.
+ > Arbitrary rule (unless # commented out) in {rulefile} will become pattern exemption during scanning.
  > No exemption if at least one similar image doesn't have a pattern.
- > Once scan is completed, {batchname} HTML will be used to view similar images,
-   including tools to see the differences not seen by naked eyes.
-   Geistauge (German translate: ghost eye)
+ > Once scan is completed, {tcolor.g}View.html{tcolor.x} will be used to view similar images,
+   including tools to see differences not seen by naked eyes.
 
 
  - - - - Sorter - - - -
   Wildcard: UNIX-style wildcard, ? matches 1 character, * matches everything, start/end is anchored until wildcarded.
  + Wildcard for file names only. Sorting from \\{batchname}\\:
- |  "\\...\\"                   use this directory for future matching. Multiple backslashes for nesting folders.
- |  "!\\...\\"                  use this directory for future non-matching.
- |  "\\...\\..." or "!\\...\\..." one-liner and future matching/non-matching.
- | From now on the arbitrary rule is a file sorting pattern, no longer part of Geistauge pattern exemptions.
+ |  {tcolor.o}\\{tcolor.b}...{tcolor.o}\\                    {tcolor.x} use this directory for future matching. Multiple backslashes for nesting folders.
+ |  {tcolor.o}!\\{tcolor.b}...{tcolor.o}\\                   {tcolor.x} use this directory for future non-matching.
+ |  {tcolor.o}\\{tcolor.b}...{tcolor.o}\\{tcolor.b}...{tcolor.x} or {tcolor.o}!\\{tcolor.b}...{tcolor.o}\\{tcolor.b}...    {tcolor.x} one-liner and future matching/non-matching.
+ | From now on the arbitrary rule is a file sorting pattern, no longer part of pattern exemptions for scanning.
  |
  | First rule will take its turn to sort the file, then resort to {tcd} for non-existent directories.
  | {tcd} can help ensure that no other rule can sort them any more (first rule = first to sort).
@@ -272,24 +273,25 @@ def help():
 
  - - - - Torrent directory - - - -
  Wildcard: None, non-anchored
- +  "Transmission\\* for |all other| torrents" to download all torrents to \\Transmission\\, revise example to customize.
- |                      |(pattern)|
+ +  {tcolor.g}SubsPlease{tcolor.o}\\* for {tcolor.g}SubsPlease {tcolor.o}torrents   {tcolor.x}
+ |  {tcolor.b}Transmission{tcolor.o}\\* for {tcolor.x}|{tcolor.o}all other{tcolor.x}|{tcolor.o} torrents{tcolor.x} to download all torrents to \\Transmission\\, revise example to customize.
+ |  {tcolor.b}                   {tcolor.x}|{tcolor.g}(pattern){tcolor.x}|{tcolor.o}         {tcolor.x}
  + First rule will take its turn to designate a directory for torrent added.
 
 
  - - - - Download directory - - - -
   Wildcard: Single asterisk only, capture for prepend/append before file extension, non-anchored http ending.
- +  "...\\* for http..."       custom dir for downloads, \\{batchname}\\ if no custom dir specified.
- |  "...*date\\* for http..."  custom dir for downloads, "*date" will become "{fdate}".
- |  "...\\...*... for http..." and the file are also renamed (prepend/append).
- +  "...*... for http..."     and they go to \\{batchname}\\ while renamed.
+ +  {tcolor.b}...{tcolor.o}\\* for http{tcolor.b}...         {tcolor.x} custom dir for downloads, \\{batchname}\\ if no custom dir specified.
+ |  {tcolor.b}...{tcolor.o}*date\\* for http{tcolor.b}...    {tcolor.x} custom dir for downloads, "*date" will become "{fdate}".
+ |  {tcolor.b}...{tcolor.o}\\{tcolor.g}pre{tcolor.o}*{tcolor.g}app{tcolor.o} for http{tcolor.b}...   {tcolor.x} and the file are also renamed (prepend/append).
+ +  {tcolor.g}pre{tcolor.o}*{tcolor.g}app{tcolor.o} for http{tcolor.b}...       {tcolor.x} and they go to \\{batchname}\\ while renamed.
 
 
  - - - - Spoofer - - - -
   Wildcard: None, non-anchored http ending.
- +  "Mozilla/5.0... for http..." visit page with user-agent.
- |  "key value for .site"     cookie for a site that requires login.
- +  "http... for http..."     visit page with referer.
+ +  {tcolor.o}Mozilla/5.0{tcolor.b}...{tcolor.o} for http{tcolor.b}...{tcolor.x} visit page with user-agent.
+ |  {tcolor.g}key value {tcolor.o}for .{tcolor.g}domain{tcolor.o}.{tcolor.g}com {tcolor.x} cookie for a site that requires login.
+ +  {tcolor.o}http{tcolor.b}...{tcolor.o} for http{tcolor.b}...       {tcolor.x} visit page with referer.
 
 
  - - - - Scraper - - - -
@@ -301,66 +303,64 @@ def help():
   > keep testing! Pages are full of variables. Develop solid asterisks/keys and flag scraper "ready" to stop previews.
 
  + Available pickers:
- |  "http..."         validates a site to start a scraper, attribute all pickers to this.
+ |  {tcolor.o}http{tcolor.b}...          {tcolor.x} validates a site to start a scraper, attribute all pickers to this.
  |
  | Networking
- |  "defuse"          declare this url as having antibot detectors in place, defuse tools will be used on first visit.
- |  "visit"           visit especially for cookies before redirection.
- |  "urlfix ..*.. with ..*.." permanent redirector.
- |    Alternatively "X with Y".
- |  "url ..*.. with ..*.. redirector. Original url will be used for statement and scraper loop.
- |    Alternatively "X with Y".
- |  "POST X Y"        POST data (X) to url (Y) or to current page url (no Y) before accessing page.
+ |  {tcolor.o}defuse           {tcolor.x} declare this url as having antibot detectors in place, defuse tools will be used on first visit.
+ |  {tcolor.o}visit            {tcolor.x} visit especially for cookies before redirection.
+ |  {tcolor.o}urlfix {tcolor.g}X{tcolor.o} with {tcolor.g}Y  {tcolor.x} permanent redirector. X and Y can both or neither be wildcarded ({wild_html}{tcolor.x})
+ |  {tcolor.o}url {tcolor.g}X{tcolor.o} with {tcolor.g}Y     {tcolor.x} redirector. Original url will be used for statement and scraper loop. X Y both/neither be {wild_html}{tcolor.x}
+ |  {tcolor.o}POST {tcolor.g}X Y         {tcolor.x} POST data (X) to url (Y) or to current page url (no Y) before accessing page.
  |
  | Alert
- |  "expect ...*..."  put scraper into loop, alarm when a pattern is found in page. "unexpect" for opposition.
- |    API: "un/expect .. > .. = X", "X > X" for multiple possibilities. Without equal sign to un/expect key only.
- |  "expect"          alert when the pages became accessible previously 404.
- |  "message ..."     customize alert message. Leave blank to exit loop without alerting.
+ |  {tcolor.o}expect {wild_html}   {tcolor.x} put scraper into loop, alarm when a pattern is found in page. {tcolor.o}unexpect{tcolor.x} for opposition.
+ |  {tcolor.o}expect {wild_api} {tcolor.x} expect key (api).
+ |  {tcolor.o}expect {wild_api}{tcolor.o} = {tcolor.g}X{tcolor.x} expect value (api). {tcolor.g}X > X{tcolor.x} for multiple possibilities.
+ |  {tcolor.o}expect           {tcolor.x} alert when the pages became accessible previously 404.
+ |  {tcolor.o}message {tcolor.b}...      {tcolor.x} customize alert message. Leave blank to exit loop without alerting.
  |
  | Get files
- |  "title ...*..."   pick and use as folder from first scraped page.
- |  "folder ...*..."  from url.
- |  "choose .. > .. = X" choose file by a match in another key. "X > X" for multiple possibilities in preference order.
- |  "file(s) ...*..." pick first or all files to download, "relfile(s)" for relative urls.
- |  "time ...*..."    pick time stamp for each file downloading.
- |  "name ...*..."    pick name for each file downloading. There's no file on disk without a filename!
- |  "meta ...*..."    from url.
- |  "extfix ...*..."  fix name without extension from url (detected by ending mismatch).
+ |  {tcolor.o}title {wild_html}    {tcolor.x} pick and use as folder from first scraped page.
+ |  {tcolor.o}folder {wild_html}   {tcolor.x} from url.
+ |  {tcolor.o}choose {wild_api}{tcolor.o} = {tcolor.g}X{tcolor.x} choose file by a match in another key. {tcolor.g}X > X{tcolor.x} for multiple possibilities in preference order.
+ |  {tcolor.o}file {wild_html}     {tcolor.x} pick first file to download. {tcolor.o}files{tcolor.x} for all files, {tcolor.o}relfile{tcolor.x}({tcolor.o}s{tcolor.x}) for relative urls.
+ |  {tcolor.o}time {wild_html}     {tcolor.x} pick time stamp for each file downloading.
+ |  {tcolor.o}name {wild_html}     {tcolor.x} pick name for each file downloading. There's no file on disk without a filename!
+ |  {tcolor.o}meta {wild_html}     {tcolor.x} from url.
+ |  {tcolor.o}extfix {wild_html}   {tcolor.x} fix name without extension from url (detected by ending mismatch).
  |
  | Partition
- |  "part ...*..."    partitioning the page.
- |  "key ...*..."     pick identifier, defining each partition their ID, for HTML builder and/or *id name customization.
+ |  {tcolor.o}part {wild_html}     {tcolor.x} partitioning the page.
+ |  {tcolor.o}key {tcolor.b}...{tcolor.o}*{tcolor.b}...      {tcolor.x} pick identifier, defining each partition their ID, for HTML builder and/or *id name customization.
  |    key# for title (key1), timestamp (key2) then keywords (key3 each). Without key2+ to go stampless.
  |
  | HTML builder
- |  "reluctant"       do not update existing partition for HTML builder.
- |  "html ...*..."    pick article from page/partition for HTML builder.
- |    API: pick content for HTML-based pickers.
+ |  {tcolor.o}reluctant        {tcolor.x} do not update existing partition.
+ |  {tcolor.o}html {wild_html}     {tcolor.x} pick article from page/partition.
+ |  {tcolor.o}html {wild_api}   {tcolor.x} pick content for HTML-based pickers (api).
  |    HTML-based file and name pickers will look through for inline files and clean up articles.
  |    html# for insert mode: newline (+1), hyperlink (+2).
- |  "icon ...*..."    pick an icon. Incremental "icon#" to pick more icons up to #th.
+ |  {tcolor.o}icon {wild_html}     {tcolor.x} pick an icon. Incremental "icon#" to pick more icons up to #th.
  |
  | Miscellaneous
- |  "replace ..*.. with ..*.." find'n'replace before start picking in page/partition.
- |    Alternatively "X with Y".
- |  "newline ...*..." highlight areas to preserve newlines ("\\n").
- |  "pages ...*..."   pick more pages to scrape in parallel, "relpages" for relative urls.
+ |  {tcolor.o}replace {tcolor.g}X {tcolor.o}with {tcolor.g}Y {tcolor.x} find'n'replace before start picking in page/partition. X Y both/neither be {wild_html}{tcolor.x}
+ |  {tcolor.o}newline {wild_html}  {tcolor.x} highlight areas to preserve newlines ("\\n").
+ |  {tcolor.o}pages {wild_html}    {tcolor.x} pick more pages to scrape in parallel, "relpages" for relative urls.
  |    Page picker will make sure all pages are unique to visit, but older pages can cause loophole.
  |    Mostly FIFO aware (for HTML builder), using too many of it can cause FIFO (esp. arrangement) issue, it depends.
- |  "paginate *. * .* with X(Y)Z" split url into three parts then update/restore X and Z, paginate Y with +/- or key.
+ |  {tcolor.o}paginate *{tcolor.b}.{tcolor.o} * {tcolor.b}.{tcolor.o}* with {tcolor.g}X{tcolor.o}({tcolor.g}Y{tcolor.o}){tcolor.g}Z{tcolor.x} split url into three parts then update/restore X and Z, paginate Y with +/- or key.
  |    Repeat this picker with different pattern to pick another location of this url to change.
  |    paginate# for extra pagination.
- +  "savelink"        save first scraped page link as URL file in same directory where files are downloading.
+ +  {tcolor.o}savelink         {tcolor.x} save first scraped page link as URL file in same directory where files are downloading.
 
  + Manipulating picker:
  |  > Repeat a picker with different pattern for multiple possibilities/actions.
  |  > folder#, title#, name#, meta# to assemble assets together sequentially.
  |
- |  "...*..."         HTML-based picker.
- |  "... > ..."       API-based picker. "api > ..." to enforce.
+ |  {wild_html}          {tcolor.x} HTML-based picker.
+ |  {wild_api}        {tcolor.x} API-based picker. "api > ..." to enforce.
  |  " > 0 > " (or asterisk) to iterate a list or dictionary values, " >> " to load dictionary from QS (Query String).
- |  "key Y << X"      X prefers master key Y.
+ |  {tcolor.o}key {tcolor.g}Y {tcolor.o}<< {tcolor.g}X       {tcolor.x} X prefers master key Y.
  |
  | API supported pickers: key, html, expect, files, name, pages.
  | During API each file picker must be accompanied by name picker and all HTML-based name/meta pickers must descend.
@@ -392,11 +392,11 @@ def help():
  - - - - Filter - - - -
   Wildcard: None, non-anchored start/end.
 
- + Possible operators: .filetype, !.filetype, !pattern, !!pattern.
- |  > .filetype    to whitelist file types.
- |  > !.filetype   to blacklist file types.
- |  > !pattern     to blacklist files by pattern match in their file names.
- |  > !!pattern    to whitelist, "!!" irony operator used to distinguish from Geistauge/Sorter rules.
+ + Possible operators:
+ |  {tcolor.o}.{tcolor.g}filetype   {tcolor.x} to whitelist file types.
+ |  {tcolor.o}!.{tcolor.g}filetype  {tcolor.x} to blacklist file types.
+ |  {tcolor.o}!{tcolor.g}pattern    {tcolor.x} to blacklist files by pattern match in their file names.
+ |  {tcolor.o}!!{tcolor.g}pattern   {tcolor.x} to whitelist, "!!" irony operator used to distinguish from pattern exemptions for scanning/Sorter rules.
  |
  | Filters are case insensitive.
  + Anchored ending if there's a period at the beginning, to avoid matching pattern of an extension name in file names.
@@ -406,8 +406,8 @@ def help():
  | Filters under a site picker will override whitelist.
  |
  | Extra pickers:
- |  "inherit"      to make whitelist incorporate again, your "exempt from blacklist" mode for this site.
- +  "reload"       to scrape and download files that was rejected in the past.
+ |  {tcolor.o}inherit          {tcolor.x} to make whitelist incorporate again, your "exempt from blacklist" mode for this site.
+ +  {tcolor.o}reload           {tcolor.x} to scrape and download files that was rejected in the past.
 """
 
 
@@ -611,7 +611,7 @@ else:
 
 new_setting = False
 pos = 0
-settings = ["Launch HTTP server = ", "Browser = ", "Mail = ", "Geistauge = No", f"UTC offset = {datetime.now().astimezone().strftime('%z')[:-2]}", "Proxy = socks5://"]
+settings = ["Launch HTTP server = ", "Browser = ", "Mail = ", "Make SAVX = No", f"UTC offset = {datetime.now().astimezone().strftime('%z')[:-2]}", "Proxy = socks5://"]
 for setting in settings:
     if not rules[pos].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if pos == 0:
@@ -1590,7 +1590,7 @@ if HTTPserver == "No":
     HTTPserver = False
 Browser = declare(rules[1])
 Mail = declare(rules[2])
-Geistauge = declare(rules[3], True)
+SAVX = declare(rules[3], True)
 proxy = declare(rules[5])
 if HTTPserver:
     restartserver()
@@ -1618,23 +1618,23 @@ if Mail:
         cli["dismiss"] = False
 else:
     print(" MAIL: NONE")
-if Geistauge == None:
-    kill(' GEISTAUGE: I am neither "Yes" nor "No" (case sensitive)\n\n Corrupted rule encountered, please read above and then try again.')
-Geistauge = True if Geistauge == "Yes" else False
-if Geistauge:
+if SAVX == None:
+    kill(' SAVX: I am neither "Yes" nor "No" (case sensitive)\n\n Corrupted rule encountered, please read above and then try again.')
+SAVX = True if SAVX == "Yes" else False
+if SAVX:
     try:
         import numpy, cv2
         from PIL import Image
         Image.MAX_IMAGE_PIXELS = 400000000
-        print(" GEISTAUGE: ON")
+        print(" Make SAVX: ON")
     except:
-        kill(f" GEISTAUGE: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install pillow\n{echo_pip()} install numpy\n{echo_pip()} install opencv-python")
+        kill(f" Make SAVX: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install pillow\n{echo_pip()} install numpy\n{echo_pip()} install opencv-python")
 elif sorter["verifyondisk"]:
-    kill(f""" GEISTAUGE: I must be enabled for "verifyondisk" declared in {rulefile}.""")
+    kill(f""" Make SAVX: I must be enabled for "verifyondisk" declared in {rulefile}.""")
 elif sorter["buildthumbnail"]:
-    kill(f""" GEISTAUGE: I must be enabled for "buildthumbnail" declared in {rulefile}.""")
+    kill(f""" Make SAVX: I must be enabled for "buildthumbnail" declared in {rulefile}.""")
 else:
-    print(" GEISTAUGE: OFF")
+    print(" Make SAVX: OFF")
 if "socks5://" in proxy and proxy[10:]:
     if not ":" in proxy[10:]:
         kill(" PROXY: Invalid socks5:// address, it must be socks5://X.X.X.X:port OR socks5://user:pass@X.X.X.X:port\n\n Corrupted rule encountered, please read above and then try again.")
@@ -3819,7 +3819,7 @@ def updatepart(partfile, relics, htmlpart, filelist, pattern, reluctant):
 
 def gethread():
     while True:
-        threadn, htmlname, total, file = task["geistauge"].get()
+        threadn, htmlname, total, file = task["savx"].get()
         ondisk = f"{batchname}/{htmlname}/{file}"
         if file.endswith(tuple(imagefile)):
             try:
@@ -3833,8 +3833,8 @@ def gethread():
                 print(f" Corrupted on disk: {ondisk}")
                 error[2] += [f"&gt; Corrupted on disk: {ondisk}"]
         if threadn%8 == 0:
-            echo(" GEISTAUGE: " + str(int((threadn / total) * 100)) + "%")
-        task["geistauge"].task_done()
+            echo(" Make SAVX: " + str(int((threadn / total) * 100)) + "%")
+        task["savx"].task_done()
 
 
 
@@ -3845,16 +3845,16 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
             files += [file]
 
     if sorter["verifyondisk"]:
-        if not "geistauge" in task:
-            task.update({"geistauge":Queue()})
+        if not "savx" in task:
+            task.update({"savx":Queue()})
             for i in range(8):
                 Thread(target=gethread, daemon=True).start()
         threadn = 0
         for file in files:
             threadn += 1
-            task["geistauge"].put((threadn, htmlname, len(files), file))
-        task["geistauge"].join()
-        echo(" GEISTAUGE: 100%", 0, 1)
+            task["savx"].put((threadn, htmlname, len(files), file))
+        task["savx"].join()
+        echo(" Make SAVX: 100%", 0, 1)
 
     unsorted_stray_files = sorted(set(files).difference(x[1].rsplit("/", 1)[-1] for x in filelist))
     if unsorted_stray_files:
@@ -4060,9 +4060,9 @@ def delmode():
     print("""
  Press D again to view files to be taken to \\.. Trash\\
 
- (G)eistauge auto - delete non-exempted duplicate images immediately with a confirmation.
+ (G) SAVX auto - delete non-exempted duplicate images immediately with a confirmation.
    > One first non-exempt in path alphabetically will be kept if no other duplication are exempted.
-   > Rebuild Geistauge HTML without/less identical images.
+   > Recompile SAVX without/less identical images.
 
  (S)ave - "seen" files in best quality and there must not be inferior similarities again.
    > Use this only if what you think is unique and best quality available.
@@ -4072,7 +4072,7 @@ def delmode():
  (T)rash - "seen" trash files, input an trash folder to start.
    > Useful for files you don't like but kept coming back to haunt you.
    > Delete/move files from \\.. Trash\\ beforehand if you think you might change your mind later.
-   > Then for the next time they will be moved to \\.. Trash 2\\ during (G)eistauge auto.
+   > Then for the next time they will be moved to \\.. Trash 2\\ during (G) SAVX auto.
 """)
     while True:
         el = input("Return to (M)ain menu: ", "dgstm")
@@ -4082,9 +4082,9 @@ def delmode():
             if delnow():
                 return
         elif el == 2:
-            if not Geistauge:
+            if not SAVX:
                 choice(bg=True)
-                print(" GEISTAUGE: Maybe not.")
+                print(" Make SAVX: Maybe not.")
                 return
             choice(bg=["4c", "%color%"])
             if input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "").replace("\\", "/") == f"{batchdir}{sav}":
@@ -4673,9 +4673,9 @@ def read_input(fp):
                         if not isrej(array[1], pattern):
                             filelist += [["", array[1]]]
             parttohtml(subdir, htmlname, new_relics, filelist, pattern)
-        elif not Geistauge:
+        elif not SAVX:
             choice(bg=True)
-            echo(" GEISTAUGE: Maybe not.", 0, 2)
+            echo(" Make SAVX: Maybe not.", 0, 2)
         elif os.path.isdir(fp):
             print(f"""\nLoading featuring {"folder" if os.path.isdir(fp) else "image"} successful: "{fp}" """)
             tosav(fp)
@@ -4735,8 +4735,8 @@ if filelist:
  Only one input at a time is allowed! It's a good indication that you should reorganize better
  if there are too many folders to input and you don't want to use input's parent.{'''
 
- Geistauge is also disabled which can be a reminder that this is not the setup to run Geistauge.
- May I suggest having another copy of this script with Geistauge enabled in different directory?''' if not Geistauge else ""}""")
+ SAVX is also disabled which can be a reminder that this is not the setup to make SAVX.
+ Maybe make another copy of this SCRIPT with SAVX enabled in different directory''' if not SAVX else ""}""")
     read_input(filelist[0])
     busy[0] = False
     if sys.platform == "linux" and not task["httpserver"]:
@@ -4817,9 +4817,9 @@ def keylistener():
             if busy[0]:
                 echo("Please wait for another operation to finish", 1, 1)
                 continue
-            if not Geistauge:
+            if not SAVX:
                 choice(bg=True)
-                echo(" GEISTAUGE: Maybe not.", 0, 1)
+                echo(" Make SAVX: Maybe not.", 0, 1)
             else:
                 tosavx()
             ready_input()

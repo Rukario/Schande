@@ -247,12 +247,13 @@ def help():
     wild_api = f"{tcolor.b}.{tcolor.g} > {tcolor.b}.{tcolor.g} > {tcolor.b}."
     return f"""
  {rulefile} is {batchname}'s only setting file and only place to follow your rules how files are downloaded and sorted.
+ {batchfile} directory listing is armed with "viewer" HTMLs: {tcolor.g}View.html{tcolor.x} and {tcolor.g}New Text.html{tcolor.x}
 
 
  - - - - Make SAVX - - - -
   Wildcard: None, non-anchored start/end.
 
- > Arbitrary rule (unless # commented out) in {rulefile} will become pattern exemption during scanning.
+ > Arbitrary rule (unless {tcolor.o}# {tcolor.b}commented out{tcolor.x}) in {rulefile} will become pattern exemption during scanning.
  > No exemption if at least one similar image doesn't have a pattern.
  > Once scan is completed, {tcolor.g}View.html{tcolor.x} will be used to view similar images,
    including tools to see differences not seen by naked eyes.
@@ -331,7 +332,7 @@ def help():
  |
  | Partition
  |  {tcolor.o}part {wild_html}     {tcolor.x} partitioning the page.
- |  {tcolor.o}key {tcolor.b}...{tcolor.o}*{tcolor.b}...      {tcolor.x} pick identifier, defining each partition their ID, for HTML builder and/or *id name customization.
+ |  {tcolor.o}key {wild_html}      {tcolor.x} pick identifier, defining each partition their ID, for HTML builder and/or *id name customization.
  |    key# for title (key1), timestamp (key2) then keywords (key3 each). Without key2+ to go stampless.
  |
  | HTML builder
@@ -358,14 +359,14 @@ def help():
  |  > folder#, title#, name#, meta# to assemble assets together sequentially.
  |
  |  {wild_html}          {tcolor.x} HTML-based picker.
- |  {wild_api}        {tcolor.x} API-based picker. "api > ..." to enforce.
- |  " > 0 > " (or asterisk) to iterate a list or dictionary values, " >> " to load dictionary from QS (Query String).
+ |  {wild_api}        {tcolor.x} API-based picker. {tcolor.o}api > {tcolor.b}.{tcolor.x} to enforce.
+ |  {tcolor.o} > 0 > {tcolor.x} or {tcolor.o} > * > {tcolor.x} to iterate a list or dictionary values, {tcolor.o} >> {tcolor.x} to load dictionary from QS (Query String).
  |  {tcolor.o}key {tcolor.g}Y {tcolor.o}<< {tcolor.g}X       {tcolor.x} X prefers master key Y.
  |
  | API supported pickers: key, html, expect, files, name, pages.
  | During API each file picker must be accompanied by name picker and all HTML-based name/meta pickers must descend.
  |
- | Customize the chosen one with prepend and append using "X customize with ...*..." after any picker.
+ | Customize the chosen one with prepend and append using {tcolor.g}X {tcolor.o}customize with {wild_html}{tcolor.x} after any picker.
  | Customize along with "*id" (extra asterisk) to insert key as name, only usable during using key picker, else "0".
  + Folder and title pickers will be auto-assigned with \\ to work as folder unless customized.
 
@@ -382,10 +383,11 @@ def help():
  |  > The final asterisk of the non-caret will be greedy and chosen. First asterisk if every asterisk has caret.
  +  > Using caret will finish with one chosen match.
 
- + For difficult asterisks:
- |  "X # letters" (# or #-#) after any picker (before "customize with") so the match is expected to be that amount.
- |  "X greater" after any picker (before "customize with") so the match is expected to be greater than asked number.
- |  "X ends/starts with X" after any picker (before "customize with"). "not" for opposition.
+ + For difficult asterisks (after any picker before {tcolor.g}X {tcolor.o}customize with{tcolor.x}):
+ |  {tcolor.g}X # {tcolor.o}letters   {tcolor.x} ({tcolor.g}#{tcolor.x} or {tcolor.g}#{tcolor.o}-{tcolor.g}#{tcolor.x}) so the match is expected to be that amount.
+ |  {tcolor.g}X {tcolor.o}greater     {tcolor.x} so the match is expected to be greater than asked number.
+ |  {tcolor.g}X {tcolor.o}starts with {tcolor.g}X    {tcolor.x} {tcolor.o}ends{tcolor.x} for ending.
+ |  {tcolor.g}X {tcolor.o}not starts with {tcolor.g}X{tcolor.x} for opposition. {tcolor.o}not ends{tcolor.x} for ending.
  + Use replace picker to discard what you don't need before complicating pickers with many asterisks or carets.
 
 

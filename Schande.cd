@@ -1,7 +1,8 @@
 Launch HTTP server = Password
 Browser = C:\Program Files\Mozilla Firefox\firefox.exe
 Mail = 
-Geistauge = No
+Make SAVX = No
+UTC offset = -07
 Proxy = socks5://
 
 shuddup

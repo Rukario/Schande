@@ -1366,15 +1366,17 @@ function readMDP(arri) {
   layers = [];
   const layerelements = Mdiapp.getElementsByTagName('Layers')[0].getElementsByTagName('Layer');
   for (const e of layerelements) {
-    const layer = newCanvas(canvas.width, canvas.height); 
+    const layer = newCanvas(canvas.width, canvas.height);
+    //console.log(e.attributes);
     layer.bin = e.getAttribute('bin');
-    layer.type = e.getAttribute('masking') === 'true' ? 'mask' : e.getAttribute('type');
+    layer.masking = e.getAttribute('masking');
+    layer.type = e.getAttribute('type');
     layer.mode = e.getAttribute('mode');
     layer.color = e.getAttribute('color');
-    layer.alpha = Math.ceil(e.getAttribute('alpha') / 255 * 100) / 100;
+    layer.alpha = e.getAttribute('alpha');
     layer.ofsx = e.getAttribute('ofsx');
     layer.ofsy = e.getAttribute('ofsy');
-    layer.visible = e.getAttribute('visible') === 'true';
+    layer.visible = e.getAttribute('visible');
     layer.mode = toCanvasMode(e.getAttribute('mode'));
     layers.push(layer);
   }
@@ -1413,8 +1415,9 @@ function readMDP(arri) {
 
     const layer = layers[LayerN];
     //Fi.start = performance.now();
-
-    if (layer.type === 'folder') {
+    if (layer.masking === 'true') {
+      layer.type = 'mask';
+    } else if (layer.type === 'folder') {
       setTimeout(() => {readLayer(LayerN+1)}, 1000);
     };
 
@@ -1426,10 +1429,11 @@ function readMDP(arri) {
       setTimeout(() => {readLayer(LayerN+1)}, 1000);
     }
 
+    const alpha = Math.ceil( layer.alpha / 255 * 100) / 100
     if (layer.type === 'mask') {
-      layerlist.innerHTML += `${LayerN} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.ofsx} ${layer.ofsy}\n`;
+      layerlist.innerHTML += `${LayerN} ${layer.visible === 'true'} ${alpha} ${layer.type} ${layer.ofsx} ${layer.ofsy}\n`;
     } else {
-      layerlist.innerHTML += `${LayerN} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.ofsx} ${layer.ofsy} ${layer.mode}\n`;
+      layerlist.innerHTML += `${LayerN} ${layer.visible === 'true'} ${alpha} ${layer.type} ${layer.ofsx} ${layer.ofsy} ${layer.mode}\n`;
     }
 
     const layerColor = layer.color;
@@ -1437,9 +1441,8 @@ function readMDP(arri) {
     const dim = PAC.unpack(arri.buffer.slice(pos, pos + 4))[0];
     pos += 4;
 
-    const tilemask = newCanvas(dim, dim);
-
     const dataToLayer = (data, callback, interTileN, x, y) => {
+      const tilemask = newCanvas(dim, dim);
       if (false) {
         // BGRA to RGBA tilemap
         const tilemap = tilemask.createImageData(dim, dim);
@@ -1534,6 +1537,7 @@ function readMDP(arri) {
       const data = pako.inflate(clean_IDAT);
 
       if (isMask) {
+        const tilemask = newCanvas(dim, dim);
         const tilemap = tilemask.createImageData(dim, dim);
         for (let n = 0; n < data.length*4; n += 4) {
           tilemap.data[n] = 0;
@@ -1554,6 +1558,7 @@ function readMDP(arri) {
 
     //Fi.inter = performance.now();
     const readTile = (TileN) => {
+      const tilemask = newCanvas(dim, dim);
       if (TileN >= tileNum) {
         // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
         setTimeout(() => {

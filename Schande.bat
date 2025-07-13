@@ -249,13 +249,19 @@ def help():
  {rulefile} is {batchname}'s only setting file and only place to follow your rules how files are downloaded and sorted.
  {batchfile} directory listing is armed with "viewer" HTMLs: {tcolor.g}View.html{tcolor.x} and {tcolor.g}New Text.html{tcolor.x}
 
+ * HTML-based picker ({wild_html}{tcolor.x})
+ > API-based picker ({wild_api}{tcolor.x})
+   {tcolor.o}exact syntax{tcolor.x}
+   {tcolor.g}sample{tcolor.x}
+   {tcolor.b}example{tcolor.x}
+
 
  - - - - Make SAVX - - - -
   Wildcard: None, non-anchored start/end.
 
- > Arbitrary rule (unless {tcolor.o}# {tcolor.b}commented out{tcolor.x}) in {rulefile} will become pattern exemption during scanning.
- > No exemption if at least one similar image doesn't have a pattern.
- > Once scan is completed, {tcolor.g}View.html{tcolor.x} will be used to view similar images,
+ - Arbitrary rule (unless {tcolor.o}# {tcolor.b}commented out{tcolor.x}) in {rulefile} will become pattern exemption during scanning.
+ - No exemption if at least one similar image doesn't have a pattern.
+ - Once scan is completed, {tcolor.g}View.html{tcolor.x} will be used to view similar images,
    including tools to see differences not seen by naked eyes.
 
 
@@ -299,9 +305,9 @@ def help():
   Wildcard: asterisks choose last, carets for right-to-left, hybrid greed median, non-anchored http ending.
 
  You need to:
-  > know how to view page source or API.
-  > know how to create pattern with asterisks or keys. Pages will be provided without newlines ("\\n") for convenience.
-  > keep testing! Pages are full of variables. Develop solid asterisks/keys and flag scraper "ready" to stop previews.
+  - know how to view page source or API.
+  - know how to create pattern with asterisks or keys. Pages will be provided without newlines ("\\n") for convenience.
+  - keep testing! Pages are full of variables. Develop solid asterisks/keys and flag scraper "ready" to stop previews.
 
  + Available pickers:
  |  {tcolor.o}http{tcolor.b}...          {tcolor.x} validates a site to start a scraper, attribute all pickers to this.
@@ -314,56 +320,63 @@ def help():
  |  {tcolor.o}POST {tcolor.g}X Y         {tcolor.x} POST data (X) to url (Y) or to current page url (no Y) before accessing page.
  |
  | Alert
- |  {tcolor.o}expect {wild_html}   {tcolor.x} put scraper into loop, alarm when a pattern is found in page. {tcolor.o}unexpect{tcolor.x} for opposition.
- |  {tcolor.o}expect {wild_api} {tcolor.x} expect key (api).
- |  {tcolor.o}expect {wild_api}{tcolor.o} = {tcolor.g}X{tcolor.x} expect value (api). {tcolor.g}X > X{tcolor.x} for multiple possibilities.
+ |* {tcolor.o}expect {wild_html}      {tcolor.x}╦put scraper into loop, alarm when a pattern is found in page. {tcolor.o}unexpect{tcolor.x} for opposition.
+ |> {tcolor.o}expect {wild_api}    {tcolor.x}╣expect key.
+ |> {tcolor.o}expect {wild_api}{tcolor.o} = {tcolor.g}X{tcolor.x}╝expect value. {tcolor.g}X > X{tcolor.x} for multiple possibilities.
  |  {tcolor.o}expect           {tcolor.x} alert when the pages became accessible previously 404.
  |  {tcolor.o}message {tcolor.b}...      {tcolor.x} customize alert message. Leave blank to exit loop without alerting.
  |
  | Get files
- |  {tcolor.o}title {wild_html}    {tcolor.x} pick and use as folder from first scraped page.
- |  {tcolor.o}folder {wild_html}   {tcolor.x} from url.
- |  {tcolor.o}choose {wild_api}{tcolor.o} = {tcolor.g}X{tcolor.x} choose file by a match in another key. {tcolor.g}X > X{tcolor.x} for multiple possibilities in preference order.
- |  {tcolor.o}file {wild_html}     {tcolor.x} pick first file to download. {tcolor.o}files{tcolor.x} for all files, {tcolor.o}relfile{tcolor.x}({tcolor.o}s{tcolor.x}) for relative urls.
+ |* {tcolor.o}title{tcolor.g}# {wild_html}   {tcolor.x}╦pick and use as folder from first scraped page.
+ |> {tcolor.o}title{tcolor.g}# {wild_api} {tcolor.x}╝
+ |  {tcolor.o}folder{tcolor.g}# {wild_html}  {tcolor.x} from url.
+ |> {tcolor.o}choose {wild_api}{tcolor.o} = {tcolor.g}X{tcolor.x} choose file by a match in another key. {tcolor.g}X > X{tcolor.x} for multiple possibilities in preference order.
+ |* {tcolor.o}file {wild_html}     {tcolor.x}╦pick first file to download. {tcolor.o}files{tcolor.x} for all files, {tcolor.o}relfile{tcolor.x}({tcolor.o}s{tcolor.x}) for relative urls.
+ |> {tcolor.o}file {wild_api}   {tcolor.x}╝
  |  {tcolor.o}time {wild_html}     {tcolor.x} pick time stamp for each file downloading.
- |  {tcolor.o}name {wild_html}     {tcolor.x} pick name for each file downloading. There's no file on disk without a filename!
- |  {tcolor.o}meta {wild_html}     {tcolor.x} from url.
+ |* {tcolor.o}name{tcolor.g}# {wild_html}    {tcolor.x}╦pick name for each file downloading. There's no file on disk without a filename!
+ |> {tcolor.o}name{tcolor.g}# {wild_api}  {tcolor.x}╝
+ |  {tcolor.o}meta{tcolor.g}# {wild_html}    {tcolor.x} from url.
  |  {tcolor.o}extfix {wild_html}   {tcolor.x} fix name without extension from url (detected by ending mismatch).
  |
  | Partition
- |  {tcolor.o}part {wild_html}     {tcolor.x} partitioning the page.
- |  {tcolor.o}key {wild_html}      {tcolor.x} pick identifier, defining each partition their ID, for HTML builder and/or *id name customization.
- |    key# for title (key1), timestamp (key2) then keywords (key3 each). Without key2+ to go stampless.
+ |* {tcolor.o}part {wild_html}     {tcolor.x} partitioning the page.
+ |* {tcolor.o}key{tcolor.g}# {wild_html}     {tcolor.x}╦pick identifier, defining each partition their ID, for partition and/or *id name customization.
+ |> {tcolor.o}key{tcolor.g}# {wild_api}   {tcolor.x}╝
+ |     (none) identifier
+ |     {tcolor.g}1{tcolor.x} title
+ |     {tcolor.g}2{tcolor.x} timestamp
+ |     {tcolor.g}3{tcolor.x} keyword, repeat this picker for keywords
  |
- | HTML builder
  |  {tcolor.o}reluctant        {tcolor.x} do not update existing partition.
- |  {tcolor.o}html {wild_html}     {tcolor.x} pick article from page/partition.
- |  {tcolor.o}html {wild_api}   {tcolor.x} pick content for HTML-based pickers (api).
+ |* {tcolor.o}html{tcolor.g}# {wild_html}    {tcolor.x} pick article from page/partition.
+ |> {tcolor.o}html{tcolor.g}# {wild_api}  {tcolor.x} pick content for HTML-based pickers.
+ |      {tcolor.g}#{tcolor.x} for insert mode: newline (+1), hyperlink (+2).
  |    HTML-based file and name pickers will look through for inline files and clean up articles.
- |    html# for insert mode: newline (+1), hyperlink (+2).
- |  {tcolor.o}icon {wild_html}     {tcolor.x} pick an icon. Incremental "icon#" to pick more icons up to #th.
+ |  {tcolor.o}icon{tcolor.g}# {wild_html}    {tcolor.x} pick an icon.
+ |      {tcolor.g}#{tcolor.x} to pick more icons.
  |
  | Miscellaneous
  |  {tcolor.o}replace {tcolor.g}X {tcolor.o}with {tcolor.g}Y {tcolor.x} find'n'replace before start picking in page/partition. X Y both/neither be {wild_html}{tcolor.x}
  |  {tcolor.o}newline {wild_html}  {tcolor.x} highlight areas to preserve newlines ("\\n").
- |  {tcolor.o}pages {wild_html}    {tcolor.x} pick more pages to scrape in parallel, "relpages" for relative urls.
+ |  {tcolor.o}pages {wild_html}    {tcolor.x} pick more pages to scrape in parallel, {tcolor.o}relpages{tcolor.x} for relative urls.
+ |  {tcolor.o}pages {wild_api}  {tcolor.x}
  |    Page picker will make sure all pages are unique to visit, but older pages can cause loophole.
- |    Mostly FIFO aware (for HTML builder), using too many of it can cause FIFO (esp. arrangement) issue, it depends.
+ |    Mostly FIFO aware (for {tcolor.g}View.html{tcolor.x}), using too many of it can cause FIFO (esp. arrangement) issue, it depends.
  |  {tcolor.o}paginate *{tcolor.b}.{tcolor.o} * {tcolor.b}.{tcolor.o}* with {tcolor.g}X{tcolor.o}({tcolor.g}Y{tcolor.o}){tcolor.g}Z{tcolor.x} split url into three parts then update/restore X and Z, paginate Y with +/- or key.
  |    Repeat this picker with different pattern to pick another location of this url to change.
  |    paginate# for extra pagination.
  +  {tcolor.o}savelink         {tcolor.x} save first scraped page link as URL file in same directory where files are downloading.
 
  + Manipulating picker:
- |  > Repeat a picker with different pattern for multiple possibilities/actions.
- |  > folder#, title#, name#, meta# to assemble assets together sequentially.
+ |  - Repeat a picker with different pattern for multiple possibilities/actions.
+ |  {tcolor.o}folder{tcolor.g}#{tcolor.x} {tcolor.o}title{tcolor.g}#{tcolor.x} {tcolor.o}name{tcolor.g}#{tcolor.x} {tcolor.o}meta{tcolor.g}#{tcolor.x} to assemble assets together sequentially.
  |
- |  {wild_html}          {tcolor.x} HTML-based picker.
- |  {wild_api}        {tcolor.x} API-based picker. {tcolor.o}api > {tcolor.b}.{tcolor.x} to enforce.
- |  {tcolor.o} > 0 > {tcolor.x} or {tcolor.o} > * > {tcolor.x} to iterate a list or dictionary values, {tcolor.o} >> {tcolor.x} to load dictionary from QS (Query String).
- |  {tcolor.o}key {tcolor.g}Y {tcolor.o}<< {tcolor.g}X       {tcolor.x} X prefers master key Y.
+ |  {tcolor.b}picker {tcolor.o}api > {tcolor.b}lonekey{tcolor.x} to enforce picker as API-based.
+ |  {tcolor.b}picker .{tcolor.g} > {tcolor.o}0 > {tcolor.b}.{tcolor.x} or {tcolor.o} * > {tcolor.b}.{tcolor.x} to iterate a list or dictionary values
+ |  {tcolor.b}picker .{tcolor.o} >> {tcolor.b}QS{tcolor.x} to load dictionary from QS (Query String).
+ |  {tcolor.b}key {tcolor.g}Y {tcolor.o}<< {tcolor.g}X       {tcolor.x} X prefers master key Y.
  |
- | API supported pickers: key, html, expect, files, name, pages.
  | During API each file picker must be accompanied by name picker and all HTML-based name/meta pickers must descend.
  |
  | Customize the chosen one with prepend and append using {tcolor.g}X {tcolor.o}customize with {wild_html}{tcolor.x} after any picker.
@@ -371,23 +384,23 @@ def help():
  + Folder and title pickers will be auto-assigned with \\ to work as folder unless customized.
 
  + Manipulating asterisk/position:
- |  > Multiple asterisks to pick the last asterisk better and/or to discard others.
- |  > Arrange name and file pickers if needed to follow their position in page. file before -> name -> file after.
- |  > Arrange html and file pickers whether to download inline file or filelist on conflict of the same file name.
- |  > First with match will be chosen first. This doesn't apply to html and plural pickers such as files, pages.
- |  > Name match closest to the file will be chosen. file before -> name to before -> name to after -> file after.
+ |  - Multiple asterisks to pick the last asterisk better and/or to discard others.
+ |  - Arrange name and file pickers if needed to follow their position in page. file before -> name -> file after.
+ |  - Arrange html and file pickers whether to download inline file or filelist on conflict of the same file name.
+ |  - First with match will be chosen first. This doesn't apply to html and plural pickers such as files, pages.
+ |  - Name match closest to the file will be chosen. file before -> name to before -> name to after -> file after.
  + Note: HTML-based name picker (esp. if repeated) will not respect file position made by a different file picker.
 
  + Right-to-left:
- |  > Use caret ^... to get the right match. Do ^..*^.. or ..*^.. (greedy), don't put caret before asterisk ^*
- |  > The final asterisk of the non-caret will be greedy and chosen. First asterisk if every asterisk has caret.
- +  > Using caret will finish with one chosen match.
+ |  - Use caret ^... to get the right match. Do ^..*^.. or ..*^.. (greedy), don't put caret before asterisk ^*
+ |  - The final asterisk of the non-caret will be greedy and chosen. First asterisk if every asterisk has caret.
+ +  - Using caret will finish with one chosen match.
 
  + For difficult asterisks (after any picker before {tcolor.g}X {tcolor.o}customize with{tcolor.x}):
- |  {tcolor.g}X # {tcolor.o}letters   {tcolor.x} ({tcolor.g}#{tcolor.x} or {tcolor.g}#{tcolor.o}-{tcolor.g}#{tcolor.x}) so the match is expected to be that amount.
- |  {tcolor.g}X {tcolor.o}greater     {tcolor.x} so the match is expected to be greater than asked number.
- |  {tcolor.g}X {tcolor.o}starts with {tcolor.g}X    {tcolor.x} {tcolor.o}ends{tcolor.x} for ending.
- |  {tcolor.g}X {tcolor.o}not starts with {tcolor.g}X{tcolor.x} for opposition. {tcolor.o}not ends{tcolor.x} for ending.
+ |  {tcolor.b}picker {tcolor.g}# {tcolor.o}letters   {tcolor.x} ({tcolor.g}#{tcolor.x} fixed or {tcolor.g}#{tcolor.o}-{tcolor.g}#{tcolor.x} min-max) so the match is expected to be that amount.
+ |  {tcolor.b}picker {tcolor.o}greater     {tcolor.x} so the match is expected to be greater than asked number.
+ |  {tcolor.b}picker {tcolor.o}starts with {tcolor.g}X    {tcolor.x} {tcolor.o}ends{tcolor.x} for ending.
+ |  {tcolor.b}picker {tcolor.o}not starts with {tcolor.g}X{tcolor.x} for opposition. {tcolor.o}not ends{tcolor.x} for ending.
  + Use replace picker to discard what you don't need before complicating pickers with many asterisks or carets.
 
 
@@ -870,6 +883,19 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
                     body = api["body"]
                 with open(f"{dir}{ondisk}", 'w') as f:
                     f.write(json.dumps(body))
+            elif api["kind"] == "inheritfilter":
+                if os.path.exists(s := f"{ondisk}/savelink.URL"):
+                    with open(s, 'r') as f:
+                        page = f.read().splitlines()[1].replace("URL=", "")
+                    get_pick = [x for x in navigator["pickers"].keys() if page.startswith(x)]
+                    if not get_pick:
+                        kill(f"\n  {page}\n\nCouldn't recognize this url, I must exit!")
+                    pattern = navigator["pickers"][get_pick[0]]["pattern"]
+                else:
+                    pattern = [[], []]
+                retapi = json.dumps({'search':pattern[1], 'ignore':pattern[0]})
+                self.wfile.write(retapi.encode("utf-8"))
+                # htmldata = new_gallery_html(pattern).encode(enc, 'surrogateescape')
             else:
                 echo(f"Stray POST data: {data}", 0, 1)
                 self.wfile.write(bytes(f"Stray POST data sent", 'utf-8'))
@@ -893,42 +919,30 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             return
         enc = sys.getfilesystemencoding()
 
-        if load_from_qs == "Gallery":
-            if os.path.exists(s := f"{ondisk}/savelink.URL"):
-                with open(s, 'r') as f:
-                    page = f.read().splitlines()[1].replace("URL=", "")
-                get_pick = [x for x in navigator["pickers"].keys() if page.startswith(x)]
-                if not get_pick:
-                    kill(f"\n  {page}\n\nCouldn't recognize this url, I must exit!")
-                pattern = navigator["pickers"][get_pick[0]]["pattern"]
-            else:
-                pattern = [[], []]
-            htmldata = new_gallery_html(pattern).encode(enc, 'surrogateescape')
-        else:
-            try:
-                list = sorted(os.listdir(ondisk), key=lambda a: a.lower())
-            except OSError:
-                self.send_error(404, "No permission to list directory")
-                return
-            if not ondisk.endswith("/"):
-                ondisk += "/"
-            dirs = []
-            files = []
-            for name in list:
-                fullname = f"{ondisk}{name}"
-                ut = f"{os.path.getmtime(fullname):.7f}" if ntime else None
-                if os.path.isdir(fullname):
-                    parts = []
-                    for partfn in ["partition.json", "partition A.json", "partition B.json", "partition C.json", "partition D.json", "partition E.json", "partition F.json"]:
-                        if os.path.exists(fullname + "/" + partfn):
-                            parts += [partfn]
-                    dirs.append([ut, name, parts])
-                elif os.path.isfile(fullname):
-                    alt_view = False
-                    if fullname.endswith(tuple(utf8file + ['.savx'])):
-                        alt_view = True
-                    files.append([ut, name, alt_view])
-            htmldata = new_list_html(parent, dirs, files).encode(enc, 'surrogateescape')
+        try:
+            list = sorted(os.listdir(ondisk), key=lambda a: a.lower())
+        except OSError:
+            self.send_error(404, "No permission to list directory")
+            return
+        if not ondisk.endswith("/"):
+            ondisk += "/"
+        dirs = []
+        files = []
+        for name in list:
+            fullname = f"{ondisk}{name}"
+            ut = f"{os.path.getmtime(fullname):.7f}" if ntime else None
+            if os.path.isdir(fullname):
+                parts = []
+                for partfn in ["partition.json", "partition A.json", "partition B.json", "partition C.json", "partition D.json", "partition E.json", "partition F.json"]:
+                    if os.path.exists(fullname + "/" + partfn):
+                        parts += [partfn]
+                dirs.append([ut, name, parts])
+            elif os.path.isfile(fullname):
+                alt_view = False
+                if fullname.endswith(tuple(utf8file + ['.savx'])):
+                    alt_view = True
+                files.append([ut, name, alt_view])
+        htmldata = new_list_html(parent, dirs, files).encode(enc, 'surrogateescape')
 
         f = io.BytesIO()
         f.write(htmldata)
@@ -4773,7 +4787,7 @@ def has(i, x):
 
 def keylistener():
     while True:
-        index = input("", ["All", *"bcdefghijklmnopqrstuvwxyz0123456789"], double="jp")
+        index = input("", ["All", *"bcdefghijklmnopqrstuvwxyz0123456789"], double="ejp")
         if index < 0:
             code = "Slow" + "?ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[-index]
         else:
@@ -4813,6 +4827,10 @@ def keylistener():
                 continue
             echo(help(), 0, 1)
             ready_input()
+        elif code == "SlowE":
+            echo("Press E twice in fast sequence to view help document.", 1, 1)
+            if not busy[0]:
+                ready_input()
         elif code == "KeyF":
             pressed(code)
         elif code == "KeyG":

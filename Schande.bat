@@ -197,13 +197,12 @@ class tcolor:
     b = ansi_color("0", "3B78FF")
     o = ansi_color("0", "FF9030")
     w = ansi_color("401707", "6")
+    c = ansi_color("0")
     if sys.platform == "darwin":
         x = ansi_color()
     else:
         x = ansi_color("005A80", "6")
         # x = ansi_color("2A211C", "BDAE9D")
-    def __call__(self):
-        return ansi_color("0")
     def z(c):
         if not len(c) == 6:
             kill("Bad color code")
@@ -2113,9 +2112,9 @@ def isrej(filename, pattern):
         rejected = check(filename, inline[0])
     if rejected and cli["showpreview"]:
         if rejected in filename.lower():
-            print(f"{tcolor}{origin:>18}: {dir}{filename.lower().replace(rejected, tcolor.r + rejected + tcolor)}{tcolor.x}")
+            print(f"{tcolor.c}{origin:>18}: {dir}{filename.lower().replace(rejected, tcolor.r + rejected + tcolor.c)}{tcolor.x}")
         else:
-            print(f"{tcolor}  Not in whitelist: {dir}{tcolor.b}{filename}{tcolor.x}")
+            print(f"{tcolor.c}  Not in whitelist: {dir}{tcolor.b}{filename}{tcolor.x}")
     return rejected
 
 
@@ -3435,7 +3434,7 @@ def nextshelf(fromhtml):
                     title = keywords[0] if keywords and keywords[0] else f"ꍯ Part {k} ꍯ"
                     timestamp = keywords[1] if len(keywords) > 1 and keywords[1] else "No timestamp"
                     afterwords = ", ".join(f"{kw}" for kw in keywords[2:]) if len(keywords) > 2 else "None"
-                    stdout += f"{tcolor.x}{k} :: {tcolor}{tcolor.b}{title} [{tcolor}{timestamp}{tcolor.r} Keywords: {afterwords}{tcolor.b}]\n"
+                    stdout += f"{tcolor.x}{k} :: {tcolor.b}{title} [{tcolor.c}{timestamp}{tcolor.r} Keywords: {afterwords}{tcolor.b}]\n"
                     for file in htmlpart[k]["files"]:
                         stdout += tcolor.g + file["name"].rsplit("\\")[-1] + "\n"
                     if html := htmlpart[k]["html"]:
@@ -4233,13 +4232,13 @@ def finish_sort():
                         found = True
                         break
                 if not found:
-                    print(f"{tcolor.b}{batchname}\\ {tcolor.r}-> {tcolor.g}{dir}{tcolor}{file}{tcolor.x}")
+                    print(f"{tcolor.b}{batchname}\\ {tcolor.r}-> {tcolor.g}{dir}{tcolor.c}{file}{tcolor.x}")
                     mover.update({file:dir})
                     break
             else:
                 for n in sorter["dirs"][dir][1:]:
                     if fnmatch(file, n):
-                        print(f"{tcolor.b}{batchname}\\ {tcolor.r}-> {tcolor.g}{dir}{tcolor}{file}{tcolor.x}")
+                        print(f"{tcolor.b}{batchname}\\ {tcolor.r}-> {tcolor.g}{dir}{tcolor.c}{file}{tcolor.x}")
                         mover.update({file:dir})
                         break
     if not mover:
@@ -4294,7 +4293,7 @@ def syntax(html, api=False):
         a = carrots(a, ['', peanutshell(f"\"{z}*\"", m=m)], ["\"" + z, "\""])
     z = []
     for x in a:
-        y = tcolor
+        y = tcolor.c
         if x[1][-4:-1] == ".js":
             y = tcolor.o
         elif ".json" in x[1] or "/api/" in x[1]:
@@ -4915,7 +4914,7 @@ def keylistener():
                     urls = [x for x in textread if i in saint(url=x, scheme=False).lower()]
                     echo(f"{len(urls)} result(s)", 1, 1)
                     for line in urls:
-                        line = line.replace(d, f"{tcolor}{d}{tcolor.o}", 1).replace(i, f"{tcolor.g}{i}{tcolor.o}", 1)
+                        line = line.replace(d, f"{tcolor.c}{d}{tcolor.o}", 1).replace(i, f"{tcolor.g}{i}{tcolor.o}", 1)
                         echo(f" > {tcolor.b}{line}{tcolor.x}", 0, 1)
                 else:
                     echo("Canceled", 1, 2)

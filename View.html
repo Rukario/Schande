@@ -429,6 +429,28 @@ function loadpart(partition) {
   }
 }
 
+function inheritfilter(ondisk) {
+  return (resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.overrideMimeType('application/json');
+    xhr.open('POST', '', true);
+    xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
+    var b = JSON.stringify({
+      kind: 'inheritfilter',
+      ondisk: ondisk,
+      body: ''
+    });
+    xhr.send(b);
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === 4) {
+        if (xhr.status !== 404 && xhr.responseText) {
+          resolve(xhr.responseText);
+        }
+      }
+    }
+  }
+}
+
 var key_busy = false;
 function edit_key(e) {
   function submit_key() {
@@ -533,32 +555,32 @@ var FFdown = (e) => {
     var b = JSON.stringify({"kind":t.innerHTML, "ondisk":t.getAttribute("data-schande"), "body":""});
     var d = document.createElement("div");
     a.appendChild(d);
-    t.addEventListener('touchmove', function(e) {e.preventDefault()});
-    if (t.classList.contains("save")){
+    t.addEventListener('touchmove', (e) => {e.preventDefault()});
+    if (t.classList.contains("save")) {
       d.classList.add("spinner");
       var timeoutID = setTimeout(function() {
-        if (isTouch){
+        if (isTouch) {
           d.classList.remove("spinner");
           d.classList.add("right");
           var X = e.pageX;
           var Y = e.pageY;
-          t.addEventListener('touchend', function(z) {
+          t.addEventListener('touchend', (z) => {
             if (-20 < (Y - z.pageY) && (Y - z.pageY) < 20 && (z.pageX - X) > 50){
               d.classList.remove("right");
               send(b, e);
             }
           });
-          t.addEventListener('mouseleave', function() {d.classList.remove("right")})
+          t.addEventListener('mouseleave', () => {d.classList.remove("right")});
         } else {
           send(b, e)
         }
-      }.bind(t.addEventListener('click', function() {
+      }.bind(t.addEventListener('click', () => {
         clearTimeout(timeoutID);
         d.classList.remove("spinner");
-      })).bind(t.addEventListener('mouseleave', function() {
+      })).bind(t.addEventListener('mouseleave', () => {
         clearTimeout(timeoutID);
         d.classList.remove("spinner");
-      })).bind(t.addEventListener('touchmove', function() {
+      })).bind(t.addEventListener('touchmove', () => {
         clearTimeout(timeoutID);
         d.classList.remove("spinner");
       })), 1000);
@@ -567,15 +589,15 @@ var FFdown = (e) => {
         d.classList.add("left");
         var X = e.pageX;
         var Y = e.pageY;
-        t.addEventListener('touchend', function(z) {
+        t.addEventListener('touchend', (z) => {
           if (-20 < (Y - z.pageY) && (Y - z.pageY) < 20 && (X - z.pageX) > 50){
             d.classList.remove("left");
             send(b, e);
           }
         });
-        t.addEventListener('mouseleave', function() {d.classList.remove("left")})
+        t.addEventListener('mouseleave', () => {d.classList.remove("left")})
       } else {
-        t.addEventListener('mouseup', function() {
+        t.addEventListener('mouseup', () => {
           send(b, e)
         });
       }
@@ -1284,43 +1306,41 @@ window.onload = () => {
   for (const [key, value] of new URLSearchParams(window.location.search)) {
     if (key === 'partition') {
       cd = value.slice(0, value.lastIndexOf('/') + 1);
+      console.log(cd);
       if (value.endsWith('.json')) {
-        const promise = new Promise(loadpart(value));
-        promise.then((resp) => {
+        let promises = [];
+        promises.push(new Promise(loadpart(value)));
+        promises.push(new Promise(inheritfilter(cd)));
+        Promise.all(promises).then((resp) => {
+          ignore.value = JSON.parse(resp[1]).ignore.join(' ');
+          readpart(JSON.parse(resp[0]));
+          lazyload();
+
           const promisekey = new Promise(loadpart(cd + 'keywords.json'));
-          promisekey.then((resp) => {
-            keywords = JSON.parse(resp);
+          promisekey.then((respkey) => {
+            keywords = JSON.parse(respkey);
             lazykeys();
-          })
-          promisekey.catch(() => {
+          }).catch(() => {
             console.log(cd + 'keywords.json not found');
             lazykeys();
           })
-          readpart(JSON.parse(resp));
-          lazyload();
-        })
-        promise.catch(() => {
+        }).catch(() => {
           console.log(value + ' not found');
-        })
+        });
         break;
       }
     } else if (key.endsWith('.savx')) {
       const name = key.slice(0, key.lastIndexOf('.'));
-      const promisesav = new Promise(loadpart(name + '.savx'));
-      promisesav.then((resp) => {
-        savdata['SAVX'] = resp.split('\n').slice(1);
-        const promisesav = new Promise(loadpart(name + '.sav'));
-        promisesav.then((resp) => {
-          savdata['SAV'] = resp.split('\n').slice(1);
-          readschande();
-          lazyload();
-        })
-        promisesav.catch(() => {
-          console.log(name + '.sav not found');
-        })
-      })
-      promisesav.catch(() => {
-        console.log(name + '.savx not found');
+      let promises = [];
+      promises.push(new Promise(loadpart(name + '.savx')));
+      promises.push(new Promise(loadpart(name + '.sav')));
+      Promise.all(promises).then((resp) => {
+        savdata['SAVX'] = resp[0].split('\n').slice(1);
+        savdata['SAV'] = resp[1].split('\n').slice(1);
+        readschande();
+        lazyload();
+      }).catch(() => {
+        console.log(name + '.sav or .savx not found');
       })
       break;
     }

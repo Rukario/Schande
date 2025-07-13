@@ -1378,6 +1378,7 @@ function readMDP(arri) {
     layer.ofsy = e.getAttribute('ofsy');
     layer.visible = e.getAttribute('visible');
     layer.mode = toCanvasMode(e.getAttribute('mode'));
+    layer.parentId = e.getAttribute('parentId');
     layers.push(layer);
   }
 
@@ -1418,7 +1419,9 @@ function readMDP(arri) {
     if (layer.masking === 'true') {
       layer.type = 'mask';
     } else if (layer.type === 'folder') {
-      setTimeout(() => {readLayer(LayerN+1)}, 1000);
+      layerlist.innerHTML += `${LayerN} ${layer.visible} 1 ${layer.type}\n`;
+      readLayer(LayerN+1);
+      return;
     };
 
     let pos = mdp_mdibin[layer.bin];
@@ -1426,14 +1429,17 @@ function readMDP(arri) {
     pos += 4;
 
     if (!tileNum) {
-      setTimeout(() => {readLayer(LayerN+1)}, 1000);
+      readLayer(LayerN+1);
     }
 
     const alpha = Math.ceil( layer.alpha / 255 * 100) / 100
+    if (parseInt(layer.parentId) > 0) {
+      layerlist.innerHTML += '-';
+    }
     if (layer.type === 'mask') {
-      layerlist.innerHTML += `${LayerN} ${layer.visible === 'true'} ${alpha} ${layer.type} ${layer.ofsx} ${layer.ofsy}\n`;
+      layerlist.innerHTML += `${LayerN} ${layer.visible} ${alpha} ${layer.type} ${layer.ofsx} ${layer.ofsy}\n`;
     } else {
-      layerlist.innerHTML += `${LayerN} ${layer.visible === 'true'} ${alpha} ${layer.type} ${layer.ofsx} ${layer.ofsy} ${layer.mode}\n`;
+      layerlist.innerHTML += `${LayerN} ${layer.visible} ${alpha} ${layer.type} ${layer.ofsx} ${layer.ofsy} ${layer.mode}\n`;
     }
 
     const layerColor = layer.color;
@@ -1441,8 +1447,7 @@ function readMDP(arri) {
     const dim = PAC.unpack(arri.buffer.slice(pos, pos + 4))[0];
     pos += 4;
 
-    const dataToLayer = (data, callback, interTileN, x, y) => {
-      const tilemask = newCanvas(dim, dim);
+    const dataToLayer = (tilemask, data, callback, interTileN, x, y) => {
       if (false) {
         // BGRA to RGBA tilemap
         const tilemap = tilemask.createImageData(dim, dim);
@@ -1467,7 +1472,7 @@ function readMDP(arri) {
       callback(interTileN + 1);
     }
 
-    const tileReadStreams = (callback, interTileN, isMask) => {
+    const tileReadStreams = (tilemask, callback, interTileN, isMask) => {
       const header = arri.buffer.slice(pos, pos + offset3);
       pos += offset3;
 
@@ -1482,7 +1487,7 @@ function readMDP(arri) {
         const decompressedStream = blob.stream().pipeThrough(decompressor);
         const response = new Response(decompressedStream);
         response.blob().then((data) => {
-          dataToLayer(data, callback, interTileN, x, y);
+          dataToLayer(tilemask, data, callback, interTileN, x, y);
         });
       } else if (false) {
         // PNGifiedTile
@@ -1522,11 +1527,11 @@ function readMDP(arri) {
       } else {
         // pako
         const data = pako.inflate(clean_IDAT);
-        dataToLayer(data, callback, interTileN, x, y);
+        dataToLayer(tilemask, data, callback, interTileN, x, y);
       }
     };
 
-    const tileRead = (callback, interTileN, isMask) => {
+    const tileRead = (tilemask, callback, interTileN, isMask) => {
       const header = arri.buffer.slice(pos, pos + offset3);
       pos += offset3;
 
@@ -1537,7 +1542,6 @@ function readMDP(arri) {
       const data = pako.inflate(clean_IDAT);
 
       if (isMask) {
-        const tilemask = newCanvas(dim, dim);
         const tilemap = tilemask.createImageData(dim, dim);
         for (let n = 0; n < data.length*4; n += 4) {
           tilemap.data[n] = 0;
@@ -1550,7 +1554,7 @@ function readMDP(arri) {
         layer.drawImage(tilemask.canvas, x*dim, y*dim, dim, dim);
         callback(interTileN + 1);
       } else {
-        dataToLayer(data, callback, interTileN, x, y);
+        dataToLayer(tilemask, data, callback, interTileN, x, y);
       }
     };
 
@@ -1558,7 +1562,7 @@ function readMDP(arri) {
 
     //Fi.inter = performance.now();
     const readTile = (TileN) => {
-      const tilemask = newCanvas(dim, dim);
+
       if (TileN >= tileNum) {
         // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
         setTimeout(() => {
@@ -1567,6 +1571,7 @@ function readMDP(arri) {
         return;
       }
 
+      const tilemask = newCanvas(dim, dim);
       if (layerColor) {
         const [a, r, g, b] = [layerColor.substring(0, 2), layerColor.substring(2, 4), layerColor.substring(4, 6), layerColor.substring(6, 8)];
         tilemask.fillStyle = `#${r}${g}${b}${a}`;
@@ -1575,12 +1580,12 @@ function readMDP(arri) {
 
       switch (layer.type) {
         case '32bpp':
-          tileReadStreams(readTile, TileN);
+          tileReadStreams(tilemask, readTile, TileN);
           break;
         case '8bpp':
         case '1bpp':
         case 'mask':
-          tileRead(readTile, TileN, true);
+          tileRead(tilemask, readTile, TileN, true);
           break;
         default:
           console.log('Illegal');
@@ -1602,11 +1607,14 @@ function echoMDP() {
 
   for (const next of splitlines(layerlist)) {
     const seq = next.split(/ +/);
-    if (seq[1] === 'false' || seq[3] === 'folder') {
+    if (seq[1] === 'false') {
+      continue;
+    } else if (seq[3] === 'folder') {
       visibleformask = false;
       continue;
     }
 
+    const id = Math.abs(parseInt(seq[0]));
     switch (seq[3]) {
       case 'mask':
         if (!visibleformask) {
@@ -1614,7 +1622,7 @@ function echoMDP() {
         }
         const mask = newCanvas(canvas.width, canvas.height);
 
-        mask.drawImage(layers[parseInt(seq[0])].canvas, 0, 0, canvas.width, canvas.height);
+        mask.drawImage(layers[id].canvas, 0, 0, canvas.width, canvas.height);
         mask.globalCompositeOperation = 'source-out';
         mask.drawImage(ctx.canvas, 0, 0, ctx.width, ctx.height);
         mask.globalCompositeOperation = 'source-over';
@@ -1640,7 +1648,7 @@ function echoMDP() {
         usealpha = parseFloat(seq[2]);
         usemode = seq[6];
 
-        ctx.drawImage(layers[parseInt(seq[0])].canvas, seq[4], seq[5], canvas.width, canvas.height);
+        ctx.drawImage(layers[id].canvas, seq[4], seq[5], canvas.width, canvas.height);
         break;
     }
   }

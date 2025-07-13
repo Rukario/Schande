@@ -1010,7 +1010,7 @@ const inputcell = (B, w = '86px') => {
   return d;
 }
 
-function new_editor(utf8 = '<br>', hex = false) {
+function new_editor(utf8 = '<br>') {
   if (stdout.style.display === 'inline-block') {
     return;
   }
@@ -1022,19 +1022,11 @@ function new_editor(utf8 = '<br>', hex = false) {
 
   new_stdout();
 
-  if (hex) {
-    utf8 = Array.from(utf8.slice(0, 1024), (a) => {
-      return a.toString(16).toUpperCase().padStart(2, '0')
-    }).join(' ').replace(/(.{48})/g, "$1\n");
-    name = "1024 bytes.txt";
-    document.title = name;
-  } else {
-    if (utf8 !== "<br>") {
-      if (!bigdoc && canihljs) {
-        utf8 = hyperlink(hljs.highlightAuto(utf8).value);
-      } else {
-        utf8 = hyperlink(utf8.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
-      }
+  if (utf8 !== "<br>") {
+    if (!bigdoc && canihljs) {
+      utf8 = hyperlink(hljs.highlightAuto(utf8).value);
+    } else {
+      utf8 = hyperlink(utf8.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
     }
   }
 
@@ -1232,24 +1224,16 @@ function new_editor(utf8 = '<br>', hex = false) {
     const f = e.target.files[0];
     name = f.name;
     document.title = name;
-    if (isUTF8(get_ext(f))) {
-      if (hljs) {
-        canihljs = true;
-      }
-      const fr = new FileReader();
-      fr.readAsText(f);
-      fr.onload = () => {
-        utf8 = fr.result;
-        bigdoc = (utf8.length > 300000);
-        new_editor(utf8);
-      }
-    } else {
-      const fr = new FileReader();
-      fr.readAsArrayBuffer(f);
-      fr.onload = () => {
-        const arri = new Uint8Array(fr.result);
-        new_editor(arri, true);
-      }
+
+    if (hljs) {
+      canihljs = true;
+    }
+    const fr = new FileReader();
+    fr.readAsText(f);
+    fr.onload = () => {
+      utf8 = fr.result;
+      bigdoc = (utf8.length > 300000);
+      new_editor(utf8);
     }
   });
 

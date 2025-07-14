@@ -449,6 +449,8 @@ function inheritfilter(ondisk) {
           console.log('Not Schande');
           resolve();
         }
+      } else {
+        console.log(`Stray readyState: ${xhr.readyState}`);
       }
     }
   }

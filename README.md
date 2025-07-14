@@ -16,9 +16,10 @@ Download and serve files, you define how are they downloaded and sorted!
 ```
 
 1. Any good OS with Python 3 installed will work.
-    - iOS/iPadOS: get iSH Shell app from [AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)
-        - Pirates: Get the latest x86 Miniroot 3.17 from https://alpinelinux.org/releases/ import into iSH Shell by cogwheel icon > Filesystems > Import 
-        - All: Then enter `apk add py3-pip` and then `mount -t ios . /mnt` and select your favorite location for Schande.bat.
+    - iOS/iPadOS:
+       1. Get iSH Shell app from [AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)
+       2. Get the latest x86 Miniroot 3.17 from https://alpinelinux.org/releases/ import into iSH Shell by cogwheel icon > Filesystems > Import 
+       3. Then enter `apk add py3-pip` and then `mount -t ios . /mnt` and select your favorite location for Schande.bat.
     - MacOS need one more step after installing Python: open Terminal and enter `open /Applications/Python\ 3.9/Install\ Certificates.command`
 
 2. Save <a href="https://github.com/Rukario/Schande/raw/main/Schande.bat">Schande.bat</a> to your favorite location where you want to download files to, change the file extension back to `.bat` if it's in something else.
@@ -37,7 +38,7 @@ Download and serve files, you define how are they downloaded and sorted!
     - Paranoids: h(E)lp
     - Braves: (I)nput
     - Pirates: open torrent (M)anager
-    - Leave it in background for HTML server if enabled
+    - Leave it in background for HTTP server if enabled
 
 Schande.bat can launch HTTP server for directory listing, armed with several "viewer" HTMLs
   - <a href="https://github.com/Rukario/Schande/raw/main/View.html">View.html</a> - Viewer (<a href="https://rukario.github.io/Schande/View.html">demo</a>, however not much to see here on GitHub)

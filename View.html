@@ -1324,8 +1324,9 @@ window.onload = () => {
             console.log(cd + 'keywords.json not found');
             lazykeys();
           })
-        }).catch(() => {
+        }).catch((e) => {
           console.log(value + ' not found');
+          throw new Error(e);
         });
         break;
       }

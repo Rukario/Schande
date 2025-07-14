@@ -88,7 +88,7 @@ goto start
 
 
 import os, sys, io, ssl, socket, time, json, zlib, inspect, smtplib, hashlib, subprocess, mimetypes
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta
 from fnmatch import fnmatch
 from http import cookiejar
 from http.server import BaseHTTPRequestHandler
@@ -98,6 +98,7 @@ from threading import Thread, Event
 from urllib import parse, request
 from urllib.error import HTTPError, URLError
 from random import random
+# from pathlib import Path
 
 class Queue(Queue):
     def clear(self):
@@ -128,19 +129,35 @@ savs = batchname + ".savs"
 savx = batchname + ".savx"
 textfile = batchname + ".txt"
 
-archivefile = [".7z", ".rar", ".zip"]
-imagefile = [".gif", ".jpe", ".jpeg", ".jpg", ".png", ".heic"]
-videofile = [".mkv", ".mp4", ".webm"]
-utf8file = ['txt', 'bat', 'json', 'js', 'css', 'html']
-notstray = ["mediocre.txt", "autosave.txt", "gallery.html", "keywords.json", "partition.json", ".URL"] # icon.png and icon #.png are handled in different way
+if sys.version_info[0] >= 3:
+    minver = sys.version_info[1]
+    if minver >= 13:
+        from datetime import UTC
+        def utcnow():
+            return datetime.now(UTC)
+    elif minver >= 10:
+        def utcnow():
+            return datetime.utcnow()
+    else:
+        print(f'{batchfile} is written for Python version at least 3.10')
+        sys.exit()
+else:
+    print(f'{batchfile} is written for Python version at least 3.10')
+    sys.exit()
+
+archivefile = ['.7z', '.rar', '.zip']
+imagefile = ['.gif', '.jpe', '.jpeg', '.jpg', '.png', '.heic']
+videofile = ['.mkv', '.mp4', '.webm']
+utf8file = ['.txt', '.bat', '.json', '.js', '.css', '.html']
+notstray = ['keywords.json', 'partition.json', '.URL'] # icon.png and icon #.png are handled in different way
 mute404 = [
-  "favicon.ico",
-  "apple-touch-icon-precomposed.png",
-  "apple-touch-icon.png",
-  "apple-touch-icon-152x152-precomposed.png",
-  "apple-touch-icon-152x152.png",
-  "apple-touch-icon-120x120-precomposed.png",
-  "apple-touch-icon-120x120.png"
+  'favicon.ico',
+  'apple-touch-icon-precomposed.png',
+  'apple-touch-icon.png',
+  'apple-touch-icon-152x152-precomposed.png',
+  'apple-touch-icon-152x152.png',
+  'apple-touch-icon-120x120-precomposed.png',
+  'apple-touch-icon-120x120.png'
 ]
 
 alerted = [False]
@@ -151,10 +168,10 @@ error = [[]]*4
 echoname = [batchfile]
 newfilen = [0]
 Keypress_prompt = [False]
-Keypress_buffer = [""]
+Keypress_buffer = ['']
 Keypress_time = [0, 0, 0]
 Fast_presser = 0.5
-Keypress = {"Key" + letter: False for letter in map(chr, range(65, 91))}
+Keypress = {'Key' + letter: False for letter in map(chr, range(65, 91))}
 
 task = {
   "httpserver": [],
@@ -441,6 +458,8 @@ Thread(target=echofriction, daemon=True).start()
 def echo(t, b=0, f=0, clamp='', friction=False, flush=False):
     c = os.get_terminal_size().columns
     if not isinstance(t, int):
+        if not isinstance(t, str):
+            t = f'{t}'
         stdout.clear()
         if clamp:
             t = f"{t[:c-1]}{(t[c-1:] and clamp)}"
@@ -625,7 +644,7 @@ else:
 
 new_setting = False
 pos = 0
-settings = ["Launch HTTP server = ", "Browser = ", "Mail = ", "Make SAVX = No", f"UTC offset = {datetime.now().astimezone().strftime('%z')[:-2]}", "Proxy = socks5://"]
+settings = ["Launch HTTP server = ", "Browser = ", "Mail = ", "Make SAVX = No", f"UTC offset = {utcnow().astimezone().strftime('%z')[:-2]}", "Proxy = socks5://"]
 for setting in settings:
     if not rules[pos].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if pos == 0:
@@ -824,7 +843,7 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             if q == HTTPserver:
                 return True
         buffer = ondisk.replace("/", "\\")
-        echo(f"""{(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolor.g}{self.client_address[0]} {tcolor.r}<- {tcolor.z("CCCCCC")}{buffer}{tcolor.x} use {tcolor.g}?{HTTPserver}{tcolor.o}{'&' + tcolor.b + self.qs if self.qs else ''}{tcolor.x} query string to authorize this connection.""", 0, 1)
+        echo(f"""{(utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolor.g}{self.client_address[0]} {tcolor.r}<- {tcolor.z("CCCCCC")}{buffer}{tcolor.x} use {tcolor.g}?{HTTPserver}{tcolor.o}{'&' + tcolor.b + self.qs if self.qs else ''}{tcolor.x} query string to authorize this connection.""", 0, 1)
         self.close_connection = False
 
     def do_GET(self):
@@ -932,6 +951,8 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             ut = f"{os.path.getmtime(fullname):.7f}" if ntime else None
             if os.path.isdir(fullname):
                 parts = []
+                # for partfn in Path(fullname + "/").glob("partition*.json"):
+                #     parts += [partfn.relative_to(fullname)]
                 for partfn in ["partition.json", "partition A.json", "partition B.json", "partition C.json", "partition D.json", "partition E.json", "partition F.json"]:
                     if os.path.exists(fullname + "/" + partfn):
                         parts += [partfn]
@@ -1037,7 +1058,7 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
         buffer = '' if dead else f' {size} bytes'
         ondisk = http2ondisk(self.path, self.directory).replace("/", "\\")
         if not ondisk.rsplit("\\", 1)[-1] in mute404:
-            echo(f"{(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolor.g}{self.client_address[0]} {tcolor.r}<- {tcolor.r if dead else tcolor.b}{ondisk}{tcolor.x}{buffer}", 0, 1)
+            echo(f"{(utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolor.g}{self.client_address[0]} {tcolor.r}<- {tcolor.r if dead else tcolor.b}{ondisk}{tcolor.x}{buffer}", 0, 1)
 
         if not hasattr(self, '_headers_buffer'):
             self._headers_buffer = []
@@ -1285,7 +1306,7 @@ def declare(rule, boolean=False):
     return rule[1]
 
 offset = declare(rules[4])
-date = datetime.now(UTC) + timedelta(hours=int(offset))
+date = utcnow() + timedelta(hours=int(offset))
 fdate = date.strftime('%Y') + "-" + date.strftime('%m') + "-XX"
 
 
@@ -1689,7 +1710,7 @@ def timer(e="", listen=[], antalisten=[], clock=navigator["timeout"]):
             clock.update({0:[4, 8]})
             echo(f"""\n"#-# seconds rarity 100% 00:00" in {rulefile} to customize timer, add another timer to manipulate rarity/schedule.\n""", 1, 1)
 
-        now = int((datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%H%M'))
+        now = int((utcnow() + timedelta(hours=int(offset))).strftime('%H%M'))
         time_at = None
         next_clock = 0
         big_clock = 0
@@ -1709,12 +1730,12 @@ def timer(e="", listen=[], antalisten=[], clock=navigator["timeout"]):
         r = clock[time_at][randindex]
         s = r[0]+int((r[1]-r[0]+1)*random())
         if next_clock:
-            next_clock = int((datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y%m%d') + f'{next_clock:04}')
-            end = int((datetime.now(UTC) + timedelta(hours=int(offset), seconds=s)).strftime('%Y%m%d%H%M'))
+            next_clock = int((utcnow() + timedelta(hours=int(offset))).strftime('%Y%m%d') + f'{next_clock:04}')
+            end = int((utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%Y%m%d%H%M'))
             if end > next_clock:
                 s = int(datetime.strptime(str(next_clock), '%Y%m%d%H%M').timestamp()) - int(time.time())
         end = int(time.time()) + s
-        endclock = (datetime.now(UTC) + timedelta(hours=int(offset), seconds=s)).strftime('%H:%M')
+        endclock = (utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%H:%M')
         while True:
             ticking[0].clear()
             now = int(time.time())
@@ -3739,7 +3760,8 @@ a {
 }
 """
 
-    body = f"<h2>{title}</h2>{'\n'.join(buffer)}"
+    body = '\n'.join(buffer)
+    body = f"<h2>{title}</h2>{body}"
 
     return f"""<!DOCTYPE html>
 <html>
@@ -4365,7 +4387,7 @@ def source_view():
 
 
 def remote_echo(remote, nolist):
-    echo(f" - - {(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
+    echo(f" - - {(utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
     with subprocess.Popen([remote, "-l"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
         listed = False
         for line in p.stdout:
@@ -4382,7 +4404,7 @@ def remote_echo(remote, nolist):
         echo("", 0, 1)
 
 def remote_echo_files(remote, torrent_id):
-    echo(f" - - {(datetime.now(UTC) + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
+    echo(f" - - {(utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
     with subprocess.Popen([remote, "-t", str(torrent_id), "-f"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as p:
         listed = False
         buffer = p.communicate()[0].decode().splitlines()

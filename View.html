@@ -445,6 +445,9 @@ function inheritfilter(ondisk) {
       if (xhr.readyState === 4) {
         if (xhr.status !== 404 && xhr.responseText) {
           resolve(xhr.responseText);
+        } else {
+          console.log('Not Schande');
+          resolve();
         }
       }
     }
@@ -1312,6 +1315,7 @@ window.onload = () => {
         promises.push(new Promise(loadpart(value)));
         Promise.all(promises).then((resp) => {
           if (resp[0]) {
+            console.log(resp[0]);
             ignore.value = JSON.parse(resp[0]).ignore.join(' ');
           } else {
             console.log('No filter to inherit for your ignore list');

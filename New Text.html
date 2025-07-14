@@ -1372,6 +1372,14 @@ window.onload = () => {
     }
   };
 
+  const s = document.createElement('SCRIPT');
+  s.src = 'highlight.min.js'/* + Date.now()*/;
+  document.body.appendChild(s);
+
+  s.addEventListener('load', () => {
+    canihljs = true;
+  });
+
   function postlaunch() {  
     s.addEventListener('error', () => {
       newtip(filel[4] + " -(Highlight)", "Download and extract highlight.min.js from <a href='https://highlightjs.org/download/' target='_blank'>highlight.js download page</a> directly next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.");
@@ -1394,14 +1402,6 @@ window.onload = () => {
     new_editor();
     postlaunch();
   }
-
-  const s = document.createElement('SCRIPT');
-  s.src = 'highlight.min.js'/* + Date.now()*/;
-  document.body.appendChild(s);
-
-  s.addEventListener('load', () => {
-    canihljs = true;
-  });
 }
 
 </script>

@@ -445,6 +445,9 @@ function inheritfilter(ondisk) {
       if (xhr.readyState === 4) {
         if (xhr.status !== 404 && xhr.status !== 405 && xhr.responseText) {
           resolve(xhr.responseText);
+        } else {
+          console.log('Not Schande');
+          resolve();
         }
       }
     }

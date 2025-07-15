@@ -1778,7 +1778,7 @@ def retry(stderr):
                 if Keypress["KeyP"]:
                     e = f"{retries[0]} retries (R)etry now (P)ause (S)kip once (X)auto"
                     if Keypress["KeyT"]:
-                        timer(f"{e} (T)imer off, reloading in", listen=["KeyR", "KeyS"], antalisten=[16, 20, 24])
+                        timer(f"{e} (T)imer off, reloading in", listen=["KeyR", "KeyS"], antalisten=["KeyP", "KeyT", "KeyX"])
                     else:
                         echo(f"{e} (T)imer on")
                     Keypress["KeyR"] = True if Keypress["KeyP"] else False

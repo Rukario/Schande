@@ -1125,10 +1125,14 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
 
 
 
+# if not os.path.exists('server.pem'):
+#     os.system(rf'start "" "C:\Program Files\OpenSSL-Win64\bin\openssl.exe" req -new -x509 -keyout "{batchdir}key.pem" -out "{batchdir}server.pem" -days 365 -nodes -subj "/C=IN/ST=Maharashtra/L=Satara/O=Wannabees/OU=KahiHiHa Department/CN=www.iamselfdepartment.com"')
+#     sys.exit()
+
 class httpserver(TCPServer, ThreadingMixIn):
     allow_reuse_address = True
 
-    # Developer note: Delete below they don't provide anything useful?
+    # Developer note: Delete below if they don't provide anything useful?
     def server_bind(self):
         TCPServer.server_bind(self)
         host, port = self.server_address[:2]
@@ -1138,15 +1142,21 @@ class httpserver(TCPServer, ThreadingMixIn):
         self.finish_request(request, client_address)
     def process_request(self, request, client_address):
         Thread(target=self.process_request_thread, args=(request, client_address), daemon=True).start()
+
 def startserver(port, directory):
     d = directory.rsplit("/", 2)[1]
     d = f"\\{d}\\" if d else f"""DRIVE {directory.replace("/", "")}\\"""
     print(f""" HTTP SERVER: Serving {d} at port {port}""")
     def inj(self, *args):
         return RangeHTTPRequestHandler.__init__(self, *args, directory=self.directory)
-    s = httpserver(("", port), type(f'RangeHTTPRequestHandler<{directory}>', (RangeHTTPRequestHandler,), {'__init__': inj, 'directory': directory}))
-    task["httpserver"].append(s)
-    s.serve_forever()
+    httpd = httpserver(("", port), type(f'RangeHTTPRequestHandler<{directory}>', (RangeHTTPRequestHandler,), {'__init__': inj, 'directory': directory}))
+
+    # ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    # ssl_context.load_cert_chain(f'server.pem', f'key.pem')
+    # httpd.socket = ssl_context.wrap_socket(httpd.socket, server_side=True)
+
+    task["httpserver"].append(httpd)
+    httpd.serve_forever()
     echo(f" HTTP SERVER: Stopped serving {d} freeing port {port}", 0, 1)
 
 try:
@@ -2386,17 +2396,13 @@ URL={page["link"]}""")
 
 
 
-        if fromhtml["premade"]:
-            overwrite(f"{dir}gallery.html", fromhtml["premade"])
-        else:
-            if (part := updatepart(f"{dir}partition.json", htmldirs[dir], htmlpart, filelist, pattern, fromhtml["reluctant"])) or sorter["verifyondisk"]:
-                new_relics = {}
-                for key in part.keys():
-                    part[key].update({"visible": False if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern) else True})
-                    new_relics.update({key: part[key]})
-                parttohtml(dir, fromhtml["name"], new_relics, filelist, pattern)
-                # fromhtml["premade"] = f"{dir}gallery.html"
-                # Developer note: Need to handle editisreal in Autosave (2/3), unimplemented for now.
+        if (part := updatepart(f"{dir}partition.json", htmldirs[dir], htmlpart, filelist, pattern, fromhtml["reluctant"])) or sorter["verifyondisk"]:
+            new_relics = {}
+            for key in part.keys():
+                part[key].update({"visible": False if part[key]["keywords"] and isrej(part[key]["keywords"][0], pattern) else True})
+                new_relics.update({key: part[key]})
+            parttohtml(dir, fromhtml["name"], new_relics, filelist, pattern)
+            # Developer note: Need to handle editisreal in Autosave (2/3), unimplemented for now.
 
 
 
@@ -3423,8 +3429,7 @@ def new_part(threadn=0):
       "icons": [],
       "inlinefirst": True,
       "reluctant": False,
-      "partition": new,
-      "premade": False
+      "partition": new
     }
 
 def new_link(l, n, e):
@@ -3444,7 +3449,6 @@ def nextshelf(fromhtml):
         htmlpart = fromhtml["partition"]
         stdout = ""
         if fromhtml["makehtml"]:
-            stdout += f"\n Then create " + tcolor.g + fromhtml["folder"] + "gallery.html" + tcolor.x + " with\n"
             if x := fromhtml["icons"]:
                 stdout += f"""{tcolor.g}█{"█ █".join([i["name"] for i in x])}█\n"""
             if x := fromhtml["page"]:
@@ -3883,7 +3887,7 @@ def parttohtml(subdir, htmlname, part, filelist, pattern):
 
     if sorter["verifyondisk"]:
         if not "savx" in task:
-            task.update({"savx":Queue()})
+            task.update({"savx": Queue()})
             for i in range(8):
                 Thread(target=gethread, daemon=True).start()
         threadn = 0
@@ -4681,7 +4685,11 @@ def read_input(fp):
     elif fp.startswith("magnet") or fp.endswith(".torrent"):
         torrent_get(fp)
     elif os.path.exists(fp):
-        if fp.endswith("partition.json"):
+        if fp.endswith(".json"):
+            print(f"""\nLoading featuring partition successful: "{fp}" """)
+            echo('Old code, returning to menu', 0, 1)
+            return
+
             subdir = fp.rsplit("/", 1)[0] + "/"
             htmlname = fp.rsplit("/", 2)[-2]
             if os.path.exists(p := f"{subdir}savelink.URL"):
@@ -4714,10 +4722,10 @@ def read_input(fp):
             choice(bg=True)
             echo(" Make SAVX: Maybe not.", 0, 2)
         elif os.path.isdir(fp):
-            print(f"""\nLoading featuring {"folder" if os.path.isdir(fp) else "image"} successful: "{fp}" """)
+            print(f"""\nLoading featuring folder successful: "{fp}" """)
             tosav(fp)
         else:
-            print(f"""\nLoading featuring {"folder" if os.path.isdir(fp) else "image"} successful: "{fp}" """)
+            print(f"""\nLoading featuring image successful: "{fp}" """)
             compare(fp)
     else:
         choice(bg=True)

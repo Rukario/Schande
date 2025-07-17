@@ -902,15 +902,7 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
                 with open(f"{dir}{ondisk}", 'w') as f:
                     f.write(json.dumps(body))
             elif api["kind"] == "inheritfilter":
-                if os.path.exists(s := f"{ondisk}/savelink.URL"):
-                    with open(s, 'r') as f:
-                        page = f.read().splitlines()[1].replace("URL=", "")
-                    get_pick = [x for x in navigator["pickers"].keys() if page.startswith(x)]
-                    if not get_pick:
-                        kill(f"\n  {page}\n\nCouldn't recognize this url, I must exit!")
-                    pattern = navigator["pickers"][get_pick[0]]["pattern"]
-                else:
-                    pattern = [[], []]
+                pattern = inheritfilter(ondisk)
                 retapi = json.dumps({'search':pattern[1], 'ignore':pattern[0]})
                 self.wfile.write(retapi.encode("utf-8"))
                 # htmldata = new_gallery_html(pattern).encode(enc, 'surrogateescape')
@@ -1125,9 +1117,19 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
 
 
 
-# if not os.path.exists('server.pem'):
-#     os.system(rf'start "" "C:\Program Files\OpenSSL-Win64\bin\openssl.exe" req -new -x509 -keyout "{batchdir}key.pem" -out "{batchdir}server.pem" -days 365 -nodes -subj "/C=IN/ST=Maharashtra/L=Satara/O=Wannabees/OU=KahiHiHa Department/CN=www.iamselfdepartment.com"')
-#     sys.exit()
+https_server = False
+openssl = ''
+if sys.platform == "win32":
+    openssl = r"C:\Program Files\OpenSSL-Win64\bin\openssl.exe"
+    # https_server = True
+    if https_server and not os.path.exists(openssl):
+        echo('\n Download x64 lite version from https://slproweb.com/products/Win32OpenSSL.html\n\n Install in default location then try again.', 0, 1)
+        sys.exit()
+elif sys.platform == "linux":
+    openssl = 'openssl'
+if https_server:
+    if not os.path.exists('server.pem') or not os.path.exists('key.pem'):
+        subprocess.call(f'{openssl} req -new -x509 -keyout "{batchdir}key.pem" -out "{batchdir}server.pem" -days 365 -nodes -subj "/C=IN/ST=Maharashtra/L=Satara/O=Wannabees/OU=KahiHiHa Department/CN={batchname}"', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 class httpserver(TCPServer, ThreadingMixIn):
     allow_reuse_address = True
@@ -1151,9 +1153,10 @@ def startserver(port, directory):
         return RangeHTTPRequestHandler.__init__(self, *args, directory=self.directory)
     httpd = httpserver(("", port), type(f'RangeHTTPRequestHandler<{directory}>', (RangeHTTPRequestHandler,), {'__init__': inj, 'directory': directory}))
 
-    # ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    # ssl_context.load_cert_chain(f'server.pem', f'key.pem')
-    # httpd.socket = ssl_context.wrap_socket(httpd.socket, server_side=True)
+    if https_server:
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context.load_cert_chain(f'server.pem', f'key.pem')
+        httpd.socket = ssl_context.wrap_socket(httpd.socket, server_side=True)
 
     task["httpserver"].append(httpd)
     httpd.serve_forever()
@@ -2147,6 +2150,19 @@ def isrej(filename, pattern):
         else:
             print(f"{tcolor.c}  Not in whitelist: {dir}{tcolor.b}{filename}{tcolor.x}")
     return rejected
+
+
+
+def inheritfilter(subdir):
+    if os.path.exists(s := f"{subdir}savelink.URL"):
+        with open(s, 'r') as f:
+            page = f.read().splitlines()[1].replace("URL=", "")
+        get_pick = [x for x in navigator["pickers"].keys() if page.startswith(x)]
+        if not get_pick:
+            kill(f"\n  {page}\n\nCouldn't recognize this url, I must exit!")
+        return navigator["pickers"][get_pick[0]]["pattern"]
+    else:
+        return [[], [], False]
 
 
 
@@ -4179,43 +4195,19 @@ def delmode_old(m):
 
 
 
-def compare(fp):
+def compare(fp, fp2):
     try:
         hash = ph(fp)
     except:
         print(" Featuring image is corrupted.")
         return
-    s = input("Enter reference (compare) / more folder to scan / nothing (find in database): ").rstrip().strip('\"')
     start = time.time()
-    if not s:
-        db = opensav(sav).splitlines()
-        found = False
-        indb = False
-        print()
-        for line in db:
-            hash2, s = line.split(" ", 1)
-            if hash == hash2:
-                if fp != s:
-                    if os.path.exists(s):
-                        print(f"{hash2} {s} (still exists)")
-                    else:
-                        print(f"{hash2} {s} (non-existent)")
-                    found = True
-                else:
-                    indb = True
-        if not found and indb:
-            print(f" {tcolor.g}Featuring image is unique!{tcolor.x} But come on, let's compile HTML from database so you can find duplication faster.")
-        elif not found:
-            print(f" {tcolor.g}Featuring image is unique! Nothing like it in database!{tcolor.x}")
-        else:
-            print(f"{hash} {fp} (featuring image)\nSame file found! (C)ontinue")
-            choice("c", ["2e"])
-    elif os.path.isdir(s):
-        fp = s
-        tosav(fp, hash)
-    else:
+
+    if fp2 and os.path.isdir(fp2):
+        tosav(fp2, hash)
+    elif fp2:
         try:
-            hash2 = ph(s)
+            hash2 = ph(fp2)
         except:
             print(f"\n {tcolor.r}Reference image is corrupted.{tcolor.x}")
             return
@@ -4224,6 +4216,30 @@ def compare(fp):
             print(f"\n Featuring: {fp[0]} x {fp[1]}\n Reference: {label(m, whsm(s))}")
         else:
             print(f"\n {tcolor.g}Use your eyes, they're different{tcolor.x}")
+    else:
+        db = opensav(sav).splitlines()
+        found = False
+        indb = False
+        print()
+        for line in db:
+            hash2, fp2 = line.split(" ", 1)
+            if hash == hash2:
+                if fp != fp2:
+                    if os.path.exists(fp2):
+                        print(f"{hash2} {fp2} (still exists)")
+                    else:
+                        print(f"{hash2} {fp2} (non-existent)")
+                    found = True
+                else:
+                    indb = True
+        if not found and indb:
+            print(f" {tcolor.g}Featuring image is unique!{tcolor.x} But come on, let's add it to SAVX so you can find duplication faster.")
+        elif not found:
+            print(f" {tcolor.g}Featuring image is unique! Nothing like it in SAVX!{tcolor.x}")
+        else:
+            print(f"{hash} {fp} (featuring image)\nSame file found! (C)ontinue")
+            choice("c", ["2e"])
+
     print(f"total runtime: {time.time()-start}")
 
 
@@ -4686,24 +4702,32 @@ def read_input(fp):
         torrent_get(fp)
     elif os.path.exists(fp):
         if fp.endswith(".json"):
-            print(f"""\nLoading featuring partition successful: "{fp}" """)
-            echo('Old code, returning to menu', 0, 1)
-            return
+            echo(f'\nLoading featuring partition successful: "{fp}"', 0, 1)
 
             subdir = fp.rsplit("/", 1)[0] + "/"
             htmlname = fp.rsplit("/", 2)[-2]
-            if os.path.exists(p := f"{subdir}savelink.URL"):
-                with open(p, 'r') as f:
-                    page = f.read().splitlines()[1].replace("URL=", "")
-            else:
-                page = input("URL file not found, please guess original url to provide pattern for this partition: ")
-            get_pick = [x for x in navigator["pickers"].keys() if page.startswith(x)]
-            if not get_pick:
-                kill("Couldn't recognize this url, I must exit!")
-            pattern = navigator["pickers"][get_pick[0]]["pattern"]
-            # pattern = [[], [], False]
+            pattern = inheritfilter(subdir)
             with open(fp, 'r') as f:
                 htmlpart = json.loads(f.read())
+
+            while True:
+                echo('(C)lean partition, (I)nput another partition to merge, return to (M)ain menu: ', 0, 1)
+                el = choice('cim')
+                if el == 1:
+                    break
+                elif el == 2:
+                    fp2 = input("Input another partition: ").strip('"')
+                    with open(fp2, 'r') as f:
+                        extrapart = json.loads(f.read())
+                    for key in extrapart.keys():
+                        if not key in htmlpart:
+                            htmlpart.update({key: extrapart[key]})
+                    break
+                else:
+                    return
+
+            echo('Old code, returning to menu', 0, 1)
+            return
 
             filelist = []
             new_relics = {}
@@ -4722,11 +4746,12 @@ def read_input(fp):
             choice(bg=True)
             echo(" Make SAVX: Maybe not.", 0, 2)
         elif os.path.isdir(fp):
-            print(f"""\nLoading featuring folder successful: "{fp}" """)
+            echo(f'\nLoading featuring folder successful: "{fp}"', 0, 1)
             tosav(fp)
         else:
-            print(f"""\nLoading featuring image successful: "{fp}" """)
-            compare(fp)
+            echo(f'\nLoading featuring image successful: "{fp}"', 0, 1)
+            fp2 = input("Enter reference (compare) / more folder to scan / nothing (find in database): ").strip('"')
+            compare(fp, fp2)
     else:
         choice(bg=True)
         echo("Invalid input or not on disk", 0, 2)

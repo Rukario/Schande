@@ -757,6 +757,8 @@
   "Coral Pink":[937, "???", 0, 0],
   "Bay Blue":[1263, "???", 0, 0],
   "Anthroshark Bamboo Shark":[1264, "???", 0, 0],
+  "Riptide":[null, "???", 0, 0],
+  "Frenzy":[null, "???", 0, 0],
 
   "Captain Marble":true,
   "Star-Force":[525, "smoke", 0, 0, "teal", 0, 0, "galaxy", 0, 0],
@@ -1040,6 +1042,12 @@
 
   "Kryptoknot":[1721, "???", 0, 0],
 
+  "Sakura":[null],
+  "Violet Volt":[null, "???", 0, 0],
+  "Bacon Bits Natural":[null, "???", 0, 0],
+  "Bacon Bits Signature":[null, "???", 0, 0],
+  "Rextangles Signature":[null, "???", 0, 0],
+
 
 
   "Con":true,
@@ -1209,6 +1217,7 @@
   "Piranha":[1571],
   "Lake of Dragons":[1581],
   "Sex on the Beach":[1601],
+  "The Naughty List":[null],
 
   "Retired Natural/Signature (confirmed retired)":true,
   "Austin's Signature (Retired)":[17],

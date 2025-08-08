@@ -76,7 +76,7 @@ cls
 if not [!warn1!]==[] echo !warn1!
 if not [!warn2!]==[] echo !warn2!
 color %color%
-python.exe -x "!batchfile!" "!filelist!" "!batchdi!" "!batchdir!"
+"!pythondir!python.exe" -x "!batchfile!" "!filelist!" "!batchdi!" "!batchdir!"
 set filelist=
 color %stopcolor%
 echo.
@@ -87,7 +87,7 @@ goto start
 
 
 
-import os, sys, io, ssl, socket, time, json, zlib, inspect, smtplib, hashlib, subprocess, mimetypes
+import os, sys, io, ssl, socket, time, string, json, zlib, inspect, smtplib, hashlib, subprocess, mimetypes
 from datetime import datetime, timedelta
 from fnmatch import fnmatch
 from http import cookiejar
@@ -112,7 +112,11 @@ filelist = []
 schande_filelist = [[], []]
 
 if len(sys.argv) > 3:
-    filelist = list(filter(None, sys.argv[1].replace("\\", "/").split("//")))
+    maybe_magnet = sys.argv[1].replace("\\", "/")
+    if maybe_magnet.startswith('magnet:?'):
+        filelist = [maybe_magnet]
+    else:
+        filelist = list(filter(None, maybe_magnet.split("//")))
     # batchdi = batchdir = sys.argv[3].replace("\\\\", "\\").replace("\\", "/") # grabs "start in" argument
 if "/" in batchdir and not batchdir.endswith("/"):
     batchdir += "/"
@@ -129,21 +133,17 @@ savs = batchname + ".savs"
 savx = batchname + ".savx"
 textfile = batchname + ".txt"
 
-if sys.version_info[0] >= 3:
-    minver = sys.version_info[1]
-    if minver >= 13:
-        from datetime import UTC
-        def utcnow():
-            return datetime.now(UTC)
-    elif minver >= 10:
-        def utcnow():
-            return datetime.utcnow()
-    else:
-        print(f'{batchfile} is written for Python version at least 3.10')
-        sys.exit()
-else:
+this_python = sys.version_info[:2]
+if this_python < (3, 10):
     print(f'{batchfile} is written for Python version at least 3.10')
     sys.exit()
+elif this_python >= (3, 13):
+    from datetime import UTC
+    def utcnow():
+        return datetime.now(UTC)
+else:
+    def utcnow():
+        return datetime.utcnow()
 
 archivefile = ['.7z', '.rar', '.zip']
 imagefile = ['.gif', '.jpe', '.jpeg', '.jpg', '.png', '.heic']
@@ -945,7 +945,7 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
                 parts = []
                 # for partfn in Path(fullname + "/").glob("partition*.json"):
                 #     parts += [partfn.relative_to(fullname)]
-                for partfn in ["partition.json", "partition A.json", "partition B.json", "partition C.json", "partition D.json", "partition E.json", "partition F.json"]:
+                for partfn in ["partition.json"] + [f"partition {x}.json" for x in string.ascii_uppercase]:
                     if os.path.exists(fullname + "/" + partfn):
                         parts += [partfn]
                 dirs.append([ut, name, parts])
@@ -2735,7 +2735,7 @@ def linear(d, z, v):
             busy[1] = False
             x[2] = Keypress_buffer[0]
             Keypress_buffer[0] = ""
-        if x[2] and not isinstance(x[2], int) and x[2] > dc:
+        if x[2] and not isinstance(x[2], int) and int(x[2]) > dc:
             return
         if x[1] and not any(c for c in x[1] if c == str(dc)) or x[3] and not met(dc, x[3]):
             if x[5]:
@@ -4801,6 +4801,7 @@ if filelist:
     if sys.platform == "linux" and not task["httpserver"]:
         os.system("cat /dev/location > /dev/null &")
     if len(filelist) > 1:
+        echo(f"{filelist}", 0, 1)
         kill(f"""
  Only one input at a time is allowed! It's a good indication that you should reorganize better
  if there are too many folders to input and you don't want to use input's parent.{'''

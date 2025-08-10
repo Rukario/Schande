@@ -6,693 +6,26 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="white">
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="width=749, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
-<style>
-:root {
-  color-scheme: light dark;
-
-  --color-keyboard: #fff;
-  --color-keysocket: #6c7074;
-  --color-keyborder: color-mix(in srgb, var(--color-keyboard), var(--color-keysocket));
-
-  --small: inline-block;
-  --med: none;
-  --large: none;
-
-  @media (width >= 1032px) {
-    --med: inline-block;
-  }
-
-  @media (width >= 1269px) {
-    --large: inline-block;
-  }
-}
-
-body {
-  color: #000;
-  background-color: #000;
-  margin: 0;
-  font-family: Helvetica, Arial, Sans-Serif;
-  -webkit-user-select: none;
-  -webkit-text-size-adjust: none;
-  overflow: hidden;
-
-  display: flex;
-  justify-content: center;
-}
-
-#desk {
-  display: none;
-  width: 100%;
-  height: 412px;
-  position: absolute;
-  bottom: 0px;
-  z-index: 2;
-  overflow: hidden;
-
-  @media (width < 1032px) {
-    max-width: 844px;
-    height: 339px;
-  }
-
-  @media (width < 854px) {
-    height: 359px;
-  }
-
-  @media (width >= 1032px) {
-    max-width: 1032px;
-  }
-
-  @media (width >= 1269px) {
-    max-width: 1269px;
-  }
-
-  #rescue {
-    display: inline-block;
-    position: absolute;
-    bottom: 420px;
-    z-index: 3;
-    font-size: 12px;
-    align-items: center;
-    display: flex;
-    justify-content: center;
-
-    width: 14px;
-    height: 12px;
-    padding-bottom: 2px;
-    text-align: center;
-    left: calc(50% - 10px);
-
-    margin: -3px;
-
-    border-width: 7px;
-    border-style: dashed;
-
-    color: #fff;
-    background-color: #a53;
-    border-color: #521;
-    border-top-color: #621;
-    border-bottom-color: #310;
-  }
-
-  #keyboard {
-    width: calc(100% - 16px);
-    position: absolute;
-    bottom: 42px;
-    z-index: 2;
-    background: var(--color-keyboard);
-    border-radius: 4px;
-    padding: 8px;
-  }
-
-  #wristrest {
-    white-space: pre-wrap;
-    font-weight: 700;
-    text-align: center;
-    bottom: 0;
-    position: absolute;
-    width: calc(100% - 2px);
-    height: 40px;
-    color: #b9c;
-    background-color: #dbe;
-    border: 1px solid #b9c;
-    border-radius: 2px;
-    z-index: 2;
-  }
-}
-
-canvas {
-  position: absolute;
-  image-rendering: pixelated;
-}
-
-#shaderscr {
-  position: absolute;
-  z-index: 2;
-  pointer-events: none;
-  mix-blend-mode: multiply;
-
-  display: none;
-}
-
-.editor {
-  position: absolute;
-  padding: 8px;
-  min-width: calc(100% - 16px);
-  min-height: calc(100% - 16px);
-  line-height: calc(1em - 10.6px);
-  white-space: pre-wrap;
-  color: #0f0;
-  background-color: #000;
-  font-family: courier;
-  font-size: 26.6px;
-}
-
-.plate {
-  background-color: var(--color-keyboard);
-  width: 58px;
-  height: 56px;
-  top: 6px;
-
-  background-clip: padding-box;
-  display: inline-block;
-  position: relative;
-  margin: -10px -1px;
-  border: 2px solid var(--color-keyborder);
-  border-top: 0;
-
-  &::before, &::after {
-    content: '';
-    position: absolute;
-    background-color: var(--color-keysocket);
-    border-top: 2px solid var(--color-keyborder);
-    width: 4px;
-    height: 4px;
-  }
-
-  &.left {
-    border-radius: 0 0 0 4px;
-    border-right: 0;
-    right: -2px;
-    margin-right: -2px;
-
-    &::before, &::after {
-      box-shadow: 5px 0 0 0 var(--color-keyboard), 3px -3px 0 0 var(--color-keyboard), 0 -5px 0 0 var(--color-keyboard);
-      border-radius: 0 6px 0 0;
-      border-right: 2px solid var(--color-keyborder);
-    }
-
-    &::before {
-      top: 1px;
-      left: -6px;
-    }
-
-    &::after {
-      right: 1px;
-      bottom: -6px;
-    }
-  }
-
-  &.right {
-    border-radius: 0 0 4px 0;
-    border-left: 0;
-    left: -2px;
-    margin-left: -2px;
-
-    &::before, &::after {
-      box-shadow: -5px 0 0 0 var(--color-keyboard), -3px -3px 0 0 var(--color-keyboard), 0 -5px 0 0 var(--color-keyboard);
-      border-radius: 6px 0 0 0;
-      border-left: 2px solid var(--color-keyborder);
-    }
-
-    &::before {
-      top: 1px;
-      right: -6px;
-    }
-
-    &::after {
-      left: 1px;
-      bottom: -6px;
-    }
-  }
-}
-
-.keydiv {
-  pointer-events: none;
-}
-
-.keysocket {
-  font-size: 11px;
-  background: var(--color-keysocket);
-  border: 2px solid var(--color-keyborder);
-  border-radius: 6px;
-  padding: 1px;
-  display: inline-block;
-}
-
-.keysocketrow {
-  display: flex;
-}
-
-.keyswitch {
-  flex: auto;
-  position: relative;
-  z-index: 2;
-  display: flex;
-  pointer-events: auto;
-
-  @media (width < 854px) {
-    &.cripple {
-      display: none;
-    }
-  }
-}
-
-.keycap, .keycap2 {
-  flex: auto;
-  pointer-events: none;
-  margin: 1px;
-
-  border-style: solid;
-  border-radius: 3px;
-
-  border-top-width: 6px;
-  border-left-width: 11px;
-  border-right-width: 11px;
-  border-bottom-width: 12px;
-
-  .face {
-    min-width: 16px;
-    margin: -3px;
-    padding: 2px;
-    border-radius: 4px;
-    font-size: 12px;
-
-    text-align: center;
-    height: 37px;
-    color: #556;
-
-    &.pressed, &.joystick {
-      color: #fff;
-    }
-  }
-
-  @media (width < 854px) {
-    border-top-width: 6px;
-    border-left-width: 12px;
-    border-right-width: 12px;
-    border-bottom-width: 13px;
-    .face {
-      height: 40px;
-      font-size: 14px;
-    }
-  }
-}
-
-.keycap {
-  border-color: #a4a29b;
-  border-top-color: #c4c2bb;
-  border-bottom-color: #989692;
-
-  &.pressed {
-    border-color: #14a;
-    border-top-color: #25b;
-    border-bottom-color: #039;
-  }
-
-  &.joystick {
-    border-color: #521;
-    border-top-color: #621;
-    border-bottom-color: #310;
-  }
-
-  .face {
-    background: #dddad7;
-  
-    &.pressed {
-      background: #36c;
-    }
-
-    &.joystick {
-      background: #a53;
-    }
-  }
-}
-
-.keycap2 {
-  border-color: #8d8b90;
-  border-top-color: #a4a2a0;
-  border-bottom-color: #817e84;
-
-  &.pressed {
-    border-color: #44a;
-    border-top-color: #55b;
-    border-bottom-color: #339;
-  }
-
-  &.joystick {
-    border-color: #a70;
-    border-top-color: #ec6;
-    border-bottom-color: #630;
-  }
-
-  .face {
-    background: #b6b4b9;
-  
-    &.pressed {
-      background: #66c;
-    }
-
-    &.joystick {
-      background: #ca4;
-    }
-  }
-}
-
-.hintscreen {
-  position: absolute;
-  pointer-events: none;
-  width: 100% /*738px*/;
-  height: 100% /*400px*/;
-  z-index: 3;
-}
-
-#qixsatescr, #qixmobscr, #qixprojscr {
-  display: none;
-}
-
-.hint {
-  display: none;
-  width: 100%;
-  height: 100%;
-
-  &.mob {
-    position: absolute;
-    background: repeating-linear-gradient(
-      45deg,
-      #223,
-      #223 8px,
-      #a53 8px,
-      #a53 16px,
-      #dc9 16px,
-      #dc9 24px
-    );
-  }
-
-  &.sate {
-    position: absolute;
-    background: repeating-linear-gradient(
-      45deg,
-      #50a,
-      #50a 10px,
-      #80f 10px,
-      #80f 20px
-    );
-  }
-
-  &.ammo {
-    position: absolute;
-    background: repeating-linear-gradient(
-      45deg,
-      #87a,
-      #87a 10px,
-      #dcf 10px,
-      #dcf 20px
-    );
-  }
-
-  &.tail {
-    background: repeating-linear-gradient(
-      45deg,
-      #f0f,
-      #f0f 10px,
-      #0f0 10px,
-      #0f0 20px
-    );
-  }
-
-  &.bguncher {
-    position: absolute;
-    background: repeating-linear-gradient(
-      45deg,
-      #959,
-      #959 10px,
-      #c9d 10px,
-      #c9d 20px
-    );
-  }
-}
-
-#hint2 {
-  background: repeating-linear-gradient(
-    45deg,
-    #00f,
-    #00f 10px,
-    #ff0 10px,
-    #ff0 20px
-  );
-}
-
-#hint3 {
-  background: repeating-linear-gradient(
-    45deg,
-    #700,
-    #700 10px,
-    #f00 10px,
-    #f00 20px
-  );
-}
-
-#hint4 {
-  background: repeating-linear-gradient(
-    45deg,
-    #fff,
-    #fff 10px,
-    #000 10px,
-    #000 20px
-  );
-}
-
-#hint5 {
-  background: repeating-linear-gradient(
-    45deg,
-    #730,
-    #730 10px,
-    #f70 10px,
-    #f70 20px
-  );
-}
-
-#result, #stdout, #glyphscr {
-  white-space: pre-wrap;
-  display: none;
-  color: #0f0;
-  font-family: courier;
-  font-size: 24px;
-  z-index: 1;
-  pointer-events: none;
-  position: absolute;
-}
-
-#result {
-  width: 100%;
-  text-align: center;
-}
-
-#stdout {
-  top: 400px;
-  top: 0px;
-  font-size: 14px;
-}
-
-.poppy {
-  background: #c0c0c0;
-  position:absolute;
-  display:none;
-  z-index: 3;
-  padding: 0px 4px;
-  line-height:1.5;
-  white-space: nowrap;
-  box-shadow: inset -1px -1px #000, inset 1px 1px #c0c0c0, inset -2px -2px #848484, inset 2px 2px #fff;
-  cursor: default;
-
-  .left {
-    position: relative;
-    display: block;
-    animation: left 200ms linear 1;
-  }
-
-  .right {
-    position: relative;
-    display: block;
-    animation: right 200ms linear 1;
-  }
-}
-
-@keyframes left {
-  0% {
-    transform: translateX(100%);
-  }
-  100% {
-    transform: translateX(0%);
-  }
-}
-
-@keyframes right {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(0%);
-  }
-}
-
-.poppyarrow {
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  border-left: 4px solid #000;
-  pointer-events: none;
-  position: relative;
-  left: 15px;
-  top: 8px;
-  float: right;
-}
-
-.touchloc, .touchloc_dot {
-  display: none;
-  pointer-events: none;
-  z-index: 4;
-  position: absolute;
-  animation: fade 1000ms linear 1;
-  //animation: fade 1000ms steps(2, end);
-  mix-blend-mode: difference;
-}
-
-@keyframes fade {
-  50% {
-    opacity: 100%;
-  }
-  100% {
-    opacity: 0%;
-  }
-}
-
-.touchloc {
-  border-color: #ffffff;
-  border-style: solid;
-}
-
-.touchloc_dot {
-  background-color: #ffffff;
-}
-
-#glyphscr {
-  left: 8px;
-  top: 8px;
-  display: none;
-}
-
-.graphboard {
-  position: relative;
-  top: 7px;
-  margin: 0 4px 14px;
-  width: 201px;
-  height: 201px;
-  border-top: 2px solid #848484;
-  border-left: 2px solid #848484;
-  border-right: 2px solid #fff;
-  border-bottom: 2px solid #fff;
-  background-size: 10px 10px;
-  background-image:
-    linear-gradient(to right, #000 1px, transparent 1px),
-    linear-gradient(to bottom, #000 1px, transparent 1px);
-
-  .dot {
-    background: #00f;
-    position: relative;
-    width: 5px;
-    height: 5px;
-    pointer-events: none;
-  }
-}
-
-.lever {
-  padding: 10px 0;
-  position: relative;
-
-  .dot {
-    background: #fff;
-    border-top: 6px solid #fff;
-    border-left: 6px solid #fff;
-    border-right: 6px solid #848484;
-    height: 18px;
-    top: 0;
-  
-    &::before {
-      content: '';
-      top: -4px;
-      left: -4px;
-      background: #c0c0c0;
-      width: 8px;
-      height: 20px;
-    }
-  }
-  
-  .dot, .dot:before {
-    pointer-events: none;
-    position: absolute;
-    clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
-  }
-  
-  .bar {
-    border-top: 2px solid #848484;
-    border-left: 2px solid #848484;
-    border-bottom: 2px solid #fff;
-    border-right: 2px solid #fff;
-    width: 208px;
-    pointer-events: none;
-  }
-}
-
-.poppywin {
-  pointer-events: auto;
-  margin: 0 3px;
-  top: -12px;
-  position: absolute;
-  display: none;
-  //border: 1px solid #f00;
-  //background: rgba(255, 0, 0, 0.2);
-  overflow: hidden;
-}
-
-#dialogbox {
-  display: none;
-  position: absolute;
-  white-space: pre-wrap;
-  background-color: #000;
-  color: #0f0;
-  border-radius: 4px;
-  border: 1px solid #C07820;
-  z-index: 1;
-  top: 64px;
-  left: 64px;
-  padding: 10px;
-}
-
-#close {
-  cursor: pointer;
-  top: -6px;
-  left: -2px;
-  width: 20px;
-  height: 20px;
-  text-align: center;
-  position: relative;
-  font-size: 20px;
-  color: #C07820;
-  display: inline-block;
-}
-
-</style>
+<link rel="stylesheet" type="text/css" href="starfield.css">
 <script>
-function opendb(file, callback) {
-  const xhr = new XMLHttpRequest();
-  let isTainted = true;
-  xhr.overrideMimeType('application/json');
-  xhr.open('GET', file, true);
-  xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
-  xhr.send();
-  xhr.onreadystatechange = () => {
-    isTainted = false;
-    if (xhr.readyState === 4) {
-      if (xhr.status !== 404 && xhr.responseText) {
-        callback(JSON.parse(xhr.responseText));
-      } else if (xhr.responseText) {
-        local_tooltip.style.display = 'inline-block';
-        local_tooltip.textContent = '⚠';
-        local_tooltip.dataset.tooltip = file + ' not found! (404 error)';
-      } else {
-        local_tooltip.style.display = 'inline-block';
-        local_tooltip.textContent = '⚠';
-        local_tooltip.dataset.tooltip = "couldn't access " + file + '! (non-404 error)';
+function opendb(file) {
+  return (resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.overrideMimeType('application/json');
+    xhr.open('GET', file, true);
+    xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
+    xhr.send();
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === 4) {
+        if (xhr.status !== 404 && xhr.responseText) {
+          resolve(xhr.responseText);
+        } else if (xhr.responseText) {
+          reject();
+        } else {
+          local_tooltip.style.display = 'inline-block';
+          local_tooltip.textContent = '⚠';
+          local_tooltip.dataset.tooltip = "couldn't access " + file + '! (non-404 error)';
+        }
       }
     }
   }
@@ -1114,8 +447,7 @@ function screensaver(resolve) {
     if (!fps.throttle || elapsed > fps.msec) {
       then = now - (elapsed % fps.msec);
       const vmsec = (sinceStart || fps.msec) / ++frameCount;
-
-      if (vmsec > fps.msec * 2) {
+      if (vmsec > fps.msec * 2 + 1) {
         startTime = performance.now();
         frameCount = 0;
       }
@@ -1789,7 +1121,8 @@ function winsol() {
         xdir: scale,
         ydir: scale,
         xvel: falldir ? falldir : -2,
-        yvel: -Math.ceil(Math.random()*18)});
+        yvel: -Math.ceil(Math.random()*18)
+      });
     }
   }
 
@@ -2075,6 +1408,7 @@ const repaint = {
   },
 }
 
+// Dead by 2 10 red cards lj33xp9ini
 const game = {
   sol: () => {
     if ([...Array(4).keys()].every((pos) => {
@@ -3780,20 +3114,14 @@ function new_qix() {
 
   for (const sate of qixsates) {
     draw_diamond(sate);
-    sate.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
-    clipPathTail.length = 0;
   }
 
   for (const zombie of qixmobs) {
     draw_diamond(zombie);
-    zombie.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
-    clipPathTail.length = 0;
   }
 
   for (const proj of qixprojs) {
-    draw_diamond(proj);
-    proj.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
-    clipPathTail.length = 0;
+    draw_square(proj);
   }
 
   silhouette_update();
@@ -4413,10 +3741,14 @@ ${xx + size}px ${yy}px,
 ${xx}px ${yy + size}px,
 ${xx - size}px ${yy}px,
 ${xx}px ${yy - size}px`);
+
+  mob.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
+  clipPathTail.length = 0;
 }
 
-function draw_square(mob, size) {
+function draw_square(mob) {
   const pos = mob.pos;
+  const size = mob.size;
   const xx = spoiler.width / 2 + dim.x - qixdim.x * qixsc + (pos.x - qixscr.x) * qixsc;
   const yy = spoiler.height / 2 + dim.y - qixdim.y * qixsc + (pos.y - qixscr.y) * qixsc;
   clipPathTail.push(`${xx - size}px ${yy - size}px,
@@ -4424,6 +3756,9 @@ ${xx + size}px ${yy - size}px,
 ${xx + size}px ${yy + size}px,
 ${xx - size}px ${yy + size}px,
 ${xx - size}px ${yy - size}px`);
+
+  mob.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
+  clipPathTail.length = 0;
 }
 
 var stopqix = false;
@@ -4471,14 +3806,13 @@ function qixupdate() {
       sate.speed.x = Math.round(Math.random() * 4);
       sate.speed.y = Math.round(Math.random() * 4);
     }
-          
+
+    draw_diamond(sate);
+
     if (qixmobstep(sate)) {
       gameover();
       return;
     }
-    draw_diamond(sate);
-    sate.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
-    clipPathTail.length = 0;
   }
 
   if (!winanim) {
@@ -4489,23 +3823,22 @@ function qixupdate() {
       proj.pos.y = sate.pos.y;
       proj.speed.x = 0;
       proj.speed.y = 1;
+
+      draw_square(proj);
+
       if (qixmobstep(proj)) {
         gameover();
         return;
       }
-      draw_diamond(proj);
-      proj.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
-      clipPathTail.length = 0;
     }
 
     for (const mob of qixmobs) {
+      draw_diamond(mob);
+
       if (qixmobstep(mob)) {
         gameover();
         return;
       }
-      draw_diamond(mob);
-      mob.el.style.clipPath = 'polygon(' + clipPathTail.join(',') + ')';
-      clipPathTail.length = 0;
     }
   } else {
     if (Keypress.KeyE || Keypress.KeyC || Keypress.KeyZ) {
@@ -4789,9 +4122,17 @@ function makemenu() {
         document.body.style.backgroundColor = '#dbe';
 
         if (!qixdb) {
-          opendb('qix.json', (x) => {
-            qixdb = x;
+          let promises = [];
+          promises.push(new Promise(opendb('qix.json')));
+          Promise.all(promises).then((resp) => {
+            qixdb = JSON.parse(resp);
             silhouette.src = qixdb.gallery[qixsel].silhouette;
+          }).catch((e) => {
+            local_tooltip.style.display = 'inline-block';
+            local_tooltip.textContent = '⚠';
+            local_tooltip.dataset.tooltip = 'qix.json not found! (404 error)';
+            console.log('qix.json not found! (404 error)');
+            throw new Error(e);
           });
         } else {
           qixsel = (qixsel + 1) % qixdb.gallery.length;
@@ -5052,22 +4393,21 @@ ${x}px ${y + 18}px
   // paint
   listener = (e, arg) => {
     e.addEventListener(tc, () => {
+      const vfps = 480/fps.vfps;
+      if (scr.paint) {
+        star.delay = star.delay/vfps;
+      } else {
+        star.delay = star.delay*vfps;
+        starry(1000/(star.accelerate?vfps:480), fps.msec, fps.vfps);
+      }
+
       if (arg === 2 && scr.paint !== 2) {
-        if (!scr.paint) {
-          star.delay = star.delay*(480/fps.vfps);
-        }
         scr.paint = 2;
         ccolor = 'rgba(0, 0, 0, 0)';
       } else if (arg === 1 && scr.paint !== 1) {
-        if (!scr.paint) {
-          star.delay = star.delay*(480/fps.vfps);
-        }
         scr.paint = 1;
         ccolor = 'rgba(0, 0, 0, 0.1)';
       } else {
-        if (scr.paint) {
-          star.delay = star.delay/(480/fps.vfps);
-        }
         scr.paint = 0;
         ccolor = lastcolor;
       }
@@ -5076,6 +4416,7 @@ ${x}px ${y + 18}px
   //poppy.append(newmenu('Clear', listener, 0));
   //poppy.append(newmenu('Ghost', listener, 1));
   if (winsoln >= 88) {
+    //poppy.append(newmenu('Hyperspace', listener, 1));
     poppy.append(newmenu('Hyperspace', listener, 2));
   } else {
     poppy.append(unlock(['Hyperspace (', ')'], 88));

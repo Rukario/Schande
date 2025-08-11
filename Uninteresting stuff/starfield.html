@@ -426,20 +426,27 @@ function screensaver(resolve) {
     if (fpshistory.length > fps_history_slots) {
       const fps_last = fpshistory.pop();
       const findhz = Math.floor(1000 * fps_history_slots / (msec - fps_last));
-      fps.hz = findhz > 70 ? 120 : 60;
-
+      Hz = Math.round(findhz/60)*60;
+      if (Hz >= 60) {
+        if (Hz != fps.hz && !fps.throttle) {
+          console.log(`New Hz: ${Hz}`)
+          fps.vfps = Hz;
+          fps.msec = 1000 / Hz;
+          scrTime = performance.now();
+          star.delay = 60 * fps.vfps;
+          frameCount = 0;
+        }
+        fps.hz = Hz;
+      }
       if (fps.display) {
         fps_increase++;
         if (now >= frameThen) {
           frameThen = now + 1000;
           fps_frames = fps_increase;
-          //fps.hz = fps_increase > 70 ? 120 : 60;
           fps_increase = 0;
         }
         const sec = (Math.round(msec / 1000 * 100) / 100).toFixed(2).padStart(3, '0');
-        result.textContent = 'Uninterrupted for ' + sec +  ' seconds @ ' + String(findhz).padStart(3, '0') + ' fps ' + String(fps_frames).padStart(3, '0') + ' frames';
-      } else {
-        fps_increase = -1;
+        result.textContent = `Uninterrupted for ${sec} seconds @ ${String(findhz).padStart(3, '0')} fps ${fps.hz} Hz ${String(fps_frames).padStart(3, '0')} frames`;
       }
     }
 
@@ -447,9 +454,10 @@ function screensaver(resolve) {
     if (!fps.throttle || elapsed > fps.msec) {
       then = now - (elapsed % fps.msec);
       const vmsec = (sinceStart || fps.msec) / ++frameCount;
-      if (vmsec > fps.msec * 2 + 1) {
+      if (vmsec > fps.msec * 2 + 2) {
         startTime = performance.now();
         frameCount = 0;
+        fpshistory = [];
       }
 
       if (sideways) {

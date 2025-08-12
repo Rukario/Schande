@@ -1436,8 +1436,8 @@ const game = {
     if ((drawn === 1 || !slots[0][1].length) && slots.every((slot) => {return !slot[0].length})) {
       if (!computerspeed) {
         console.log("Winning vector found, the seed is", seednow);
-        new_deck(seednow);
-        game.sol();
+        //new_deck(seednow);
+        //game.sol();
         return;
       } else if (!won) {
         won = true;
@@ -1869,6 +1869,12 @@ const computer = {
         }
       }
 
+      if (moved && solcomputer) {
+        moved = false;
+        game.sol();
+        return;
+      }
+
       if (!won) {
         console.log('Ran into a dead end');
         const repeat = draw.draw < slots[0][1].length - 1 ? Math.ceil((slots[0][1].length - draw.draw - 1) / 10) - 1 : 0;
@@ -1884,6 +1890,7 @@ const computer = {
 
       // teach computer to undo and retry with alternative card movement
       if (solcomputer) {
+        console.warn('turned off solcomputer');
         solcomputer = false;
         game.sol();
       }

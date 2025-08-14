@@ -711,6 +711,7 @@ var deck = [];
 var cards = {};
 var slots = [];
 var cheatslots = 2;
+var allowcheat = false;
 var ncard = 52;
 var drawn = 1;
 var draw = {};
@@ -981,6 +982,7 @@ function new_deck(restart = false) {
   rev = -1;
   won = false;
   winanim = false;
+  allowcheat = false;
   clearTimeout(winid);
   winid = false;
   give_hint = false;
@@ -2402,8 +2404,12 @@ const releasecard = () => {
       const slot = slots[pos+5];
       if (area(pos, 1, 0, gap.dn * slot[0].length + gap.up * (slot[1].length - 1))) {
         intersected_slots.push(slot);
-        if (!cheat){
-          cheat = pos > 6 || 'draw' in dragcard && slot[0].length === 0 && dragcard.slot[0].length === 0 ? 2 : 1;
+        if (!cheat) {
+          if (pos > 6) {
+            cheat = 2;
+          } else if ('draw' in dragcard && slot[0].length === 0 && dragcard.slot[0].length === 0) {
+            cheat = 1;
+          }
         }
       }
     }
@@ -2413,11 +2419,17 @@ const releasecard = () => {
       const card = dragcard.slot[1]['draw' in dragcard ? dragcard.draw : draw.draw];
       for (const slot of intersected_slots){
         if (!slot[1].length) {
-          if (isKing(card) || cheat === 2 && !(dragcard.draw)) {
-            draginto(slot);
-            game.sol();
-            fastclick = performance.now();
-            return;
+          if (isKing(card) || cheat && !(dragcard.draw)) {
+            if (!allowcheat && cheat === 2) {
+              allowcheat = true;
+              speaker("These are cheat slots, drag the card again to cheat, just remember this will deviate the original experience.\n\nCan only take highest face-up card or top card from stockpile.");
+              rubberband();
+            } else {
+              draginto(slot);
+              game.sol();
+              fastclick = performance.now();
+              return;
+            }
           } else {
             rubberband();
           };

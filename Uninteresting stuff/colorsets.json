@@ -543,19 +543,13 @@
 
 
 
-  "Archer's skin tones/naming issues":true,
+  "Archer's skin tones":true,
   "John":[[1053, 1035], "???", 0, 0],
   "Patrick":[[1052, 1034], "???", 0, 0],
   "Wesley":[[1054, 1036], "???", 0, 0],
-  "Vida (c)":[1044, "???", 0, 0],
-  "Chi-chi (c)":[1045, "???", 0, 0],
-  "Noxeema (c)":[1046, "???", 0, 0],
-  "Vida (u)":[1047, "???", 0, 0],
-  "Chi-chi (u)":[1048, "???", 0, 0],
-  "Noxeema (u)":[1049, "???", 0, 0],
-  "Vida":[[null, 1084], "peach", 0, 0],
-  "Chi-Chi":[[null, 1085], "honey", 0, 0],
-  "Noxeema":[[null, 1086], "chocolate", 0, 0],
+  "Vida":[[1044, 1084, 1047], "peach", 0, 0],
+  "Chi-Chi":[[1045, 1085, 1048], "honey", 0, 0],
+  "Noxeema":[[1046, 1086, 1049], "chocolate", 0, 0],
 
 
 

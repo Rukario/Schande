@@ -504,7 +504,10 @@ function change_stars(args) {
   }
 }
 
-function new_screensaver() {
+function new_screensaver(need_shuffle = false) {
+  if (need_shuffle) {
+    stars = shuffle(stars, Math.random().toString(36).slice(2));
+  }
   desk.style.display = 'none';
   glyphscr.style.display = 'none';
   winanim = false;
@@ -615,7 +618,7 @@ function new_stars() {
       }
       remainder -= ntimes;
       if (!remainder) {
-        new_screensaver();
+        new_screensaver(true);
       }
     }
 
@@ -664,7 +667,7 @@ function new_stars() {
         }
         remainder -= ntimes;
         if (!remainder) {
-          new_screensaver();
+          new_screensaver(true);
         }
       }
 
@@ -712,6 +715,9 @@ var ncard = 52;
 var drawn = 1;
 var draw = {};
 var rev = -1;
+var win_ratio = [1, 0, 0];
+var other_vectors = [];
+var tried_vector = 0;
 var slothistory = [];
 var solcomputer = false;
 var readycomputer = false;
@@ -939,6 +945,18 @@ function new_card(next, suit) {
   return acard.canvas;
 }
 
+function shuffle(breakseal, seednow) {
+  const stack = [];
+  const s = parseInt(seednow, 36) / Math.pow(36, seednow.length).toString(10).slice(2);
+  const rand = splitmix32(s);
+  while (breakseal.length) {
+    const pick = Math.floor(rand() * breakseal.length);
+    stack.push(breakseal[pick]);
+    breakseal.splice(pick, 1);
+  }
+  return stack;
+}
+
 function splitmix32(a) {
   return function() {
     a |= 0; a = a + 0x9e3779b9 | 0;
@@ -961,7 +979,6 @@ function new_deck(restart = false) {
   };
 
   rev = -1;
-  deck = [];
   won = false;
   winanim = false;
   clearTimeout(winid);
@@ -976,13 +993,7 @@ function new_deck(restart = false) {
     seednow = seed !== '' ? seed.replace(/\W/g, '') : Math.random().toString(36).slice(2);
   }
   seedboxnow.value = seednow;
-  const s = parseInt(seednow, 36) / Math.pow(36, seednow.length).toString(10).slice(2);
-  const rand = splitmix32(s);
-  while (breakseal.length) {
-    const pick = Math.floor(rand() * breakseal.length);
-    deck.push(breakseal[pick]);
-    breakseal.splice(pick, 1);
-  }
+  deck = shuffle(breakseal, seednow);
 
   if (solitaire) {
     // Solitaire
@@ -1030,6 +1041,9 @@ function new_deck(restart = false) {
 
   // history management
   slothistory = [];
+  win_ratio = [1, 0, 0];
+  other_vectors = [];
+  tried_vector = 0;
   snapshot();
 }
 
@@ -1438,6 +1452,17 @@ const game = {
         console.log("Winning vector found, the seed is", seednow);
         //new_deck(seednow);
         //game.sol();
+        win_ratio[1] += 1;
+        if (other_vectors.length > tried_vector) {
+          solcomputer = true;
+          rev = other_vectors[tried_vector][0];
+          [deck, draw, slots] = JSON.parse(JSON.stringify(other_vectors[tried_vector][1]));
+          tried_vector += 1;
+        } else {
+          console.log('vectors', win_ratio[0], 'win', win_ratio[1], 'losses', win_ratio[2]);
+          computerspeed = 30;
+        }
+        computer.sol();
         return;
       } else if (!won) {
         won = true;
@@ -1585,7 +1610,7 @@ const vector = (x, y, slot, depth, dest) => {
     dragcard.dy = pointers[0].y;
     setTimeout(FFup, computerspeed * 3);
   } else {
-    draginto(dest, computer.sol);
+    draginto(dest);
   }
 }
 
@@ -1595,6 +1620,9 @@ const vectorA = (x, y, slot, depth) => {
     const fslo = slots[fpos+p];
     if (!fslo[1].length) {
       vector(x, y, slot, depth, fslo);
+      if (!computerspeed) {
+        game.sol();
+      }
       break;
     }
   }
@@ -1648,12 +1676,7 @@ const computer = {
         slot[0] = slot[0].slice(0, -1);
         slot[1].push(card);
         snapshot();
-
-        if (computerspeed) {
-          game.sol();
-        } else {
-          computer.sol();
-        }
+        game.sol();
       }
       return;
     };
@@ -1680,6 +1703,9 @@ const computer = {
               drawhint.sol(hint1, x, y, x, y);
               if (solcomputer) {
                 vector(x, y, slot, !isdeck ? depth : false, fslo);
+                if (!computerspeed) {
+                  game.sol();
+                }
               }
               return;
             }
@@ -1712,6 +1738,9 @@ const computer = {
               drawhint.sol(hint1, x, y, x, y);
               if (solcomputer) {
                 vector(x, y, slots[0], false, fslo);
+                if (!computerspeed) {
+                  game.sol();
+                }
               }
               return;
             }
@@ -1743,6 +1772,7 @@ const computer = {
       if (vectors.length) {
         if (vectors.length > 1) {
           console.log("Alternative card movement available! Piles with face-down cards have priority but not necessarily top priority since empty slot could be reserved for King card with face-down cards.");
+          win_ratio[0] += vectors.length - 1;
         }
         let o = 0;
         for (const [card, slo, place, isdeck] of vectors) {
@@ -1754,7 +1784,15 @@ const computer = {
           drawhint.sol([hint1, hint2, hint3, hint4][o], x, y, gap.x * (place - (5 * des) + 1) + cardsize[0] * (place - (5 * des)), gap.y * (des + 1) + cardsize[1] * des + gap.dn * slo[0].length);
           if (solcomputer) {
             vector(x, y, slo, !isdeck ? 0 : false, slot);
-            return;
+            if (vectors.length > o + 1) {
+              other_vectors.push([rev, JSON.parse(JSON.stringify([deck, draw, slots]))]);
+              rev --;
+            } else {
+              if (!computerspeed) {
+                game.sol();
+              }
+              return;
+            }
           }
           o++
         }
@@ -1779,7 +1817,7 @@ const computer = {
         if (computerspeed) {
           setTimeout(game.sol, computerspeed);
         } else {
-          computer.sol();
+          game.sol();
         }
       }
     } else {
@@ -1796,7 +1834,7 @@ const computer = {
               if (!ch) {
                 continue;
               }
-              for (const pos of Array(7+cheatslots).keys()){
+              for (const pos of Array(7+cheatslots).keys()) {
                 const slot = slots[pos+5];
                 if (slot[1].length) {
                   if (isRankedAlt(ch, slot)) {
@@ -1809,6 +1847,9 @@ const computer = {
                       drawx();
                       vector(x, y, slo, n+1, slot);
                       console.log('That was a special move!');
+                      if (!computerspeed) {
+                        game.sol();
+                      }
                     }
                     return;
                   }
@@ -1846,6 +1887,9 @@ const computer = {
                     drawx();
                     vector(x, y, fslo, fslo[1].length-1, slo);
                     console.log("moved", fca, "to", slo[1].at(-1));
+                    if (!computerspeed) {
+                      game.sol();
+                    }
                   }
                   return;
                 }
@@ -1860,41 +1904,48 @@ const computer = {
               if (solcomputer) {
                 game.sol();
               }
-            } else {
-              new_deck();
-              game.sol();
-            }
+            }// else {
+            //  new_deck();
+            //  game.sol();
+            //}
             return;
           }
         }
       }
 
-      if (moved && solcomputer) {
+      if (moved) {
+        draw.cycle = true;
         moved = false;
-        game.sol();
-        return;
+        if (solcomputer) {
+          game.sol();
+          return;
+        }
       }
 
       if (!won) {
-        console.log('Ran into a dead end');
         const repeat = draw.draw < slots[0][1].length - 1 ? Math.ceil((slots[0][1].length - draw.draw - 1) / 10) - 1 : 0;
         const x = gap.x + repeat * 2;
         const y = gap.y + repeat;
         drawhint.sol(hint3, x, y, x, y);
+        win_ratio[2] += 1;
+
+        if (!computerspeed && other_vectors.length > tried_vector) {
+          console.log('Trying another vector, vectors/tries', other_vectors.length, tried_vector);
+          rev = other_vectors[tried_vector][0];
+          [deck, draw, slots] = JSON.parse(JSON.stringify(other_vectors[tried_vector][1]));
+          tried_vector += 1;
+          game.sol();
+        } else if (solcomputer) {
+          console.warn('Turned off solcomputer, vectors/tries', other_vectors.length, tried_vector);
+          solcomputer = false;
+          if (!computerspeed) {
+            console.log('vectors', win_ratio[0], 'win', win_ratio[1], 'losses', win_ratio[2]);
+          }
+          game.sol();
+        } else {
+          console.log('Ran into a dead end');
+        }
       }
-
-      //if (!computerspeed) {
-      //  new_deck();
-      //  game.sol();
-      //}
-
-      // teach computer to undo and retry with alternative card movement
-      if (solcomputer) {
-        console.warn('turned off solcomputer');
-        solcomputer = false;
-        game.sol();
-      }
-
       //solcomputer = false;
       //stop computer play for debugging
     }
@@ -1952,6 +2003,9 @@ const computer = {
             drawhint.sol(hint1, x, y, x, y);
             if (solcomputer) {
               vector(x, y, slot, depth, fslo);
+              if (!computerspeed) {
+                computer.sol();
+              }
             }
             return;
           }
@@ -2076,10 +2130,11 @@ var pickcard = () => {
       invert.drawImage(ice.canvas, 0, 0, invert.width, invert.height);
     }
 
+    console.warn(solcomputer ? 'solcomputer started' : 'solcomputer stopped');
     if (solitaire) {
-      game.sol();
+      computer.sol();
     } else {
-      game.freecell();
+      computer.freecell();
     }
 
     return;
@@ -2261,7 +2316,7 @@ const deckpop = () => {
   draw.cycle = true;
 }
 
-const draginto = (slot, callback) => {
+const draginto = (slot) => {
   if ('draw' in dragcard) {
     slot[1].push(...dragcard.slot[1].slice(dragcard.draw));
     dragcard.slot[1] = dragcard.slot[1].slice(0, dragcard.draw);
@@ -2270,7 +2325,6 @@ const draginto = (slot, callback) => {
     deckpop();
   }
   snapshot();
-  callback();
 }
 
 const releasecard = () => {
@@ -2317,7 +2371,8 @@ const releasecard = () => {
           slot[1].length === 0 && isAce(card) ||
           slot[1].length > 0 && dragcards.length === 1 && isRanked(card, slot)
         ) {
-          draginto(slot, game.sol);
+          draginto(slot);
+          game.sol();
           return;
         }
       } else if (area(pos+3, 0)) {
@@ -2334,7 +2389,8 @@ const releasecard = () => {
           slot[1].length === 0 && isAce(card) ||
           slot[1].length > 0 && dragcards.length === 1 && isRanked(card, slot)
         ) {
-          draginto(slot, game.sol);
+          draginto(slot);
+          game.sol();
           return;
         }
       }
@@ -2358,14 +2414,16 @@ const releasecard = () => {
       for (const slot of intersected_slots){
         if (!slot[1].length) {
           if (isKing(card) || cheat === 2 && !(dragcard.draw)) {
-            draginto(slot, game.sol);
+            draginto(slot);
+            game.sol();
             fastclick = performance.now();
             return;
           } else {
             rubberband();
           };
         } else if (isRankedAlt(card, slot)) {
-          draginto(slot, game.sol);
+          draginto(slot);
+          game.sol();
           fastclick = performance.now();
           return;
         } else {
@@ -2388,7 +2446,8 @@ const releasecard = () => {
           !slot[1].at(-1) && isAce(card) ||
           slot[1].at(-1) && dragcards.length === 1 && isRanked(card, slot)
         ) {
-          draginto(slot, game.freecell);
+          draginto(slot);
+          game.freecell();
           return;
         }
       } else if (area(pos+5, 0, 0, 0, 0, 0)) {
@@ -2405,7 +2464,8 @@ const releasecard = () => {
           slot[1].length === 0 && isAce(card) ||
           slot[1].length > 0 && dragcards.length === 1 && isRanked(card, slot)
         ) {
-          draginto(slot, game.freecell);
+          draginto(slot);
+          game.freecell();
           return;
         }
       }
@@ -2427,7 +2487,8 @@ const releasecard = () => {
         if (!slot[1].at(-1)) {
           let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
           if (dragcards.length === 1) {
-            draginto(slot, game.freecell);
+            draginto(slot);
+            game.freecell();
             return;
           } else {
             speaker("Stop!");
@@ -2454,11 +2515,13 @@ const releasecard = () => {
       const card = dragcard.slot[1]['draw' in dragcard ? dragcard.draw : draw.draw];
       for (const slot of intersected_slots){
         if (!slot[1].length) {
-          draginto(slot, game.freecell);
+          draginto(slot);
+          game.freecell();
           fastclick = performance.now();
           return;
         } else if (isRankedAlt(card, slot)) {
-          draginto(slot, game.freecell);
+          draginto(slot);
+          game.freecell();
           fastclick = performance.now();
           return;
         } else {
@@ -4747,6 +4810,9 @@ function rollkey(tooie) {
   }
 
   const t = document.elementFromPoint(pointers[tooie].x - window.visualViewport.offsetLeft, pointers[tooie].y - window.visualViewport.offsetTop);
+  if (!t) {
+    return;
+  }
   const newCode = t.dataset.code;
 
   if (!newCode || joystick[tooie] || newCode === 'CapsLock' || newCode === 'ScrollLock') {

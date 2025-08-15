@@ -464,7 +464,7 @@ function screensaver(resolve) {
         movingphoto(vmsec);
       } else if (scr.paint) {
         const hztrail = Math.round(480/fps.vfps);
-        for (const nth of Array(hztrail).keys()) {
+        for (const nth of Array.from({ length: hztrail }).keys()) {
           starry(1000/480, 1000/(480*(480/fps.vfps)), 480*(480/fps.vfps));
         }
       } else {
@@ -613,9 +613,7 @@ function new_stars() {
   if (['xmas', 'natu'].includes(scr.color)) {
     let remainder = scr.density;
     const variant = (ntimes, img) => {
-      for (const n of Array(parseInt(ntimes)).keys()) {
-        newstar(img);
-      }
+      Array.from({ length: parseInt(ntimes) }, () => newstar(img));
       remainder -= ntimes;
       if (!remainder) {
         new_screensaver(true);
@@ -662,9 +660,7 @@ function new_stars() {
     if (scr.color === 4 && scr.density > 125) {
       let remainder = scr.density;
       const variant = (ntimes, img) => {
-        for (const n of Array(ntimes).keys()) {
-          newstar(img);
-        }
+        Array.from({ length: parseInt(ntimes) }, () => newstar(img));
         remainder -= ntimes;
         if (!remainder) {
           new_screensaver(true);
@@ -672,11 +668,11 @@ function new_stars() {
       }
 
       const ntimes = Math.ceil(scr.density / 125);
-      for (const r of Array(5).keys()) {
+      for (const r of Array.from({ length: 5 }).keys()) {
         const rr = (r * 3 + 1).toString(16);
-        for (const g of Array(5).keys()) {
+        for (const g of Array.from({ length: 5 }).keys()) {
           const gg = (g * 3 + 1).toString(16);
-          for (const b of Array(5).keys()) {
+          for (const b of Array.from({ length: 5 }).keys()) {
             const color = '#' + rr + gg + (b * 3 + 1).toString(16);
             canvasToFrame(starmask(color), variant, ntimes);
           }
@@ -698,7 +694,7 @@ function new_stars() {
       variant(0);
     }
   } else {
-    for (const n of Array(scr.density).keys()) {
+    for (const n of Array.from({ length: scr.density }).keys()) {
       newstar(null, starcolor());
     }
     new_screensaver();
@@ -710,17 +706,18 @@ function new_stars() {
 var deck = [];
 var cards = {};
 var slots = [];
-var cheatslots = 2;
-var allowcheat = false;
-var ncard = 52;
-var drawn = 1;
+var tableau_slots = 7;
+var cheat_slots = 2;
+var allow_cheat = false;
+var cards_on_tableau = Array.from({ length: tableau_slots + 1 }).keys().reduce((a, n) => a + n);
+var ncard, drawn;
 var draw = {};
 var rev = -1;
 var win_ratio = [1, 0, 0];
 var other_vectors = [];
 var tried_vector = 0;
 var slothistory = [];
-var solcomputer = false;
+var sol_computer = false;
 var readycomputer = false;
 var computerspeed = 30;
 var winanim = false;
@@ -734,7 +731,7 @@ const gap = {
   up: 15 * scale,
 };
 var solsize = [
-  ((gap.x + 1) * scale + cardsize[0]) * (7 + cheatslots),
+  ((gap.x + 1) * scale + cardsize[0]) * (tableau_slots + cheat_slots),
   400 * scale,
 ];
 let face = 2;
@@ -752,10 +749,10 @@ var snapshot = () => {
 
 var drawx = () => {
   if (draw.draw < slots[0][1].length-1) {
-    const dd = Math.min(drawn, slots[0][1].length-deck.length);
+    const dd = Math.min(drawn, slots[0][1].length - deck.length);
     draw.draw += dd;
-    for (const i of Array(dd).keys()) {
-      deck.push(slots[0][1][draw.draw-dd+1+i]);
+    for (const n of Array.from({ length: dd }).keys()) {
+      deck.push(slots[0][1][draw.draw - dd + 1 + n]);
     }
   } else {
     draw.draw = -1;
@@ -765,7 +762,7 @@ var drawx = () => {
 }
 
 var cardsym = ['Clover', 'Diamond', 'Spade', 'Heart'];
-var cardname = [0, 'A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K']; // , 'L', 'Z'
+var cardname = [0, 'A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K'];//, 'L', 'Z'];
 function newloc(l=0, r=26) {
   const sym = [
     [9],
@@ -982,7 +979,7 @@ function new_deck(restart = false) {
   rev = -1;
   won = false;
   winanim = false;
-  allowcheat = false;
+  allow_cheat = false;
   clearTimeout(winid);
   winid = false;
   give_hint = false;
@@ -1004,20 +1001,16 @@ function new_deck(restart = false) {
     gap.up = 15 * scale;
     drawhint.sol();
 
-    slots = Array(12+cheatslots);
-    for (const pos of Array(13+cheatslots).keys()) {
-      slots[pos] = [[], []];
-    };
-
+    slots = Array.from({ length: tableau_slots + cheat_slots + 6 }, () => [[], []]);
     let used = 0;
-    for (const pos of Array(7).keys()) {
+    for (const pos of Array.from({ length: tableau_slots }).keys()) {
       used += pos-1;
-      slots[pos+5][1].push(deck[pos+ncard-7]);
-      for (const p of Array(pos).keys()) {
-        slots[pos+5][0].push(deck[used+ncard-27+p]);
+      slots[pos+5][1].push(deck[pos + ncard - tableau_slots]);
+      for (const p of Array.from({ length: pos }).keys()) {
+        slots[pos+5][0].push(deck[used + ncard - cards_on_tableau + 1 + p]);
       }
     }
-    slots[0][1] = deck.slice(0, ncard-28);
+    slots[0][1] = deck.slice(0, ncard-cards_on_tableau);
     deck = [];
   } else {
     // Freecell, incomplete
@@ -1026,14 +1019,10 @@ function new_deck(restart = false) {
     gap.up = 18 * scale;
     drawhint.freecell();
 
-    slots = Array(16);
-    for (const pos of Array(16).keys()) {
-      slots[pos] = [[], []];
-    };
-
+    slots = Array.from({ length: 16 }, () => [[], []]);
     let used = 0;
-    for (const pos of Array(8).keys()) {
-      for (const p of Array(pos < 4 ? 7 : 6).keys()) {
+    for (const pos of Array.from({ length: 8 }).keys()) {
+      for (const p of Array.from({ length: pos < 4 ? 7 : 6 }).keys()) {
         slots[pos+8][1].push(deck[used + p]);
       }
       used += pos < 4 ? 7 : 6;
@@ -1126,7 +1115,7 @@ function loadcards(callback, interFrameN) {
 }
 
 function winsol() {
-  solcomputer = false;
+  sol_computer = false;
   winanim = true;
   const flycards = [];
   const gravity = {x: 0, y: 1};
@@ -1134,8 +1123,8 @@ function winsol() {
   let i = 0;
   const ranks = ncard/4;
 
-  for (const card of Array(ranks).keys()) {
-    for (const pos of Array(4).keys()) {
+  for (const card of Array.from({ length: ranks }).keys()) {
+    for (const pos of Array.from({ length: 4 }).keys()) {
       const falldir = Math.floor(Math.random()*14-7)+1;
       const dep = Math.ceil((ranks-1-card)/4)*scale;
       flycards.push({
@@ -1157,7 +1146,7 @@ function winsol() {
     const flycard = flycards[i];
     const ground = solsize[1];
     //const ground = document.documentElement.clientHeight;
-    for (const nth of Array(Math.round(240/fps.hz)).keys()) {
+    for (const nth of Array.from({ length: Math.round(240/fps.hz) }).keys()) {
       if (!winanim) {
         //resize();
         return;
@@ -1220,11 +1209,11 @@ const repaint = {
     //}
 
     context.drawImage(cards['deck'], gap.x, gap.y, ...cardsize);
-    context.drawImage(cards[drawn === 3 ? 'undo3' : 'undo'], gap.x*3 + cardsize[0]*2, gap.y, ...cardsize);
+    context.drawImage(cards[drawn > 1 ? 'undo3' : 'undo'], gap.x*3 + cardsize[0]*2, gap.y, ...cardsize);
     context.drawImage(cards['computer'], gap.x*9 + cardsize[0]*8, gap.y, ...cardsize);
     //context.drawImage(cards['deal'], gap.x*9 + cardsize[0]*8, gap.y, ...cardsize);
 
-    if (solcomputer) {
+    if (sol_computer) {
       //context.strokeStyle = "#00FF00";
       //context.lineWidth = 3;
       //context.beginPath();
@@ -1240,19 +1229,19 @@ const repaint = {
     }
 
     // Foundation slots
-    for (const pos of Array(4).keys()) {
+    for (const pos of Array.from({ length: 4 }).keys()) {
       context.drawImage(cards['slot'], gap.x + 82*(pos+3)*scale, gap.y, ...cardsize);
     }
 
     // Cheat slots
-    for (const pos of Array(cheatslots).keys()) {
-      context.drawImage(cards['free'], gap.x + 82*(pos+7)*scale, gap.y*2 + cardsize[1], ...cardsize);
+    for (const pos of Array.from({ length: cheat_slots }).keys()) {
+      context.drawImage(cards['free'], gap.x + 82*(pos+tableau_slots)*scale, gap.y*2 + cardsize[1], ...cardsize);
     }
 
     // Deck
     if (draw.draw < slots[0][1].length-1) {
       const repeat = Math.ceil((slots[0][1].length-draw.draw-1)/10);
-      for (const pos of Array(repeat).keys()) {
+      for (const pos of Array.from({ length: repeat }).keys()) {
         context.drawImage(cards['card1'], gap.x + pos*2*scale, gap.y + pos*scale, ...cardsize);
       }
     }
@@ -1261,7 +1250,7 @@ const repaint = {
     if (deck.length) {
       let dep = 0;
       const repeat = Math.ceil((deck.length-1)/10);
-      for (const pos of Array(repeat).keys()) {
+      for (const pos of Array.from({ length: repeat }).keys()) {
         dep = pos*scale;
         context.drawImage(cards['card0'], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);
       }
@@ -1270,7 +1259,7 @@ const repaint = {
         if (deck.length-1) {
           context.drawImage(cards[deck[deck.length-2]], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);
         }
-        for (const i of Array(ded).keys()) {
+        for (const i of Array.from({ length: ded }).keys()) {
           const card = deck[deck.length-ded+i];
           if (dragcard && dragcard.slot[1][draw.draw] === card || returncard && returncard.slot[1][draw.draw] === card) {
             break;
@@ -1278,18 +1267,18 @@ const repaint = {
           context.drawImage(cards[card], gap.x+dep*2 + 82*scale + 14*i, gap.y+dep+i, ...cardsize);
         };
       } else if (!dragcard || dragcard.slot[1][draw.draw] !== deck[deck.length]) {
-        for (const i of Array(ded).keys()) {
+        for (const i of Array.from({ length: ded }).keys()) {
           context.drawImage(cards[deck[deck.length-ded+i]], gap.x+dep*2 + 82*scale + 14*i, gap.y+dep+i, ...cardsize);
         }
       }
     }
 
     // Foundation
-    for (const pos of Array(4).keys()) {
+    for (const pos of Array.from({ length: 4 }).keys()) {
       let dep = 0;
       const slot = slots[pos+1];
       const repeat = Math.ceil((slot[1].length)/4);
-      for (const de of Array(repeat).keys()) {
+      for (const de of Array.from({ length: repeat }).keys()) {
         dep = de*scale;
         if (slot[1].length-1 > 0) {
           context.drawImage(cards['card0'], gap.x+dep*2 + 82*(pos+3)*scale, gap.y+dep, ...cardsize);
@@ -1304,7 +1293,7 @@ const repaint = {
     }
 
     // Stack
-    for (const pos of Array(7+cheatslots).keys()) {
+    for (const pos of Array.from({ length: tableau_slots + cheat_slots }).keys()) {
       let des = 0;
       const slot = slots[pos+5];
       for (const card of slot[0]) {
@@ -1367,7 +1356,7 @@ const repaint = {
     context.fillRect(0, 0, ...solsize);
 
     // Free cells
-    for (const pos of Array(4).keys()) {
+    for (const pos of Array.from({ length: 4 }).keys()) {
       const slot = slots[pos];
       let card = slot[1][0];
       if (dragcard && dragcard.slot[1][dragcard.draw] === card || returncard && returncard.slot[1][returncard.draw] === card) {
@@ -1382,18 +1371,18 @@ const repaint = {
     context.drawImage(cards['freemon'], 0, 38, 38, 38, cardsize[0]*4*scale + 12, 64, 38, 38);
 
     // Home cells
-    for (const pos of Array(4).keys()) {
+    for (const pos of Array.from({ length: 4 }).keys()) {
       const slot = slots[pos+4];
       context.drawImage(cards[slot[1].length > 0 ? slot[1].at(-1) : 'free'], cardsize[0]*(pos+5)*scale - 10, 0, ...cardsize);
     }
 
     context.drawImage(cards['computer'], 11*9*scale + cardsize[0]*8*scale, gap.y, ...cardsize);
-    if (solcomputer) {
+    if (sol_computer) {
       context.drawImage(invert.canvas, 11*9 + cardsize[0]*8, gap.y + (computerspeed ? 0 : cardsize[1]/2), invert.width, invert.height);
     }
 
     // Stack
-    for (const pos of Array(8).keys()){
+    for (const pos of Array.from({ length: 8 }).keys()){
       let des = 0;
       for (const card of slots[pos+8][1]) {
         if (dragcard && dragcard.slot[1][dragcard.draw] === card || returncard && returncard.slot[1][returncard.draw] === card) {
@@ -1404,7 +1393,7 @@ const repaint = {
       }
     }
 
-    if ([...Array(4).keys()].every((pos) => {
+    if ([...Array.from({ length: 4 }).keys()].every((pos) => {
       return slots[pos+4][1].length === ncard / 4;
     })) {
       context.drawImage(cards['freemon'], 38*3, 38*anger, 38, 38, 0, cardsize[1], 38*8, 38*8);
@@ -1435,7 +1424,7 @@ const repaint = {
 // Dead by 2 10 red cards lj33xp9ini
 const game = {
   sol: () => {
-    if ([...Array(4).keys()].every((pos) => {
+    if ([...Array.from({ length: 4 }).keys()].every((pos) => {
       return slots[pos+1][1].length === ncard / 4;
     })) {
       if (!winanim) {
@@ -1449,14 +1438,27 @@ const game = {
 
     repaint.sol();
 
-    if ((drawn === 1 || !slots[0][1].length) && slots.every((slot) => {return !slot[0].length})) {
+    let isseq = true;
+    if (drawn > 1 && slots[0][1].length) {
+      const subsuite = {};
+      for (const slot of slots[0][1]) {
+        if (!subsuite[slot[0]] || subsuite[slot[0]] > slot[1]) {
+          subsuite[slot[0]] = slot[1];
+        } else {
+          isseq = false;
+          break;
+        }
+      }
+    }
+    const facedowns = slots.some((slot) => {return slot[0].length});
+    if (isseq && !facedowns) {
       if (!computerspeed) {
         console.log("Winning vector found, the seed is", seednow);
         //new_deck(seednow);
         //game.sol();
         win_ratio[1] += 1;
         if (other_vectors.length > tried_vector) {
-          solcomputer = true;
+          sol_computer = true;
           rev = other_vectors[tried_vector][0];
           [deck, draw, slots] = JSON.parse(JSON.stringify(other_vectors[tried_vector][1]));
           tried_vector += 1;
@@ -1467,30 +1469,51 @@ const game = {
         computer.sol();
         return;
       } else if (!won) {
+        console.log('won');
         won = true;
         const old = winsoln;
-        winsoln += drawn === 1 ? 1 : drawn + 1;
+        winsoln += drawn > 1 ? drawn + 1 : 1;
         savestar('winsol=', winsoln);
         makemenu();
 
         const award = (n, B) => {
           if (old < n && winsoln >= n) {
             speaker(B);
-            solcomputer = false;
+            sol_computer = false;
           };
         };
-        award(1, "So there's no more face-down cards, at this point the next card movement is unlosable and you also have earned the winning point.\nYou can restart the game because you've won.\n\nNew game: Solitaire (draw 3)\n\nChanged: Solitaire (draw 1) requires 4 winning points to play again");
-        award(2, "No more face-down cards or cards to draw mean you've won for Solitaire with draw 3 cards.\nYou can restart the game now that you have earned the winning point.\n\nNew screensaver: Starfield\n\nNew game: Qix\n\nNew test suite: Glyph\n\nChanged: Solitaire (draw 1) returned");
-        award(16, "New game: FreeCell\n\nNew test suite: Moving photo\n\nNew option: Frame rate");
+        award(1, `So there's no more face-down cards, at this point the next card movement is unlosable and you also have earned the winning point.
+You can restart the game because you've won.
+
+New game: Solitaire (draw 3)
+
+Changed: Solitaire (draw 1) requires 4 winning points to play again`);
+        award(2, `No more face-down cards or draw is in sequential order (per suite) mean you've won for Solitaire with draw ${drawn} cards.
+You can restart the game now that you have earned the winning point.
+
+New screensaver: Starfield
+
+New game: Qix
+
+New test suite: Glyph\n\nChanged: Solitaire (draw 1) returned`);
+        award(16, `New game: FreeCell
+
+New test suite: Moving photo
+
+New option: Frame rate`);
         award(24, "New screensaver: More stars");
         award(32, "New mode: Fly");
-        award(64, "New mode: Glide\n\nNew option: Star speed");
-        award(88, "New screensaver: Star Fox\n\nNew mode: Hyperspace");
+        award(64, `New mode: Glide
+
+New option: Star speed`);
+        award(88, `New screensaver: Star Fox
+
+New mode: Hyperspace`);
         award(100, "New screensaver: Flying cards");
       }
     }
 
-    if (solcomputer && computerspeed) {
+    if (sol_computer && computerspeed) {
       clearTimeout(readycomputer);
       readycomputer = setTimeout(computer.sol, computerspeed);
     } else {
@@ -1501,7 +1524,7 @@ const game = {
   freecell: () => {
     repaint.freecell();
 
-    if (solcomputer && computerspeed) {
+    if (sol_computer && computerspeed) {
       clearTimeout(readycomputer);
       readycomputer = setTimeout(computer.freecell, computerspeed);
     } else {
@@ -1618,7 +1641,7 @@ const vector = (x, y, slot, depth, dest) => {
 
 const vectorA = (x, y, slot, depth) => {
   const p = solitaire ? 1 : 4;
-  for (const fpos of Array(4).keys()) {
+  for (const fpos of Array.from({ length: 4 }).keys()) {
     const fslo = slots[fpos+p];
     if (!fslo[1].length) {
       vector(x, y, slot, depth, fslo);
@@ -1646,14 +1669,14 @@ const computer = {
     const facedowns = [];
 
     // Register cards from Foundation piles
-    for (const pos of Array(4).keys()) {
+    for (const pos of Array.from({ length: 4 }).keys()) {
       if (slots[pos+1][1].length) {
         foundations.push(pos+1);
       }
     }
 
     // Register cards from Stack piles
-    for (const pos of Array(7+cheatslots).keys()){
+    for (const pos of Array.from({ length: tableau_slots + cheat_slots }).keys()){
       const slot = slots[pos+5];
       if (!slot[1].length && slot[0].length) {
         facedowns.push(pos);
@@ -1662,7 +1685,7 @@ const computer = {
           stack[slot[0].length ? 1 : 0].push([slot[1][0], slot, pos+5, false]);
         //}
         stackforpile.push([slot, pos]);
-      } else if (pos < 7) {
+      } else if (pos < tableau_slots) {
         stackforpile.push([slot, pos]);
       }
     };
@@ -1673,7 +1696,7 @@ const computer = {
       const x = gap.x * (pos + 1) + cardsize[0] * pos;
       const y = gap.y * 2 + cardsize[1] + gap.dn * (slot[0].length - 1);
       drawhint.sol(hint1, x, y, x, y);
-      if (solcomputer) {
+      if (sol_computer) {
         const card = slot[0].at(-1); 
         slot[0] = slot[0].slice(0, -1);
         slot[1].push(card);
@@ -1694,7 +1717,7 @@ const computer = {
         const y = gap.y * 2 + cardsize[1] + gap.up * depth + gap.dn * slot[0].length;
         if (isAce(card)) {
           drawhint.sol(hint1, x, y, x, y);
-          if (solcomputer) {
+          if (sol_computer) {
             vectorA(x, y, slot, !isdeck ? depth : false);
           }
           return;
@@ -1703,7 +1726,7 @@ const computer = {
             const fslo = slots[fpos];
             if (isRanked(card, fslo)) {
               drawhint.sol(hint1, x, y, x, y);
-              if (solcomputer) {
+              if (sol_computer) {
                 vector(x, y, slot, !isdeck ? depth : false, fslo);
                 if (!computerspeed) {
                   game.sol();
@@ -1729,7 +1752,7 @@ const computer = {
         const y = gap.y*1 + cardsize[1]*0 + repeat + depth*scale;
         if (isAce(card)) {
           drawhint.sol(hint1, x, y, x, y);
-          if (solcomputer) {
+          if (sol_computer) {
             vectorA(x, y, slots[0], false);
           }
           return;
@@ -1738,7 +1761,7 @@ const computer = {
             const fslo = slots[fpos];
             if (isRanked(card, fslo)) {
               drawhint.sol(hint1, x, y, x, y);
-              if (solcomputer) {
+              if (sol_computer) {
                 vector(x, y, slots[0], false, fslo);
                 if (!computerspeed) {
                   game.sol();
@@ -1752,7 +1775,7 @@ const computer = {
     }
 
     // Stack
-    for (const pos of Array(7+cheatslots).keys()){
+    for (const pos of Array.from({ length: tableau_slots + cheat_slots }).keys()) {
       const slot = slots[pos+5];
       const vectors = [];
       if (slot[1].length) {
@@ -1784,7 +1807,7 @@ const computer = {
           const y = gap.y * 2 + cardsize[1] * 1 + gap.dn * slot[0].length + gap.up * depth;
           const des = place > 4 ? 1 : 0;
           drawhint.sol([hint1, hint2, hint3, hint4][o], x, y, gap.x * (place - (5 * des) + 1) + cardsize[0] * (place - (5 * des)), gap.y * (des + 1) + cardsize[1] * des + gap.dn * slo[0].length);
-          if (solcomputer) {
+          if (sol_computer) {
             vector(x, y, slo, !isdeck ? 0 : false, slot);
             if (vectors.length > o + 1) {
               other_vectors.push([rev, JSON.parse(JSON.stringify([deck, draw, slots]))]);
@@ -1814,7 +1837,7 @@ const computer = {
       //hint1.style.display = "none";
       //hintb.style.display = "block";
       drawhint.sol(hint1, x, y, x, y);
-      if (solcomputer) {
+      if (sol_computer) {
         drawx();
         if (computerspeed) {
           setTimeout(game.sol, computerspeed);
@@ -1836,7 +1859,7 @@ const computer = {
               if (!ch) {
                 continue;
               }
-              for (const pos of Array(7+cheatslots).keys()) {
+              for (const pos of Array.from({ length: tableau_slots + cheat_slots }).keys()) {
                 const slot = slots[pos+5];
                 if (slot[1].length) {
                   if (isRankedAlt(ch, slot)) {
@@ -1845,7 +1868,7 @@ const computer = {
                     const dx = gap.x * (place + 1) + cardsize[0] * place;
                     const dy = gap.y * 1 + cardsize[1] * 1 + gap.up * (n + 1) + gap.dn * (slo[0].length + 2);
                     drawhint.sol(hint1, x, y, dx, dy);
-                    if (solcomputer) {
+                    if (sol_computer) {
                       drawx();
                       vector(x, y, slo, n+1, slot);
                       console.log('That was a special move!');
@@ -1863,7 +1886,7 @@ const computer = {
       }
 
       // Foundation to Stack: if another card requires a borrowed card to move
-      for (const pos of Array(7).keys()) {
+      for (const pos of Array.from({ length: tableau_slots }).keys()) {
         if (slots[pos+5][0].length && slots[pos+5][1].length){
           const card = slots[pos+5][1][0];
           let unsure = false;
@@ -1885,7 +1908,7 @@ const computer = {
                   const y = gap.y * 2 + cardsize[1] * 1 + gap.up * (slo[1].length - (slo[1].length ? 1 : 0)) + gap.dn * slo[0].length;
                   drawhint.sol(hint1, x, y, gap.x*(fpos+3) + cardsize[0]*(fpos+2) + repeat*2, gap.y*(des+1) + cardsize[1]*(des*1) + repeat);
                   moved = true;
-                  if (solcomputer) {
+                  if (sol_computer) {
                     drawx();
                     vector(x, y, fslo, fslo[1].length-1, slo);
                     console.log("moved", fca, "to", slo[1].at(-1));
@@ -1902,8 +1925,8 @@ const computer = {
           if (unsure) {
             console.log("About to run into a dead end and I'm not sure, maybe wanna move card", cardsym[parseInt(card[0], 16)], cardname[parseInt(card[1], 16)], "somehow? I see a larger number from pile that might be able to help with that.");
             if (computerspeed) {
-              solcomputer = false;
-              if (solcomputer) {
+              sol_computer = false;
+              if (sol_computer) {
                 game.sol();
               }
             }// else {
@@ -1918,7 +1941,7 @@ const computer = {
       if (moved) {
         draw.cycle = true;
         moved = false;
-        if (solcomputer) {
+        if (sol_computer) {
           game.sol();
           return;
         }
@@ -1937,9 +1960,9 @@ const computer = {
           [deck, draw, slots] = JSON.parse(JSON.stringify(other_vectors[tried_vector][1]));
           tried_vector += 1;
           game.sol();
-        } else if (solcomputer) {
-          console.warn('Turned off solcomputer, vectors/tries', other_vectors.length, tried_vector);
-          solcomputer = false;
+        } else if (sol_computer) {
+          console.warn('Turned off sol_computer, vectors/tries', other_vectors.length, tried_vector);
+          sol_computer = false;
           if (!computerspeed) {
             console.log('vectors', win_ratio[0], 'win', win_ratio[1], 'losses', win_ratio[2]);
           }
@@ -1948,7 +1971,7 @@ const computer = {
           console.log('Ran into a dead end');
         }
       }
-      //solcomputer = false;
+      //sol_computer = false;
       //stop computer play for debugging
     }
   },
@@ -1964,21 +1987,21 @@ const computer = {
     const stack = [];
 
     // Register cards from Free Cell piles
-    for (const pos of Array(4).keys()) {
+    for (const pos of Array.from({ length: 4 }).keys()) {
       if (slots[pos][1].length) {
         freecells.push(pos);
       }
     }
 
     // Register cards from Home Cell piles
-    for (const pos of Array(4).keys()) {
+    for (const pos of Array.from({ length: 4 }).keys()) {
       if (slots[pos+4][1].length) {
         homecells.push(pos+4);
       }
     }
 
     // Register cards from Stack piles
-    for (const pos of Array(8).keys()){
+    for (const pos of Array.from({ length: 8 }).keys()){
       if (slots[pos+8][1].length) {
         stack.push(pos+8);
       }
@@ -1994,7 +2017,7 @@ const computer = {
       const y = gap.y * 2 * des + cardsize[1] * des + gap.up * depth;
       if (isAce(card)) {
         drawhint.sol(hint1, x, y, x, y);
-        if (solcomputer) {
+        if (sol_computer) {
           vectorA(x, y, slot, depth);
         }
         return;
@@ -2003,7 +2026,7 @@ const computer = {
           const fslo = slots[fpos];
           if (isRanked(card, fslo)) {
             drawhint.sol(hint1, x, y, x, y);
-            if (solcomputer) {
+            if (sol_computer) {
               vector(x, y, slot, depth, fslo);
               if (!computerspeed) {
                 computer.sol();
@@ -2065,7 +2088,7 @@ var pickcard = () => {
         // Unflip deck
         draw.draw = slot[1].length-1;
         draw.cycle = true;
-        for (const d of Array(draw.draw+1).keys()) {
+        for (const d of Array.from({ length: draw.draw + 1 }).keys()) {
           deck.push(slot[1][d]);
         }
       }
@@ -2102,10 +2125,10 @@ var pickcard = () => {
     let pos = 0;
 
     if (pointers[0].y < gap.y + cardsize[1] / 2) {
-      solcomputer = !computerspeed ? true : !solcomputer;
+      sol_computer = !computerspeed ? true : !sol_computer;
       computerspeed = 30;
     } else {
-      solcomputer = computerspeed ? true : !solcomputer;
+      sol_computer = computerspeed ? true : !sol_computer;
       computerspeed = 0;
       pos = -cardsize[1]/2;
     }
@@ -2132,7 +2155,7 @@ var pickcard = () => {
       invert.drawImage(ice.canvas, 0, 0, invert.width, invert.height);
     }
 
-    console.warn(solcomputer ? 'solcomputer started' : 'solcomputer stopped');
+    console.warn(sol_computer ? 'sol_computer started' : 'sol_computer stopped');
     if (solitaire) {
       computer.sol();
     } else {
@@ -2162,7 +2185,7 @@ var pickcard = () => {
     }
 
     // Drag card from Foundation
-    for (const pos of Array(4).keys()) {
+    for (const pos of Array.from({ length: 4 }).keys()) {
       const slot = slots[pos+1];
       if (area(pos+3, 0)) {
         if (slot[1].length) {
@@ -2182,7 +2205,7 @@ var pickcard = () => {
     }
 
     // Drag card from Stack
-    for (const pos of Array(7+cheatslots).keys()) {
+    for (const pos of Array.from({ length: tableau_slots + cheat_slots }).keys()) {
       const slot = slots[pos+5];
       const dy = gap.dn * slot[0].length + gap.up * slot[1].length + (slot[1].length > 0 ? -gap.up : 0);
       if (area(pos, 1, 0, dy)) {
@@ -2208,7 +2231,7 @@ var pickcard = () => {
     }
   } else {
     // Drag card from Free Cell
-    for (const pos of Array(4).keys()) {
+    for (const pos of Array.from({ length: 4 }).keys()) {
       const slot = slots[pos];
       if (area(pos, 0, 0, 0, 0)) {
         if (slot[1].length) {
@@ -2228,7 +2251,7 @@ var pickcard = () => {
     }
 
     // Drag card from Stack
-    for (const pos of Array(8).keys()) {
+    for (const pos of Array.from({ length: 8 }).keys()) {
       const slot = slots[pos+8];
       const dy = gap.dn * slot[0].length + gap.up * slot[1].length + (slot[1].length > 0 ? -gap.up : 0);
       if (area(pos, 1, 0, dy)) {
@@ -2364,7 +2387,7 @@ const releasecard = () => {
     //}
 
     // Collect intersected slots of Foundation or an action for double click
-    for (const pos of Array(4).keys()) {
+    for (const pos of Array.from({ length: 4 }).keys()) {
       const slot = slots[pos+1];
       if (fastclick + 200 > performance.now()) {
         const dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
@@ -2400,7 +2423,7 @@ const releasecard = () => {
     intersected_slots = [];
 
     // Collect intersected slots of Stack
-    for (const pos of Array(7+cheatslots).keys()) {
+    for (const pos of Array.from({ length: tableau_slots + cheat_slots }).keys()) {
       const slot = slots[pos+5];
       if (area(pos, 1, 0, gap.dn * slot[0].length + gap.up * (slot[1].length - 1))) {
         intersected_slots.push(slot);
@@ -2420,8 +2443,8 @@ const releasecard = () => {
       for (const slot of intersected_slots){
         if (!slot[1].length) {
           if (isKing(card) || cheat && !(dragcard.draw)) {
-            if (!allowcheat && cheat === 2) {
-              allowcheat = true;
+            if (!allow_cheat && cheat === 2) {
+              allow_cheat = true;
               speaker("These are cheat slots, drag the card again to cheat, just remember this will deviate the original experience.\n\nCan only take highest face-up card or top card from stockpile.");
               rubberband();
             } else {
@@ -2449,7 +2472,7 @@ const releasecard = () => {
     let intersected_slots = [];
 
     // Collect intersected slots of Home Cell
-    for (const pos of Array(4).keys()) {
+    for (const pos of Array.from({ length: 4 }).keys()) {
       const slot = slots[pos+4];
       if (fastclick + 200 > performance.now()) {
         const dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
@@ -2486,7 +2509,7 @@ const releasecard = () => {
     intersected_slots = [];
 
     // Collect intersected slots of Free Cell
-    for (const pos of Array(4).keys()) {
+    for (const pos of Array.from({ length: 4 }).keys()) {
       const slot = slots[pos];
       if (area(pos, 0, 0, 0, 0, 0)) {
         intersected_slots.push(slot);
@@ -2515,7 +2538,7 @@ const releasecard = () => {
     intersected_slots = [];
 
     // Collect intersected slots of Stack
-    for (const pos of Array(8).keys()) {
+    for (const pos of Array.from({ length: 8 }).keys()) {
       const slot = slots[pos+8];
       if (area(pos, 1, 0, gap.dn * slot[0].length + gap.up * (slot[1].length - 1))) {
         intersected_slots.push(slot);
@@ -2721,9 +2744,7 @@ const FFmove = (e_) => {
       if (!crosshint) {
         givehint = !givehint;
         if (givehint) {
-          for (const o of Array(hints).keys()) {
-            [hint1, hint2, hint3, hint4][o].style.display = 'block';
-          }
+          [hint1, hint2, hint3, hint4].slice(0, hints).map((e) => e.style.display = 'block');
           hintb.style.display = 'none';
         } else {
           hint1.style.display = 'none';
@@ -3162,13 +3183,8 @@ function new_qix() {
   qixprojscr.style.display = 'block';
   qixprojs.length = 0;
 
-  for (const n of Array(2).keys()) {
-    new_mob(qixsates, qixsatescr, 20, 'hint sate');
-  }
-
-  //for (const n of Array(8).keys()) {
-  //  new_mob(qixprojs, qixprojscr, 6, 'hint bguncher');
-  //}
+  Array.from({ length: 2 }, () => new_mob(qixsates, qixsatescr, 20, 'hint sate'));
+  //Array.from({ length: 8 }, () => new_mob(qixprojs, qixprojscr, 6, 'hint bguncher'));
 
   clearInterval(mobspawner);
   mobspawner = setInterval(() => {
@@ -3185,7 +3201,7 @@ function new_qix() {
 
   qixzoom = 1;
   qixmap = qixmask.getImageData(0, 0, qixmask.width, qixmask.height);
-  for (const n of Array(qixmap.data.length/4).keys()) {
+  for (const n of Array.from({ length: qixmap.data.length/4 }).keys()) {
     qixmap.data[n*4] = 0;
     qixmap.data[n*4+1] = 0;
     qixmap.data[n*4+2] = 0;
@@ -3221,7 +3237,7 @@ function new_qix() {
 function qixscan(satellite) {
   const monstermap = new Uint8Array(qixmask.width*qixmask.height);
   let pixels = 0;
-  for (const n of Array(qixmask.width*qixmask.height).keys()) {
+  for (const n of Array.from({ length: qixmask.width*qixmask.height }).keys()) {
     if (qixmap.data[n*4+3] === 255) {
       monstermap[n] = 1;
     } else {
@@ -3286,12 +3302,10 @@ function clearSq(x, y, w, h, co = 0) {
     h = -h + 1;
   }
 
-  for (const scanline of Array(h).keys()) {
-    const scnmask = (y + scanline) * ww;
-    for (const row of Array(w).keys()) {
-      qixmap.data[(scnmask + x + row) * 4 + 3] = co;
-    }
-  }
+  Array.from({ length: h }, (_, scanline) => {
+    const scnmask = (y + scanline) * ww + x;
+    Array.from({ length: w }, (_, row) => qixmap.data[(scnmask + row) * 4 + 3] = co);
+  });
 }
 
 const cleared = (pow) => {
@@ -3431,14 +3445,14 @@ function qix_player_movement() {
     }
   }
 
-  for (const frame of Array(120/fps.hz).keys()) {
+  for (const frame of Array.from({ length: 120/fps.hz }).keys()) {
     const interstep = {
       x: 0,
       y: 0,
     }
 
     if (dir.w && !dir.e || dir.e && !dir.w) {
-      for (const x of Array((Keypress.ShiftLeft || Keypress.ShiftRight) ? 2 : 1).keys()) {
+      for (const x of Array.from({ length: (Keypress.ShiftLeft || Keypress.ShiftRight) ? 2 : 1 }).keys()) {
         const pow = dir.w ? -x-1 : x+1;
 
         // death barrier
@@ -3451,7 +3465,7 @@ function qix_player_movement() {
     }
 
     if (dir.n && !dir.s || dir.s && !dir.n) {
-      for (const y of Array(Keypress.Space ? 2 : 1).keys()) {
+      for (const y of Array.from({ length: Keypress.Space ? 2 : 1 }).keys()) {
         const pow = dir.n ? -y-1 : y+1;
 
         // death barrier
@@ -3558,14 +3572,14 @@ function qixmobstep(mob) {
   const pos = mob.pos;
   const dir = mob.dir;
   const speed = Keypress.CapsLock ? {x:0, y:0} : mob.speed;
-  for (const frame of Array(120/fps.hz).keys()) {
+  for (const frame of Array.from({ length: 120/fps.hz }).keys()) {
     const interstep = {
       x: 0,
       y: 0,
     };
 
     if (dir.w && !dir.e || dir.e && !dir.w) {
-      for (const x of Array(speed.x).keys()) {
+      for (const x of Array.from({ length: speed.x }).keys()) {
         const pow = dir.w ? -x-1 : x+1;
 
         // death barrier
@@ -3581,7 +3595,7 @@ function qixmobstep(mob) {
     }
 
     if (dir.n && !dir.s || dir.s && !dir.n) {
-      for (const y of Array(speed.y).keys()) {
+      for (const y of Array.from({ length: speed.y }).keys()) {
         const pow = dir.n ? -y-1 : y+1;
 
         // death barrier
@@ -3856,7 +3870,7 @@ var stopqix = false;
 function qixupdate() {
   if (qix_tails.length > 0 && !pointers[0].down) {
     const speed = 1;
-    for (const frame of Array(120/fps.hz).keys()) {
+    for (const frame of Array.from({ length: 120/fps.hz }).keys()) {
       if (qix_tails.length > 0) {
         const stix = qix_tails.at(-1);
         if (stix[2]) {
@@ -4155,8 +4169,10 @@ function makemenu() {
 
   if (winsoln >= 1) {
     poppy.append(newmenu('Solitaire (draw 3)', listener, 3));
+    //poppy.append(newmenu('Solitaire (draw 5)', listener, 5));
   } else {
     poppy.append(unlock(['Solitaire (draw 3) (', ')'], 1));
+    //poppy.append(unlock(['Solitaire (draw 5) (', ')'], 1));
   }
 
   listener = (e, arg) => {
@@ -4376,14 +4392,14 @@ ${x}px ${y + 18}px
     poppy.append(unlock(['Moving photo (', ')'], 16));
   }
 
-  // solcomputer
+  // sol_computer
   listener = (e, arg) => {
     e.addEventListener(tc, () => {
       if (arg) {
-        solcomputer = computerspeed === 0 ? true : !solcomputer;
+        sol_computer = computerspeed === 0 ? true : !sol_computer;
         computerspeed = arg;
       } else {
-        solcomputer = computerspeed !== 0 ? true : !solcomputer;
+        sol_computer = computerspeed !== 0 ? true : !sol_computer;
         computerspeed = 0;
       }
 
@@ -4729,9 +4745,7 @@ for (const k of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')) {
   vCode['Key' + k] = [k, k];
 }
 
-for (const n of Array(10).keys()) {
-  vCode['Numpad' + n] = [''+n, ''+n];
-}
+Array.from({ length: 10 }, (_, n) => vCode['Numpad' + n] = [''+n, ''+n]);
 
 for (const [n, k] of '←↑→↓'.split('').entries()) {
   vCode['Arrow' + ['Left', 'Up', 'Right', 'Down'][n]] = [k, null];
@@ -5049,11 +5063,7 @@ function createkeyboard() {
   DOMwriter.classList = 'keysocketrow';
   alphakeys.appendChild(DOMwriter);
 
-  let keys = [];
-  for (const k of Array(9).keys()) {
-    keys.push('Digit' + (k + 1));
-  }
-  
+  let keys = Array.from({ length: 9 }, (_, n) => 'Digit' + (n + 1));
   drawkeyboard(DOMwriter, ['Backquote', ...keys, 'Digit0', 'Minus', 'Equal']);
   drawkeyboard(DOMwriter, ['Backspace'], 'keycap2', 113);
 
@@ -5061,11 +5071,7 @@ function createkeyboard() {
   DOMwriter.classList = 'keysocketrow';
   alphakeys.appendChild(DOMwriter);
 
-  keys = [];
-  for (const k of 'QWERTYUIOP') {
-    keys.push('Key' + k);
-  }
-
+  keys = [...'QWERTYUIOP'].map((k) => 'Key' + k);
   drawkeyboard(DOMwriter, ['Tab'], 'keycap2', 83);
   drawkeyboard(DOMwriter, [...keys, 'BracketLeft', 'BracketRight']);
   drawkeyboard(DOMwriter, ['Backslash'], 'keycap', 84);
@@ -5074,11 +5080,7 @@ function createkeyboard() {
   DOMwriter.classList = 'keysocketrow';
   alphakeys.appendChild(DOMwriter);
 
-  keys = [];
-  for (const k of 'ASDFGHJKL') {
-    keys.push('Key' + k);
-  }
-
+  keys = [...'ASDFGHJKL'].map((k) => 'Key' + k);
   drawkeyboard(DOMwriter, ['CapsLock'], 'keycap2', 93);
   drawkeyboard(DOMwriter, [...keys, 'Semicolon', 'Quote']);
   drawkeyboard(DOMwriter, ['Enter'], 'keycap2', 125);
@@ -5087,11 +5089,7 @@ function createkeyboard() {
   DOMwriter.classList = 'keysocketrow';
   alphakeys.appendChild(DOMwriter);
 
-  keys = [];
-  for (const k of 'ZXCVBNM') {
-    keys.push('Key' + k);
-  }
-
+  keys = [...'ZXCVBNM'].map((k) => 'Key' + k);
   drawkeyboard(DOMwriter, ['ShiftLeft'], 'keycap2', 120);
   drawkeyboard(DOMwriter, [...keys, 'Comma', 'Period', 'Slash']);
   drawkeyboard(DOMwriter, ['ShiftRight'], 'keycap2', 149);

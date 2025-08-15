@@ -752,7 +752,7 @@ var readycomputer = false;
 var computerspeed = 30;
 var winanim = false;
 var won = false;
-var winid = false;
+var busysol = false;
 var cardsize = [71 * scale, 96 * scale];
 const gap = {
   x: 11 * scale,
@@ -1010,8 +1010,10 @@ function new_deck(restart = false) {
   won = false;
   winanim = false;
   allow_cheat = false;
-  clearTimeout(winid);
-  winid = false;
+
+  clearTimeout(busysol);
+  busysol = false;
+
   give_hint = false;
   var breakseal = [...factorysealed];
   ncard = breakseal.length;
@@ -1209,7 +1211,7 @@ function winsol() {
     requestAnimationFrame(update);
   }
 
-  winid = setTimeout(update, 1000);
+  busysol = setTimeout(update, 1000);
 }
 
 var invert = newCanvas(cardsize[0], Math.floor(cardsize[1]/2));
@@ -1307,7 +1309,7 @@ const repaint = {
     for (const pos of Array.from({ length: 4 }).keys()) {
       let dep = 0;
       const slot = slots[pos+1];
-      const repeat = Math.ceil((slot[1].length)/4);
+      const repeat = Math.ceil((slot[1].length) / 4);
       for (const de of Array.from({ length: repeat }).keys()) {
         dep = de*scale;
         if (slot[1].length-1 > 0) {
@@ -1454,11 +1456,9 @@ const repaint = {
 // Dead by 2 10 red cards lj33xp9ini
 const game = {
   sol: () => {
-    if ([...Array.from({ length: 4 }).keys()].every((pos) => {
-      return slots[pos+1][1].length === ncard / 4;
-    })) {
+    if ([...Array.from({ length: 4 }).keys()].every((n) => slots[n+1][1].length === ncard / 4)) {
       if (!winanim) {
-        clearTimeout(winid);
+        clearTimeout(busysol);
         winsol();
       }
     } else {
@@ -2459,8 +2459,10 @@ const releasecard = () => {
         intersected_slots.push(slot);
         if (!cheat) {
           if (pos > 6) {
-            cheat = 2;
+            cheat = 3;
           } else if ('draw' in dragcard && slot[0].length === 0 && dragcard.slot[0].length === 0) {
+            cheat = 2;
+          } else {
             cheat = 1;
           }
         }
@@ -2472,11 +2474,13 @@ const releasecard = () => {
       const card = dragcard.slot[1]['draw' in dragcard ? dragcard.draw : draw.draw];
       for (const slot of intersected_slots){
         if (!slot[1].length) {
-          if (isKing(card) || cheat && !(dragcard.draw)) {
-            if (!allow_cheat && cheat === 2) {
+          if (isKing(card) || cheat > 1 && !(dragcard.draw)) {
+            if (!allow_cheat && cheat === 3) {
               allow_cheat = true;
               speaker("These are cheat slots, drag the card again to cheat, just remember this will deviate the original experience.\n\nCan only take highest face-up card or top card from stockpile.");
               rubberband();
+              rubbery();
+              return;
             } else {
               draginto(slot);
               game.sol();

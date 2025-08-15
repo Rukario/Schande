@@ -63,12 +63,43 @@ const scr = {
   paint: false,
 }
 
-var solitaire = false;
-var freecell = false;
-var glyph = false;
-var qix = false;
-var scale = 1;
+var task = {
+  freecell: false,
+  glyph: false,
+  qix: false,
+  scr: true,
+  sol: false,
+  stop: function() { // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
+    this.freecell = false;
+    this.glyph = false;
+    this.qix = false;
+    this.scr = false;
+    this.sol = false;
 
+    desk.style.display = 'none';
+    tailscr.style.display = 'none';
+
+    qixsatescr.style.display = 'none';
+    qixmobscr.style.display = 'none';
+    qixprojscr.style.display = 'none';
+    glyphscr.style.display = 'none';
+
+    hint1.style.display = 'none';
+    hint4.style.display = 'none';
+    hintb.style.display = 'none';
+
+    winanim = false;
+
+    clearTimeout(idlescr);
+    idlescr = false;
+    clearInterval(mobspawner);
+    mobspawner = false;
+
+    document.body.style.backgroundColor = '#003D00';
+  },
+};
+
+var scale = 1;
 var dim = {x: 0, y: 0};
 const max_touches = 5;
 const pointers = Array.from({ length: max_touches }).map(() => {
@@ -107,10 +138,10 @@ function speaker(B) {
   dialog.innerHTML = B;
   dialogbox.style.display = 'inline-block';
   anger = 1;
-  if (freecell) {
+  if (task.freecell) {
     repaint.freecell();
   }
-  if (qix) {
+  if (task.qix) {
     repaint.qix();
   }
 }
@@ -202,7 +233,7 @@ shader.imageSmoothingEnabled = false;
 var idlecursor = false;
 var idlescr = false;
 var busyscr = false;
-var stopscr = false;
+var busyqix = false;
 var sideways = false;
 var stars = [];
 var frameCount = 0;
@@ -378,7 +409,6 @@ reveal.addEventListener('load', () => {
 
   speaker("Move player with WASD or arrow keys, click and hold while moving to set up barriers.\n\nCapsLock to un/freeze enemies, Shift/Space to accelerate X/Y.\n\nMind control the boss with TFGH keys.");
   new_qix();
-  qixupdate();
 });
 
 const win = new Image();
@@ -413,7 +443,7 @@ function screensaver(resolve) {
   let fps_frames = 0;
   let fpshistory = [];
   const update = () => {
-    if (stopscr) {
+    if (!task.scr) {
       return resolve(true);
     }
     requestAnimationFrame(update);
@@ -518,7 +548,7 @@ function new_screensaver(need_shuffle = false) {
   hintb.style.display = 'none';
 
   Promise.all([busyscr]).then(() => {
-    stopscr = false;
+    task.scr = true;
     busyscr = new Promise((resolve) => {
       screensaver(resolve);
     });
@@ -994,7 +1024,7 @@ function new_deck(restart = false) {
   seedboxnow.value = seednow;
   deck = shuffle(breakseal, seednow);
 
-  if (solitaire) {
+  if (task.sol) {
     // Solitaire
     gap.x = 11 * scale;
     gap.y = 5 * scale;
@@ -1047,7 +1077,7 @@ function loadcards(callback, interFrameN) {
       for (const card of factorysealed) {
         newstar(cards[card]);
       };
-    } else if (!qix) {
+    } else if (!task.qix) {
       new_deck();
     }
     callback(interFrameN);
@@ -1104,7 +1134,7 @@ function loadcards(callback, interFrameN) {
       for (const card of factorysealed) {
         newstar(cards[card]);
       };
-    } else if (!qix) {
+    } else if (!task.qix) {
       new_deck();
     }
 
@@ -1640,7 +1670,7 @@ const vector = (x, y, slot, depth, dest) => {
 }
 
 const vectorA = (x, y, slot, depth) => {
-  const p = solitaire ? 1 : 4;
+  const p = task.sol ? 1 : 4;
   for (const fpos of Array.from({ length: 4 }).keys()) {
     const fslo = slots[fpos+p];
     if (!fslo[1].length) {
@@ -2057,12 +2087,12 @@ var pickcard = () => {
     )
   };
 
-  const undo3gap = solitaire ? 13 * (drawn - 1) : -10;
-  const undoloc = solitaire ? gap.x * 3 + cardsize[0] * 2 : cardsize[0] * 4;
-  const undoarea = solitaire ? area(2, 0) : area(4, 0, -10, 0, 0, 11);
+  const undo3gap = task.sol ? 13 * (drawn - 1) : -10;
+  const undoloc = task.sol ? gap.x * 3 + cardsize[0] * 2 : cardsize[0] * 4;
+  const undoarea = task.sol ? area(2, 0) : area(4, 0, -10, 0, 0, 11);
   // Menu
   if (undoarea && pointers[0].x >= undoloc + undo3gap) {
-    if (solitaire && pointers[0].y < cardsize[1] / 2 + gap.y) {
+    if (task.sol && pointers[0].y < cardsize[1] / 2 + gap.y) {
       // Undo draw
       const slot = slots[0];
       if (draw.draw > -1) {
@@ -2099,7 +2129,7 @@ var pickcard = () => {
         rev --;
         [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
       }
-      if (solitaire) {
+      if (task.sol) {
         game.sol();
       } else {
         game.freecell();
@@ -2111,7 +2141,7 @@ var pickcard = () => {
         rev ++;
         [deck, draw, slots] = JSON.parse(JSON.stringify(slothistory[rev]));
       }
-      if (solitaire) {
+      if (task.sol) {
         game.sol();
       } else {
         game.freecell();
@@ -2156,7 +2186,7 @@ var pickcard = () => {
     }
 
     console.warn(sol_computer ? 'sol_computer started' : 'sol_computer stopped');
-    if (solitaire) {
+    if (task.sol) {
       computer.sol();
     } else {
       computer.freecell();
@@ -2165,7 +2195,7 @@ var pickcard = () => {
     return;
   }
 
-  if (solitaire) {
+  if (task.sol) {
     // Deck to Waste
     if (area(0, 0)) {
       drawx();
@@ -2305,7 +2335,7 @@ function rubberband() {
     if (!returncard || rubberstep === 0) {
       returncard = false;
       if (!dragcard) {
-        if (solitaire) {
+        if (task.sol) {
           game.sol();
         } else {
           game.freecell();
@@ -2314,7 +2344,7 @@ function rubberband() {
       return;
     }
 
-    if (solitaire) {
+    if (task.sol) {
       game.sol();
     } else {
       game.freecell();
@@ -2365,15 +2395,15 @@ const releasecard = () => {
   const rubbery = () => {
     dragcard = false;
     moved = false;
-    if (solitaire && !winanim) {
+    if (task.sol && !winanim) {
       game.sol();
-    } else if (freecell) {
+    } else if (task.freecell) {
       game.freecell();
     }
     fastclick = performance.now();
   }
 
-  if (solitaire && dragcard){
+  if (task.sol && dragcard){
     let intersected_slots = [];
     let cheat = false;
 
@@ -2468,7 +2498,7 @@ const releasecard = () => {
     } else {
       rubberband();
     }
-  } else if (freecell && dragcard) {
+  } else if (task.freecell && dragcard) {
     let intersected_slots = [];
 
     // Collect intersected slots of Home Cell
@@ -2572,30 +2602,32 @@ const releasecard = () => {
 }
 
 function imawake() {
-  if (freecell || solitaire || qix || glyph) {
-    if (!stopscr) {
-      stopscr = true;
+  if (task.freecell || task.sol || task.qix || task.glyph) {
+    if (task.scr) {
+      task.scr = false;
 
-      if (freecell) {
+      if (task.freecell) {
         hintb.style.display = 'block';
         game.freecell();
       }
 
-      if (solitaire) {
+      if (task.sol) {
         hintb.style.display = 'block';
         if (!winanim) {
           game.sol();
         }
       }
 
-      if (qix) {
+      if (task.qix) {
         //desk.style.opacity = 0.5;
         desk.style.display = touch.is_touch_device ? 'inline-block' : 'none';
-        qixupdate();
+        busyqix = new Promise((resolve) => {
+          qixupdate(resolve);
+        });
         repaint.qix();
       }
 
-      if (glyph) {
+      if (task.glyph) {
         //desk.style.opacity = 1;
         desk.style.display = 'inline-block';
         tailscr.style.display = 'block';
@@ -2675,7 +2707,7 @@ const FFdown = (e_) => {
       leverdraw(e_);
     } else if (e_.target.classList.contains('poppy') || e_.target.parentNode.classList.contains('poppy') || tooies.length > 1) {
       ZOOKd = true;
-      if (solitaire && dragcard) {
+      if (task.sol && dragcard) {
         rubberband();
         dragcard = false;
       }
@@ -2686,7 +2718,7 @@ const FFdown = (e_) => {
       FFpress(tooie, e_.target);
     } else {
       ZOOKd = false;
-      if (freecell || solitaire) {
+      if (task.freecell || task.sol) {
         pickcard();
       }
     }
@@ -2734,7 +2766,7 @@ const FFmove = (e_) => {
     leverdraw(e_);
   }
 
-  if (freecell || solitaire && !winanim) {
+  if (task.freecell || task.sol && !winanim) {
     if (
       pointers[0].x > 11*9 + cardsize[0]*8 + cardsize[0]/2 - 16*scale &&
       pointers[0].x < 11*9 + cardsize[0]*8 + cardsize[0]/2 + 16*scale &&
@@ -2762,7 +2794,7 @@ const FFmove = (e_) => {
     }
   }
 
-  if (freecell) {
+  if (task.freecell) {
     if (face === 2 && pointers[0].x < cardsize[0]*4*scale) {
       face = 1;
       repaint.freecell();
@@ -2776,7 +2808,7 @@ const FFmove = (e_) => {
     let dragcards = 'draw' in dragcard ? dragcard.slot[1].slice(dragcard.draw) : [dragcard.slot[1][draw.draw]];
     let des = 0;
 
-    if (solitaire) {
+    if (task.sol) {
       game.sol();
     } else {
       game.freecell();
@@ -2817,10 +2849,10 @@ const FFup = (e_) => {
       if (dialogbox.style.display != 'none') {
         dialogbox.style.display = 'none';
         anger = 0;
-        if (freecell) {
+        if (task.freecell) {
           repaint.freecell();
         }
-        if (qix) {
+        if (task.qix) {
           repaint.qix();
         }
       }
@@ -2842,7 +2874,7 @@ const FFup = (e_) => {
     e_.preventDefault();
   }
 
-  if (freecell || solitaire) {
+  if (task.freecell || task.sol) {
     releasecard();
   }
 }
@@ -3106,7 +3138,7 @@ ${x}px ${y+18}px)`;
 
 
 
-let mobspawner;
+var mobspawner = false;
 let qixzoom = 1;
 let qixkeyboard = 0;
 if (touch.is_touch_device) {
@@ -3114,7 +3146,14 @@ if (touch.is_touch_device) {
 }
 
 function new_qix() {
-  winanim = false;
+  Promise.all([busyqix]).then(() => {
+    task.qix = true;
+    loadcards(repaint.qix);
+    busyqix = new Promise((resolve) => {
+      qixupdate(resolve);
+    });
+  });
+
   anger = 0;
   qixdim = {
     x: Math.floor(qixmask.width / 2),
@@ -3216,8 +3255,6 @@ function new_qix() {
   clearSq(qixmask.width-1, 0, 0, qixmask.height);
   qixmask.putImageData(qixmap, 0, 0);
 
-  qix = true;
-
   for (const sate of qixsates) {
     draw_diamond(sate);
   }
@@ -3231,7 +3268,6 @@ function new_qix() {
   }
 
   silhouette_update();
-  loadcards(repaint.qix);
 }
 
 function qixscan(satellite) {
@@ -3266,7 +3302,6 @@ function qixscan(satellite) {
 
   if (Math.floor((pixels/monstermap.length)*10000)/100 > 99) {
     setTimeout(() => {
-      //stopqix = true;
       winanim = true;
       speaker('Press Q + R to restart the game.\n\nE and C to zoom in/out, Z to reset zooming.');
       qixsatescr.style.display = 'none';
@@ -3277,11 +3312,8 @@ function qixscan(satellite) {
       makemenu();
       repaint.qix();
     }, 0);
-    //setTimeout(() => {
-    //  new_qix();
-    //  qixupdate();
-    //}, 1500);
     clearInterval(mobspawner);
+    mobspawner = false;
   }
 }
 
@@ -3559,12 +3591,12 @@ const proj = (x0, y0, x1, y1) => {
 const gameover = () => {
   anger = 1;
   repaint.qix();
-
+  task.qix = false;
+  clearInterval(mobspawner);
+  mobspawner = false;
   setTimeout(() => {
     new_qix();
-    qixupdate();
   }, 250);
-  clearInterval(mobspawner);
 }
 
 function qixmobstep(mob) {
@@ -3865,109 +3897,108 @@ ${xx - size}px ${yy - size}px`);
   clipPathTail.length = 0;
 }
 
-var stopqix = false;
+function qixupdate(resolve) {
+  const update = () => {
+    if (!task.qix) {
+      return resolve(true);
+    }
+    if (!task.scr) {
+      requestAnimationFrame(update);
+    }
 
-function qixupdate() {
-  if (qix_tails.length > 0 && !pointers[0].down) {
-    const speed = 1;
-    for (const frame of Array.from({ length: 120/fps.hz }).keys()) {
-      if (qix_tails.length > 0) {
-        const stix = qix_tails.at(-1);
-        if (stix[2]) {
-          stix[2] += stix[2] > 0 ? -speed : speed;
-        } else if (stix[3]) {
-          stix[3] += stix[3] > 0 ? -speed : speed;
-        } else {
-          qix_tails.pop();
+    if (qix_tails.length > 0 && !pointers[0].down) {
+      const speed = 1;
+      for (const frame of Array.from({ length: 120/fps.hz }).keys()) {
+        if (qix_tails.length > 0) {
+          const stix = qix_tails.at(-1);
+          if (stix[2]) {
+            stix[2] += stix[2] > 0 ? -speed : speed;
+          } else if (stix[3]) {
+            stix[3] += stix[3] > 0 ? -speed : speed;
+          } else {
+            qix_tails.pop();
+          }
+          qixpos.x = (stix[0] + stix[2]);
+          qixpos.y = (stix[1] + stix[3]);
+          securitycam(qixpos);
         }
-        qixpos.x = (stix[0] + stix[2]);
-        qixpos.y = (stix[1] + stix[3]);
-        securitycam(qixpos);
       }
-    }
-    if (qix_tails.length === 0) {
-      pointers[0].hold = 0;
-    }
-    draw_tail(tailscr);
-    repaint.qix();
-  } else if ('WASD'.split('').some((k) => Keypress['Key' + k]) || ['Left', 'Up', 'Right', 'Down'].some((k) => Keypress['Arrow' + k])) {
-    qix_player_movement();
-  }
-
-  for (const sate of qixsates) {
-    if ('TFGH'.split('').some((k) => Keypress['Key' + k])) {
-      sate.dir.n = Keypress.KeyT;
-      sate.dir.e = Keypress.KeyH;
-      sate.dir.s = Keypress.KeyG;
-      sate.dir.w = Keypress.KeyF;
-      sate.speed.x = 1;
-      sate.speed.y = 1;
-    } else {
-      sate.dir.n = Math.round(Math.random());
-      sate.dir.e = Math.round(Math.random());
-      sate.dir.s = Math.round(Math.random());
-      sate.dir.w = Math.round(Math.random());
-      sate.speed.x = Math.round(Math.random() * 4);
-      sate.speed.y = Math.round(Math.random() * 4);
-    }
-
-    draw_diamond(sate);
-
-    if (qixmobstep(sate)) {
-      gameover();
-      return;
-    }
-  }
-
-  if (!winanim) {
-    for (const [n, proj] of qixprojs.entries()) {
-      sate = qixsates[n % qixsates.length];
-      proj.pos.x = sate.pos.x - 12 + 8*Math.floor(n/2);
-      //proj.pos.y = sate.pos.y + 5 + 4*Math.floor(n/2);
-      proj.pos.y = sate.pos.y;
-      proj.speed.x = 0;
-      proj.speed.y = 1;
-
-      draw_square(proj);
-
-      if (qixmobstep(proj)) {
-        gameover();
-        return;
+      if (qix_tails.length === 0) {
+        pointers[0].hold = 0;
       }
-    }
-
-    for (const mob of qixmobs) {
-      draw_diamond(mob);
-
-      if (qixmobstep(mob)) {
-        gameover();
-        return;
-      }
-    }
-  } else {
-    if (Keypress.KeyE || Keypress.KeyC || Keypress.KeyZ) {
-      if (Keypress.KeyZ) {
-        qixzoom = 1;
-      } else {
-        qixzoom = Keypress.KeyE ? qixzoom*1.01 : qixzoom/1.01;
-      }
-      securitycam(qixpos);
+      draw_tail(tailscr);
       repaint.qix();
+    } else if ('WASD'.split('').some((k) => Keypress['Key' + k]) || ['Left', 'Up', 'Right', 'Down'].some((k) => Keypress['Arrow' + k])) {
+      qix_player_movement();
     }
+
+    for (const sate of qixsates) {
+      if ('TFGH'.split('').some((k) => Keypress['Key' + k])) {
+        sate.dir.n = Keypress.KeyT;
+        sate.dir.e = Keypress.KeyH;
+        sate.dir.s = Keypress.KeyG;
+        sate.dir.w = Keypress.KeyF;
+        sate.speed.x = 1;
+        sate.speed.y = 1;
+      } else {
+        sate.dir.n = Math.round(Math.random());
+        sate.dir.e = Math.round(Math.random());
+        sate.dir.s = Math.round(Math.random());
+        sate.dir.w = Math.round(Math.random());
+        sate.speed.x = Math.round(Math.random() * 4);
+        sate.speed.y = Math.round(Math.random() * 4);
+      }
+
+      draw_diamond(sate);
+
+      if (qixmobstep(sate)) {
+        gameover();
+        return;
+      }
+    }
+
+    if (!winanim) {
+      for (const [n, proj] of qixprojs.entries()) {
+        sate = qixsates[n % qixsates.length];
+        proj.pos.x = sate.pos.x - 12 + 8*Math.floor(n/2);
+        //proj.pos.y = sate.pos.y + 5 + 4*Math.floor(n/2);
+        proj.pos.y = sate.pos.y;
+        proj.speed.x = 0;
+        proj.speed.y = 1;
+
+        draw_square(proj);
+
+        if (qixmobstep(proj)) {
+          gameover();
+          return;
+        }
+      }
+
+      for (const mob of qixmobs) {
+        draw_diamond(mob);
     
-    if (Keypress.KeyQ && Keypress.KeyR) {
-      new_qix();
+        if (qixmobstep(mob)) {
+          gameover();
+          return;
+        }
+      }
+    } else {
+      if (Keypress.KeyE || Keypress.KeyC || Keypress.KeyZ) {
+        if (Keypress.KeyZ) {
+          qixzoom = 1;
+        } else {
+          qixzoom = Keypress.KeyE ? qixzoom*1.01 : qixzoom/1.01;
+        }
+        securitycam(qixpos);
+        repaint.qix();
+      }
+
+      if (Keypress.KeyQ && Keypress.KeyR) {
+        new_qix();
+      }
     }
   }
-
-  if (!qix || stopqix) {
-    stopqix = false;
-    return;
-  }
-
-  if (stopscr) {
-    requestAnimationFrame(qixupdate);
-  }
+  update();
 };
 
 
@@ -4140,22 +4171,8 @@ function makemenu() {
 
   listener = (e, arg) => {
     e.addEventListener(tc, () => {
-      stopscr = true;
-      desk.style.display = 'none';
-
-      qix = false;
-      tailscr.style.display = 'none';
-      qixsatescr.style.display = 'none';
-      qixmobscr.style.display = 'none';
-      qixprojscr.style.display = 'none';
-
-      glyph = false;
-      glyphscr.style.display = 'none';
-      document.body.style.backgroundColor = '#003D00';
-
-      solitaire = true;
-      freecell = false;
-
+      task.stop();
+      task.sol = true;
       drawn = arg;
       loadcards(game.sol);
     });
@@ -4177,25 +4194,8 @@ function makemenu() {
 
   listener = (e, arg) => {
     e.addEventListener(tc, () => {
-      stopscr = true;
-      desk.style.display = 'none';
-
-      qix = false;
-      tailscr.style.display = 'none';
-      qixsatescr.style.display = 'none';
-      qixmobscr.style.display = 'none';
-      qixprojscr.style.display = 'none';
-
-      glyph = false;
-      glyphscr.style.display = 'none';
-      document.body.style.backgroundColor = '#003D00';
-
-      freecell = true;
-      solitaire = false;
-      hint1.style.display = 'none';
-      hint4.style.display = 'none';
-      hintb.style.display = 'none';
-
+      task.stop();
+      task.freecell = true;
       //drawhint_freec();
       loadcards(game.freecell);
     });
@@ -4210,22 +4210,10 @@ function makemenu() {
   if (winsoln >= 5) {
     listener = (e) => {
       e.addEventListener(tc, () => {
-        stopscr = true;
         winanim = false;
 
-        if (qix) {
-          stopqix = true;
-          clearInterval(mobspawner);
-        }
-
-        glyph = false;
-        glyphscr.style.display = 'none';
-
-        freecell = false;
-        solitaire = false;
-        hint1.style.display = 'none';
-        hintb.style.display = 'none';
-        document.body.style.backgroundColor = '#dbe';
+        task.stop();
+        document.body.style.backgroundColor = '#DBE';
 
         if (!qixdb) {
           let promises = [];
@@ -4250,30 +4238,17 @@ function makemenu() {
 
     listener = (e) => {
       e.addEventListener(tc, () => {
-        freecell = false;
-        solitaire = false;
-        winanim = false;
-        glyph = true;
-        qix = false;
-
+        task.stop();
+        task.glyph = true;
         tailscr.style.display = 'block';
-        const x = 7;
-        const y = 7;
-
+        const [x, y] = [7, 7];
         tailscr.style.clipPath = `polygon(
 ${x}px ${y}px,
 ${x + 2}px ${y}px,
 ${x + 2}px ${y + 18}px,
 ${x}px ${y + 18}px
 )`;
-
-        hintb.style.display = 'none';
-        stopscr = true;
-        qixsatescr.style.display = 'none';
-        qixmobscr.style.display = 'none';
-        qixprojscr.style.display = 'none';
-        document.body.style.backgroundColor = '#dbe';
-
+        document.body.style.backgroundColor = '#DBE';
         new_glyph(true);
       });
     };
@@ -4326,25 +4301,7 @@ ${x}px ${y + 18}px
   // screensaver
   listener = (e, args) => {
     e.addEventListener(tc, () => {
-      stopscr = true;
-      desk.style.display = 'none';
-
-      qix = false;
-      tailscr.style.display = 'none';
-      qixsatescr.style.display = 'none';
-      qixmobscr.style.display = 'none';
-      qixprojscr.style.display = 'none';
-
-      glyph = false;
-      glyphscr.style.display = 'none';
-
-      freecell = false;
-      solitaire = false;
-      hintb.style.display = 'none';
-
-      clearTimeout(idlescr);
-      idlescr = false;
-
+      task.stop();
       change_stars(args);
 
       if (pixelctrl) {
@@ -4403,16 +4360,11 @@ ${x}px ${y + 18}px
         computerspeed = 0;
       }
 
-      if (solitaire) {
+      if (task.sol) {
         game.sol();
       } else {
-        solitaire = true;
-        qix = false;
-        desk.style.display = 'none';
-        tailscr.style.display = 'none';
-        qixsatescr.style.display = 'none';
-        qixsatescr.style.display = 'none';
-        stopscr = true;
+        task.stop();
+        task.sol = true;
         drawn = 1;
         loadcards(game.sol);
       }
@@ -4533,7 +4485,7 @@ ${x}px ${y + 18}px
   listener = (e) => {
     e.addEventListener(tc, () => {
       fps.display = !fps.display;
-      result.style.display = fps.display && !solitaire ? 'block' : 'none';
+      result.style.display = fps.display ? 'block' : 'none';
     });
   };
   poppy.append(newmenu('Display FPS', listener));
@@ -4591,7 +4543,7 @@ function pressed(code, tooie = 0, down) {
 
     if (['ShiftLeft', 'ShiftRight', 'CapsLock'].includes(code)) {
       glyph_shift = 2;
-    } else if (glyph && code) {
+    } else if (task.glyph && code) {
       glyph_update(code);
     }
   } else {
@@ -5349,15 +5301,15 @@ window.addEventListener('load', () => {
     }
   });
   addEventListener('resize', () => {
-    if (!solitaire || !winanim) {
+    if (!task.sol || !winanim) {
       resize();
     }
 
-    if (solitaire && !winanim) {
+    if (task.sol && !winanim) {
       repaint.sol();
-    } else if (freecell) {
+    } else if (task.freecell) {
       repaint.freecell();
-    } else if (qix) {
+    } else if (task.qix) {
       repaint.qix();
     }
   });
@@ -5380,10 +5332,10 @@ window.addEventListener('load', () => {
   close.addEventListener('click', () => {
     dialogbox.style.display = 'none';
     anger = 0;
-    if (freecell) {
+    if (task.freecell) {
       repaint.freecell();
     }
-    if (qix) {
+    if (task.qix) {
       repaint.qix();
     }
   });

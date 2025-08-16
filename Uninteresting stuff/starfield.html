@@ -778,6 +778,10 @@ var solsize = [
 let face = 2;
 let anger = 0;
 
+const paint_card = (card, dri = 0, dep = 0, x = 1, y = 1) => {
+  context.drawImage(cards[card], gap.x * x + dri, gap.y * y + dep, ...cardsize);
+}
+
 var snapshot = () => {
   dragcard = false;
   returncard = false;
@@ -1262,9 +1266,9 @@ const repaint = {
     //  context.drawImage(cards[card], 5*((n%9)+1) + cardsize[0]*(n%9), 220 + (cardsize[1] + gap.y)*Math.floor(n/9), ...cardsize);
     //}
 
-    context.drawImage(cards['hand'], gap.x, gap.y, ...cardsize);
-    context.drawImage(cards[drawn > 1 ? 'undo3' : 'undo'], gap.x*3 + cardsize[0]*2, gap.y, ...cardsize);
-    context.drawImage(cards['computer'], gap.x*9 + cardsize[0]*8, gap.y, ...cardsize);
+    paint_card('hand');
+    paint_card(drawn > 1 ? 'undo3' : 'undo', cardsize[0] * 2, 0, 3);
+    paint_card('computer', cardsize[0] * 8, 0, 9);
     //context.drawImage(cards['deal'], gap.x*9 + cardsize[0]*8, gap.y, ...cardsize);
 
     if (sol_computer) {
@@ -1272,7 +1276,7 @@ const repaint = {
       //context.lineWidth = 3;
       //context.beginPath();
       //const coord = cardsize[0]*8+gap.x*2;
-      //context.arc(coord, gap.y*2 + (computerspeed ? 0 : 3+cardsize[1]*1/2), 2, 0, Math.PI*2);
+      //context.arc(coord, gap.y*2 + (computerspeed ? 0 : 3+cardsize[1]/2), 2, 0, Math.PI*2);
       //context.stroke();
 
       context.drawImage(invert.canvas, gap.x*9 + cardsize[0]*8, gap.y + (computerspeed ? 0 : cardsize[1]/2), invert.width, invert.height);
@@ -1282,21 +1286,24 @@ const repaint = {
       drawcross(cardsize[0]*3+gap.x*(drawn*0.6-0.8), gap.y*2);
     }
 
+    const offset = cardsize[0] + gap.x;
+    const offsety = cardsize[1] + gap.y * 2;
+
     // Foundation slots
     for (const pos of Array.from({ length: 4 }).keys()) {
-      context.drawImage(cards['slot'], gap.x + 82*(pos+3)*scale, gap.y, ...cardsize);
+      paint_card('slot', offset * (pos + 3));
     }
 
     // Cheat slots
     for (const pos of Array.from({ length: cheat_slots }).keys()) {
-      context.drawImage(cards['free'], gap.x + 82*(pos+tableau_slots)*scale, gap.y*2 + cardsize[1], ...cardsize);
+      paint_card('free', offset * (pos + tableau_slots), cardsize[1], 1, 2);
     }
 
     // Hand
     if (draw.draw < slots[0][1].length-1) {
       const repeat = Math.ceil((slots[0][1].length-draw.draw-1)/10);
       for (const pos of Array.from({ length: repeat }).keys()) {
-        context.drawImage(cards['card1'], gap.x + pos*2*scale, gap.y + pos*scale, ...cardsize);
+        paint_card('card1', pos * 2 * scale, pos * scale);
       }
     }
 
@@ -1306,23 +1313,23 @@ const repaint = {
       const repeat = Math.ceil((hand.length-1)/10);
       for (const pos of Array.from({ length: repeat }).keys()) {
         dep = pos*scale;
-        context.drawImage(cards['card0'], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);
+        paint_card('card0', dep * 2 + offset, dep);
       }
       const ded = Math.min(drawn, hand.length);
       if (dragcard || returncard) {
         if (hand.length-1) {
-          context.drawImage(cards[hand[hand.length-2]], gap.x+dep*2 + 82*scale, gap.y+dep, ...cardsize);
+          paint_card(hand[hand.length - 2], dep * 2 + offset, dep);
         }
         for (const i of Array.from({ length: ded }).keys()) {
           const card = hand[hand.length-ded+i];
           if (dragcard && dragcard.slot[1][draw.draw] === card || returncard && returncard.slot[1][draw.draw] === card) {
             break;
           };
-          context.drawImage(cards[card], gap.x+dep*2 + 82*scale + 14*i, gap.y+dep+i, ...cardsize);
+          paint_card(card, dep * 2 + offset + 14 * i, dep + i);
         };
       } else if (!dragcard || dragcard.slot[1][draw.draw] !== hand[hand.length]) {
         for (const i of Array.from({ length: ded }).keys()) {
-          context.drawImage(cards[hand[hand.length-ded+i]], gap.x+dep*2 + 82*scale + 14*i, gap.y+dep+i, ...cardsize);
+          paint_card(hand[hand.length - ded + i], dep * 2 + offset + 14 * i, dep + i);
         }
       }
     }
@@ -1335,14 +1342,14 @@ const repaint = {
       for (const de of Array.from({ length: repeat }).keys()) {
         dep = de*scale;
         if (slot[1].length-1 > 0) {
-          context.drawImage(cards['card0'], gap.x+dep*2 + 82*(pos+3)*scale, gap.y+dep, ...cardsize);
+          paint_card('card0', dep * 2 + offset * (pos + 3), dep);
         }
       }
       for (const card of slot[1]) {
         if (dragcard && dragcard.slot[1][dragcard.draw] === card || returncard && returncard.slot[1][returncard.draw] === card) {
           break;
         }
-        context.drawImage(cards[card], gap.x+dep*2 + 82*(pos+3)*scale, gap.y+dep, ...cardsize);
+        paint_card(card, dep * 2 + offset * (pos + 3), dep);
       }
     }
 
@@ -1351,14 +1358,14 @@ const repaint = {
       let des = 0;
       const slot = slots[pos+5];
       for (const card of slot[0]) {
-        context.drawImage(cards['card1'], gap.x + 82*pos*scale, (106 + des)*scale, ...cardsize);
+        paint_card('card1', offset * pos, offsety + des * scale, 1, 0);
         des += 3;
       }
       for (const card of slot[1]) {
         if (dragcard && dragcard.slot[1][dragcard.draw] === card || returncard && returncard.slot[1][returncard.draw] === card) {
           break;
         }
-        context.drawImage(cards[card], gap.x + 82*pos*scale, (106 + des)*scale, ...cardsize);
+        paint_card(card, offset * pos, offsety + des * scale, 1, 0);
         des += 15;
       }
     }
@@ -1372,7 +1379,7 @@ const repaint = {
 
       // Cycle
       for (const [n, card] of slot[1].entries()) {
-        context.drawImage(cards[card], 5*(n+1) + cardsize[0]*n, y, ...cardsize);
+        paint_card(card, 5 * ( n + 1) + cardsize[0] * n, y, 0, 0);
         if (n === slot[1].length-1 ? 0 : drawn-1-(n > draw.last-1 ? n-(draw.last-drawn+1)%drawn : n)%drawn) {
           context.fillRect(5*(n+1) + cardsize[0]*n, y, ...cardsize);
         }
@@ -1387,7 +1394,7 @@ const repaint = {
       // Dead end
       y += cardsize[1] + gap.y;
       for (const [n, card] of slot[1].entries()) {
-        context.drawImage(cards[card], 5 * (n + 1) + cardsize[0] * n, y, ...cardsize);
+        paint_card(card, 5 * (n + 1) + cardsize[0] * n, y, 0, 0);
         if (n === slot[1].length-1 > 0 ? 0 : drawn-1-n%drawn) {
           context.fillRect(5* (n + 1) + cardsize[0] * n, y, ...cardsize);
         }

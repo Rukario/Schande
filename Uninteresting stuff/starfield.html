@@ -312,8 +312,17 @@ function starry(vmsec, msec, vfps) {
     channel = stars.length / 125 * 5;
   }
 
+  const sx = (ishtar, speli) => {
+    return (ishtar.x + off.x) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(pointers[0].x - dim.x) / (900 * scr.friction.x)) : 0);
+  };
+
+  const sy = (ishtar, speli) => {
+    return (ishtar.y + off.y) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(pointers[0].y - dim.y) / (900 * scr.friction.y)) : 0);
+  }
+
   for (const [n, ishtar] of stars.entries()) {
     if (ishtar.boost === 0) {
+      ishtar.boost = Math.floor(Math.random() * 480 / vfps / star.delay);
       //const horizon = Math.floor(n / channel) % 5 / 5 + Math.random() / 5;
       const horizon = Math.random();
 
@@ -334,8 +343,6 @@ function starry(vmsec, msec, vfps) {
       x: Math.ceil(ishtar.boost / (speli / star.x)),
       y: Math.ceil(ishtar.boost / (speli / star.y)),
     };
-    const sx = (ishtar.x + off.x) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(pointers[0].x - dim.x) / (900 * scr.friction.x)) : 0);
-    const sy = (ishtar.y + off.y) / (speli - ishtar.boost) * speli + (scr.glide ? ishtar.boost * star.speed / star.life * (-(pointers[0].y - dim.y) / (900 * scr.friction.y)) : 0);
 
     if (false) {
       if (ishtar.x < dim.x) {
@@ -351,18 +358,21 @@ function starry(vmsec, msec, vfps) {
       }
     }
 
+    const x = sx(ishtar, speli);
+    const y = sy(ishtar, speli);
+
     if (
-      sx < bound.x ||
-      sy < bound.y ||
-      sx > bound.dx ||
-      sy > bound.dy ||
+      x < bound.x ||
+      y < bound.y ||
+      x > bound.dx ||
+      y > bound.dy ||
       ishtar.boost > speli
     ) {
       ishtar.boost = 0;
     } else {
       ishtar.boost += star.speed / star.delay;
 
-      const dot_pos = [Math.ceil(sx + dim.x - dot.x / 2), Math.ceil(sy + dim.y - dot.y / 2), dot.x, dot.y];
+      const dot_pos = [Math.ceil(x + dim.x - dot.x / 2), Math.ceil(y + dim.y - dot.y / 2), dot.x, dot.y];
       if (ishtar.canvas) {
         context.drawImage(ishtar.canvas, ...dot_pos);
       } else {
@@ -5291,7 +5301,7 @@ window.addEventListener('load', () => {
     }
 
     if (ck.indexOf('vfps=') === 0) {
-      vfps = parseInt(decodeURIComponent(ck.substring('vfps='.length, ck.length)));
+      vfps = parseFloat(decodeURIComponent(ck.substring('vfps='.length, ck.length)));
       if (vfps) {
         fps.throttle = true;
         fps.vfps = vfps;

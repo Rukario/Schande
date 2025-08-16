@@ -1147,7 +1147,9 @@ function loadcards(callback, interFrameN) {
 function winsol() {
   sol_computer = false;
   winanim = true;
+  const launch = [];
   const flycards = [];
+  const flewcards = [];
   const gravity = {x: 0, y: 1};
   const kinecticloss = 0.85;
   let i = 0;
@@ -1157,7 +1159,7 @@ function winsol() {
     for (const pos of Array.from({ length: 4 }).keys()) {
       const falldir = Math.floor(Math.random()*14-7)+1;
       const dep = Math.ceil((ranks-1-card)/4)*scale;
-      flycards.push({
+      launch.push({
         card: slots[pos+1][1][ranks-1-card],
         x: gap.x*4 + gap.x*pos + cardsize[0]*(pos+3) + dep*2,
         y: gap.y + dep,
@@ -1173,44 +1175,54 @@ function winsol() {
   hintb.style.display = 'none';
 
   const update = () => {
-    const flycard = flycards[i];
+    if (!winanim) {
+      return;
+    }
+
     const ground = solsize[1];
     //const ground = document.documentElement.clientHeight;
-    for (const nth of Array.from({ length: Math.round(240/fps.hz) }).keys()) {
-      if (!winanim) {
+    for (const nth of Array.from({ length: Math.round(240 / fps.hz) }).keys()) {
+      if (!flycards.length) {
+        idlescr = setTimeout(() => {
+          if (resize_flag) {
+            resize_flag = false;
+            resize();
+          }
+          new_screensaver();
+        }, 4000);
         return;
       }
-      flycard.xvel += gravity.x;
-      flycard.yvel += gravity.y;
-      flycard.x += (flycard.xvel * flycard.xdir);
-      flycard.y += (flycard.yvel * flycard.ydir);
-      if (flycard.x < -cardsize[0] || flycard.x > canvas.width) {
-        break;
-        //flycard.xvel = -flycard.xvel;
-      }
-      if (flycard.y + cardsize[1] > ground) {
-        flycard.y = ground - cardsize[1];
-        flycard.yvel = -flycard.yvel*kinecticloss;
-      }
-      context.drawImage(cards[flycard['card']], flycard.x, flycard.y, ...cardsize);
-    }
-    if (flycard.x < -cardsize[0] || flycard.x > canvas.width) {
-      clearTimeout(idlescr);
-      i++;
-    }
-    if (i === deck.length) {
-      idlescr = setTimeout(() => {
-        if (resize_flag) {
-          resize_flag = false;
-          resize();
+      for (const flycard of flycards) {
+        flycard.xvel += gravity.x;
+        flycard.yvel += gravity.y;
+        flycard.x += (flycard.xvel * flycard.xdir);
+        flycard.y += (flycard.yvel * flycard.ydir);
+        if (flycard.y + cardsize[1] > ground) {
+          flycard.y = ground - cardsize[1];
+          flycard.yvel = -flycard.yvel*kinecticloss;
         }
-        new_screensaver();
-      }, 4000);
-      return;
+        context.drawImage(cards[flycard['card']], flycard.x, flycard.y, ...cardsize);
+
+        // card flew away
+        if (flycard.x < -cardsize[0] || flycard.x > solsize[0] || flycard.x > canvas.width) {
+          //flycard.xvel = -flycard.xvel;
+          if (i < deck.length - 1 && !flewcards.includes(flycard)) {
+            clearTimeout(idlescr);
+            flewcards.push(flycard);
+            i++;
+            flycards.push(launch[i]);
+          }
+
+          // card is out of bound
+          if (flycard.x < -cardsize[0] || flycard.x > canvas.width) {
+            flycards.splice(flycards.indexOf(flycard), 1);
+          }
+        }
+      }
     }
     requestAnimationFrame(update);
   }
-
+  flycards.push(launch[i]);
   busysol = setTimeout(update, 1000);
 }
 

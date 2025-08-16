@@ -4889,6 +4889,12 @@ const poppyFF = (e_, dragscroll) => {
     clearTimeout(touch.long_press_callback);
     touch.long_press_callback = null;
   });
+  e_.addEventListener('touchcancel', (e) => {
+    FFup(e);
+
+    clearTimeout(touch.long_press_callback);
+    touch.long_press_callback = null;
+  });
   e_.addEventListener('contextmenu', (e) => {
     e.preventDefault();
   });
@@ -4903,6 +4909,9 @@ function touchFF(e_) {
     FFmove(e);
   });
   e_.addEventListener('touchend', (e) => {
+    FFup(e);
+  });
+  e_.addEventListener('touchcancel', (e) => {
     FFup(e);
   });
 }

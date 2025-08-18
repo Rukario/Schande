@@ -581,6 +581,7 @@ function new_screensaver(need_shuffle = false) {
 
 const xlight = ['#f00', '#f90', '#390', '#06f', '#90c'];
 const xnatur = ['#fdd', '#f90', '#940', '#766', '#000', '#90c'];
+const xstrob = ['#c02', '#d82', '#fdd', '#28d'];
 const oldstars = [
   '#F0F8F8', '#D0E0D0', '#A8B8A8', '#709080', '#587070', '#406048', '#182818',
   '#F8D868', '#E8A840', '#D04828', '#881008',
@@ -671,7 +672,7 @@ function starmask(color, img, branch) {
 
 function new_stars(color) {
   stars = [];
-  if (['xmas', 'natu'].includes(scr.color)) {
+  if (['xmas', 'natu', 'xott'].includes(scr.color)) {
     let remainder = scr.density;
     const variant = (ntimes, img) => {
       Array.from({ length: parseInt(ntimes) }, () => newstar(img));
@@ -687,20 +688,28 @@ function new_stars(color) {
           return xlight;
         case 'natu':
           return xnatur;
+        case 'xott':
+          return xstrob;
       }
     })();
 
     const foliage = new Image();
     //foliage.src = 'foliage.png';
-    foliage.src = 'spruce.png';
+
+    if (scr.color == 'xott') {
+      foliage.src = 'otter.png';
+    } else {
+      foliage.src = 'spruce.png';
+    }
+
     foliage.addEventListener('load', () => {
-      const ntimes = scr.density / xarray.length * (xarray.length - 1);
+      const ntimes = scr.color == 'xott' ? xarray.length * 2 : scr.density / xarray.length * (xarray.length - 1);
       canvasToFrame(starmask(null, foliage, 15), variant, ntimes);
       //canvasToFrame(starmask(['#033201', '#0E600C', '#033201', '#233A0D', '#065001', '#0E600C'], foliage, 15), variant, ntimes);
     });
 
     for (const color of xarray) {
-      const ntimes = scr.density / xarray.length / xarray.length;
+      const ntimes = scr.color == 'xott' ? scr.density / xarray.length - (xarray.length / xarray.length) * 2 : scr.density / xarray.length / xarray.length;
       canvasToFrame(starmask(color), variant, ntimes);
     }
   } else if (scr.color === 'card') {
@@ -4402,11 +4411,16 @@ ${x}px ${y + 18}px
     morescr.append(newmenu());
     morescr.append(newmenu('Surreal Xmas',             listener, ['xmas', xlight.length*160,  'light.png', true,  190, 190, 1.25, 4, "#072700", false]));
     morescr.append(newmenu('Deep nature',              listener, ['natu', xnatur.length*120,  'petal.png', true,  190, 190, 1.25, 4, "#170b00", false]));
+    if (winsoln >= 124) {
+      morescr.append(newmenu('Offshore',               listener, ['xott', xstrob.length*90,   'petal.png', true,  190, 190, 1.25, 4, "#331E66", false]));
+    } else {
+      morescr.append(unlock(['Offshore (', ')'], 124));
+    }
 
     if (winsoln >= 100) {
       morescr.append(newmenu('Flying cards',           listener, ['card', 2,    false,       true, 71*2, 96*2, 1.25, 4, false, false]));
     } else {
-      morescr.append(unlock(['Flying cards (', ')'], 100))
+      morescr.append(unlock(['Flying cards (', ')'], 100));
     }
 
     poppy.append(newmenu('More stars', submenu, false, morescr));

@@ -6,8 +6,21 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="white">
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="width=749, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
-<link rel="stylesheet" type="text/css" href="starfield.css">
+<style>
+body {
+  background-color: #000;
+}
+</style>
 <script>
+function opencss(file) {
+  const head = document.getElementsByTagName('head')[0];
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.type = 'text/css';
+  link.href = file + '?' + Date.now();
+  head.appendChild(link);
+}
+
 function opendb(file) {
   return (resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -428,21 +441,21 @@ win.addEventListener('load', () => {
 });
 
 var currentFrame = 0;
-var movingsc = 1;
 function movingphoto() {
   context.clearRect(0, 0, canvas.width, canvas.height);
   for (const [n, ishtar] of stars.entries()) {
-    for (let x = currentFrame; x < canvas.width; x += ishtar.canvas.width*movingsc) {
-      context.drawImage(ishtar.canvas, x, n*ishtar.canvas.height, ishtar.canvas.width*movingsc, ishtar.canvas.height*movingsc);
+    //ishtar.canvas.width ishtar.canvas.height
+    for (let x = currentFrame; x < canvas.width; x += star.x) {
+      context.drawImage(ishtar.canvas, x, n * star.y, star.x, star.y);
     }
-    if (n*ishtar.canvas.height > canvas.height) {
+    if (n * star.y > canvas.height) {
       break;
     }
   }
 
-  currentFrame = currentFrame + 960/fps.vfps;
+  currentFrame += Math.ceil(20 / star.life * star.x / fps.vfps);
   if (currentFrame > 0) {
-    currentFrame = currentFrame - 95*movingsc;
+    currentFrame -= star.x;
   }
 }
 
@@ -574,23 +587,30 @@ const oldstars = [
 ];
 const wincolor = ['#000000', '#00FF00', '#008080', '#808080', '#A6CAF0', '#C0DCC0', '#800000', '#F60000', '#800080', '#00007F', '#808000', '#FFFBF0', '#C0C0C0', '#710071', '#008000'];
 
-function starcolor() {
+function starcolor(s) {
   let hex = null;
   switch (scr.color) {
     case 4:
-      hex = [
-        Math.floor(Math.random()*16).toString(16),
-        Math.floor(Math.random()*16).toString(16),
-        Math.floor(Math.random()*16).toString(16),
-      ];
+      if (false && s) {
+        const [r1, r2, r3] = [splitmix32(s), splitmix32(s+1), splitmix32(s+2)];
+        hex = [
+          Math.floor(r1() * 16).toString(16),
+          Math.floor(r2() * 16).toString(16),
+          Math.floor(r3() * 16).toString(16),
+        ];
+      } else {
+        hex = [
+          Math.floor(Math.random()*16).toString(16),
+          Math.floor(Math.random()*16).toString(16),
+          Math.floor(Math.random()*16).toString(16),
+        ];
+        //hex = [
+        //  Math.floor(4 + Math.random()*12).toString(16),
+        //  Math.floor(4 + Math.random()*12).toString(16),
+        //  Math.floor(4 + Math.random()*12).toString(16),
+        //];
+      }
       return '#' + hex.join('');
-    //case 4:
-    //  hex = [
-    //    Math.floor(4 + Math.random()*12).toString(16),
-    //    Math.floor(4 + Math.random()*12).toString(16),
-    //    Math.floor(4 + Math.random()*12).toString(16),
-    //  ];
-    //  return '#' + hex.join('');
     case 2:
       return wincolor[Math.floor(Math.random() * wincolor.length)];
     case 1:
@@ -641,14 +661,14 @@ function starmask(color, img, branch) {
     mask.drawImage(alpha, 0, 0);
 
     mask.globalCompositeOperation = 'source-in';
-    mask.fillStyle = color || starcolor();
+    mask.fillStyle = color;
     mask.fillRect(0, 0, mask.width, mask.height);
   }
 
   return mask.canvas;
 }
 
-function new_stars() {
+function new_stars(color) {
   stars = [];
   if (['xmas', 'natu'].includes(scr.color)) {
     let remainder = scr.density;
@@ -719,6 +739,9 @@ function new_stars() {
         }
       }
     } else {
+      seednow = seedboxnow.value !== '0' && seedboxnow.value !== '' ? seedboxnow.value.replace(/\W/g, '') : Math.random().toString(36).slice(2);
+      seedboxnow.value = seednow;
+      const s = parseInt(seednow, 36) / Math.pow(36, seednow.length).toString(10).slice(2);
       const variant = (interFrameN, img) => {
         if (img) {
           newstar(img);
@@ -728,14 +751,15 @@ function new_stars() {
           new_screensaver();
           return;
         }
-      
-        canvasToFrame(starmask(), variant, interFrameN + 1);
+
+        const color = starcolor(s + interFrameN);
+        canvasToFrame(starmask(color), variant, interFrameN + 1);
       }
       variant(0);
     }
   } else {
     for (const n of Array.from({ length: scr.density }).keys()) {
-      newstar(null, starcolor());
+      newstar(null, starcolor(n));
     }
     new_screensaver();
   }
@@ -2969,40 +2993,47 @@ var graphdrawing = false;
 var leverdrawing = false;
 
 function cursordraw(tooie, start, end) {
+  const pos = cursors[tooie].pos.style;
+  const dot = cursors[tooie].dot.style;
   const sc = window.visualViewport.scale;
-  const size = 3 / sc;
-  const border = 1 / sc;
-  const center = size / 2;
+
+  const size = Math.ceil(3 / sc);
+  const center = Math.floor(size / 2);
+  const border = 1;
+
   if (start) {
     clearTimeout(fader[tooie]);
 
-    cursors[tooie].pos.style.display = 'block';
-    cursors[tooie].pos.style.animation = 'none';
-    cursors[tooie].pos.style.top = pointers[tooie].y - border - center + 'px';
-    cursors[tooie].pos.style.left = pointers[tooie].x - border - center + 'px';
+    pos.display = 'block';
+    pos.animation = 'none';
+    pos.top = pointers[tooie].y - border - center + 'px';
+    pos.left = pointers[tooie].x - border - center + 'px';
 
-    cursors[tooie].dot.style.display = 'block';
-    cursors[tooie].dot.style.animation = 'none';
+    dot.display = 'block';
+    dot.animation = 'none';
   }
 
-  cursors[tooie].pos.style.width = size + 'px';
-  cursors[tooie].pos.style.height = size + 'px';
-  cursors[tooie].pos.style.borderWidth = border + 'px';
+  pos.width = size + 'px';
+  pos.height = size + 'px';
+  pos.boxShadow = 'inset 0 0 0 ' + border + 'px #fff';
+  pos.padding = border + 'px';
 
-  cursors[tooie].dot.style.width = size + 'px';
-  cursors[tooie].dot.style.height = size + 'px';
-  cursors[tooie].dot.style.top = pointers[tooie].y - center + 'px';
-  cursors[tooie].dot.style.left = pointers[tooie].x - center + 'px';
+  dot.top = pointers[tooie].y - center + 'px';
+  dot.left = pointers[tooie].x - center + 'px';
+  dot.width = size + 'px';
+  dot.height = size + 'px';
 
   if (end) {
-    cursors[tooie].pos.style.animation = '';
-    cursors[tooie].dot.style.animation = '';
+    pos.animation = '';
+    dot.animation = '';
     fader[tooie] = setTimeout(() => {
-      cursors[tooie].pos.style.display = 'none';
-      cursors[tooie].dot.style.display = 'none';
+      pos.display = 'none';
+      dot.display = 'none';
     }, 900);
   }
 }
+
+
 
 function graphdraw(e) {
   if (graphdrawing) {
@@ -4383,7 +4414,7 @@ ${x}px ${y + 18}px
   }
 
   if (winsoln >= 16) {
-    poppy.append(newmenu('Moving photo', listener, [4,      75,   'win95.png', true,   95,  95,    1, 4, false, true]));
+    poppy.append(newmenu('Moving photo', listener, [4,      75,   'win95.png', true,   95,  95,    2, 4, false, true]));
   } else {
     poppy.append(unlock(['Moving photo (', ')'], 16));
   }
@@ -5240,6 +5271,7 @@ function resize() {
 
 var cursors;
 window.addEventListener('load', () => {
+  opencss('starfield.css');
   result.style.display = fps.display ? 'block' : 'none';
   document.title = 'Starfield';
 

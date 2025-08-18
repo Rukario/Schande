@@ -535,6 +535,7 @@ canvas {
   position: absolute;
   animation: fade 1000ms linear 1;
   //animation: fade 1000ms steps(2, end);
+  border-width: 0;
   mix-blend-mode: difference;
 }
 
@@ -545,11 +546,6 @@ canvas {
   100% {
     opacity: 0%;
   }
-}
-
-.touchloc {
-  border-color: #ffffff;
-  border-style: solid;
 }
 
 .touchloc_dot {

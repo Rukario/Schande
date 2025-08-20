@@ -673,7 +673,7 @@ function starmask(color, img, branch) {
 function new_stars(color) {
   stars = [];
   if (['xmas', 'natu', 'xott'].includes(scr.color)) {
-    let remainder = scr.density;
+    let remainder = remainder2 = scr.density;
     const variant = (ntimes, img) => {
       Array.from({ length: parseInt(ntimes) }, () => newstar(img));
       remainder -= ntimes;
@@ -694,7 +694,7 @@ function new_stars(color) {
     })();
 
     const foliage = (src, ntimes) => {
-      remainder -= ntimes;
+      remainder2 -= ntimes;
       const f = new Image();
       f.src = src;
       f.addEventListener('load', () => {
@@ -712,8 +712,9 @@ function new_stars(color) {
       //foliage('foliage.png', multi;
     }
 
+    remainder2 /= xarray.length;
     for (const color of xarray) {
-      canvasToFrame(starmask(color), variant, remainder / xarray.length);
+      canvasToFrame(starmask(color), variant, remainder2);
     }
   } else if (scr.color === 'card') {
     const variant = (interFrameN, img) => {

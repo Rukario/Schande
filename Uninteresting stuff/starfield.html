@@ -693,24 +693,27 @@ function new_stars(color) {
       }
     })();
 
-    const foliage = new Image();
-    //foliage.src = 'foliage.png';
-
-    if (scr.color == 'xott') {
-      foliage.src = 'otter.png';
-    } else {
-      foliage.src = 'spruce.png';
+    const foliage = (src, ntimes) => {
+      remainder -= ntimes;
+      const f = new Image();
+      f.src = src;
+      f.addEventListener('load', () => {
+        canvasToFrame(starmask(null, f, 15), variant, ntimes);
+        //canvasToFrame(starmask(['#033201', '#0E600C', '#033201', '#233A0D', '#065001', '#0E600C'], f, 15), variant, ntimes);
+      });
     }
 
-    foliage.addEventListener('load', () => {
-      const ntimes = scr.color == 'xott' ? xarray.length * 2 : scr.density / xarray.length * (xarray.length - 1);
-      canvasToFrame(starmask(null, foliage, 15), variant, ntimes);
-      //canvasToFrame(starmask(['#033201', '#0E600C', '#033201', '#233A0D', '#065001', '#0E600C'], foliage, 15), variant, ntimes);
-    });
+    if (scr.color === 'xott') {
+      foliage('otter.png', xarray.length);
+      foliage('otter2.png', xarray.length);
+    } else {
+      const multi = scr.density / xarray.length * (xarray.length - 1);
+      foliage('spruce.png', multi);
+      //foliage('foliage.png', multi;
+    }
 
     for (const color of xarray) {
-      const ntimes = scr.color == 'xott' ? scr.density / xarray.length - (xarray.length / xarray.length) * 2 : scr.density / xarray.length / xarray.length;
-      canvasToFrame(starmask(color), variant, ntimes);
+      canvasToFrame(starmask(color), variant, remainder / xarray.length);
     }
   } else if (scr.color === 'card') {
     const variant = (interFrameN, img) => {
@@ -4412,7 +4415,7 @@ ${x}px ${y + 18}px
     morescr.append(newmenu('Surreal Xmas',             listener, ['xmas', xlight.length*160,  'light.png', true,  190, 190, 1.25, 4, "#072700", false]));
     morescr.append(newmenu('Deep nature',              listener, ['natu', xnatur.length*120,  'petal.png', true,  190, 190, 1.25, 4, "#170b00", false]));
     if (winsoln >= 124) {
-      morescr.append(newmenu('Offshore',               listener, ['xott', xstrob.length*90,   'petal.png', true,  160, 160, 4, 4, "#331E66", false]));
+      morescr.append(newmenu('Offshore',               listener, ['xott', xstrob.length*90,   'petal.png', true,  130, 130, 4, 4, "#331E66", false]));
     } else {
       morescr.append(unlock(['Offshore (', ')'], 124));
     }

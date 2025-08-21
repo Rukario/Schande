@@ -247,7 +247,7 @@
   "Hazel's Natural":[[143, 974], "crimson", 0, 0],
   "Janine's Muzzle Natural":[[285, 970], "arctic", 0, 3, "cherry blossom", 0, 3],
   "Janine's Natural":[[147, 980], "arctic", 0, 3, "cherry blossom", 0, 3],
-  "JT's Natural":[[145, 976], "white", 0, 0, "arctic", 0, 0],
+  "JT's Natural":[1785, "???", 0, 0],
   "Ledo's Natural":[[1026, 1029], "cream", 3, 0, "gold", 0, 0, "chestnut", 0, 0],
   "Leilani's Natural":[[344, 940], "orchid", 0, 0],
   "Lily's Natural":[[129, 964], "brass", 0, 0],
@@ -394,7 +394,7 @@
   "Hazel's Signature":[[142, 975], "black", 2, 0, "cream", 0, 0],
   "Janine's Muzzle Signature":[[847, 971], "orchid", 0, 0, "wine", 0, 0, "lavender indigo", 3, 0],
   "Janine's Signature":[[848, 981], "orchid", 0, 0, "wine", 0, 0, "lavender indigo", 3, 0],
-  "JT's Signature":[[144, 977], "lazuli", 0, 0, "orange", 0, 0],
+  "JT's Signature":[1786, "???", 0, 0],
   "Ledo's Signature":[[1027, 1030], "lime", 3, 3, "black", 0, 0, "white", 0, 0],
   "Leilani's Signature":[[345, 941], "ocean blue", 2, 0, "smoke", 2, 0],
   "Lily's Signature":[[128, 965], "grass", 0, 0, "anubis", 0, 0],
@@ -422,6 +422,7 @@
   "Duckie Yellow":[1092, "lemon", 0, 0],
   "Terracotta":[[1205, 1221], "bronze", 0, 0, "teal", 0, 0],
   "Feathered Serpent":[1382, "honey", 0, 0, "lemon", 0, 2, "green", 0, 2, "grass", 0, 2],
+  "Janine's Fire Legacy":[1787, "???", 0, 0],
 
 
 
@@ -465,6 +466,8 @@
   "Helius' Signature Legacy":[[1020, 1024], "sky blue", 0, 0, "machine", 0, 2, "blueberry", 0, 0, "concrete", 0, 0],
   "Ika's Natural Legacy":[[11, 710], "ocean blue", 0, 0, "honey", 0, 0],
   "Ika's Signature Legacy":[[10, 711], "ocean blue", 0, 0, "lazuli", 0, 2],
+  "JT's Natural Legacy":[[145, 976], "white", 0, 0, "arctic", 0, 0],
+  "JT's Signature Legacy":[[144, 977], "lazuli", 0, 0, "orange", 0, 0],
   "John's Signature Legacy":[[682, 684], "white", 0, 0, "smoke", 0, 0, "mold", 0, 0],
   "Kage's Natural Legacy":[[27, 728], "xanadu", 0, 0],
   "Kage's Signature Legacy":[[26, 729], "lazuli", 0, 0, "indigo", 0, 2],

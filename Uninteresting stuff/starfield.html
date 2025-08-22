@@ -546,8 +546,7 @@ function change_stars(args) {
   star.r = star.x/star.y;
   star.life = args[6];
   star.accelerate = args[7];
-  ccolor = args[8] || '#000';
-  lastcolor = args[8] || '#000';
+  lastcolor = ccolor = args[8] || '#000';
   document.body.style.backgroundColor = ccolor;
   sideways = args[9];
 
@@ -752,7 +751,7 @@ function new_stars(color) {
           }
         }
       }
-    } else {
+    } else if (scr.color) {
       seednow = seedboxnow.value !== '0' && seedboxnow.value !== '' ? seedboxnow.value.replace(/\W/g, '') : Math.random().toString(36).slice(2);
       seedboxnow.value = seednow;
       const s = parseInt(seednow, 36) / Math.pow(36, seednow.length).toString(10).slice(2);
@@ -770,6 +769,10 @@ function new_stars(color) {
         canvasToFrame(starmask(color), variant, interFrameN + 1);
       }
       variant(0);
+    } else {
+      Array.from({ length: scr.density }, () => newstar(alpha));
+      new_screensaver();
+      return;
     }
   } else {
     for (const n of Array.from({ length: scr.density }).keys()) {
@@ -4126,6 +4129,9 @@ function makemenu() {
   morescr = document.createElement('DIV');
   morescr.classList = 'poppy right';
 
+  morephoto = document.createElement('DIV');
+  morephoto.classList = 'poppy right';
+
   staropt = document.createElement('DIV');
   staropt.classList = 'poppy right';
 
@@ -4434,9 +4440,12 @@ ${x}px ${y + 18}px
   }
 
   if (winsoln >= 16) {
-    poppy.append(newmenu('Moving photo', listener, [4,      75,   'win95.png', true,   95,  95,    2, 4, false, true]));
+    morephoto.append(newmenu('Windows',   listener, [4,      75,   'win95.png', true,   95,  95,    2, 4, false, true]));
+    morephoto.append(newmenu('Otter',     listener, [0,      75,   'otter.png', true,   190,  190,    4, 4, false, true]));
+    morephoto.append(newmenu('Otter 2',     listener, [0,      75,   'otter2.png', true,   190,  190,    4, 4, false, true]));
+    poppy.append(newmenu('Moving photo', submenu, false, morephoto));
   } else {
-    poppy.append(unlock(['Moving photo (', ')'], 16));
+    poppy.append(unlock(['Moving photo (', ')'], 16, true));
   }
 
   // sol_computer

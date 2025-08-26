@@ -634,8 +634,12 @@ function makegallery() {
     gallery.lastChild.remove();
   };
 
-  const lines = editor.textContent.replace(/Bad Dragon\//g, 'https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/').replace(/\<br\>/g, '\n').split('\n');
-  const bookmarks = lines.filter((e) => {
+  let lines = editor.textContent;
+  for (const esc of ['Bad Dragon/', 'BD/']) {
+    const rr = new RegExp(esc, 'g');
+    lines = lines.replace(rr, 'https://media.bad-dragon.com/inventory-toy-services/');
+  }
+  const bookmarks = lines.replace(/\<br\>/g, '\n').split('\n').filter((e) => {
     return (
       e &&
       !e.startsWith('SHAME ') && (
@@ -712,8 +716,12 @@ function replacegallery() {
   }
   galleryset = [[], []];
 
-  const lines = editor.textContent.replace(/Bad Dragon\//g, 'https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/').replace(/\<br\>/g, '\n').split('\n');
-  const bookmarks = lines.filter((e) => {
+  let lines = editor.textContent;
+  for (const esc of ['Bad Dragon/', 'BD/']) {
+    const rr = new RegExp(esc, 'g');
+    lines = lines.replace(rr, 'https://media.bad-dragon.com/inventory-toy-services/');
+  }
+  const bookmarks = lines.replace(/\<br\>/g, '\n').split('\n').filter((e) => {
     return (
       e &&
       !e.startsWith('SHAME ') && (
@@ -1241,17 +1249,25 @@ function FFdown(e) {
   }
 }
 
+const makelink = (t, c) => {
+  const a = document.createElement('A');
+  a.classList = 'next ahref';
+  a.target = '_blank';
+  a.id = c;
+  a.textContent = t;
+  return a;
+}
+
 var link = false;
 var cur = 0;
 var downmove = false;
 var busymoving, busypicker, busytyping;
 var updatesel = false;
-var updatelen = 0;
+var updateseln = 0;
 
-function FFup() {
-  let sel = editor.ownerDocument.defaultView.getSelection();
-  let len = sel.toString().length;
-  let pos = sel.getRangeAt(0);
+const FFup = () => {
+  const sel = editor.ownerDocument.defaultView.getSelection();
+  const len = sel.toString().length;
   if (link && link.classList.contains('hyperlink')) {
     link.classList.remove('pulse');
     cursor_tooltip.style.display = 'none';
@@ -1268,20 +1284,16 @@ function FFup() {
     where = link.getBoundingClientRect();
     cursor_tooltip.style.left = (window.scrollX + where.left + 6) + 'px';
     cursor_tooltip.style.top = (window.scrollY + where.top + (where.top < 60 ? 30 : -30)) + 'px';
-    const a = document.createElement('A');
-    a.href = link.innerHTML;
-    a.target = '_blank';
-    a.classList = 'next ahref';
-    a.textContent = 'Open';
-    cursor_tooltip.append(a);
+    const a = makelink('Open', 'linkitty');
+    a.href = link.textContent;
+    cursor_tooltip.appendChild(a);
     cursor_tooltip.style.display = 'inline-block';
   } else if (len > 0 && len < 256) {
     if (!updatesel) {
       updatesel = window.setInterval(() => {
-        let sel = editor.ownerDocument.defaultView.getSelection();
-        let len = sel.toString().length;
-        if (len !== updatelen){
-          updatelen = len;
+        const seln = editor.ownerDocument.defaultView.getSelection().toString().length;
+        if (seln !== updateseln) {
+          updateseln = seln;
           FFup();
         }
       }, 500);
@@ -1296,23 +1308,26 @@ function FFup() {
     updatesel = false;
     cursor_tooltip.style.display = 'none';
   }
-  let preCaretRange = pos.cloneRange();
-  if (ans) {
-    where = preCaretRange.getBoundingClientRect();
-    cursor_tooltip.style.left = (window.scrollX + where.left) + 'px';
-    cursor_tooltip.style.top = (window.scrollY + where.top + 36) + 'px';
-
-    const s = document.createElement('SPAN');
-    s.classList = 'tangerine cursed';
-    s.style.fontSize = '14px';
-    s.textContent = ans;
-    cursor_tooltip.append(s);
-    cursor_tooltip.style.display = 'inline-block';
-  };
-  preCaretRange.selectNodeContents(editor);
-  preCaretRange.setEnd(pos.endContainer, pos.endOffset);
-  cur = preCaretRange.toString().length;
-  calc.placeholder = 'Ln:' + editor.textContent.substr(0, cur).split('\n').length + ' Pos:' + cur;
+  if (sel.rangeCount) {
+    const pos = sel.getRangeAt(0);
+    const preCaretRange = pos.cloneRange();
+    if (ans) {
+      where = preCaretRange.getBoundingClientRect();
+      cursor_tooltip.style.left = (window.scrollX + where.left) + 'px';
+      cursor_tooltip.style.top = (window.scrollY + where.top + 36) + 'px';
+    
+      const s = document.createElement('SPAN');
+      s.classList = 'tangerine cursed';
+      s.style.fontSize = '14px';
+      s.textContent = ans;
+      cursor_tooltip.append(s);
+      cursor_tooltip.style.display = 'inline-block';
+    };
+    preCaretRange.selectNodeContents(editor);
+    preCaretRange.setEnd(pos.endContainer, pos.endOffset);
+    cur = preCaretRange.toString().length;
+    calc.placeholder = 'Ln:' + editor.textContent.substr(0, cur).split('\n').length + ' Pos:' + cur;
+  }
 }
 
 function plaintext(e) {
@@ -1352,8 +1367,15 @@ function edit() {
     }
   }
 
-  const h = editor.textContent.replace(/<br>/g, '\n').replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, 'Bad Dragon/')
-  const n = encodeURIComponent(h).length;
+  let utf8 = editor.textContent.replace(/<br>/g, '\n');
+  for (const esc of [
+    'https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/',
+    'https://media.bad-dragon.com/inventory-toy-services/',
+  ]) {
+    const rr = new RegExp(esc, 'g'); 
+    utf8 = utf8.replace(rr, 'Bad Dragon/');
+  }
+  const n = encodeURIComponent(utf8).length;
   gallerysave.textContent = 'Save ' + n + '/4085';
   if (4085 < n){
     gallerysave.classList = 'previous';
@@ -1423,7 +1445,15 @@ var FFover = (e) => {
     listener = (z) => {
       z.target.style.opacity = 1;
       if (z.target.classList.contains('schande')) {
-        z.target.dataset.schande = (t.dataset.src ? t.dataset.src : t.src).replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, "Bad Dragon/");
+        let utf8 = t.dataset.src ? t.dataset.src : t.src;
+        for (const esc of [
+          'https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/',
+          'https://media.bad-dragon.com/inventory-toy-services/',
+        ]) {
+          const rr = new RegExp(esc, 'g'); 
+          utf8 = utf8.replace(rr, 'Bad Dragon/');
+        }
+        z.target.dataset.schande = utf8;
       }
       z.target.removeEventListener('mouseover', listener);
       let left = () => {
@@ -1510,17 +1540,6 @@ window.onload = () => {
 
   let listener = null;
   const tc = 'click';
-
-  const makelink = (t, c) => {
-    const a = document.createElement('A');
-    a.classList = 'next';
-    a.target = '_blank';
-    a.id = c;
-    a.textContent = t;
-    return a;
-  }
-
-
 
   // tooltips
   cursor_focus = document.createElement('DIV');
@@ -1754,7 +1773,15 @@ window.onload = () => {
       }
 
       const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
-      const utf8 = editor.textContent.replace(/<br>/g, '\n').replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, 'Bad Dragon/');
+      let utf8 = editor.textContent.replace(/<br>/g, '\n');
+      for (const esc of [
+        'https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/',
+        'https://media.bad-dragon.com/inventory-toy-services/',
+      ]) {
+        const rr = new RegExp(esc, 'g'); 
+        utf8 = utf8.replace(rr, 'Bad Dragon/');
+      }
+
       document.cookie = `gallerysave=${encodeURIComponent(utf8)}; expires=${expires}; path=/; SameSite=Strict;`;
       //no expiry would allow the cookie to be automatically deleted upon browser exit.
       e.classList = 'previous';
@@ -1843,7 +1870,15 @@ window.onload = () => {
   editor.addEventListener('drop', (e) => {
     if (dragfile) {
       e.preventDefault();
-      echo(dragfile.childNodes[0].src.replace(/https:\/\/da6npmvqm28oa.cloudfront.net\/inventory-toy-services\//g, 'Bad Dragon/'));
+      let utf8 = dragfile.childNodes[0].src;
+      for (const esc of [
+        'https://da6npmvqm28oa.cloudfront.net/inventory-toy-services/',
+        'https://media.bad-dragon.com/inventory-toy-services/',
+      ]) {
+        const rr = new RegExp(esc, 'g'); 
+        utf8 = utf8.replace(rr, 'Bad Dragon/');
+      }
+      echo(utf8);
       edit();
       dragfile = null;
     }

@@ -639,7 +639,8 @@ function makegallery() {
     const rr = new RegExp(esc, 'g');
     lines = lines.replace(rr, 'https://media.bad-dragon.com/inventory-toy-services/');
   }
-  const bookmarks = lines.replace(/\<br\>/g, '\n').split('\n').filter((e) => {
+  lines = lines.replace(/\<br\>/g, '\n').split('\n');
+  const bookmarks = lines.filter((e) => {
     return (
       e &&
       !e.startsWith('SHAME ') && (
@@ -721,7 +722,8 @@ function replacegallery() {
     const rr = new RegExp(esc, 'g');
     lines = lines.replace(rr, 'https://media.bad-dragon.com/inventory-toy-services/');
   }
-  const bookmarks = lines.replace(/\<br\>/g, '\n').split('\n').filter((e) => {
+  lines = lines.replace(/\<br\>/g, '\n').split('\n');
+  const bookmarks = lines.filter((e) => {
     return (
       e &&
       !e.startsWith('SHAME ') && (

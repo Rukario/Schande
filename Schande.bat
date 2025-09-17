@@ -3783,6 +3783,15 @@ a {
     body = '\n'.join(buffer)
     body = f"<h2>{title}</h2>{body}"
 
+    script = """window.onload = () => {
+  for (const [key, value] of new URLSearchParams(window.location.search)) {
+    if (key === 'search') {
+      for (const link of document.getElementsByClassName('viewer')) {
+        link.href += '&search=' + value;
+      }
+    }
+  }
+}"""
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -3793,6 +3802,7 @@ a {
 <meta name="viewport" content="user-scalable=0">
 <title>{title}</title>
 <style>{style}</style>
+<script>{script}</script>
 </head>
 <body class="exitmenu">{body}</body>
 </html>"""

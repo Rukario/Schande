@@ -265,6 +265,10 @@
   "Sofia's Natural":[1793, "???", 0, 0],
   "Stryker's Natural":[[1238, 1252], "galaxy", 0, 0, "concrete", 0, 0, "ocean blue", 0, 0],
   "Sugar Star's Natural":[1800, "???", 0, 0],
+  "Sydney's Natural":[1824, "???", 0, 0],
+  "Sydney's Natural (buzzcock)":[1817, "???", 0, 0],
+  "Sydney's Natural (circle jerk)":[1818, "???", 0, 0],
+  "Sydney's Natural (sex pistol)":[1816, "???", 0, 0],
   "Zoie's Natural":[[430, 950], "chestnut", 0, 0, "maroon", 0, 0],
 
   "Signature":true,
@@ -383,7 +387,6 @@
   "Zephyr's signature":[[1533, 1563], "???", 0, 0],
 
   "Signature mas":true,
-
   "Alice's Signature":[1794, "???", 0, 0],
   "Anje's Signature":[1661, "???", 0, 0],
   "Candy's Signature":[[1459, 1469], "???", 0, 0],
@@ -414,6 +417,10 @@
   "Sofia's Signature":[1792, "???", 0, 0],
   "Stryker's Signature":[[1239, 1253], "lemon", 0, 0, "red", 0, 0, "ocean blue", 0, 0, "lazuli", 0, 0],
   "Sugar Star's Signature":[1801, "???", 0, 0],
+  "Sydney's Signature":[1825, "???", 0, 0],
+  "Sydney's Signature (buzzcock)":[1820, "???", 0, 0],
+  "Sydney's Signature (circle jerk)":[1821, "???", 0, 0],
+  "Sydney's Signature (sex pistol)":[1819, "???", 0, 0],
   "Zoie's Signature":[[431, 951], "white", 0, 0, "grape", 3, 0, "lemon", 0, 0],
 
 
@@ -426,6 +433,7 @@
   "Terracotta":[[1205, 1221], "bronze", 0, 0, "teal", 0, 0],
   "Feathered Serpent":[1382, "honey", 0, 0, "lemon", 0, 2, "green", 0, 2, "grass", 0, 2],
   "Janine's Fire Legacy":[1787, "???", 0, 0],
+  "Cackle Beast":[1841, "???", 0, 0],
 
 
 
@@ -1080,6 +1088,14 @@
   "Bacon Bits Signature":[null, "???", 0, 0],
   "Rextangles Signature":[null, "???", 0, 0],
 
+  "Vigilance":[1829, "???", 0, 0],
+  "Anarchy":[1842, "???", 0, 0],
+  "Violence":[1830, "???", 0, 0],
+  "King of the Dead":[1833, "???", 0, 0],
+  "Stink - 182":[1843, "???", 0, 0],
+  "Ribbit":[1831, "???", 0, 0],
+  "Shadow Summon":[1832, "???", 0, 0],
+
 
 
   "Con":true,
@@ -1146,6 +1162,9 @@
 
   "Con Megaplex 2025":[[1698, 1697], "???", 0, 0],
   "Split Con Megaplex 2025":[1699, "???", 0, 0],
+
+  "Con MFF 2025":[1839, "???", 0, 0],
+  "Split Con MFF 2025":[1840, "???", 0, 0],
 
   "Rhinestone Cowpoke (✨ = orderable unaltered & no swap)":true,
   "Rhinestone Seraphina's Natural":[1418],

@@ -169,6 +169,7 @@
   "Hunter's Natural":[[249, 730], "gold", 0, 0, "chocolate", 0, 2],
   "Ika's Natural":[1630, "???", 0, 0],
   "Jason's Natural":[1675, "???", 0, 0],
+  "Jean-Claw's Natural":[1851, "???", 0, 0],
   "John Natural":[[681, 683], "honey", 0, 0, "grass", 0, 0, "raspberry", 0, 0],
   "Jonas' Natural":[[1599, 1612], "???", 0, 0],
   "Kage's Natural":[1676, "???", 0, 0],
@@ -323,6 +324,7 @@
   "Hunter's Signature":[[250, 731], "ocean blue", 0, 3, "cherry", 0, 3, "garnet", 0, 2, "anubis", 0, 2],
   "Ika's Signature":[1629, "???", 0, 0],
   "Jason's Signature":[370, "???", 0, 0],
+  "Jean-Claw's Signature":[1852, "???", 0, 0],
   "John's Signature":[1713, "???", 0, 0],
   "Jonas' Signature":[[1600, 1613], "???", 0, 0],
   "Kage's Signature":[1714, "???", 0, 0],
@@ -1108,6 +1110,10 @@
   "Blackout":[1877, "???", 0, 0],
   "Duka-Cola Black":[1879, "???", 0, 0],
 
+  "Hopps":[1892, "???", 0, 0],
+  "Wilder":[1890, "???", 0, 0],
+  "Zebro":[1891, "???", 0, 0],
+
 
 
   "Con":true,
@@ -1302,6 +1308,7 @@
   "Sex on the Beach":[1601],
   "The Naughty List":[null],
   "Underworld":[1775, "???", 0, 0],
+  "Awoo in the Woods":[1860, "???", 0, 0],
 
   "Retired Natural/Signature (confirmed retired)":true,
   "Pearce's Signature Retired":[[13, 713], "???", 0, 0],

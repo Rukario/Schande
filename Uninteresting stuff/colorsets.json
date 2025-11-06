@@ -1114,6 +1114,16 @@
   "Wilder":[1890, "???", 0, 0],
   "Zebro":[1891, "???", 0, 0],
 
+  "Black Friday Black":[1000, "???", 0, 0],
+  "Blellow Marble":[[null, 1907], "???", 0, 0],
+  "Blurple Highlight":[[null, 1902], "???", 0, 0],
+  "Blurple Marble":[[null, 1901], "???", 0, 0],
+  "Blellow Highlight":[[null, 1908], "???", 0, 0],
+  "Porange Highlight":[[null, 1906], "???", 0, 0],
+  "Preen Highlight":[[null, 1904], "???", 0, 0],
+  "Preen Marble":[[null, 1903], "???", 0, 0],
+  "Porange Marble":[[null, 1905], "???", 0, 0],
+
 
 
   "Con":true,

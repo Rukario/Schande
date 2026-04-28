@@ -214,6 +214,7 @@ class tcolor:
     b = ansi_color("0", "3B78FF")
     o = ansi_color("0", "FF9030")
     w = ansi_color("401707", "6")
+    y = ansi_color("0", "FBC762")
     c = ansi_color("0")
     if sys.platform == "darwin":
         x = ansi_color()
@@ -244,7 +245,8 @@ def mainmenu():
  + Enter valid site to start a scraper.
 """
 def ready_input():
-    echo(f"{tcolor.w}{clean}Your key: ", flush=True)
+    if not busy[0]:
+        echo(f"{tcolor.w}{clean}Your key: ", flush=True)
 def skull():
     return r"""                                    
               ______                
@@ -510,7 +512,7 @@ def alert(m, s, d=False):
     title("! " + monitor())
     send(s, m, d)
     if not d:
-        choice(bg=["2e"])
+        firework(["2e"])
 
 
 
@@ -553,15 +555,16 @@ def echo_pip():
 
 
 lostfocus = [False]
-def choice(keys="", bg=[], double=False):
+
+def firework(bg=["%stopcolor%", "%color%"]):
     if sys.platform == "win32":
-        if bg:
-            lostfocus[0] = True
-            if bg == True:
-                bg = ["%stopcolor%", "%color%"]
-            for b in bg:
-                os.system(f"color {b}")
-            echo(tcolor.x)
+        lostfocus[0] = True
+        for b in bg:
+            os.system(f"color {b}")
+        echo(tcolor.x)
+
+def choice(keys="", double=False):
+    if sys.platform == "win32":
         if keys:
             lostfocus[0] = False
             el = os.system(f"choice /c:{keys} /n")
@@ -595,28 +598,51 @@ done""")
         Keypress_time[1] = Keypress_time[0] + Fast_presser
     return el
 
+def get_keypress(i="Your key: ", choices=[], double=False):
+    dik = {}
+    for c in choices:
+        key = c[0].upper()
+        dik.setdefault(key, set())
+        dik[key].add(c[1:])
+    keys = ''.join(dik.keys())
+    while True:
+        echo(f"{tcolor.w}{clean}{i}{tcolor.y}", flush=True)
+        el = choice(keys.lower(), double=double)
+        echo(tcolor.x, 0, 1)
 
-
-def input(i="Your Input: ", choices=False, double=False):
-    echo(str(i), flush=True)
-    if choices:
-        keys = ""
-        for c in choices:
-            keys += c[0].lower()
-        while True:
-            el = choice(keys, double=double)
-            if el > 0 and (c := choices[el-1])[1:]:
+        if el < 1:
+            return "Slow" + keys[-el-1]
+        else:
+            key = keys[el-1]
+            nter = ""
+            if list(filter(None, dik[key])):
                 echo("", 1, 0)
-                nter = input("Type and enter to confirm, else to return: " + c + f"\033[{len(c)-1}D")
-                echo("", 1, 0)
-                echo(str(i), flush=True)
-                if nter.lower() == choices[el-1][1:].lower():
-                    echo(c, 0, 0)
-                    return el
+                if len(dik[key]) == 1:
+                    xter = ''.join(dik[key]).lower()
+                    nter = input("Type and enter to confirm, else to return: " + key + xter + f"\033[{len(xter)}D")
+                    if not busy[0]:
+                        echo("", 1, 0)
+                else:
+                    echo(''.join(f" {key}{e}" for e in dik[key]), 0, 1)
+                    nter = input(f"Enter provided values, obscene to return: {key}")
+                    if not busy[0]:
+                        echo("", 1, 0)
+                        echo("", 1, 0)
             else:
-                return el
-    else:
-        return sys.stdin.readline().replace("\n", "")
+                return "Key" + key
+            for element in dik[key]:
+                if not nter and not element:
+                    echo(f"{key}", flush=True)
+                    return "Key" + key
+                elif nter == element.lower():
+                    echo(f"{key}{nter}", flush=True)
+                    return key + nter
+
+def input(i="Your input: "):
+    echo(f"{tcolor.w}{clean}{i}{tcolor.y}", flush=True)
+    stdin = sys.stdin.readline().replace("\n", "")
+    echo(tcolor.x, 0, 1)
+    return stdin
 
 
 
@@ -649,8 +675,8 @@ for setting in settings:
     if not rules[pos].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if pos == 0:
             while True:
-                i = input("Launch HTTP server? (Y)es/(N)o: ", "yn")
-                if i == 1:
+                code = get_keypress("Launch HTTP server? (Y)es/(N)o: ", "yn")
+                if code == "KeyY":
                     echo("", 1)
                     i = input("Quick password for sensitive files serving, enter nothing to return to last prompt: ")
                     if not i:
@@ -1705,7 +1731,7 @@ print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
 
 
 if not cli["dismiss"]:
-    choice(bg=["4c", "%color%"])
+    firework(["4c", "%color%"])
     buffer = f"\n{tcolor.o} TO YOURSELF: {rulefile} contains personal information\n like mail, password, cookies. Edit {rulefile} before sharing!"
     if HTTPserver:
         buffer += f"\n{skull()}\n HTTP SERVER: Anyone accessing your server can open {rulefile} reading personal information\n like mail, password, cookies."
@@ -3554,12 +3580,12 @@ def scrape(startpages):
                 pages += alerted_pages
                 alerted_pages = []
                 alerted[0] = False
-                choice(bg=["2e", "%color%"])
+                firework(["2e", "%color%"])
             elif Keypress["KeyS"]:
                 Keypress["KeyS"] = False
                 alerted_pages = []
                 alerted[0] = False
-                choice(bg=["2e", "%color%"])
+                firework(["2e", "%color%"])
     title(status())
 
     for p in shelf.keys():
@@ -3598,7 +3624,8 @@ def phthread():
             accu.append(f"{hash} {f[0]}/{f[1]}")
             if filevs and filevs == hash:
                 print(f"{file}\nSame file found! (C)ontinue")
-                choice("c", ["2e"])
+                firework(["2e"])
+                choice("c")
         except:
             error[0] += [file]
         if threadn%16 == 0:
@@ -4085,7 +4112,7 @@ def savenow(trashdir=False):
         if not new_savs:
             echo("No files to save!", 0, 1)
             return
-        if input(" Press S again to confirm or return to (M)ain menu: ", "sm") == 1:
+        if get_keypress(" Press S again to confirm or return to (M)ain menu: ", "sm") == "KeyS":
             with open(savs, 'ab') as f:
                 f.write(bytes("\n".join(new_savs) + "\n", 'utf-8'))
     else:
@@ -4108,7 +4135,7 @@ def delnow():
         echo("No schande'd files!", 0, 1)
         return
     echo(stdout, 0, 1)
-    if input(" Press D again to confirm or return to (M)ain menu: ", "dm") == 1:
+    if get_keypress(" Press D again to confirm or return to (M)ain menu: ", "dm") == "KeyD":
         for dir in trashlist.keys():
             trashdir = dir + " Trash/"
             if not os.path.exists(trashdir):
@@ -4117,7 +4144,7 @@ def delnow():
                 if os.path.exists(file):
                     os.rename(f"{dir}/{file}", f"{trashdir}{file}")
         echo(skull(), 0, 1)
-        choice(bg=["4c", "%color%"])
+        firework(["4c", "%color%"])
         schande_filelist[0][1] = []
     return True
 
@@ -4142,35 +4169,35 @@ def delmode():
    > Then for the next time they will be moved to \\.. Trash 2\\ during (G) SAVX auto.
 """)
     while True:
-        el = input("Return to (M)ain menu: ", "dgstm")
-        if not el:
+        code = get_keypress("Return to (M)ain menu: ", "dgstm")
+        if not code:
             whereami("Bad choice", kill=True)
-        elif el == 1:
+        elif code == "KeyD":
             if delnow():
                 return
-        elif el == 2:
+        elif code == "KeyG":
             if not SAVX:
-                choice(bg=True)
+                firework()
                 print(" Make SAVX: Maybe not.")
                 return
-            choice(bg=["4c", "%color%"])
+            firework(["4c", "%color%"])
             if input("Drag'n'drop and enter my SAV file: ").rstrip().replace("\"", "").replace("\\", "/") == f"{batchdir}{sav}":
                 echo(skull(), 0, 1)
-                choice(bg=["4c", "%color%"])
+                firework(["4c", "%color%"])
                 tosavx(True)
             return
-        elif el == 3:
+        elif code == "KeyS":
             savenow()
             return
-        elif el == 4:
+        elif code == "KeyT":
             echo("", 1, 0)
             trashdir = input("Trash dir: ").rstrip().replace("\"", "").replace("\\", "/")
             if os.path.isdir(trashdir) and trashdir.endswith(" Trash"):
                 echo(skull(), 0, 1)
-                choice(bg=["4c", "%color%"])
+                firework(["4c", "%color%"])
                 savenow(trashdir)
             return
-        elif el == 5:
+        elif code == "KeyM":
             echo("", 1, 0)
             return
 
@@ -4191,17 +4218,17 @@ def delmode_old(m):
             while True:
                 try:
                     schande_filelist[0][1].remove(file)
-                    choice(bg=["2a", "%color%"])
+                    firework(["2a", "%color%"])
                 except:
-                    choice(bg=["08", "%color%"])
+                    firework(["08", "%color%"])
                     break
         elif file.lower() == "d" and schande_filelist[0][1]:
             delnow()
         elif os.path.exists(file):
-            choice(bg=["4c", "%color%"])
+            firework(["4c", "%color%"])
             schande_filelist[0][1] += [file]
         else:
-            choice(bg=["08", "%color%"])
+            firework(["08", "%color%"])
 
 
 
@@ -4248,7 +4275,8 @@ def compare(fp, fp2):
             print(f" {tcolor.g}Featuring image is unique! Nothing like it in SAVX!{tcolor.x}")
         else:
             print(f"{hash} {fp} (featuring image)\nSame file found! (C)ontinue")
-            choice("c", ["2e"])
+            firework(["2e"])
+            choice("c")
 
     print(f"total runtime: {time.time()-start}")
 
@@ -4256,7 +4284,7 @@ def compare(fp, fp2):
 
 def finish_sort():
     if not os.path.exists(batchname + "/"):
-        choice(bg=True)
+        firework()
         print(f" \\{batchname}\\ doesn't exist! Nothing to sort.")
         return
     mover = {}
@@ -4294,7 +4322,7 @@ def finish_sort():
                         mover.update({file:dir})
                         break
     if not mover:
-        choice(bg=True)
+        firework()
         print(f" Nothing to sort! Check and add or update pattern if there are files in \\{batchname}\\ needed to be sorted.")
         return
     echo(f" ({tcolor.b}From directory {tcolor.r}-> {tcolor.g}to a more deserving directory{tcolor.x}) {tcd} for non-existent directories - (C)ontinue ", flush=True)
@@ -4424,11 +4452,15 @@ def remote_echo(remote, nolist):
             if not any(x for x in ["Sum:    ", "ID    Done", "ID   Done"] if x in line):
                 listed = True
                 line = line.rstrip()
+                # echo(f"{tcolor.y}{line}{tcolor.x}", 0, 1)
+
                 id = line[:6].strip()
-                percent = line[6:13].strip()
-                status = line[59:71].strip() 
-                name = line[72:].strip()
-                echo(f"{id:>3} {status} {percent} {name}", 0, 1, clamp='█')
+                err = line[6:7].strip()
+                percent = line[7:15].strip()
+                status = line[63:78].strip() 
+                name = line[78:].strip()
+
+                echo(f"{id:>3}{err:1} {status:>11} {percent:>5} {name}", 0, 1, clamp='█')
         if not listed:
             echo(nolist, 0, 1)
         echo("", 0, 1)
@@ -4439,14 +4471,17 @@ def remote_echo_files(remote, torrent_id):
         listed = False
         buffer = p.communicate()[0].decode().splitlines()
         for line in buffer:
-            line = line.rstrip()
             if line and not any(x for x in [" files):", "  Done"] if x in line):
                 listed = True
+                line = line.rstrip()
+                # echo(f"{tcolor.o}{line}{tcolor.x}", 0, 1)
+
                 id = line[:3].strip()
                 percent = line[5:10].strip()
                 status = line[19:23].strip()
                 size = line[24:33].strip() 
                 name = line[34:].strip()
+
                 echo(f"{int(id)+1:>3} {'Include' if status == 'Yes' else 'Ignore '} {percent} {size:>9}  {name}", 0, 1, clamp='█')
         if not listed:
             echo("No files to list!", 0, 1)
@@ -4454,8 +4489,8 @@ def remote_echo_files(remote, torrent_id):
 
 
 
-def killdaemon(el):
-    if el == "SlowK":
+def killdaemon(code):
+    if code == "SlowK":
         echo(f"Press K twice in fast sequence to kill transmission-daemon and return to main menu.", 1, 1)
         return
     if sys.platform == "linux":
@@ -4465,9 +4500,9 @@ def killdaemon(el):
     task["transmission"] = False
     return True
 
-def uninstdaemon(el):
+def uninstdaemon(code):
     if sys.platform == "linux":
-        if el == "SlowU":
+        if code == "SlowU":
             echo(f"Press U twice in fast sequence to uninstall Transmission and return to main menu.", 1, 1)
         else:
             os.system("apk del transmission-daemon")
@@ -4480,13 +4515,13 @@ def uninstdaemon(el):
 def start_remote(remote):
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
     pos = 0
-    last_el = "KeyS"
+    last_code = "KeyG"
     remove = []
-    switch = "STOP"
+    switch = "START"
     if not task["transmission"]:
         echo(""" Key listener (torrent/file viewer):
   > Press D, F to decrease or increase number by 10.
-  > Press S, G to (S)top/start (G)etting selected item.
+  > Press S, G to (S)top or start (G)etting selected item.
    > Finished torrent will stop automatically, start a finished torrent to seed indefinitely.
   > Press L, M to re/(L)ist all items or return to torrent (M)anager/(M)ain menu.
    > Press K to kill transmission-daemon and return to main menu.
@@ -4495,154 +4530,141 @@ def start_remote(remote):
  Key listener (torrent management):
   > Press R, E, I to (R)emove torrent, view fil(E)s of selected torrent, or (I)nput new torrent.""", 0, 2)
     while True:
+        code = ""
         if task["transmission"]:
-            index = input(f"Select TORRENT by number to {switch}: {f'{pos/10:g}' if pos else ''}", ["All", *"defgiklmrsu0123456789"], double="klu")
-            if index < 0:
-                el = "Slow" + "?ADEFGIKLMRSU0123456789"[-index]
-            else:
-                el = "Key" + "?ADEFGIKLMRSU0123456789"[index]
-            num = index - len("?ADEFGIKLMRSU")
+            code = get_keypress(f"Select TORRENT by number to {switch}: {f'{pos/10:g}' if pos else ''}", ["All", *"defgiklmrsu0123456789"], double="klu")
         else:
-            index = input("(I)nput new torrent, (L)ist or return to (M)ain menu: ", [*"ilm"])
-            el = "Key" + "?ILM"[index]
+            code = get_keypress("(I)nput new torrent, (L)ist or return to (M)ain menu: ", [*"ilm"])
             task["transmission"] = True
-        if el == "KeyD":
+
+        if code == "KeyD":
             pos -= 10 if pos > 0 else 0
             echo("", 1)
-        elif el == "KeyF":
+        elif code == "KeyF":
             pos += 10
             echo("", 1)
-        elif el in ["KeyL", "SlowL"]:
-            if last_el == "KeyR" and remove:
-                if el == "SlowL":
-                    echo(f"Press L twice in fast sequence to remove: {' '.join(x for x in remove)}", 1, 1)
+        elif code in ["KeyL", "SlowL"]:
+            if last_code == "KeyR" and remove:
+                if code == "SlowL":
+                    if remove == "All":
+                        echo("Press L twice in fast sequence to REMOVE ALL torrents.", 1, 1)
+                    else:
+                        echo(f"Press L twice in fast sequence to REMOVE: {' '.join(x for x in remove)}", 1, 1)
                     continue
-                for r in remove:
-                    subprocess.Popen([remote, "-t", r, "-r"], **shuddup)
+                if remove == "All":
+                    subprocess.Popen([remote, "-t", "all", "-r"], **shuddup)
+                else:
+                    for r in remove:
+                        subprocess.Popen([remote, "-t", r, "-r"], **shuddup)
                 remove = []
                 pos = 0
-                last_el = "KeyS"
-                switch = "STOP"
+                last_code = "KeyG"
+                switch = "START"
                 time.sleep(0.5)
                 echo("", 1)
                 remote_echo(remote, "All torrents removed!")
             else:
                 echo("", 1)
                 remote_echo(remote, "No torrents to list!")
-        elif el == "KeyM":
+        elif code == "KeyM":
             return
-        elif el in ["KeyK", "SlowK"]:
-            if killdaemon(el):
+        elif code in ["KeyK", "SlowK"]:
+            if killdaemon(code):
                 return
             continue
-        elif el in ["KeyU", "SlowU"]:
-            if uninstdaemon(el):
+        elif code in ["KeyU", "SlowU"]:
+            if uninstdaemon(code):
                 return
             continue
-        elif el == "KeyI":
+        elif code == "KeyI":
             echo("", 1)
             buffer = "cancel"
             while True:
-                i = input(f"Magnet/torrent link, enter nothing to {buffer}: ").replace("\"", "")
-                if i.startswith("magnet:") or i.startswith("http") or i.endswith(".torrent"):
+                stdin = input(f"Magnet/torrent link, enter nothing to {buffer}: ").replace("\"", "")
+                if stdin.startswith("magnet:") or stdin.startswith("http") or stdin.endswith(".torrent"):
                     dir = ""
-                    if m := parse.parse_qs(i):
+                    if m := parse.parse_qs(stdin):
                         m = m["dn"][0]
                     else:
-                        m = i
+                        m = stdin
                     if d := [v for k, v in sorter["torrentdirs"].items() if k in m]:
                         dir = d[0]
                     else:
                         dir = "Transmission"
-                    subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", i, "-sr", "0"], **shuddup)
+                    subprocess.Popen([remote, "-w", batchdir + dir, "--start-paused", "-a", stdin, "-sr", "0"], **shuddup)
                     buffer = "finish"
                     pos = 0
-                    last_el = "KeyG"
+                    last_code = "KeyG"
                     switch = "START"
-                elif not i:
+                elif not stdin:
                     echo("", 1)
                     if buffer == "finish":
                         remote_echo(remote, "Daemon's dead, Jim.")
                     break
                 else:
-                    choice(bg=True)
+                    firework()
                     echo("Invalid input", 0, 2)
-        elif not el[-1].isdigit() and not el == "KeyA":
-            last_el = el
-            pos = 0
-            remove = []
-            if el == "KeyS":
-                switch = "STOP"
-            elif el == "KeyG":
-                switch = "START"
-            elif el == "KeyR":
-                switch = "REMOVE, (A)ll"
-            elif el == "KeyE":
-                switch = "VIEW file list"
+        elif code[-1].isdigit():
             echo("", 1)
-        else:
-            if last_el == "KeyS":
-                if el == "KeyA":
-                    echo("", 1)
-                else:
-                    subprocess.Popen([remote, "-t", str(num+pos), "-S"], **shuddup)
-            elif last_el == "KeyG":
-                if el == "KeyA":
-                    echo("", 1)
-                else:
-                    subprocess.Popen([remote, "-t", str(num+pos), "-s"], **shuddup)
-            elif last_el == "KeyR":
-                if el == "KeyA":
-                    subprocess.Popen([remote, "-t", "all", "-r"], **shuddup)
-                    remove = []
-                    last_el = "KeyS"
-                    time.sleep(0.5)
-                    echo("", 1)
-                    remote_echo(remote, "All torrents removed!")
-                else:
-                    remove += [str(num+pos)]
-                    switch = "REMOVE, (A)ll, press L twice to confirm above, press R to clear"
-            elif last_el == "KeyE":
-                if el == "KeyA":
-                    echo("", 1)
-                    continue
+            num = int(code[-1])
+            if last_code == "KeyS":
+                subprocess.Popen([remote, "-t", str(num+pos), "-S"], **shuddup)
+            elif last_code == "KeyG":
+                subprocess.Popen([remote, "-t", str(num+pos), "-s"], **shuddup)
+            elif last_code == "KeyR":
+                remove += [str(num+pos)]
+                switch = "REMOVE, (A)ll, press L twice to confirm above, repeat/switch mode to clear"
+            elif last_code == "KeyE":
                 pos2 = 0
-                last_i = "KeyS"
-                switch2 = "STOP getting"
-                i = "KeyE"
+                last_stdin = "KeyG"
+                switch2 = "GET"
+                stdin = "KeyE"
                 while True:
-                    if i == "KeyD":
+                    if stdin[-1].isdigit():
+                        num2 = int(stdin[-1])
+                    elif stdin == "KeyD":
                         pos2 -= 10 if pos2 > 0 else 0
                         echo("", 1)
-                    elif i == "KeyF":
+                    elif stdin == "KeyF":
                         pos2 += 10
                         echo("", 1)
-                    elif i == "KeyE":
+                    elif stdin == "KeyE":
                         remote_echo_files(remote, num+pos)
-                    elif i == "KeyM":
+                    elif stdin == "KeyM":
                         echo("", 1)
                         break
-                    elif i in ["KeyK", "SlowK"]:
-                        if killdaemon(i):
+                    elif stdin in ["KeyK", "SlowK"]:
+                        if killdaemon(stdin):
                             return
-                    elif not i[-1].isdigit() and not i == "KeyA":
-                        last_i = i
+                    elif stdin in ["KeyG", "KeyS"]:
+                        last_stdin = stdin
                         pos2 = 0
-                        if i == "KeyS":
-                            switch2 = "STOP getting"
-                        elif i == "KeyG":
-                            switch2 = "GET"
+                        switch2 = "STOP getting" if stdin == "KeyS" else "GET"
                         echo("", 1)
-                    elif last_i == "KeyS" or last_i == "KeyG":
-                        KeyGet = "-G" if last_i == "KeyS" else "-g"
-                        KeyAll = "all" if i == "KeyA" else str(num2-1+pos2)
+                    elif last_stdin == "KeyS" or last_stdin == "KeyG":
+                        KeyGet = "-G" if last_stdin == "KeyS" else "-g"
+                        KeyAll = "all" if stdin == "All" else str(num2-1+pos2)
                         subprocess.Popen([remote, "-t", str(num+pos), KeyGet, KeyAll], **shuddup)
-                    index = input(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", ["All", *"defgkms0123456789"], double="k")
-                    if index < 0:
-                        i = "Slow" + "?ADEFGKMS0123456789"[-index]
-                    else:
-                        i = "Key" + "?ADEFGKMS0123456789"[index]
-                    num2 = index - len("?ADEFGKMS")
+                    stdin = get_keypress(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", ["All", *"defgkms0123456789"], double="k")
+        elif code == "All":
+            if last_code == "KeyR":
+                remove = "All"
+                echo("Press L twice in fast sequence to REMOVE ALL torrents.", 1, 1)
+            else:
+                echo("Select ALL torrent reserved for REMOVE switch, try again.", 1)
+        else:
+            last_code = code
+            pos = 0
+            remove = []
+            if code == "KeyS":
+                switch = "STOP"
+            elif code == "KeyG":
+                switch = "START"
+            elif code == "KeyR":
+                switch = "REMOVE, (A)ll"
+            elif code == "KeyE":
+                switch = "VIEW file list"
+            echo("", 1)
 
 
 
@@ -4654,15 +4676,15 @@ def torrent_get(fp=""):
         # daemon = f"{batchdir}bin/transmission-daemon.exe"
         # remote = f"{batchdir}bin/transmission-remote.exe"
         if not os.path.exists(daemon) or not os.path.exists(remote):
-            echo(" Download and install Transmission x64 for Windows in default location from https://github.com/transmission/transmission/releases and then try again.", 0, 1)
+            echo(" Download and install Transmission x64 for Windows in default location from https://github.com/transmission/transmission/releases and then try again.", 0, 2)
             return
     elif sys.platform == "linux":
         if not os.path.exists("/usr/bin/transmission-daemon") or not os.path.exists("/usr/bin/transmission-remote"):
-            el = input("Install Transmission (E)dge (C)urrent e(X)it", "ecx")
-            if el == 1:
+            code = get_keypress("Install Transmission (E)dge (C)urrent e(X)it", "ecx")
+            if code == "KeyE":
                 getdae = "apk add transmission-daemon --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community"
                 getcli = "apk add transmission-cli --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community"
-            elif el == 2:
+            elif code == "KeyC":
                 getdae = "apk add transmission-daemon"
                 getcli = "apk add transmission-cli"
             else:
@@ -4699,16 +4721,19 @@ def torrent_get(fp=""):
 
 
 
-def read_input(fp):
+def read_input(fp, reveal):
     if any(word for word in navigator["pickers"].keys() if fp.startswith(word)):
         task["run"].put((0, fp))
     elif fp.startswith("http") and not fp.startswith("http://127.0.0.1"):
         if fp.endswith("/"):
-            choice(bg=True)
+            firework()
             echo(" I don't have a scraper for that!", 0, 2)
         else:
             task["run"].put((1, fp))
     elif fp.startswith("magnet") or fp.endswith(".torrent"):
+        if reveal:
+            echo("", 0, 1)
+            echo(f"Your input: {fp}", 0, 2)
         torrent_get(fp)
     elif os.path.exists(fp):
         if fp.endswith(".json"):
@@ -4753,7 +4778,7 @@ def read_input(fp):
                             filelist += [["", array[1]]]
             parttohtml(subdir, htmlname, new_relics, filelist, pattern)
         elif not SAVX:
-            choice(bg=True)
+            firework()
             echo(" Make SAVX: Maybe not.", 0, 2)
         elif os.path.isdir(fp):
             echo(f'\nLoading featuring folder successful: "{fp}"', 0, 1)
@@ -4763,7 +4788,7 @@ def read_input(fp):
             fp2 = input("Enter reference (compare) / more folder to scan / nothing (find in database): ").strip('"')
             compare(fp, fp2)
     else:
-        choice(bg=True)
+        firework()
         echo("Invalid input or not on disk", 0, 2)
     return True
 
@@ -4818,7 +4843,7 @@ if filelist:
 
  SAVX is also disabled which can be a reminder that this is not the setup to make SAVX.
  Maybe make another copy of this SCRIPT with SAVX enabled in different directory''' if not SAVX else ""}""")
-    read_input(filelist[0])
+    read_input(filelist[0], True)
     busy[0] = False
     if sys.platform == "linux" and not task["httpserver"]:
         os.system("killall -9 cat")
@@ -4828,14 +4853,12 @@ if filelist:
 def unrecognized(k):
     echo("", 1)
     echo(f"Keypress {k} unrecognized", 0, 1)
-    if not busy[0]:
-        ready_input()
+    ready_input()
 
 def pressed(k, s=True):
     echo("", 1)
     Keypress[k] = s
-    if not busy[0]:
-        ready_input()
+    ready_input()
     if ticking[0]:
         ticking[0].set()
 
@@ -4850,25 +4873,24 @@ def has(i, x):
             return
     return True
 
+def not_busy():
+    if not busy[0]:
+        return True
+    echo("Please wait for another operation to finish", 1, 1)
+
 def keylistener():
     while True:
-        index = input("", ["All", *"bcdefghijklmnopqrstuvwxyz0123456789"], double="ejp")
-        if index < 0:
-            code = "Slow" + "?ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[-index]
-        else:
-            code = "Key" + "?ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[index]
+        code = get_keypress("", ["All", *"bcdefghijklmnopqrstuvwxyz0123456789"], double="ejp")
         echo(f"{tcolor.x}{clean}")
 
-        if code == "KeyA":
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo(f"Reading {textfile} . . .", 0, 1)
-            task["run"].put((2, opensav(textfile).splitlines()))
+        if code == "All":
+            if not_busy():
+                echo(f"Reading {textfile} . . .", 0, 1)
+                task["run"].put((2, opensav(textfile).splitlines()))
         elif code == "KeyB":
             if sys.platform == "win32":
                 if not Browser:
-                    choice(bg=True)
+                    firework()
                     echo(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""", 0, 1)
                 elif HTTPserver:
                     os.system(f"""start "" "{Browser}" "http://127.0.0.1:8886/" """)
@@ -4876,50 +4898,39 @@ def keylistener():
                     echo(" HTTP SERVER: Maybe not.", 0, 1)
             else:
                 echo(" BROWSER: Maybe not.", 0, 1)
-            if not busy[0]:
-                ready_input()
+            ready_input()
         elif code == "KeyC":
             pressed(code)
         elif code == "KeyD":
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            delmode()
-            ready_input()
+            if not_busy():
+                delmode()
+                ready_input()
         elif code == "KeyE":
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            echo(help(), 0, 1)
-            ready_input()
+            if not_busy():
+                echo(help(), 0, 1)
+                ready_input()
         elif code == "SlowE":
             echo("Press E twice in fast sequence to view help document.", 1, 1)
-            if not busy[0]:
-                ready_input()
+            ready_input()
         elif code == "KeyF":
             pressed(code)
         elif code == "KeyG":
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            if not SAVX:
-                choice(bg=True)
-                echo(" Make SAVX: Maybe not.", 0, 1)
-            else:
-                tosavx()
-            ready_input()
+            if not_busy():
+                if not SAVX:
+                    firework()
+                    echo(" Make SAVX: Maybe not.", 0, 1)
+                else:
+                    tosavx()
+                ready_input()
         elif code == "KeyH":
             unrecognized(code)
         elif code == "KeyI":
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            if fp := input("Your input, enter nothing to cancel: ").rstrip().replace("\"", "").replace("\\", "/"):
-                read_input(fp)
-            else:
-                echo("", 1)
-                echo("", 1)
-            if not busy[0]:
+            if not_busy():
+                if fp := input("Your input, enter nothing to cancel: ").rstrip().replace("\"", "").replace("\\", "/"):
+                    read_input(fp)
+                else:
+                    echo("", 1)
+                    echo("", 1)
                 ready_input()
         elif code == "KeyJ":
             echo("", 1)
@@ -4932,26 +4943,22 @@ def keylistener():
             else:
                 restartserver()
             Keypress_time[2] = Keypress_time[0] + Fast_presser*4
-            if not busy[0]:
-                ready_input()
+            ready_input()
         elif code == "SlowJ":
             if not task["httpserver"] or portkilled():
                 echo("Press J twice in fast sequence to start server.", 1, 1)
             else:
                 echo("Press J twice in fast sequence to stop server.", 1, 1)
-            if not busy[0]:
-                ready_input()
+            ready_input()
         elif code == "KeyK":
             c = False
             for c in cookies:
                 echo(str(c), 1, 2)
             if not c:
                 echo("No cookies!", 1, 1)
-            if not busy[0]:
-                ready_input()
+            ready_input()
         elif code == "KeyL":
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
+            if not not_busy():
                 continue
             textread = opensav(textfile).splitlines()
             textread = filter(None, [x.lstrip("# ") for x in textread])
@@ -4967,8 +4974,8 @@ def keylistener():
                 echo(f" > {tcolor.b}{line}{tcolor.x}", 0, 1)
             urls = textread
             while True:
-                i = input(f"Enter url containing, (C)ontinue or enter nothing to cancel: ").lower()
-                if i.lower() == "c":
+                stdin = input(f"Enter url containing, (C)ontinue or enter nothing to cancel: ").lower()
+                if stdin.lower() == "c":
                     if urls:
                         echo("", 1, 1)
                         task["run"].put((2, urls))
@@ -4976,11 +4983,11 @@ def keylistener():
                         echo("Canceled", 1, 2)
                         ready_input()
                     break
-                elif i:
-                    urls = [x for x in textread if i in saint(url=x, scheme=False).lower()]
+                elif stdin:
+                    urls = [x for x in textread if stdin in saint(url=x, scheme=False).lower()]
                     echo(f"{len(urls)} result(s)", 1, 1)
                     for line in urls:
-                        line = line.replace(d, f"{tcolor.c}{d}{tcolor.o}", 1).replace(i, f"{tcolor.g}{i}{tcolor.o}", 1)
+                        line = line.replace(d, f"{tcolor.c}{d}{tcolor.o}", 1).replace(stdin, f"{tcolor.g}{stdin}{tcolor.o}", 1)
                         echo(f" > {tcolor.b}{line}{tcolor.x}", 0, 1)
                 else:
                     echo("Canceled", 1, 2)
@@ -5003,14 +5010,11 @@ def keylistener():
                 echo("", 1)
                 echo("Number cleared", 0, 1)
                 Keypress_buffer[0] = True
-            if not busy[0]:
-                ready_input()
-        elif code == "KeyO":
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            finish_sort()
             ready_input()
+        elif code == "KeyO":
+            if not_busy():
+                finish_sort()
+                ready_input()
         elif code == "KeyP":
             echo("Unpaused", 1, 2)
             pressed(code)
@@ -5019,10 +5023,8 @@ def keylistener():
             echo("Paused (press P twice in fast sequence to unpause)", 1, 2)
             pressed(code, False)
         elif code == "KeyQ":
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            task["run"].put((3, True))
+            if not_busy():
+                task["run"].put((3, True))
         elif code == "KeyR":
             pressed(code)
         elif code == "KeyS":
@@ -5036,11 +5038,9 @@ def keylistener():
         elif code == "KeyU":
             unrecognized(code)
         elif code == "KeyV":
-            if busy[0]:
-                echo("Please wait for another operation to finish", 1, 1)
-                continue
-            source_view()
-            ready_input()
+            if not_busy():
+                source_view()
+                ready_input()
         elif code == "KeyW":
             unrecognized(code)
         elif code == "KeyX":
@@ -5057,22 +5057,19 @@ def keylistener():
                 else:
                     subdir = batchdir.replace("/", "\\")
                     echo(f"Save ntop.exe from https://github.com/gsass1/NTop/releases to {subdir} and then try again.", 0, 1)
-            if not busy[0]:
-                ready_input()
+            ready_input()
         elif code == "KeyZ":
             pressed(code)
         elif code[-1].isdigit():
             dlslot[0] = int(code[-1])
             echo(f"""MAX PARALLEL DOWNLOAD SLOT: {dlslot[0]} {"(pause)" if not dlslot[0] else ""}""", 1, 1)
-            if not busy[0]:
-                ready_input()
+            ready_input()
         else:
             echo("", 1)
             pressed("KeyZ")
 
 
 
-Thread(target=keylistener, daemon=True).start()
 print(f"""
  Key listener:
   > Press X to enable or disable indefinite retry on error downloading files (for this session).
@@ -5091,6 +5088,7 @@ print(f"""
 
 echo(mainmenu(), 0, 1)
 ready_input()
+Thread(target=keylistener, daemon=True).start()
 while True:
     i, m = task["run"].get()
     busy[0] = True

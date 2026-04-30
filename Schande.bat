@@ -169,9 +169,9 @@ echoname = [batchfile]
 newfilen = [0]
 Keypress_prompt = [False]
 Keypress_buffer = ['']
-Keypress_time = [0, 0, 0]
 Fast_presser = 0.5
 Keypress = {'Key' + letter: False for letter in map(chr, range(65, 91))}
+Keypress_time = {k: [0, 0] for k in Keypress.keys()}
 
 task = {
   "httpserver": [],
@@ -299,8 +299,8 @@ def help():
  - - - - Torrent directory - - - -
  Wildcard: None, non-anchored
  +  {tcolor.g}SubsPlease{tcolor.o}\\* for {tcolor.g}SubsPlease {tcolor.o}torrents   {tcolor.x}
- |  {tcolor.b}Transmission{tcolor.o}\\* for {tcolor.x}|{tcolor.o}all other{tcolor.x}|{tcolor.o} torrents{tcolor.x} to download all torrents to \\Transmission\\, revise example to customize.
- |  {tcolor.b}                   {tcolor.x}|{tcolor.g}(pattern){tcolor.x}|{tcolor.o}         {tcolor.x}
+ |  {tcolor.b}Transmission{tcolor.o}\\* for {tcolor.x}╦{tcolor.o}all other{tcolor.x}╦{tcolor.o} torrents{tcolor.x} to download all torrents to \\Transmission\\, revise example to customize.
+ |  {tcolor.b}                   {tcolor.x}╚{tcolor.g}(pattern){tcolor.x}╝{tcolor.o}         {tcolor.x}
  + First rule will take its turn to designate a directory for torrent added.
 
 
@@ -539,7 +539,7 @@ def whereami(e="echoed", b=0, f=1, kill=False, pause=False):
         while True:
             input("")
     elif pause:
-        input("(C)ontinue?", "c")
+        choice("(C)ontinue?", "c")
         echo("", 1)
 
 
@@ -555,7 +555,6 @@ def echo_pip():
 
 
 lostfocus = [False]
-
 def firework(bg=["%stopcolor%", "%color%"]):
     if sys.platform == "win32":
         lostfocus[0] = True
@@ -591,11 +590,15 @@ done""")
         echo("", 0, 1)
     if el < 0 or el > 100:
         whereami(f"Obscene return code {el}", kill=True)
-    if double and keys[el-1].lower() in double.lower():
-        Keypress_time[0] = time.time()
-        if Keypress_time[0] > Keypress_time[1]:
+    if double and keys[el-1] in double:
+        key_time = Keypress_time["Key" + keys[el-1].upper()]
+        now = time.time()
+        if now > key_time[0]:
             el = -el
-        Keypress_time[1] = Keypress_time[0] + Fast_presser
+            key_time[1] = 0
+        else:
+            key_time[1] += 1
+        key_time[0] = now + Fast_presser
     return el
 
 def get_keypress(i="Your key: ", choices=[], double=False):
@@ -660,13 +663,35 @@ Mozilla/5.0 for http
 
 sys.stdout.write(tcolor.x + cls)
 
+def read_cd():
+    if os.path.getsize(rulefile) < 1:
+        return []
+    with open(rulefile, 'r', encoding="utf-8") as f:
+        return f.read().splitlines()
+
+def write_cd(data):
+    echo("Write to cd? (Y/N)", 0, 1)
+    Keypress["KeyY"] = False
+    Keypress["KeyN"] = False
+    while not Keypress["KeyY"] and not Keypress["KeyN"]:
+        time.sleep(0.1)
+    Keypress["KeyN"] = False
+    if Keypress["KeyY"]:
+        Keypress["KeyY"] = False
+        with open(rulefile, 'wb') as f:
+            f.write(bytes(data, 'utf-8'))
+        echo(f"wrote to cd", 0, 1)
+
 if not os.path.exists(rulefile):
     open(rulefile, 'w').close()
-if os.path.getsize(rulefile) < 1:
-    rules = new_rules().splitlines()
-else:
-    with open(rulefile, 'r', encoding="utf-8") as f:
-        rules = f.read().splitlines()
+
+def date_str(date, past_event):
+    time_obj = date.replace(tzinfo=None) - past_event
+    hours = time_obj.seconds // 3600
+    minutes = time_obj.seconds // 60 % 60
+    return f"{time_obj.days:02}d {hours:02}:{minutes:02}"
+
+rules = read_cd()
 
 new_setting = False
 pos = 0
@@ -1345,8 +1370,10 @@ def declare(rule, boolean=False):
     return rule[1]
 
 offset = declare(rules[4])
-date = utcnow() + timedelta(hours=int(offset))
-fdate = date.strftime('%Y') + "-" + date.strftime('%m') + "-XX"
+def get_date():
+    date = utcnow() + timedelta(hours=int(offset))
+    return [date, date.strftime("%Y-%m-XX")]
+fdate = get_date()[1]
 
 
 
@@ -1546,8 +1573,6 @@ def getrule(rule):
         c = new_cookie()
         c.update({'domain': rr[1], 'name': rr[0].split(" ")[0], 'value': rr[0].split(" ")[1]})
         cookies.set_cookie(cookiejar.Cookie(**c))
-        if not cli["dismiss"] == 2:
-            cli["dismiss"] = False
 
 
 
@@ -1582,8 +1607,6 @@ def getrule(rule):
         cli["bgcolor"] = rule.replace("bgcolor ", "")
     elif rule.startswith('fgcolor '):
         cli["fgcolor"] = rule.replace("fgcolor ", "")
-    elif rule == "shuddup":
-        cli["dismiss"] = 2
     elif rule == "showpreview":
         cli["showpreview"] = True
     elif rule.startswith('!'):
@@ -1647,7 +1670,7 @@ def loadrule():
 
 
 
-cli = {"bgcolor":False, "fgcolor":"3", "dismiss":0, "showpreview":False}
+cli = {"bgcolor":False, "fgcolor":"3", "showpreview":False}
 navigator = {"referers":{}, "headers":{}, "agent":{"http":"Mozilla/5.0"}, "timeout":{}, "pickers":{}}
 sorter = {"md5":[], "customdirs":{}, "torrentdirs":{}, "dirs":{}, "exempts":[], "buildthumbnail":False, "verifyondisk":False, "collisionisreal":False, "editisreal":False}
 site = {"http":"inline", "dir":"", "seqN":0}
@@ -1689,8 +1712,6 @@ if Mail:
         import getpass
         Mail += [getpass.getpass(prompt=f" {Mail[0]}'s password (automatic if saved as third address): ")]
         echo("", 1)
-    if not cli["dismiss"] == 2:
-        cli["dismiss"] = False
 else:
     print(" MAIL: NONE")
 if SAVX == None:
@@ -1710,32 +1731,34 @@ elif sorter["buildthumbnail"]:
     kill(f""" Make SAVX: I must be enabled for "buildthumbnail" declared in {rulefile}.""")
 else:
     print(" Make SAVX: OFF")
+
+try:
+    import socks
+except:
+    kill(f" PROXY: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install PySocks")
+
+no_proxy = socket.socket
+# The following line prevents DNS leaks. https://stackoverflow.com/questions/13184205/dns-over-proxy
+socket.getaddrinfo = lambda *args: [(socket.AF_INET, socket.SOCK_STREAM, 6, '', (args[0], args[1]))]
+
+def set_proxy(socks5):
+    if not socks5:
+        socket.socket = no_proxy
+        return
+    bare = socks5.replace("socks5:","").replace("/","")
+    if "@" in bare:
+        usr, pw, address, port = bare.replace("@",":").split(":")
+        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port), username=usr, password=pw)
+    else:
+        address, port = bare.split(":")
+        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port))
+    socket.socket = socks.socksocket
+
 if "socks5://" in proxy and proxy[10:]:
     if not ":" in proxy[10:]:
         kill(" PROXY: Invalid socks5:// address, it must be socks5://X.X.X.X:port OR socks5://user:pass@X.X.X.X:port\n\n Corrupted rule encountered, please read above and then try again.")
-    try:
-        import socks
-    except:
-        kill(f" PROXY: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install PySocks")
-    if "@" in proxy[10:]:
-        usr, pw, address, port = proxy.replace("socks5:","").replace("/","").replace("@",":").split(":")
-        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port), username=usr, password=pw)
-    else:
-        address, port = proxy.replace("socks5:","").replace("/","").split(":")
-        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, int(port))
-    socket.socket = socks.socksocket
-    # The following line prevents DNS leaks. https://stackoverflow.com/questions/13184205/dns-over-proxy
-    socket.getaddrinfo = lambda *args: [(socket.AF_INET, socket.SOCK_STREAM, 6, '', (args[0], args[1]))]
+    set_proxy(proxy)
 print(f""" PROXY: {proxy if proxy[10:] else "OFF"}""")
-
-
-
-if not cli["dismiss"]:
-    firework(["4c", "%color%"])
-    buffer = f"\n{tcolor.o} TO YOURSELF: {rulefile} contains personal information\n like mail, password, cookies. Edit {rulefile} before sharing!"
-    if HTTPserver:
-        buffer += f"\n{skull()}\n HTTP SERVER: Anyone accessing your server can open {rulefile} reading personal information\n like mail, password, cookies."
-    echo(f"""{buffer}\n\nAdd "shuddup" to {rulefile} to dismiss this message.{tcolor.x}""", 0, 1)
 
 
 
@@ -4934,21 +4957,24 @@ def keylistener():
                 ready_input()
         elif code == "KeyJ":
             echo("", 1)
-            if Keypress_time[0] < Keypress_time[2]:
+            key_time = Keypress_time["KeyJ"]
+            if key_time[1] == 3:
+                if not task["httpserver"]:
+                    restartserver()
                 echo(" HTTP SERVER: 10-second demo", 0, 1)
                 time.sleep(10)
                 stopserver()
-            elif task["httpserver"]:
-                stopserver()
-            else:
-                restartserver()
-            Keypress_time[2] = Keypress_time[0] + Fast_presser*4
+            elif key_time[1] == 1:
+                if task["httpserver"]:
+                    stopserver()
+                else:
+                    restartserver()
             ready_input()
         elif code == "SlowJ":
             if not task["httpserver"] or portkilled():
-                echo("Press J twice in fast sequence to start server.", 1, 1)
+                echo("Press J twice in fast sequence to START server.", 1, 1)
             else:
-                echo("Press J twice in fast sequence to stop server.", 1, 1)
+                echo("Press J twice in fast sequence to STOP server.", 1, 1)
             ready_input()
         elif code == "KeyK":
             c = False
@@ -5061,16 +5087,16 @@ def keylistener():
         elif code == "KeyZ":
             pressed(code)
         elif code[-1].isdigit():
-            dlslot[0] = int(code[-1])
-            echo(f"""MAX PARALLEL DOWNLOAD SLOT: {dlslot[0]} {"(pause)" if not dlslot[0] else ""}""", 1, 1)
+            el = int(code[-1])
+            dlslot[0] = el
+            echo(f"""MAX PARALLEL DOWNLOAD SLOT: {el} {"" if el else "(pause)"}""", 1, 1)
             ready_input()
         else:
             echo("", 1)
             pressed("KeyZ")
 
+echo(f""" FDST: {get_date()[1]}
 
-
-print(f"""
  Key listener:
   > Press X to enable or disable indefinite retry on error downloading files (for this session).
   > Press S to skip next error once during downloading files.
@@ -5082,10 +5108,7 @@ print(f"""
  Key listener (main menu):
   > Press I, L, A to enter (I)nput or (L)oad select/(A)ll list from {textfile}.
   > Press O to s(O)rt files.
-  > Press M, E to open torrent (M)anager or h(E)lp document.""")
-
-
-
+  > Press M, E to open torrent (M)anager or h(E)lp document.""", 0, 1)
 echo(mainmenu(), 0, 1)
 ready_input()
 Thread(target=keylistener, daemon=True).start()

@@ -736,7 +736,10 @@ function replacegallery() {
       const url_component = e.split('?');
       if (url_component.length > 1) {
         for (const [key, value] of new URLSearchParams(url_component[1])) {
-          if (key === 'format' && value === 'jpg') {
+          if (key === 'format' && (
+            value === 'jpg' ||
+            value === 'webp'
+          )) {
             return true;
           }
         }

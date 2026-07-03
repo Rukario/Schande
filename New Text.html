@@ -219,7 +219,7 @@ ul {
   transform: rotate(45deg);
 }
 
-.destructive {
+.operations {
   max-width: 100px;
 }
 
@@ -1052,11 +1052,11 @@ function new_editor(utf8 = '<br>') {
   DOMwriter = document.createElement("DIV");
   DOMwriter.id = "dimm";
   DOMwriter.style.display = "none";
-  button("previous", filel[4] + " -(Destructive tools)", exitmenu);
+  button("previous", filel[4] + " -(Operations)", exitmenu);
   DOMwriter.insertAdjacentHTML("beforeend", " " + filel[4] + " -(");
-  destructive = document.createElement("SELECT");
-  destructive.classList = "next destructive";
-  DOMwriter.appendChild(destructive);
+  operations = document.createElement("SELECT");
+  operations.classList = "next operations";
+  DOMwriter.appendChild(operations);
   DOMwriter.insertAdjacentHTML("beforeend", " or ");
   rep = inputcell("Replace...");
   DOMwriter.appendChild(rep);
@@ -1073,7 +1073,7 @@ function new_editor(utf8 = '<br>') {
   DOMwriter.id = "dim";
   //DOMwriter.style.display = "block";
   downwithme = button("next downwithme", "👄", relbar, ['🫦']);
-  button("next", filel[4] + " -(Destructive tools)", menu);
+  button("next", filel[4] + " -(Operations)", menu);
   calc = inputcell("Calculator", "116px");
   DOMwriter.appendChild(calc);
 
@@ -1123,7 +1123,7 @@ function new_editor(utf8 = '<br>') {
     const option = new Option();
     option.value = n;
     option.textContent = o;
-    destructive.appendChild(option);
+    operations.appendChild(option);
   };
 
   editor = neweditor(utf8);
@@ -1277,7 +1277,7 @@ function new_editor(utf8 = '<br>') {
     }
   });
 
-  destructive.addEventListener('change', (e) => {
+  operations.addEventListener('change', (e) => {
     switch (e.target.selectedIndex - 1) {
       case 0:
         dedup();
@@ -1325,7 +1325,7 @@ function new_editor(utf8 = '<br>') {
   });
 }
 
-var DOMwriter, name, calc, colorpicker, cursor_tooltip, cursor_focus, destructive, toolbar, editor, editdiff, picker, pickerdiff, rep, torep, local_backtip, tooltip, stdout, downwithme, saver;
+var DOMwriter, name, calc, colorpicker, cursor_tooltip, cursor_focus, operations, toolbar, editor, editdiff, picker, pickerdiff, rep, torep, local_backtip, tooltip, stdout, downwithme, saver;
 var dirs = [];
 var hljs = false;
 var canihljs = false;

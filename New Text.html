@@ -604,7 +604,7 @@ const FFup = () => {
   if (sel.rangeCount) {
     const pos = sel.getRangeAt(0);
     const preCaretRange = pos.cloneRange();
-    if (ans) {
+    if (typeof ans === 'number') {
       where = preCaretRange.getBoundingClientRect()
       cursor_tooltip.style.left = (window.scrollX + where.left) + 'px';
       cursor_tooltip.style.top = (window.scrollY + where.top + 36) + 'px';

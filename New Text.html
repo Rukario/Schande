@@ -577,7 +577,7 @@ const FFup = () => {
     a.href = link.textContent;
     cursor_tooltip.appendChild(a);
     cursor_tooltip.style.display = 'inline-block';
-  } else if (len > 0 && len < 256){
+  } else if (len > 0 && len < 512){
     if (!updatesel){
       updatesel = window.setInterval(() => {
         const seln = editor.ownerDocument.defaultView.getSelection().toString().length;
@@ -588,7 +588,11 @@ const FFup = () => {
       }, 500);
     }
     try {
-      ans = new Function('return ' + sel.toString().replace(/(\r|\n)/g, ""))().toFixed(10) * 1;
+      let ret = sel.toString();
+      if (ret.indexOf('return ') === -1) {
+        ret = 'return ' + ret;
+      }
+      ans = new Function(ret)().toFixed(10) * 1;
     } catch {
       cursor_tooltip.style.display = 'none';
     }

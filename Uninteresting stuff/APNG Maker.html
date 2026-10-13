@@ -1379,6 +1379,7 @@ function readMDP(arri) {
     layer.visible = e.getAttribute('visible');
     layer.mode = toCanvasMode(e.getAttribute('mode'));
     layer.parentId = e.getAttribute('parentId');
+    layer.name = e.getAttribute('name');
     layers.push(layer);
   }
 
@@ -1472,6 +1473,40 @@ function readMDP(arri) {
       callback(interTileN + 1);
     }
 
+    const dataToPNGToLayer = (tilemask, data, callback, interTileN, x, y) => {
+      let IHDR = new Array(0);
+      constPNG(
+        IHDR,
+        int32ToAB(dim),
+        int32ToAB(dim),
+        [0x08, 0x06, 0x00, 0x00, 0x00], // RGBA
+      );
+      IHDR = makeChunkBytes('IHDR', IHDR);
+      
+      const scanline = dim * 4;
+      const fdata = new Array(scanline * dim + dim);
+      for (const y of Array(dim).keys()) {
+        const o = y * scanline;
+        fdata[o + y] = 0; // filter-method scanline byte
+        const x = o + y + 1;
+        for (let n = 0; n < scanline; n += 4) {
+          fdata[x + n] = data[o + n+2];
+          fdata[x + n+1] = data[o + n+1];
+          fdata[x + n+2] = data[o + n];
+          fdata[x + n+3] = data[o + n+3];
+        }
+      }
+
+      const ab = reconstPNG(IHDR, pako.deflate(new Uint8Array(fdata)));
+      const listener = (e) => {
+        layer.drawImage(e, x*dim, y*dim, dim, dim);
+
+        callback(interTileN + 1);
+        // echoIMG(e, name.split('.').slice(0, -1).join('.') + ' (tile).png');
+      };
+      ABtoIMG(ABtoAB(ab), listener);
+    }
+
     const tileReadStreams = (tilemask, callback, interTileN, isMask) => {
       const header = arri.buffer.slice(pos, pos + offset3);
       pos += offset3;
@@ -1480,54 +1515,28 @@ function readMDP(arri) {
       const clean_IDAT = arri.slice(pos, pos + size);
       pos += size + mod(4-size, 4);
 
-      if (false) {
-        // datastream (broken)
-        const blob = new Blob(ABtoAB(clean_IDAT), {type: 'application/octet-stream'});
-        const decompressor = new DecompressionStream('deflate-raw');
-        const decompressedStream = blob.stream().pipeThrough(decompressor);
-        const response = new Response(decompressedStream);
-        response.blob().then((data) => {
-          dataToLayer(tilemask, data, callback, interTileN, x, y);
-        });
-      } else if (false) {
-        // PNGifiedTile
-        const data = pako.inflate(clean_IDAT);
-        
-        let IHDR = new Array(0);
-        constPNG(
-          IHDR,
-          int32ToAB(dim),
-          int32ToAB(dim),
-          [0x08, 0x06, 0x00, 0x00, 0x00], // RGBA
-        );
-        IHDR = makeChunkBytes('IHDR', IHDR);
-        
-        const scanline = dim * 4;
-        const fdata = new Array(scanline * dim + dim);
-        for (const y of Array(dim).keys()) {
-          const o = y * scanline;
-          fdata[o + y] = 0; // filter-method scanline byte
-          const x = o + y + 1;
-          for (let n = 0; n < scanline; n += 4) {
-            fdata[x + n] = data[o + n+2];
-            fdata[x + n+1] = data[o + n+1];
-            fdata[x + n+2] = data[o + n];
-            fdata[x + n+3] = data[o + n+3];
-          }
-        }
-        
-        const ab = reconstPNG(IHDR, pako.deflate(new Uint8Array(fdata)));
-        const listener = (e) => {
-          layer.drawImage(e, x*dim, y*dim, dim, dim);
+      if (true) {
+        // datastream
 
-          callback(interTileN + 1);
-          // echoIMG(e, name.split('.').slice(0, -1).join('.') + ' (tile).png');
-        };
-        ABtoIMG(ABtoAB(ab), listener);
+        const blob = new Blob(ABtoAB(clean_IDAT), {type: 'application/octet-stream'});
+        const decompressor = new DecompressionStream('deflate');
+
+        // Use 'deflate-raw' when clean_IDAT is (pos+2, pos-4 + size)
+
+        const decompressedStream = blob.stream().pipeThrough(decompressor);
+        const response = new Response(decompressedStream).arrayBuffer();
+        response.then((data) => {
+          dataToLayer(tilemask, new Uint8Array(data), callback, interTileN, x, y);
+        });
       } else {
         // pako
+
         const data = pako.inflate(clean_IDAT);
-        dataToLayer(tilemask, data, callback, interTileN, x, y);
+        if (true) {
+          dataToLayer(tilemask, data, callback, interTileN, x, y);
+        } else {
+          dataToPNGToLayer(tilemask, data, callback, interTileN, x, y);
+        }
       }
     };
 
@@ -1592,7 +1601,7 @@ function readMDP(arri) {
       }
     }
     readTile(0);
-    //echo(`${layer.getAttribute("name")} with ${tileNum} tiles took ${(performance.now()-Fi.inter)/1000} seconds`);
+    //echo(`${layer.name} with ${tileNum} tiles took ${(performance.now()-Fi.inter)/1000} seconds`);
   }
   readLayer(0);
 }

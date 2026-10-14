@@ -693,7 +693,7 @@ function canvasToAB(c, ext = 'png', apngprod = false) {
             } else {
               arri = optipng(arri, ['-force', '-zw', '32k', '-f', '0', '-zs', '0', '-zm', '8', '-zc', '9', '-strip', 'all']).data;
             }
-          } else if (pako && false) {
+          } else if (pako) {
             // ABtoIMG(ABtoAB(arri), (e) => echoIMG(e, name.split('.').slice(0, -1).join('.') + ' (canvas).png'));
 
             const IHDR = arri.slice(PNG_signature.length, PNG_signature.length + 25); // IHDR inherited
@@ -1342,11 +1342,6 @@ function toCanvasMode(vaguemode) {
 }
 
 function readMDP(arri) {
-  if (!pako) {
-    echo('Please try again with <a href="https://github.com/nodeca/pako/blob/master/dist/" target="_blank">pako.min.js</a>, save next to HTML then reload this page');
-    return;
-  }
-
   const offset1 = TMDIPack.size;
   const offset2 = TPackerHeader.size;
   const offset3 = HeaderStruct.size;
@@ -1448,6 +1443,20 @@ function readMDP(arri) {
     const dim = PAC.unpack(arri.buffer.slice(pos, pos + 4))[0];
     pos += 4;
 
+    const maskToLayer = (tilemask, data, callback, interTileN, x, y) => {
+      const tilemap = tilemask.createImageData(dim, dim);
+      for (let n = 0; n < data.length*4; n += 4) {
+        tilemap.data[n] = 0;
+        tilemap.data[n+1] = 0;
+        tilemap.data[n+2] = 0;
+        tilemap.data[n+3] = data[Math.ceil(n/4)];
+      }      
+      tilemask.putImageData(tilemap, 0, 0);
+
+      layer.drawImage(tilemask.canvas, x*dim, y*dim, dim, dim);
+      callback(interTileN + 1);
+    }
+
     const dataToLayer = (tilemask, data, callback, interTileN, x, y) => {
       if (false) {
         // BGRA to RGBA tilemap
@@ -1507,6 +1516,16 @@ function readMDP(arri) {
       ABtoIMG(ABtoAB(ab), listener);
     }
 
+    const datastream = (clean_IDAT) => {
+      const blob = new Blob(ABtoAB(clean_IDAT), {type: 'application/octet-stream'});
+      const decompressor = new DecompressionStream('deflate');
+      
+      // Use 'deflate-raw' when clean_IDAT is (pos+2, pos-4 + size)
+      
+      const decompressedStream = blob.stream().pipeThrough(decompressor);
+      return new Response(decompressedStream).arrayBuffer();
+    }
+
     const tileReadStreams = (tilemask, callback, interTileN, isMask) => {
       const header = arri.buffer.slice(pos, pos + offset3);
       pos += offset3;
@@ -1515,28 +1534,18 @@ function readMDP(arri) {
       const clean_IDAT = arri.slice(pos, pos + size);
       pos += size + mod(4-size, 4);
 
-      if (true) {
-        // datastream
-
-        const blob = new Blob(ABtoAB(clean_IDAT), {type: 'application/octet-stream'});
-        const decompressor = new DecompressionStream('deflate');
-
-        // Use 'deflate-raw' when clean_IDAT is (pos+2, pos-4 + size)
-
-        const decompressedStream = blob.stream().pipeThrough(decompressor);
-        const response = new Response(decompressedStream).arrayBuffer();
-        response.then((data) => {
-          dataToLayer(tilemask, new Uint8Array(data), callback, interTileN, x, y);
-        });
-      } else {
-        // pako
-
+      if (pako && false) {
         const data = pako.inflate(clean_IDAT);
         if (true) {
           dataToLayer(tilemask, data, callback, interTileN, x, y);
         } else {
           dataToPNGToLayer(tilemask, data, callback, interTileN, x, y);
         }
+      } else {
+        datastream(clean_IDAT).then((ab) => {
+          const data = new Uint8Array(ab);
+          dataToLayer(tilemask, data, callback, interTileN, x, y);
+        });
       }
     };
 
@@ -1548,22 +1557,22 @@ function readMDP(arri) {
       const clean_IDAT = arri.slice(pos, pos + size);
       pos += size + mod(4-size, 4);
 
-      const data = pako.inflate(clean_IDAT);
-
-      if (isMask) {
-        const tilemap = tilemask.createImageData(dim, dim);
-        for (let n = 0; n < data.length*4; n += 4) {
-          tilemap.data[n] = 0;
-          tilemap.data[n+1] = 0;
-          tilemap.data[n+2] = 0;
-          tilemap.data[n+3] = data[Math.ceil(n/4)];
+      if (pako && false) {
+        const data = pako.inflate(clean_IDAT);
+        if (isMask) {
+          maskToLayer(tilemask, data, callback, interTileN, x, y);
+        } else {
+          dataToLayer(tilemask, data, callback, interTileN, x, y);
         }
-
-        tilemask.putImageData(tilemap, 0, 0);
-        layer.drawImage(tilemask.canvas, x*dim, y*dim, dim, dim);
-        callback(interTileN + 1);
       } else {
-        dataToLayer(tilemask, data, callback, interTileN, x, y);
+        datastream(clean_IDAT).then((ab) => {
+          const data = new Uint8Array(ab);
+          if (isMask) {
+            maskToLayer(tilemask, data, callback, interTileN, x, y);
+          } else {
+            dataToLayer(tilemask, data, callback, interTileN, x, y);
+          }
+        });
       }
     };
 
@@ -2785,9 +2794,10 @@ function loaded() {
   s.onerror = () => {
     optipng = false;
   }
-  s = addScript("pako.min.js?");
+  s = addScript("pako.umd.min.js?");
   s.onerror = () => {
     pako = false;
+    echo('Please try again with <a href="https://app.unpkg.com/pako/files/dist/browser/pako.umd.min.js" target="_blank">pako.umd.min.js</a>, save next to HTML then reload this page');
   };
   addScript("ruffle.js?");
 }

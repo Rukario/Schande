@@ -565,7 +565,7 @@ function ABtoURL(ab) {
 }
 
 function ABtoIMG(ab, callback) {
-  e = document.createElement('IMG');
+  const e = document.createElement('IMG');
   e.src = ABtoURL(ab);
   e.addEventListener('load', () => {
     callback(e);
@@ -680,12 +680,9 @@ function canvasToAB(c, ext = 'png', apngprod = false) {
       fr.readAsArrayBuffer(blob0);
       fr.onload = () => {
         arri = new Uint8Array(fr.result);
-        Module = {};
-        Fi.end = performance.now();
-        //echo((Fi.end - Fi.inter)/1000 + "s canvasToAB(c)")
-        Fi.inter = performance.now();
-        if (ext === 'png') {
-          if (decompress) {
+        if (ext === 'png' && recompress.classList.contains("inverse")) {
+          if (optipng) {
+            console.log('compression by optipng');
             //https://manpages.debian.org/stretch/optipng/optipng.1.en.html
             if (apngprod) {
               //Ideal settings for apng production
@@ -693,11 +690,10 @@ function canvasToAB(c, ext = 'png', apngprod = false) {
             } else {
               arri = optipng(arri, ['-force', '-zw', '32k', '-f', '0', '-zs', '0', '-zm', '8', '-zc', '9', '-strip', 'all']).data;
             }
+            resolve(arri);
           } else if (pako) {
-            // ABtoIMG(ABtoAB(arri), (e) => echoIMG(e, name.split('.').slice(0, -1).join('.') + ' (canvas).png'));
-
+            console.log('compression by pako');
             const IHDR = arri.slice(PNG_signature.length, PNG_signature.length + 25); // IHDR inherited
-
             const inflator = new pako.Inflate();
             for (const IDAT of findPos(arri, "IDAT", false)) {
               const clean_IDAT = arri.slice(IDAT.offset + 8, IDAT.offset + 8 + IDAT.len);
@@ -709,12 +705,60 @@ function canvasToAB(c, ext = 'png', apngprod = false) {
               throw new Error('unexpected end of file');
             }
 
-            arri = reconstPNG(IHDR, pako.deflate(pixels, {'level':6}));
+            const clean_IDAT = pako.deflate(pixels, {'level': 6});
+            resolve(reconstPNG(IHDR, clean_IDAT));
+          } else {
+            console.log('native browser compression');
+            const IHDR = arri.slice(PNG_signature.length, PNG_signature.length + 25); // IHDR inherited
+            const decompressIdatChunks = (idatChunks) => {
+              const totalLength = idatChunks.reduce((acc, chunk) => acc + chunk.length, 0);
+              const combinedIdatData = new Uint8Array(totalLength);
+
+              let offset = 0;
+              idatChunks.forEach(chunk => {
+                combinedIdatData.set(chunk, offset);
+                offset += chunk.length;
+              });
+
+              const blob = new Blob([combinedIdatData]);
+              const inputStream = blob.stream();
+
+              inputStream
+                .pipeThrough(new DecompressionStream('deflate'))
+                .pipeThrough(new CompressionStream('deflate'))
+                .pipeTo(new WritableStream({
+                  // Temporary storage for our newly compressed chunks
+                  chunks: [],
+                  write(chunk) {
+                    this.chunks.push(chunk);
+                  },
+                  close() {
+                    // 4. Combine the resulting single-stream chunks back into one IDAT payload
+                    const finalBlob = new Blob(this.chunks);
+
+                    finalBlob.arrayBuffer().then(buffer => {
+                      const finalSingleIdatPayload = new Uint8Array(buffer);
+                      resolve(reconstPNG(IHDR, finalSingleIdatPayload));
+                    });
+                  }
+                }))
+                .catch(error => {
+                  console.error("Error processing IDAT streams:", error);
+                });
+            }
+
+            const IDATs = [];
+            for (const IDAT of findPos(arri, "IDAT", false)) {
+              const buffer = arri.slice(IDAT.offset + 8, IDAT.offset + 8 + IDAT.len);
+              //IDATs.push(datastreamIn(buffer));
+              IDATs.push(buffer);
+            }
+
+            decompressIdatChunks(IDATs);
           }
+        } else {
+          resolve(arri);
         }
-        Fi.end = performance.now()
-        //echo((Fi.end - Fi.inter)/1000 + "s OptiPNG")
-        resolve(arri);
       };
     }, 'image/' + ext);
   }
@@ -753,16 +797,16 @@ function get_dim(image, i) {
 }
 
 function ABtoFrame(arri, callback, interFrameN, fpsm = 1, callback2 = false, filler = false) {
-  Fi.inter = performance.now();
+  Fi.r();
   arri = Array.from(arri);
   newframe.arri = arri;
-  Fi.end = performance.now();
-  //echo((Fi.end - Fi.inter)/1000 + "s ArrayBuffer")
+  Fi.end();
+  //echo((Fi.n[2] - Fi.n[1])/1000 + "s ArrayBuffer")
   if (callback === undefined) {
-    Fi.fin = performance.now();
+    Fi.fin();
 
     const B = 'Frame ' + (interFrameN+1);
-    echo(B + ' in ' + (Fi.fin - Fi.start)/1000 + 's');
+    echo(B + ' in ' + (Fi.n[3] - Fi.n[0])/1000 + 's');
     document.title = B;
     ABtoIMG(ABtoAB(arri), (e) => echoIMG(e, name));
 
@@ -796,7 +840,7 @@ function ABtoFrame(arri, callback, interFrameN, fpsm = 1, callback2 = false, fil
 }
 
 function canvasToFrame(callback, interFrameN, fpsm = 1, callback2 = false, filler = false) {
-  Fi.inter = performance.now();
+  Fi.r();
   const promise = new Promise(canvasToAB(canvas, 'png', true));
   promise.then((arri) => {
     ABtoFrame(arri, callback, interFrameN, fpsm, callback2, filler);
@@ -838,8 +882,7 @@ function Convolute(pixels, weights) {
 }
 
 function edge(m) {
-  Fi.start = performance.now();
-  Fi.inter = performance.now();
+  Fi.g();
   if (bg) {
     context.drawImage(bg, ...dim[1]);
   }
@@ -995,8 +1038,7 @@ function magic_wand(satellite) {
 }
 
 function draw(x, i) {
-  Fi.start = performance.now();
-  Fi.inter = performance.now();
+  Fi.g();
   canvas.width = dim[1][2];
   canvas.height = dim[1][3];
   if (bg) {
@@ -1071,15 +1113,13 @@ function apngdiff(m, s, s2=false) {
   }
 
   const r2 = () => {
-    Fi.start = performance.now();
-    Fi.inter = performance.now();
+    Fi.g();
     dim[3] = reuse[2];
     ABtoFrame(reuse[0], (s2?r3:d1), 1);
   }
 
   const r3 = () => {
-    Fi.start = performance.now();
-    Fi.inter = performance.now();
+    Fi.g();
     dim[3] = reuse[3];
     ABtoFrame(reuse[1], d1, 2);
   }
@@ -1342,6 +1382,7 @@ function toCanvasMode(vaguemode) {
 }
 
 function readMDP(arri) {
+  Fi.g();
   const offset1 = TMDIPack.size;
   const offset2 = TPackerHeader.size;
   const offset3 = HeaderStruct.size;
@@ -1411,7 +1452,6 @@ function readMDP(arri) {
     }
 
     const layer = layers[LayerN];
-    //Fi.start = performance.now();
     if (layer.masking === 'true') {
       layer.type = 'mask';
     } else if (layer.type === 'folder') {
@@ -1443,7 +1483,7 @@ function readMDP(arri) {
     const dim = PAC.unpack(arri.buffer.slice(pos, pos + 4))[0];
     pos += 4;
 
-    const maskToLayer = (tilemask, data, callback, interTileN, x, y) => {
+    const maskToLayer = (tilemask, data, x, y) => {
       const tilemap = tilemask.createImageData(dim, dim);
       for (let n = 0; n < data.length*4; n += 4) {
         tilemap.data[n] = 0;
@@ -1454,10 +1494,9 @@ function readMDP(arri) {
       tilemask.putImageData(tilemap, 0, 0);
 
       layer.drawImage(tilemask.canvas, x*dim, y*dim, dim, dim);
-      callback(interTileN + 1);
     }
 
-    const dataToLayer = (tilemask, data, callback, interTileN, x, y) => {
+    const dataToLayer = (tilemask, data, x, y) => {
       if (false) {
         // BGRA to RGBA tilemap
         const tilemap = tilemask.createImageData(dim, dim);
@@ -1479,10 +1518,9 @@ function readMDP(arri) {
       }
 
       layer.drawImage(tilemask.canvas, x*dim, y*dim, dim, dim);
-      callback(interTileN + 1);
     }
 
-    const dataToPNGToLayer = (tilemask, data, callback, interTileN, x, y) => {
+    const dataToPNGToLayer = (tilemask, data, x, y) => {
       let IHDR = new Array(0);
       constPNG(
         IHDR,
@@ -1509,20 +1547,16 @@ function readMDP(arri) {
       const ab = reconstPNG(IHDR, pako.deflate(new Uint8Array(fdata)));
       const listener = (e) => {
         layer.drawImage(e, x*dim, y*dim, dim, dim);
-
-        callback(interTileN + 1);
-        // echoIMG(e, name.split('.').slice(0, -1).join('.') + ' (tile).png');
       };
       ABtoIMG(ABtoAB(ab), listener);
     }
 
-    const datastream = (clean_IDAT) => {
-      const blob = new Blob(ABtoAB(clean_IDAT), {type: 'application/octet-stream'});
-      const decompressor = new DecompressionStream('deflate');
-      
-      // Use 'deflate-raw' when clean_IDAT is (pos+2, pos-4 + size)
-      
-      const decompressedStream = blob.stream().pipeThrough(decompressor);
+    const datastream = (buffer) => {
+      const pipin = new DecompressionStream('deflate');
+      // Use 'deflate-raw' when buffer is (pos+2, pos-4 + size)
+
+      const blob = new Blob(ABtoAB(buffer), {type: 'application/octet-stream'});     
+      const decompressedStream = blob.stream().pipeThrough(pipin);
       return new Response(decompressedStream).arrayBuffer();
     }
 
@@ -1534,19 +1568,20 @@ function readMDP(arri) {
       const clean_IDAT = arri.slice(pos, pos + size);
       pos += size + mod(4-size, 4);
 
-      if (pako && false) {
+      if (pako) {
         const data = pako.inflate(clean_IDAT);
         if (true) {
-          dataToLayer(tilemask, data, callback, interTileN, x, y);
+          dataToLayer(tilemask, data, x, y);
         } else {
-          dataToPNGToLayer(tilemask, data, callback, interTileN, x, y);
+          dataToPNGToLayer(tilemask, data, x, y);
         }
       } else {
         datastream(clean_IDAT).then((ab) => {
           const data = new Uint8Array(ab);
-          dataToLayer(tilemask, data, callback, interTileN, x, y);
+          dataToLayer(tilemask, data, x, y);
         });
       }
+      callback(interTileN + 1);
     };
 
     const tileRead = (tilemask, callback, interTileN, isMask) => {
@@ -1557,30 +1592,27 @@ function readMDP(arri) {
       const clean_IDAT = arri.slice(pos, pos + size);
       pos += size + mod(4-size, 4);
 
-      if (pako && false) {
+      if (pako) {
         const data = pako.inflate(clean_IDAT);
         if (isMask) {
-          maskToLayer(tilemask, data, callback, interTileN, x, y);
+          maskToLayer(tilemask, data, x, y);
         } else {
-          dataToLayer(tilemask, data, callback, interTileN, x, y);
+          dataToLayer(tilemask, data, x, y);
         }
       } else {
         datastream(clean_IDAT).then((ab) => {
           const data = new Uint8Array(ab);
           if (isMask) {
-            maskToLayer(tilemask, data, callback, interTileN, x, y);
+            maskToLayer(tilemask, data, x, y);
           } else {
-            dataToLayer(tilemask, data, callback, interTileN, x, y);
+            dataToLayer(tilemask, data, x, y);
           }
         });
       }
+      callback(interTileN + 1);
     };
 
-
-
-    //Fi.inter = performance.now();
     const readTile = (TileN) => {
-
       if (TileN >= tileNum) {
         // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
         setTimeout(() => {
@@ -1610,7 +1642,7 @@ function readMDP(arri) {
       }
     }
     readTile(0);
-    //echo(`${layer.name} with ${tileNum} tiles took ${(performance.now()-Fi.inter)/1000} seconds`);
+    console.log(`${layer.name} with ${tileNum} tiles took ${(performance.now() - Fi.n[1])/1000} seconds`);
   }
   readLayer(0);
 }
@@ -2024,7 +2056,7 @@ function Chunk(offset, len, type) {
 }
 
 function toFrame(fps, bp = [0, 1]) {
-  Fi.inter = performance.now()
+  Fi.r();
   frame_counter += 1;
 
   if (!frame_counter) {
@@ -2077,10 +2109,9 @@ function toFrame(fps, bp = [0, 1]) {
       newAPNG.push(new Uint8Array(fdAT));
     };
   }
-  Fi.end = performance.now();
-  //echo((Fi.end - Fi.inter)/1000 + "s toFrame()")
-  Fi.fin = performance.now();
-  echo('in ' + (Fi.fin - Fi.start)/1000 + 's', ' ');
+  Fi.end();
+  //echo((Fi.n[2] - Fi.n[1])/1000 + "s toFrame()")
+  echo('in ' + (Fi.n[3] - Fi.n[0])/1000 + 's', ' ');
 }
 
 function makeAPNG(interFrameN, callback = false) {
@@ -2146,7 +2177,7 @@ function crop() {
 }
 
 function frameSaver(interFrameN, i) {
-  Fi.inter = performance.now();
+  Fi.r();
   if (interFrameN === 0) {
     frameBuffer[0] = context.getImageData(...dim[i]);
   } else {
@@ -2156,8 +2187,8 @@ function frameSaver(interFrameN, i) {
     context.putImageData(frameBuffer[1], 0, 0);
     crop();
   }
-  Fi.end = performance.now();
-  //echo((Fi.end - Fi.inter)/1000 + "s frameSaver()")
+  Fi.end();
+  //echo((Fi.n[2] - Fi.n[1])/1000 + "s frameSaver()")
 }
 
 function drawobj(x) {
@@ -2219,8 +2250,7 @@ function randobg() {
 }
 
 function staticAPNG(interFrameN, callback=false) {
-  Fi.start = performance.now();
-  Fi.inter = performance.now();
+  Fi.g();
 
   dim[3] = [0, 0, 1, 1];
   canvas.width = 1;
@@ -2257,13 +2287,12 @@ function compileframes(multi = true, deap = false) {
         canvasToFrame(delayFrame, interFrameN, fpsm);
       }
     }
-    Fi.end = performance.now();
-    //echo((Fi.end - Fi.inter)/1000 + "s canvasing")
+    Fi.end();
+    //echo((Fi.n[2] - Fi.n[1])/1000 + "s canvasing")
   }
 
   const readFrame = (interFrameN, fpsm) => {
-    Fi.start = performance.now();
-    Fi.inter = performance.now();
+    Fi.g();
 
     if (!multi && !bg) {
       get_dim(framearray[seqFrameN[interFrameN]-1][0], 1);
@@ -2334,8 +2363,7 @@ function compileapngs() {
   seqAPNG = splitlines(apnglist);
   const reuse = [false, false, false]; // pos, dim, arri
   const readFile = (interAPNG) => {
-    Fi.start = performance.now();
-    Fi.inter = performance.now();
+    Fi.g();
 
     if (interAPNG === seqAPNG.length) {
       makeAPNG();
@@ -2371,8 +2399,7 @@ function compileapngs() {
 
       arri = frame.arri;
       const listener = (img) => {
-        Fi.start = performance.now();
-        Fi.inter = performance.now();
+        Fi.g();
         if (interFrameN === 0) {
           if (interAPNG === 0) {
             get_dim(img, 4);
@@ -2678,11 +2705,27 @@ function loaded() {
           );
         }
 
-        const ab = reconstPNG(IHDR, pako.deflate(new Uint8Array(fdata)));
         const listener = (e) => {
           echoIMG(e, name.split('.').slice(0, -1).join('.') + ' (steg).png');
         }
-        ABtoIMG(ABtoAB(ab), listener);
+
+        if (pako) {
+          const ab = reconstPNG(IHDR, pako.deflate(new Uint8Array(fdata)));
+          ABtoIMG(ABtoAB(ab), listener);
+        } else {
+          const datastream = (buffer) => {
+            const pipin = new CompressionStream('deflate');
+
+            const blob = new Blob(ABtoAB(fdata), {type: 'application/octet-stream'});     
+            const compressedStream = blob.stream().pipeThrough(pipin);
+            return new Response(compressedStream).arrayBuffer();
+          }
+
+          datastream(fdata).then((ab) => {
+            const data = new Uint8Array(ab);
+            ABtoIMG(ABtoAB(reconstPNG(IHDR, data)), listener);
+          });
+        }
       }
     } else if (isVideo(get_ext(f))) {
       const v = document.createElement('VIDEO');
@@ -2744,17 +2787,11 @@ function loaded() {
 
   recompress.addEventListener('click', (e) => {
     if (recompress.classList.contains("reverse")) {
-      if (!optipng) {
-        echo('Optimize frames with <a href="https://github.com/LI-NA/optipng.js/tree/master/demo/js" target="_blank">optipng.min.js</a>, save next to HTML then reload this page and try again');
-        return;
-      }
       recompress.classList = "inverse";
       recompress.innerHTML = "Recompress";
-      decompress = true;
     } else {
       recompress.classList = "reverse";
       recompress.innerHTML = "No optimization";
-      decompress = false;
     }
   });
 
@@ -2793,11 +2830,12 @@ function loaded() {
   let s = addScript("optipng.min.js?");
   s.onerror = () => {
     optipng = false;
+    //echo('Optimize frames with <a href="https://github.com/LI-NA/optipng.js/tree/master/demo/js" target="_blank">optipng.min.js</a>, save next to HTML then reload this page and try again');
   }
   s = addScript("pako.umd.min.js?");
   s.onerror = () => {
     pako = false;
-    echo('Please try again with <a href="https://app.unpkg.com/pako/files/dist/browser/pako.umd.min.js" target="_blank">pako.umd.min.js</a>, save next to HTML then reload this page');
+    //echo('Optimize frames with <a href="https://app.unpkg.com/pako/files/dist/browser/pako.umd.min.js" target="_blank">pako.umd.min.js</a>, save next to HTML then reload this page and try again');
   };
   addScript("ruffle.js?");
 }
@@ -2830,12 +2868,17 @@ function newtip(y, z){
 var fps = 0;
 var framearray = [];
 var apngarray = [];
-var decompress = false;
+const lap = (n) => {
+  for (const p of Array.from({ length: 4-n }).keys()) {
+    Fi.n[3-p] = performance.now();
+  }
+};
 const Fi = {
-  start: 0,
-  inter: 0,
-  end: 0,
-  fin: 0,
+  n: [0, 0, 0, 0],
+  g: () => {lap(0)},
+  r: () => {lap(1)},
+  end: () => {lap(2)},
+  fin: () => {lap(3)},
 };
 var canvas = document.createElement('canvas');
 var context = canvas.getContext('2d'); // { willReadFrequently: true }
@@ -2844,7 +2887,7 @@ var dim = [false, false, false, false, false]; // framearray[0]'s dim, main_dim,
 var maxres = [0, 0, 1, 1];
 var createbg = false;
 var interecho = false;
-var DOMwriter, arri, seqFrameN, seqAPNG, seqLayerN, img, Module, name, recompress, dimension, framelist, loadframes, moreframes, echolayers, makepng, background, viewer, pload, getfps;
+var DOMwriter, arri, seqFrameN, seqAPNG, seqLayerN, img, name, recompress, dimension, framelist, loadframes, moreframes, echolayers, makepng, background, viewer, pload, getfps;
 
 
 

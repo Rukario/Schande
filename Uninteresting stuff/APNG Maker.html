@@ -643,34 +643,32 @@ function echoPalette(h = 8, s = 1) {
   palette = [];
 }
 
-function constPNG(ar, ...arrays) {
-  for (const z of arrays) {
-    for (const a of Array.from(z)) {
-      ar.push(a);
-    }
+function constPNGset(...arrays) {
+  const totalLength = arrays.reduce((acc, arr) => acc + arr.length, 0);
+  const ar = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const arr of arrays) {
+    ar.set(arr, offset);
+    offset += arr.length;
   }
+  return ar;
 }
 
 function reconstPNG(IHDR, arri) {  
-  const new_IDAT = [];
-  constPNG(
-    new_IDAT,
+  const new_IDAT = constPNGset(
     [0x49, 0x44, 0x41, 0x54], // IDAT
     arri,
   );
 
-  const size = arri.length;
-  arri = [];
-  constPNG(arri,
+  const checksum = crc32(new_IDAT);
+  return constPNGset(
     PNG_signature,
     IHDR,
-    int32ToAB(size),
+    int32ToAB(arri.length),
     new_IDAT,
-    int32ToAB(crc32(new_IDAT)),
+    int32ToAB(checksum),
     IEND,
   );
-
-  return arri;
 }
 
 function canvasToAB(c, ext = 'png', apngprod = false) {
@@ -681,81 +679,39 @@ function canvasToAB(c, ext = 'png', apngprod = false) {
       fr.onload = () => {
         arri = new Uint8Array(fr.result);
         if (ext === 'png' && recompress.classList.contains("inverse")) {
-          if (optipng) {
-            console.log('compression by optipng');
-            //https://manpages.debian.org/stretch/optipng/optipng.1.en.html
-            if (apngprod) {
-              //Ideal settings for apng production
-              arri = optipng(arri, ['-force', '-zw', '32k', '-f', '0', '-zs', '0', '-zm', '8', '-zc', '9', '-nx', '-strip', 'all']).data;
-            } else {
-              arri = optipng(arri, ['-force', '-zw', '32k', '-f', '0', '-zs', '0', '-zm', '8', '-zc', '9', '-strip', 'all']).data;
-            }
-            resolve(arri);
-          } else if (pako) {
-            console.log('compression by pako');
-            const IHDR = arri.slice(PNG_signature.length, PNG_signature.length + 25); // IHDR inherited
-            const inflator = new pako.Inflate();
-            for (const IDAT of findPos(arri, "IDAT", false)) {
-              const clean_IDAT = arri.slice(IDAT.offset + 8, IDAT.offset + 8 + IDAT.len);
-              inflator.push(clean_IDAT);
-            }
+          const IHDR = arri.slice(PNG_signature.length, PNG_signature.length + 25); // IHDR inherited
 
-            const pixels = inflator.result;
-            if (!inflator.ended) {
-              throw new Error('unexpected end of file');
-            }
-
-            const clean_IDAT = pako.deflate(pixels, {'level': 6});
-            resolve(reconstPNG(IHDR, clean_IDAT));
-          } else {
-            console.log('native browser compression');
-            const IHDR = arri.slice(PNG_signature.length, PNG_signature.length + 25); // IHDR inherited
-            const decompressIdatChunks = (idatChunks) => {
-              const totalLength = idatChunks.reduce((acc, chunk) => acc + chunk.length, 0);
-              const combinedIdatData = new Uint8Array(totalLength);
-
-              let offset = 0;
-              idatChunks.forEach(chunk => {
-                combinedIdatData.set(chunk, offset);
-                offset += chunk.length;
-              });
-
-              const blob = new Blob([combinedIdatData]);
-              const inputStream = blob.stream();
-
-              inputStream
-                .pipeThrough(new DecompressionStream('deflate'))
-                .pipeThrough(new CompressionStream('deflate'))
-                .pipeTo(new WritableStream({
-                  // Temporary storage for our newly compressed chunks
-                  chunks: [],
-                  write(chunk) {
-                    this.chunks.push(chunk);
-                  },
-                  close() {
-                    // 4. Combine the resulting single-stream chunks back into one IDAT payload
-                    const finalBlob = new Blob(this.chunks);
-
-                    finalBlob.arrayBuffer().then(buffer => {
-                      const finalSingleIdatPayload = new Uint8Array(buffer);
-                      resolve(reconstPNG(IHDR, finalSingleIdatPayload));
-                    });
-                  }
-                }))
-                .catch(error => {
-                  console.error("Error processing IDAT streams:", error);
-                });
-            }
-
-            const IDATs = [];
-            for (const IDAT of findPos(arri, "IDAT", false)) {
-              const buffer = arri.slice(IDAT.offset + 8, IDAT.offset + 8 + IDAT.len);
-              //IDATs.push(datastreamIn(buffer));
-              IDATs.push(buffer);
-            }
-
-            decompressIdatChunks(IDATs);
+          const chunks = findPos(arri, "IDAT", false).map((IDAT) => arri.slice(IDAT.offset + 8, IDAT.offset + 8 + IDAT.len));
+          const IDAT = new Uint8Array(chunks.reduce((sum, chunk) => sum + chunk.length, 0));
+          let offset = 0;
+          for (const chunk of chunks) {
+            IDAT.set(chunk, offset);
+            offset += chunk.length;
           }
+
+          const blob = new Blob([IDAT]);
+          const inputStream = blob.stream();
+
+          inputStream
+            .pipeThrough(new DecompressionStream('deflate'))
+            .pipeThrough(new CompressionStream('deflate'))
+            .pipeTo(new WritableStream({
+              chunks: [],
+              write(chunk) {
+                this.chunks.push(chunk);
+              },
+              close() {
+                const finalBlob = new Blob(this.chunks);
+
+                finalBlob.arrayBuffer().then(buffer => {
+                  const finalSingleIdatPayload = new Uint8Array(buffer);
+                  resolve(reconstPNG(IHDR, finalSingleIdatPayload));
+                });
+              }
+            }))
+            .catch(error => {
+              console.error("Error processing IDAT streams:", error);
+            });
         } else {
           resolve(arri);
         }
@@ -1381,6 +1337,15 @@ function toCanvasMode(vaguemode) {
   }
 }
 
+function datastream(ab, compress = false) {
+  const pipin = compress ? new CompressionStream('deflate') : new DecompressionStream('deflate');
+  // Use 'deflate-raw' when ab is (pos+2, pos-4 + size)
+
+  const blob = new Blob(ABtoAB(ab), {type: 'application/octet-stream'});     
+  const decompressedStream = blob.stream().pipeThrough(pipin);
+  return new Response(decompressedStream).arrayBuffer();
+}
+
 function readMDP(arri) {
   Fi.g();
   const offset1 = TMDIPack.size;
@@ -1431,8 +1396,7 @@ function readMDP(arri) {
       // Will decompress later
       mdp_mdibin[archiveName] = pos;
     } else if (streamType === 1) {
-      // A thumbnail, skipped, but it can be decompressed like so
-      // data = pako.inflate(arri.slice(pos, pos + streamSize));
+      // A thumbnail, skipped, but it can be decompressed on the arri.slice(pos, pos + streamSize);
     } else {
       console.log(`Unknown streamType Code: ${streamType}`);
     }
@@ -1521,14 +1485,11 @@ function readMDP(arri) {
     }
 
     const dataToPNGToLayer = (tilemask, data, x, y) => {
-      let IHDR = new Array(0);
-      constPNG(
-        IHDR,
+      const IHDR = makeChunkBytes('IHDR', constPNGset(
         int32ToAB(dim),
         int32ToAB(dim),
         [0x08, 0x06, 0x00, 0x00, 0x00], // RGBA
-      );
-      IHDR = makeChunkBytes('IHDR', IHDR);
+      ));
       
       const scanline = dim * 4;
       const fdata = new Array(scanline * dim + dim);
@@ -1544,20 +1505,14 @@ function readMDP(arri) {
         }
       }
 
-      const ab = reconstPNG(IHDR, pako.deflate(new Uint8Array(fdata)));
       const listener = (e) => {
         layer.drawImage(e, x*dim, y*dim, dim, dim);
       };
-      ABtoIMG(ABtoAB(ab), listener);
-    }
 
-    const datastream = (buffer) => {
-      const pipin = new DecompressionStream('deflate');
-      // Use 'deflate-raw' when buffer is (pos+2, pos-4 + size)
-
-      const blob = new Blob(ABtoAB(buffer), {type: 'application/octet-stream'});     
-      const decompressedStream = blob.stream().pipeThrough(pipin);
-      return new Response(decompressedStream).arrayBuffer();
+      datastream(fdata, true).then((ab) => {
+        const data = new Uint8Array(ab);
+        ABtoIMG(ABtoAB(reconstPNG(IHDR, data)), listener);
+      });
     }
 
     const tileReadStreams = (tilemask, callback, interTileN, isMask) => {
@@ -1568,19 +1523,10 @@ function readMDP(arri) {
       const clean_IDAT = arri.slice(pos, pos + size);
       pos += size + mod(4-size, 4);
 
-      if (pako) {
-        const data = pako.inflate(clean_IDAT);
-        if (true) {
-          dataToLayer(tilemask, data, x, y);
-        } else {
-          dataToPNGToLayer(tilemask, data, x, y);
-        }
-      } else {
-        datastream(clean_IDAT).then((ab) => {
-          const data = new Uint8Array(ab);
-          dataToLayer(tilemask, data, x, y);
-        });
-      }
+      datastream(clean_IDAT).then((ab) => {
+        const data = new Uint8Array(ab);
+        dataToLayer(tilemask, data, x, y);
+      });
       callback(interTileN + 1);
     };
 
@@ -1592,23 +1538,14 @@ function readMDP(arri) {
       const clean_IDAT = arri.slice(pos, pos + size);
       pos += size + mod(4-size, 4);
 
-      if (pako) {
-        const data = pako.inflate(clean_IDAT);
+      datastream(clean_IDAT).then((ab) => {
+        const data = new Uint8Array(ab);
         if (isMask) {
           maskToLayer(tilemask, data, x, y);
         } else {
           dataToLayer(tilemask, data, x, y);
         }
-      } else {
-        datastream(clean_IDAT).then((ab) => {
-          const data = new Uint8Array(ab);
-          if (isMask) {
-            maskToLayer(tilemask, data, x, y);
-          } else {
-            dataToLayer(tilemask, data, x, y);
-          }
-        });
-      }
+      });
       callback(interTileN + 1);
     };
 
@@ -1820,31 +1757,28 @@ function fromGIF(arri) {
         fcTL[2] = 0x00;
         fcTL[3] = 0x00;
 
-        constPNG(
-          frame.arri,
+        frame.arri.push(constPNGset(
           GIF89a_signature,
           IHDR,
           [0x21, 0xFF, 0x0B],
           utf8ToAB(NETSCAPE_sig),
           [0x03, 0x01, 0x00, 0x00, 0x00],
-        );
+        ));
 
         if (GCe) {
-          constPNG(
-            frame.arri,
+          frame.arri.push(constPNGset(
             [0x21, 0xF9],
             GCe,
-          );
+          ));
           GCe = false;
         };
 
-        constPNG(
-          frame.arri,
+        frame.arri.push(constPNGset(
           [0x2C],
           fcTL,
           clean_IDAT,
           [0x3B],
-        );
+        ));
 
         break;
       case 0x3B: // ';' end of file
@@ -1951,17 +1885,16 @@ function fromAPNG(arri) {
     IHDR.set(int32ToAB(frame.width), 0); // modify IHDR to have new width
     IHDR.set(int32ToAB(frame.height), 4); // modify IHDR to have new height
 
-    constPNG(
-      frame.arri,
+    frame.arri.push(constPNGset(
       PNG_signature,
       makeChunkBytes('IHDR', IHDR), // recalc crc32
-    );
+    ));
 
     for (const IDAT of frame.IDATs) {
-      constPNG(frame.arri, makeChunkBytes('IDAT', IDAT));
+      frame.arri.push(constPNGset(makeChunkBytes('IDAT', IDAT)));
     };
 
-    constPNG(frame.arri, IEND);
+    frame.arri.push(new Uint8Array(IEND));
 
     frame.IDATs = [];
   };
@@ -2072,9 +2005,7 @@ function toFrame(fps, bp = [0, 1]) {
     if (!i) {
       //echo(i + "th IDAT size: " + IDAT.len)
       sequence_number +=1;
-      let fcTL = new Array(0);
-      constPNG(
-        fcTL,
+      const fcTL = constPNGset(
         int32ToAB(26),
         [0x66, 0x63, 0x54, 0x4C], // fcTL
         int32ToAB(sequence_number),
@@ -2085,9 +2016,11 @@ function toFrame(fps, bp = [0, 1]) {
         int32ToAB(fps[0]).slice(-2),
         int32ToAB(fps[1]).slice(-2),
         bp, //disposeOp and blendOp
-        int32ToAB(crc32(fcTL.slice(4, 4+4+26))),
       );
-      newAPNG.push(new Uint8Array(fcTL));
+      newAPNG.push(
+        fcTL,
+        new Uint8Array(int32ToAB(crc32(fcTL.slice(4, 4+4+26)))),
+      );
     }
 
     if (!frame_counter) {
@@ -2097,16 +2030,16 @@ function toFrame(fps, bp = [0, 1]) {
       const len = IDAT.len + 4;
 
       sequence_number +=1;
-      let fdAT = new Array(0);
-      constPNG(
-        fdAT,
+      const fdAT = constPNGset(
         int32ToAB(len),
         [0x66, 0x64, 0x41, 0x54], // fdAT
         int32ToAB(sequence_number),
         clean_IDAT,
-        int32ToAB(crc32(fdAT.slice(4, 4 + 4 + len))),
       );
-      newAPNG.push(new Uint8Array(fdAT));
+      newAPNG.push(
+        fdAT,
+        new Uint8Array(int32ToAB(crc32(fdAT.slice(4, 4 + 4 + len)))),
+      );
     };
   }
   Fi.end();
@@ -2117,17 +2050,15 @@ function toFrame(fps, bp = [0, 1]) {
 function makeAPNG(interFrameN, callback = false) {
   newAPNG.push(new Uint8Array(IEND));
 
-  let acTL = new Array(0);
-  constPNG(
-    acTL,
+  const acTL = constPNGset(
     [0, 0, 0, 0x08, 0x61, 0x63, 0x54, 0x4C], // acTL
     int32ToAB(frame_counter + 1),
     [0, 0, 0, 0], //loop times, infinity
   );
 
   const crc = acTL.slice(4, 16);
-  constPNG(acTL, int32ToAB(crc32(crc, crc.length)))
-  newAPNG[2] = new Uint8Array(acTL);
+
+  newAPNG[2] = constPNGset(acTL, int32ToAB(crc32(crc, crc.length)));;
 
   frame_counter = -1
   newframe = new Frame();
@@ -2687,45 +2618,28 @@ function loaded() {
         const sq = Math.sqrt(arri.length/4);
         const [w, h] = [parseInt(sq), 1 + parseInt(sq) + (sq%1 ? 1 : 0)];
 
-        let IHDR = new Array(0);
-        constPNG(
-          IHDR,
+        const IHDR = makeChunkBytes('IHDR', constPNGset(
           int32ToAB(w),
           int32ToAB(h),
           [0x08, 0x06, 0x00, 0x00, 0x00], // RGBA
-        );
-        IHDR = makeChunkBytes('IHDR', IHDR);
+        ));
 
-        let fdata = new Array(0);
+        const fdata = new Array(0);
         for (const i of Array((w)*4).keys()) {
-          constPNG(
-            fdata,
+          fdata.push(constPNGset(
             [0x00],
             arri.slice(i*w*4, (i+1)*w*4),
-          );
+          ));
         }
 
         const listener = (e) => {
           echoIMG(e, name.split('.').slice(0, -1).join('.') + ' (steg).png');
         }
 
-        if (pako) {
-          const ab = reconstPNG(IHDR, pako.deflate(new Uint8Array(fdata)));
-          ABtoIMG(ABtoAB(ab), listener);
-        } else {
-          const datastream = (buffer) => {
-            const pipin = new CompressionStream('deflate');
-
-            const blob = new Blob(ABtoAB(fdata), {type: 'application/octet-stream'});     
-            const compressedStream = blob.stream().pipeThrough(pipin);
-            return new Response(compressedStream).arrayBuffer();
-          }
-
-          datastream(fdata).then((ab) => {
-            const data = new Uint8Array(ab);
-            ABtoIMG(ABtoAB(reconstPNG(IHDR, data)), listener);
-          });
-        }
+        datastream(fdata, true).then((ab) => {
+          const data = new Uint8Array(ab);
+          ABtoIMG(ABtoAB(reconstPNG(IHDR, data)), listener);
+        });
       }
     } else if (isVideo(get_ext(f))) {
       const v = document.createElement('VIDEO');
@@ -2827,16 +2741,6 @@ function loaded() {
     return s;
   }
 
-  let s = addScript("optipng.min.js?");
-  s.onerror = () => {
-    optipng = false;
-    //echo('Optimize frames with <a href="https://github.com/LI-NA/optipng.js/tree/master/demo/js" target="_blank">optipng.min.js</a>, save next to HTML then reload this page and try again');
-  }
-  s = addScript("pako.umd.min.js?");
-  s.onerror = () => {
-    pako = false;
-    //echo('Optimize frames with <a href="https://app.unpkg.com/pako/files/dist/browser/pako.umd.min.js" target="_blank">pako.umd.min.js</a>, save next to HTML then reload this page and try again');
-  };
   addScript("ruffle.js?");
 }
 

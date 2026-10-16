@@ -399,12 +399,6 @@ var FFmove = (e_) => {
   }
 }
 
-function plaintext(e) {
-  e.preventDefault();
-  const text = e.clipboardData.getData('text/plain').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  document.execCommand('insertHTML', false, text);
-}
-
 function splitlines(e) {
   return e.innerHTML.replace(/\<br\>/g, '\n').split('\n').filter((x) => x);
 }
@@ -1337,16 +1331,75 @@ function toCanvasMode(vaguemode) {
   }
 }
 
-function datastream(ab, compress = false) {
-  const pipin = compress ? new CompressionStream('deflate') : new DecompressionStream('deflate');
-  // Use 'deflate-raw' when ab is (pos+2, pos-4 + size)
+function datastream(ab, compress = false, format = 'deflate') {
+  // ZIP uses "raw" deflate (no zlib headers or Adler32 checksums)
+  // ZIP-like ab with (pos+2, pos-4 + size)
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(new Uint8Array(ab));
+      controller.close();
+    }
+  });
 
-  const blob = new Blob(ABtoAB(ab), {type: 'application/octet-stream'});     
-  const decompressedStream = blob.stream().pipeThrough(pipin);
+  const pipin = compress ? new CompressionStream(format) : new DecompressionStream(format);
+
+  const decompressedStream = stream.pipeThrough(pipin);
   return new Response(decompressedStream).arrayBuffer();
 }
 
-function readMDP(arri) {
+function readORA(result) {
+  Fi.g();
+
+  const arri = result;
+
+  const extractFromOra = (targetFileName) => {
+    const view = new DataView(arri);
+    let offset = 0;
+
+    while (offset < view.byteLength - 30) {
+      const signature = view.getUint32(offset, true);
+      if (signature !== 0x04034b50) {
+        break;
+      }
+
+      // Standard ZIP layout
+      const compressionMethod = view.getUint16(offset + 8, true);
+      const compressedSize = view.getUint32(offset + 18, true);
+      const fileNameLength = view.getUint16(offset + 26, true);
+      const extraFieldLength = view.getUint16(offset + 28, true);
+
+      const fileNameBytes = new Uint8Array(arri, offset + 30, fileNameLength);
+      const fileName = new TextDecoder().decode(fileNameBytes);
+
+      // Where raw compressed data begins
+      const dataOffset = offset + 30 + fileNameLength + extraFieldLength;
+
+      if (fileName === targetFileName) {
+        const compressedData = arri.slice(dataOffset, dataOffset + compressedSize);
+        if (compressionMethod === 0) {
+          return new Blob([compressedData]);
+        } else if (compressionMethod === 8) {
+          return datastream(compressedData, false, 'deflate-raw');
+        }
+      }
+
+      offset = dataOffset + compressedSize;
+    }
+    return null;
+  }
+
+  extractFromOra('stack.xml').then((ab) => {
+    const decoder = new TextDecoder('utf-8');
+    const xmlText = decoder.decode(ab);
+
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+    console.log(xmlDoc.getElementsByTagName('layer'));
+  });
+}
+
+function readMDP(result) {
+  const arri = new Uint8Array(result);
   Fi.g();
   const offset1 = TMDIPack.size;
   const offset2 = TPackerHeader.size;
@@ -2589,7 +2642,9 @@ function changebg(f){
 function loaded() {
   if (!framelist.isContentEditable) {
     const pasta = (e) => {
-      plaintext(e);
+      e.preventDefault();
+      const text = e.clipboardData.getData('text/plain').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      document.execCommand('insertHTML', false, text);
     }
     framelist.addEventListener("paste", pasta);
     framelist.setAttribute("contenteditable", true);
@@ -2607,8 +2662,13 @@ function loaded() {
       var fr = new FileReader();
       fr.readAsArrayBuffer(f);
       fr.onload = () => {
-        const arri = new Uint8Array(fr.result);
-        readMDP(arri);
+        readMDP(fr.result);
+      }
+    } else if (get_ext(f) === "ora") {
+      var fr = new FileReader();
+      fr.readAsArrayBuffer(f);
+      fr.onload = () => {
+        readORA(fr.result);
       }
     } else if (isUTF8(get_ext(f))) {
       var fr = new FileReader();

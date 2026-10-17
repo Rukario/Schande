@@ -1326,7 +1326,16 @@ function toCanvasMode(vaguemode) {
     case 'luminosity':
       return "luminosity";
     case 'div': //might that be synonymous with subtract?
+
+    case 'svg:multiply':
+      return "multiply";
+    case 'svg:src-over':
+      return "source-over";
+    case 'svg:dst-in':
+      return "destination-in";
+
     default:
+      console.log('unknown mode:', vaguemode);
       return "source-over";
   }
 }
@@ -1410,7 +1419,7 @@ function scanZIP(ab) {
     const decoder = new TextDecoder('utf-8');
     const path = decoder.decode(nameBytes);
 
-    paths.push({name: path, offset: localFileOffset});
+    paths[path] = localFileOffset;
 
     // Advance to next item
     offset += 46 + fileNameLength + extraFieldLength + fileCommentLength;
@@ -1460,20 +1469,56 @@ function extractFromZIP(ab, offset) {
 function readORA(result) {
   Fi.g();
 
-  const paths = scanZIP(result);
-  //console.log(paths);
-  for (const path of paths) {
-    if (path.name === 'stack.xml') {
-      extractFromZIP(result, path.offset).then((ab) => {
-        const decoder = new TextDecoder('utf-8');
-        const xmlText = decoder.decode(ab);
+  while (layerlist.firstChild) {
+    layerlist.lastChild.remove()
+  };
 
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-        console.log(xmlDoc, xmlDoc.getElementsByTagName('layer'));
-      });
+  const paths = scanZIP(result);
+
+  layers = [];
+  extractFromZIP(result, paths['stack.xml']).then((ab) => {
+    const decoder = new TextDecoder('utf-8');
+    const xmlText = decoder.decode(ab);
+
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+
+    const parent = xmlDoc.documentElement;
+
+    canvas.width = parent.getAttribute('w');
+    canvas.height = parent.getAttribute('h');
+
+    const layerelements = Array.from(xmlDoc.getElementsByTagName('layer'));
+    for (const [n, e] of layerelements.entries()) {
+      //console.log(e);
+      const src = e.getAttribute('src');
+      if (src in paths) {
+        extractFromZIP(result, paths[src]).then((png) => {
+          const listener = (img) => {
+            const layer = newCanvas(canvas.width, canvas.height);
+
+            layer.masking = e.getAttribute('masking');
+            layer.type = '32bpp';// e.getAttribute('type');
+            layer.mode = e.getAttribute('mode');
+            layer.alpha = e.getAttribute('opacity');
+            layer.x = e.getAttribute('x');
+            layer.y = e.getAttribute('y');
+            layer.visible = e.getAttribute('visibility') === 'visible';
+            layer.mode = toCanvasMode(e.getAttribute('composite-op'));
+            layer.name = e.getAttribute('name');
+
+            layers.push(layer);
+            layerlist.innerHTML += `${n} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.x} ${layer.y} ${layer.mode}\n`;
+
+            layer.drawImage(img, layer.x, layer.y, img.width, img.height);
+            //echoIMG(img, 'layer.png');
+          };
+          ABtoIMG(ABtoAB(png), listener);
+        });
+      }
     }
-  }
+    updatebutton(echolayers, echoMDP);
+  });
 }
 
 function readMDP(result) {
@@ -1507,8 +1552,8 @@ function readMDP(result) {
     layer.mode = e.getAttribute('mode');
     layer.color = e.getAttribute('color');
     layer.alpha = e.getAttribute('alpha');
-    layer.ofsx = e.getAttribute('ofsx');
-    layer.ofsy = e.getAttribute('ofsy');
+    layer.x = e.getAttribute('ofsx');
+    layer.y = e.getAttribute('ofsy');
     layer.visible = e.getAttribute('visible');
     layer.mode = toCanvasMode(e.getAttribute('mode'));
     layer.parentId = e.getAttribute('parentId');
@@ -1569,9 +1614,9 @@ function readMDP(result) {
       layerlist.innerHTML += '-';
     }
     if (layer.type === 'mask') {
-      layerlist.innerHTML += `${LayerN} ${layer.visible} ${alpha} ${layer.type} ${layer.ofsx} ${layer.ofsy}\n`;
+      layerlist.innerHTML += `${LayerN} ${layer.visible} ${alpha} ${layer.type} ${layer.x} ${layer.y}\n`;
     } else {
-      layerlist.innerHTML += `${LayerN} ${layer.visible} ${alpha} ${layer.type} ${layer.ofsx} ${layer.ofsy} ${layer.mode}\n`;
+      layerlist.innerHTML += `${LayerN} ${layer.visible} ${alpha} ${layer.type} ${layer.x} ${layer.y} ${layer.mode}\n`;
     }
 
     const layerColor = layer.color;

@@ -1347,60 +1347,139 @@ function datastream(ab, compress = false, format = 'deflate') {
   return new Response(decompressedStream).arrayBuffer();
 }
 
-function readORA(result) {
-  Fi.g();
+function scanZIP(ab) {
+  const dv = new DataView(ab);
+  const EOCD_signature = [0x06, 0x05, 0x4b, 0x50]; // End of central directory record
+  const clean_byteLength = ab.byteLength - EOCD_signature.length - 18; // EOCD trash
 
-  const arri = result;
-
-  const extractFromOra = (targetFileName) => {
-    const view = new DataView(arri);
-    let offset = 0;
-
-    while (offset < view.byteLength - 30) {
-      const signature = view.getUint32(offset, true);
-      if (signature !== 0x04034b50) {
-        break;
-      }
-
-      // Standard ZIP layout
-      const compressionMethod = view.getUint16(offset + 8, true);
-      const compressedSize = view.getUint32(offset + 18, true);
-      const fileNameLength = view.getUint16(offset + 26, true);
-      const extraFieldLength = view.getUint16(offset + 28, true);
-
-      const fileNameBytes = new Uint8Array(arri, offset + 30, fileNameLength);
-      const fileName = new TextDecoder().decode(fileNameBytes);
-
-      // Where raw compressed data begins
-      const dataOffset = offset + 30 + fileNameLength + extraFieldLength;
-
-      if (fileName === targetFileName) {
-        const compressedData = arri.slice(dataOffset, dataOffset + compressedSize);
-        if (compressionMethod === 0) {
-          return new Blob([compressedData]);
-        } else if (compressionMethod === 8) {
-          return datastream(compressedData, false, 'deflate-raw');
-        }
-      }
-
-      offset = dataOffset + compressedSize;
+  let EOCD_offset = -1;
+  for (let i = clean_byteLength; i >= 0; i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) {
+      EOCD_offset = i;
+      break;
     }
+  }
+  if (EOCD_offset === -1) {
+    console.error('Not a valid ZIP file or unsupported structure.');
     return null;
   }
 
-  extractFromOra('stack.xml').then((ab) => {
-    const decoder = new TextDecoder('utf-8');
-    const xmlText = decoder.decode(ab);
+  const totalEntries = dv.getUint16(EOCD_offset + 10, true);
+  const cdSize = dv.getUint32(EOCD_offset + 12, true);
+  const cdOffset = dv.getUint32(EOCD_offset + 16, true);
 
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-    console.log(xmlDoc.getElementsByTagName('layer'));
-  });
+  let offset = cdOffset;
+  const paths = [];
+
+  for (const n of Array(totalEntries).keys()) {
+    //// Central Directory headers
+    //4 +// Signature
+    //2 +// Version made by
+    //2 +// Minimum version needed to extract
+    //2 +// Bit flag
+    //2 +// Compression method
+    //2 +// File last modification time (MS-DOS format)
+    //2 +// File last modification date (MS-DOS format)
+    //4 +// CRC-32 of uncompressed data
+    //4 +// Compressed size
+    //4 +// Uncompressed size
+    //
+    //2 +// File name length (n)
+    //2 +// Extra field length (m)
+    //2 +// File comment length (k)
+    //
+    //2 +// Disk number where file starts
+    //2 +// Internal file attributes
+    //4 +// External file attributes
+    //4 // Offset of local file header (from start of disk)
+    //n // File name
+    //m // Extra field
+    //k // File comment
+
+    const signature = dv.getUint32(offset, true);
+    if (signature !== 0x02014b50) { // Central Directory signature
+      break; // Stop if mismatch
+    }
+
+    const fileNameLength = dv.getUint16(offset + 28, true);
+    const extraFieldLength = dv.getUint16(offset + 30, true);
+    const fileCommentLength = dv.getUint16(offset + 32, true);
+    const localFileOffset = dv.getUint32(offset + 42, true);
+
+    const nameBytes = new Uint8Array(ab, offset + 46, fileNameLength);
+    const decoder = new TextDecoder('utf-8');
+    const path = decoder.decode(nameBytes);
+
+    paths.push({name: path, offset: localFileOffset});
+
+    // Advance to next item
+    offset += 46 + fileNameLength + extraFieldLength + fileCommentLength;
+  }
+
+  return paths;
+}
+
+function extractFromZIP(ab, offset) {
+  //// Local file header
+  //4 +// Signature (0x04034b50)
+  //2 +// Minimum version needed to extract
+  //2 +// Bit flag
+  //2 +// Compression method
+  //2 +// File last modification time (MS-DOS format)
+  //2 +// File last modification date (MS-DOS format)
+  //4 +// CRC-32 of uncompressed data
+  //4 +// Compressed size
+  //4 +// Uncompressed size
+  //2 +// File name length (n)
+  //2 // Extra field length (m)
+  //n // File name
+  //m // Extra field 
+
+  const dv = new DataView(ab);
+  const signature = dv.getUint32(offset, true);
+  if (signature !== 0x04034b50) {
+    return; // Give up if mismatch
+  }
+
+  const compressionMethod = dv.getUint16(offset + 8, true);
+  const compressedSize = dv.getUint32(offset + 18, true);
+  const fileNameLength = dv.getUint16(offset + 26, true);
+  const extraFieldLength = dv.getUint16(offset + 28, true);
+
+  // Where raw compressed data begins
+  const dataOffset = offset + 30 + fileNameLength + extraFieldLength;
+
+  const compressedData = ab.slice(dataOffset, dataOffset + compressedSize);
+  if (compressionMethod === 0) {
+    return new Blob([compressedData]);
+  } else if (compressionMethod === 8) {
+    return datastream(compressedData, false, 'deflate-raw');
+  }
+}
+
+function readORA(result) {
+  Fi.g();
+
+  const paths = scanZIP(result);
+  //console.log(paths);
+  for (const path of paths) {
+    if (path.name === 'stack.xml') {
+      extractFromZIP(result, path.offset).then((ab) => {
+        const decoder = new TextDecoder('utf-8');
+        const xmlText = decoder.decode(ab);
+
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+        console.log(xmlDoc, xmlDoc.getElementsByTagName('layer'));
+      });
+    }
+  }
 }
 
 function readMDP(result) {
-  const arri = new Uint8Array(result);
   Fi.g();
+
+  const arri = new Uint8Array(result);
   const offset1 = TMDIPack.size;
   const offset2 = TPackerHeader.size;
   const offset3 = HeaderStruct.size;
@@ -1718,7 +1797,7 @@ function fromGIF(arri) {
   gif.width = IHDR[0] + (IHDR[1] << 8);
   gif.height = IHDR[2] + (IHDR[3] << 8);
   //Fossil specification
- 
+
   const packed_field = IHDR[4]; // Global Color Table, should read as binary
   // IHDR[5]: Background Color Index
   // IHDR[6]: Pixel Aspect Ratio
@@ -1999,7 +2078,7 @@ function int32ToAB(int32) {
 };
 
 function ABtoInt32(ab) {
-  return (ab[0] << 24) + (ab[1] << 12) + (ab[2] << 8) + ab[3];
+  return (ab[0] << 24) | (ab[1] << 16) | (ab[2] << 8) | ab[3];
 }
 
 

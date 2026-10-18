@@ -1333,6 +1333,11 @@ function toCanvasMode(vaguemode) {
       return "source-over";
     case 'svg:dst-in':
       return "destination-in";
+    case 'svg:dst-out':
+      return "erase";
+
+    case 'through':
+      return "through";
 
     default:
       console.log('unknown mode:', vaguemode);
@@ -1493,23 +1498,20 @@ function readORA(result) {
       //console.log(e);
       const src = e.getAttribute('src');
       if (src in paths) {
+        const layer = newCanvas(canvas.width, canvas.height);
+
+        layer.alpha = e.getAttribute('opacity');
+        layer.x = e.getAttribute('x');
+        layer.y = e.getAttribute('y');
+        layer.visible = e.getAttribute('visibility') === 'visible';
+        layer.mode = toCanvasMode(e.getAttribute('composite-op'));
+        layer.name = e.getAttribute('name');
+
+        layers.push(layer);
+        layerlist.innerHTML += `${n} ${layer.visible} ${layer.alpha} 32bpp 0 0 ${layer.mode}\n`;
+
         extractFromZIP(result, paths[src]).then((png) => {
           const listener = (img) => {
-            const layer = newCanvas(canvas.width, canvas.height);
-
-            layer.masking = e.getAttribute('masking');
-            layer.type = '32bpp';// e.getAttribute('type');
-            layer.mode = e.getAttribute('mode');
-            layer.alpha = e.getAttribute('opacity');
-            layer.x = e.getAttribute('x');
-            layer.y = e.getAttribute('y');
-            layer.visible = e.getAttribute('visibility') === 'visible';
-            layer.mode = toCanvasMode(e.getAttribute('composite-op'));
-            layer.name = e.getAttribute('name');
-
-            layers.push(layer);
-            layerlist.innerHTML += `${n} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.x} ${layer.y} ${layer.mode}\n`;
-
             layer.drawImage(img, layer.x, layer.y, img.width, img.height);
             //echoIMG(img, 'layer.png');
           };
@@ -1547,15 +1549,13 @@ function readMDP(result) {
     const layer = newCanvas(canvas.width, canvas.height);
     //console.log(e.attributes);
     layer.bin = e.getAttribute('bin');
-    layer.masking = e.getAttribute('masking');
     layer.type = e.getAttribute('type');
-    layer.mode = e.getAttribute('mode');
     layer.color = e.getAttribute('color');
-    layer.alpha = e.getAttribute('alpha');
+    layer.alpha = Math.ceil( e.getAttribute('alpha') / 255 * 100) / 100;
     layer.x = e.getAttribute('ofsx');
     layer.y = e.getAttribute('ofsy');
     layer.visible = e.getAttribute('visible');
-    layer.mode = toCanvasMode(e.getAttribute('mode'));
+    layer.mode = e.getAttribute('masking') === 'true' ? 'erase' : toCanvasMode(e.getAttribute('mode'));
     layer.parentId = e.getAttribute('parentId');
     layer.name = e.getAttribute('name');
     layers.push(layer);
@@ -1593,10 +1593,8 @@ function readMDP(result) {
     }
 
     const layer = layers[LayerN];
-    if (layer.masking === 'true') {
-      layer.type = 'mask';
-    } else if (layer.type === 'folder') {
-      layerlist.innerHTML += `${LayerN} ${layer.visible} 1 ${layer.type}\n`;
+    if (layer.type === 'folder') {
+      layerlist.innerHTML += `${LayerN} ${layer.visible} 1 ${layer.type} ${layer.x} ${layer.y} ${layer.mode}\n`;
       readLayer(LayerN+1);
       return;
     };
@@ -1609,15 +1607,10 @@ function readMDP(result) {
       readLayer(LayerN+1);
     }
 
-    const alpha = Math.ceil( layer.alpha / 255 * 100) / 100
     if (parseInt(layer.parentId) > 0) {
-      layerlist.innerHTML += '-';
+      layerlist.innerHTML += ' ';
     }
-    if (layer.type === 'mask') {
-      layerlist.innerHTML += `${LayerN} ${layer.visible} ${alpha} ${layer.type} ${layer.x} ${layer.y}\n`;
-    } else {
-      layerlist.innerHTML += `${LayerN} ${layer.visible} ${alpha} ${layer.type} ${layer.x} ${layer.y} ${layer.mode}\n`;
-    }
+    layerlist.innerHTML += `${LayerN} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.x} ${layer.y} ${layer.mode}\n`;
 
     const layerColor = layer.color;
 
@@ -1730,6 +1723,7 @@ function readMDP(result) {
       if (TileN >= tileNum) {
         // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
         setTimeout(() => {
+          //echoCanvas(layer.canvas);
           readLayer(LayerN + 1);
         }, 0);
         return;
@@ -1766,21 +1760,23 @@ function echoMDP() {
 
   let started = true;
   let visibleformask = false;
-  let usemode = 'source-over';
-  let usealpha = 1;
+  let blendMode = 'source-over';
+  let alpha = 1;
 
   for (const next of splitlines(layerlist)) {
-    const seq = next.split(/ +/);
-    if (seq[1] === 'false') {
+    console.log('depth:', next.search(/[^ ]/));
+    const [ida, isVisible, opacity, isFolder, ofsx, ofsy, whatMode] = next.trim().split(/ +/);
+
+    if (isVisible === 'false') {
       continue;
-    } else if (seq[3] === 'folder') {
+    } else if (isFolder === 'folder') {
       visibleformask = false;
       continue;
     }
 
-    const id = Math.abs(parseInt(seq[0]));
-    switch (seq[3]) {
-      case 'mask':
+    const id = Math.abs(parseInt(ida));
+    switch (whatMode) {
+      case 'erase':
         if (!visibleformask) {
           continue;
         }
@@ -1797,8 +1793,8 @@ function echoMDP() {
       default:
         visibleformask = true;
         if (!started) {
-          context.globalCompositeOperation = usemode;
-          context.globalAlpha = usealpha;
+          context.globalCompositeOperation = blendMode;
+          context.globalAlpha = alpha;
           context.drawImage(ctx.canvas, 0, 0, ctx.width, ctx.height);
        
           // reset
@@ -1809,16 +1805,16 @@ function echoMDP() {
           started = false;
         }
 
-        usealpha = parseFloat(seq[2]);
-        usemode = seq[6];
+        alpha = parseFloat(opacity);
+        blendMode = whatMode;
 
-        ctx.drawImage(layers[id].canvas, seq[4], seq[5], canvas.width, canvas.height);
+        ctx.drawImage(layers[id].canvas, ofsx, ofsy, canvas.width, canvas.height);
         break;
     }
   }
 
-  context.globalCompositeOperation = usemode;
-  context.globalAlpha = usealpha;
+  context.globalCompositeOperation = blendMode;
+  context.globalAlpha = alpha;
   context.drawImage(ctx.canvas, 0, 0, ctx.width, ctx.height);
 
   echoCanvas(canvas);

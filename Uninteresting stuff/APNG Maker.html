@@ -591,6 +591,12 @@ function newCanvas(w, h) {
   return d;
 }
 
+function unloadCanvas(d) {
+  d.width = 0;
+  d.height = 0;
+  d.remove();
+}
+
 function echoCanvas(c) {
   c.style.maxHeight = '400px';
   echo('');
@@ -1471,14 +1477,15 @@ function extractFromZIP(ab, offset) {
   }
 }
 
-function xmlToList(parent, result, paths, depth = 0) {
+function xmlToList(parent, paths, depth = 0) {
   if (parent.nodeType === 1) {
-    let layer;
 
     // Load attributes
     if (['stack', 'layer'].includes(parent.tagName)) {
-      layer = newCanvas(canvas.width, canvas.height);
+      const layer = newCanvas(canvas.width, canvas.height);
 
+      layer.offset = 0;
+      layer.type = '32bpp';
       layer.alpha = parent.getAttribute('opacity');
       layer.x = parent.getAttribute('x');
       layer.y = parent.getAttribute('y');
@@ -1486,156 +1493,76 @@ function xmlToList(parent, result, paths, depth = 0) {
       layer.mode = toCanvasMode(parent.getAttribute('composite-op'));
       layer.name = parent.getAttribute('name');
       layer.depth = depth;
-      layers.push(layer);
-    }
 
-    switch (parent.tagName) {
-      case 'stack':
-        break;
-      case 'layer':
-        const src = parent.getAttribute('src');
-        if (src in paths) {
-          extractFromZIP(result, paths[src]).then((png) => {
-            const listener = (img) => {
-              layer.drawImage(img, layer.x, layer.y, img.width, img.height);
-              console.log(`Finished loading layer: ${layer.name}`);
-              //echoIMG(img, 'layer.png');
-            };
-            ABtoIMG(ABtoAB(png), listener);
-          });
-        }
-        break;
-      default:
-        console.log('Unrecognized element:', parent.tagName);
+      switch (parent.tagName) {
+        case 'stack':
+          layer.type = 'folder';
+          break;
+        case 'layer':
+          const path = parent.getAttribute('src');
+          if (path in paths) {
+            layer.offset = paths[path];
+          }
+          break;
+        default:
+          console.log('Unrecognized element:', parent.tagName);
+      }
+
+      layers.push(layer);
     }
   }
 
   for (const child of parent.childNodes) {
-    xmlToList(child, result, paths, depth + 1);
+    xmlToList(child, paths, depth + 1);
   }
 }
 
-function readORA(result) {
-  Fi.g();
+let bin = null;
 
-  while (layerlist.firstChild) {
-    layerlist.lastChild.remove()
-  };
-
-  const paths = scanZIP(result);
-
-  layers = [];
-  extractFromZIP(result, paths['stack.xml']).then((ab) => {
-    const decoder = new TextDecoder('utf-8');
-    const xmlText = decoder.decode(ab);
-
-    const parser = new DOMParser();
-    const parent = parser.parseFromString(xmlText, "application/xml").documentElement;
-
-    canvas.width = parent.getAttribute('w');
-    canvas.height = parent.getAttribute('h');
-    for (const child of parent.firstElementChild.childNodes) {
-      xmlToList(child, result, paths);
-    }
-    for (const [n, layer] of layers.entries()) {
-      layerlist.innerHTML += `${' '.repeat(layer.depth)}${n} ${layer.visible} ${layer.alpha} 32bpp 0 0 ${layer.mode}\n`;
-    }
-        
-    updatebutton(echolayers, echoMDP);
-  });
-}
-
-function readMDP(result) {
-  Fi.g();
-
-  const arri = new Uint8Array(result);
-  const offset1 = TMDIPack.size;
-  const offset2 = TPackerHeader.size;
-  const offset3 = HeaderStruct.size;
-
-  let part = arri.subarray(0, offset1);
-  const [signature, version, mdiSize, mdibinSize] = TMDIPack.unpack(arri.buffer.slice(0, offset1));
-  const mdiBytes = arri.subarray(offset1, offset1 + mdiSize);
-  const El = readString(mdiBytes);
-  //console.log(El);
-
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(El, "text/xml");
-  const Mdiapp = xmlDoc.getElementsByTagName("Mdiapp")[0];
-  canvas.width = Mdiapp.getAttribute("width");
-  canvas.height = Mdiapp.getAttribute("height");
-
-  layers = [];
-  const layerelements = Mdiapp.getElementsByTagName('Layers')[0].getElementsByTagName('Layer');
-  for (const e of layerelements) {
-    const layer = newCanvas(canvas.width, canvas.height);
-    //console.log(e.attributes);
-    layer.bin = e.getAttribute('bin');
-    layer.type = e.getAttribute('type');
-    layer.color = e.getAttribute('color');
-    layer.alpha = Math.ceil( e.getAttribute('alpha') / 255 * 100) / 100;
-    layer.x = e.getAttribute('ofsx');
-    layer.y = e.getAttribute('ofsy');
-    layer.visible = e.getAttribute('visible');
-    layer.mode = e.getAttribute('masking') === 'true' ? 'erase' : toCanvasMode(e.getAttribute('mode'));
-    layer.parentId = e.getAttribute('parentId');
-    layer.name = e.getAttribute('name');
-    layers.push(layer);
-  }
-
-  const mdp_mdibin = {};
-  let dl = 0;
-  let pos = offset1 + mdiSize;
-  while (dl < mdibinSize) {
-    let [chunkSignature, chunkSize, streamType, streamSize, archiveSize, archiveName] = TPackerHeader.unpack(arri.buffer.slice(pos, pos + offset2));
-    pos += offset2;
-    archiveName = archiveName.replace(/\0/g, '');
-
-    if (streamType === 0) {
-      // Will decompress later
-      mdp_mdibin[archiveName] = pos;
-    } else if (streamType === 1) {
-      // A thumbnail, skipped, but it can be decompressed on the arri.slice(pos, pos + streamSize);
-    } else {
-      console.log(`Unknown streamType Code: ${streamType}`);
-    }
-
-    pos += streamSize;
-    dl += chunkSize;
-  }
-
-  while (layerlist.firstChild) {
-    layerlist.lastChild.remove()
-  };
-
-  const buffer = [];
-  for (const [n, layer] of layers.entries()) {
-    const idx = layers.length - 1 - n;
-    buffer.push(`${' '.repeat(layer.depth)}${idx} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.x} ${layer.y} ${layer.mode}`);
-  }
-  buffer.reverse();
-  layerlist.innerHTML = buffer.join('\n');
-
-  const readLayer = (LayerN) => {
-    if (LayerN >= layers.length) {
-      layers.reverse();
-      updatebutton(echolayers, echoMDP);
-      return;
-    }
-
-    const layer = layers[LayerN];
+function materializeORA() {
+  const readLayer = (layer) => {
     if (layer.type === 'folder') {
-      layerlist.innerHTML += `${LayerN} ${layer.visible} 1 ${layer.type} ${layer.x} ${layer.y} ${layer.mode}\n`;
-      readLayer(LayerN+1);
       return;
     };
 
-    let pos = mdp_mdibin[layer.bin];
-    const tileNum = PAC.unpack(arri.buffer.slice(pos, pos + 4))[0];
+    extractFromZIP(bin, layer.offset).then((png) => {
+      const listener = (img) => {
+        layer.drawImage(img, layer.x, layer.y, img.width, img.height);
+        console.log(`Finished loading layer: ${layer.name}`);
+        //echoIMG(img, 'layer.png');
+      };
+      ABtoIMG(ABtoAB(png), listener);
+    });
+  }
+
+  for (const layer of layers) {
+    if (layer.visible === true) {
+      readLayer(layer);
+    }
+  }
+  updatebutton(echolayers, composite);
+}
+
+function materializeMDP() {
+  const offset3 = HeaderStruct.size;
+
+  const readLayer = (layer) => {
+    //if (LayerN >= layers.length) {
+    //  return;
+    //}
+
+    //const layer = layers[LayerN];
+    if (layer.type === 'folder') {
+      //readLayer(LayerN+1);
+      return;
+    };
+
+    let pos = layer.offset;
+    const tileNum = PAC.unpack(bin.buffer.slice(pos, pos + 4))[0];
     pos += 4;
 
     if (!tileNum) {
-      readLayer(LayerN+1);
+      //readLayer(LayerN+1);
       return;
     }
 
@@ -1643,9 +1570,7 @@ function readMDP(result) {
       console.log('depth unimplemented');
     }
 
-    const layerColor = layer.color;
-
-    const dim = PAC.unpack(arri.buffer.slice(pos, pos + 4))[0];
+    const dim = PAC.unpack(bin.buffer.slice(pos, pos + 4))[0];
     pos += 4;
 
     const maskToLayer = (tilemask, data) => {
@@ -1684,58 +1609,43 @@ function readMDP(result) {
       return tilemask;
     }
 
-    const dataToPNGToLayer = (tilemask, data, x, y) => {
-      const IHDR = makeChunkBytes('IHDR', constPNGset(
-        int32ToAB(dim),
-        int32ToAB(dim),
-        [0x08, 0x06, 0x00, 0x00, 0x00], // RGBA
-      ));
-      
-      const scanline = dim * 4;
-      const fdata = new Array(scanline * dim + dim);
-      for (const y of Array(dim).keys()) {
-        const o = y * scanline;
-        fdata[o + y] = 0; // filter-method scanline byte
-        const x = o + y + 1;
-        for (let n = 0; n < scanline; n += 4) {
-          fdata[x + n] = data[o + n+2];
-          fdata[x + n+1] = data[o + n+1];
-          fdata[x + n+2] = data[o + n];
-          fdata[x + n+3] = data[o + n+3];
-        }
-      }
+    // const dataToPNGToLayer = (tilemask, data, x, y) => {
+    //   const IHDR = makeChunkBytes('IHDR', constPNGset(
+    //     int32ToAB(dim),
+    //     int32ToAB(dim),
+    //     [0x08, 0x06, 0x00, 0x00, 0x00], // RGBA
+    //   ));
+    //   
+    //   const scanline = dim * 4;
+    //   const fdata = new Array(scanline * dim + dim);
+    //   for (const y of Array(dim).keys()) {
+    //     const o = y * scanline;
+    //     fdata[o + y] = 0; // filter-method scanline byte
+    //     const x = o + y + 1;
+    //     for (let n = 0; n < scanline; n += 4) {
+    //       fdata[x + n] = data[o + n+2];
+    //       fdata[x + n+1] = data[o + n+1];
+    //       fdata[x + n+2] = data[o + n];
+    //       fdata[x + n+3] = data[o + n+3];
+    //     }
+    //   }
+    // 
+    //   const listener = (e) => {
+    //     layer.drawImage(e, x*dim, y*dim, dim, dim);
+    //   };
+    // 
+    //   datastream(fdata, true).then((ab) => {
+    //     const data = new Uint8Array(ab);
+    //     ABtoIMG(ABtoAB(reconstPNG(IHDR, data)), listener);
+    //   });
+    // }
 
-      const listener = (e) => {
-        layer.drawImage(e, x*dim, y*dim, dim, dim);
-      };
-
-      datastream(fdata, true).then((ab) => {
-        const data = new Uint8Array(ab);
-        ABtoIMG(ABtoAB(reconstPNG(IHDR, data)), listener);
-      });
-    }
-
-    const tileReadStreams = (tilemask, callback, interTileN, isMask) => {
-      const header = arri.buffer.slice(pos, pos + offset3);
+    const tileRead = (tilemask, callback, interTileN, isMask = false) => {
+      const header = bin.buffer.slice(pos, pos + offset3);
       pos += offset3;
 
       const [x, y, compression_type, size] = HeaderStruct.unpack(header);
-      const clean_IDAT = arri.slice(pos, pos + size);
-      pos += size + mod(4-size, 4);
-
-      datastream(clean_IDAT).then((ab) => {
-        const data = new Uint8Array(ab);
-        layer.drawImage(dataToLayer(tilemask, data).canvas, x*dim, y*dim, dim, dim);
-      });
-      callback(interTileN + 1);
-    };
-
-    const tileRead = (tilemask, callback, interTileN, isMask) => {
-      const header = arri.buffer.slice(pos, pos + offset3);
-      pos += offset3;
-
-      const [x, y, compression_type, size] = HeaderStruct.unpack(header);
-      const clean_IDAT = arri.slice(pos, pos + size);
+      const clean_IDAT = bin.slice(pos, pos + size);
       pos += size + mod(4-size, 4);
 
       datastream(clean_IDAT).then((ab) => {
@@ -1749,12 +1659,13 @@ function readMDP(result) {
       callback(interTileN + 1);
     };
 
+    const layerColor = layer.color;
     const readTile = (TileN) => {
       if (TileN >= tileNum) {
-        // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
-        setTimeout(() => {
-          readLayer(LayerN + 1);
-        }, 0);
+        //// Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
+        //setTimeout(() => {
+        //  readLayer(LayerN + 1);
+        //}, 0);
         return;
       }
 
@@ -1767,7 +1678,7 @@ function readMDP(result) {
 
       switch (layer.type) {
         case '32bpp':
-          tileReadStreams(tilemask, readTile, TileN);
+          tileRead(tilemask, readTile, TileN);
           break;
         case '8bpp':
         case '1bpp':
@@ -1781,10 +1692,117 @@ function readMDP(result) {
     readTile(0);
     console.log(`${layer.name} with ${tileNum} tiles took ${(performance.now() - Fi.n[1])/1000} seconds`);
   }
-  readLayer(0);
+  //readLayer(0);
+  for (const layer of layers) {
+    if (layer.visible === 'true') {
+      readLayer(layer);
+    }
+  }
+
+  updatebutton(echolayers, composite);
 }
 
-function echoMDP() {
+function readORA(result) {
+  Fi.g();
+
+  bin = result;
+  while (layerlist.firstChild) {
+    layerlist.lastChild.remove()
+  };
+
+  const paths = scanZIP(bin);
+
+  layers = [];
+  extractFromZIP(bin, paths['stack.xml']).then((ab) => {
+    const decoder = new TextDecoder('utf-8');
+    const xmlText = decoder.decode(ab);
+
+    const parser = new DOMParser();
+    const parent = parser.parseFromString(xmlText, "application/xml").documentElement;
+
+    canvas.width = parent.getAttribute('w');
+    canvas.height = parent.getAttribute('h');
+    for (const child of parent.firstElementChild.childNodes) {
+      xmlToList(child, paths);
+    }
+    for (const [n, layer] of layers.entries()) {
+      layerlist.innerHTML += `${' '.repeat(layer.depth)}${n} ${layer.visible} ${layer.alpha} 32bpp 0 0 ${layer.mode}\n`;
+    }
+        
+    updatebutton(materializelayers, materializeORA);
+  });
+}
+
+function readMDP(result) {
+  Fi.g();
+
+  bin = new Uint8Array(result);
+  const offset1 = TMDIPack.size;
+  const offset2 = TPackerHeader.size;
+
+  const [signature, version, mdiSize, mdibinSize] = TMDIPack.unpack(bin.buffer.slice(0, offset1));
+  const mdiBytes = bin.subarray(offset1, offset1 + mdiSize);
+  const xmlText = readString(mdiBytes);
+
+  const parser = new DOMParser();
+  const parent = parser.parseFromString(xmlText, "application/xml");
+  const Mdiapp = parent.getElementsByTagName("Mdiapp")[0];
+  canvas.width = Mdiapp.getAttribute("width");
+  canvas.height = Mdiapp.getAttribute("height");
+
+  const mdp_mdibin = {};
+  let dl = 0;
+  let pos = offset1 + mdiSize;
+  while (dl < mdibinSize) {
+    let [chunkSignature, chunkSize, streamType, streamSize, archiveSize, archiveName] = TPackerHeader.unpack(bin.buffer.slice(pos, pos + offset2));
+    pos += offset2;
+    archiveName = archiveName.replace(/\0/g, '');
+
+    if (streamType === 0) {
+      // Will decompress later
+      mdp_mdibin[archiveName] = pos;
+    } else if (streamType === 1) {
+      // A thumbnail, skipped, but it can be decompressed on the bin.slice(pos, pos + streamSize);
+    } else {
+      console.log(`Unknown streamType Code: ${streamType}`);
+    }
+
+    pos += streamSize;
+    dl += chunkSize;
+  }
+
+  layers = [];
+  const layerelements = Mdiapp.getElementsByTagName('Layers')[0].getElementsByTagName('Layer');
+  for (const e of layerelements) {
+    const layer = newCanvas(canvas.width, canvas.height);
+    //console.log(e.attributes);
+    layer.path = e.getAttribute('bin');
+    layer.offset = mdp_mdibin[layer.path];
+    layer.type = e.getAttribute('type');
+    layer.color = e.getAttribute('color');
+    layer.alpha = Math.ceil( e.getAttribute('alpha') / 255 * 100) / 100;
+    layer.x = e.getAttribute('ofsx');
+    layer.y = e.getAttribute('ofsy');
+    layer.visible = e.getAttribute('visible');
+    layer.mode = e.getAttribute('masking') === 'true' ? 'erase' : toCanvasMode(e.getAttribute('mode'));
+    layer.parentId = e.getAttribute('parentId');
+    layer.name = e.getAttribute('name');
+    layers.push(layer);
+  }
+  layers.reverse();
+
+  while (layerlist.firstChild) {
+    layerlist.lastChild.remove()
+  };
+  const buffer = [];
+  for (const [n, layer] of layers.entries()) {
+    buffer.push(`${' '.repeat(layer.depth)}${n} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.x} ${layer.y} ${layer.mode}`);
+  }
+  layerlist.innerHTML = buffer.join('\n');
+  updatebutton(materializelayers, materializeMDP);
+}
+
+function composite() {
   const ctx = newCanvas(canvas.width, canvas.height);
 
   let started = true;
@@ -3001,7 +3019,7 @@ var dim = [false, false, false, false, false]; // framearray[0]'s dim, main_dim,
 var maxres = [0, 0, 1, 1];
 var createbg = false;
 var interecho = false;
-var DOMwriter, arri, seqFrameN, seqAPNG, seqLayerN, img, name, recompress, dimension, framelist, loadframes, moreframes, echolayers, makepng, background, viewer, pload, getfps;
+var DOMwriter, arri, seqFrameN, seqAPNG, seqLayerN, img, name, recompress, dimension, framelist, loadframes, moreframes, materializelayers, echolayers, makepng, background, viewer, pload, getfps;
 
 
 
@@ -3251,7 +3269,8 @@ window.onload = () => {
 
   DOMwriter = newcell("🦦 -(Layers)", "250px");
   layerlist = editcell("Edit list to rearrange, repeat, or skip layers.");
-  echolayers = button("previous", "Layers to Canvas", echo, ["Layer list is empty!"]);
+  materializelayers = button("previous", "Materialize visible layers", echo, ["Layer list is empty!"]);
+  echolayers = button("previous", "Composite to Canvas", echo, ["Layer list is empty!"]);
   makepng = button("previous", "Make PNG", echo, ["No suitable canvas found!"]);
 
 

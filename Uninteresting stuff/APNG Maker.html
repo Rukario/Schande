@@ -1608,8 +1608,17 @@ function readMDP(result) {
     layerlist.lastChild.remove()
   };
 
+  const buffer = [];
+  for (const [n, layer] of layers.entries()) {
+    const idx = layers.length - 1 - n;
+    buffer.push(`${' '.repeat(layer.depth)}${idx} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.x} ${layer.y} ${layer.mode}`);
+  }
+  buffer.reverse();
+  layerlist.innerHTML = buffer.join('\n');
+
   const readLayer = (LayerN) => {
     if (LayerN >= layers.length) {
+      layers.reverse();
       updatebutton(echolayers, echoMDP);
       return;
     }
@@ -1627,6 +1636,7 @@ function readMDP(result) {
 
     if (!tileNum) {
       readLayer(LayerN+1);
+      return;
     }
 
     if (parseInt(layer.parentId) > 0) {
@@ -1743,7 +1753,6 @@ function readMDP(result) {
       if (TileN >= tileNum) {
         // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
         setTimeout(() => {
-          //echoCanvas(layer.canvas);
           readLayer(LayerN + 1);
         }, 0);
         return;
@@ -1766,18 +1775,13 @@ function readMDP(result) {
           tileRead(tilemask, readTile, TileN, true);
           break;
         default:
-          console.log('Illegal');
+          console.log('Illegal', layer.type);
       }
     }
     readTile(0);
     console.log(`${layer.name} with ${tileNum} tiles took ${(performance.now() - Fi.n[1])/1000} seconds`);
   }
   readLayer(0);
-
-  layers.reverse();
-  for (const [n, layer] of layers.entries()) {
-    layerlist.innerHTML += `${' '.repeat(layer.depth)}${n} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.x} ${layer.y} ${layer.mode}\n`;
-  }
 }
 
 function echoMDP() {

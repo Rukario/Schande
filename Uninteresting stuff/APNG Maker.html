@@ -1471,6 +1471,50 @@ function extractFromZIP(ab, offset) {
   }
 }
 
+function xmlToList(parent, result, paths, depth = 0) {
+  if (parent.nodeType === 1) {
+    let layer;
+
+    // Load attributes
+    if (['stack', 'layer'].includes(parent.tagName)) {
+      layer = newCanvas(canvas.width, canvas.height);
+
+      layer.alpha = parent.getAttribute('opacity');
+      layer.x = parent.getAttribute('x');
+      layer.y = parent.getAttribute('y');
+      layer.visible = parent.getAttribute('visibility') === 'visible';
+      layer.mode = toCanvasMode(parent.getAttribute('composite-op'));
+      layer.name = parent.getAttribute('name');
+      layer.depth = depth;
+      layers.push(layer);
+    }
+
+    switch (parent.tagName) {
+      case 'stack':
+        break;
+      case 'layer':
+        const src = parent.getAttribute('src');
+        if (src in paths) {
+          extractFromZIP(result, paths[src]).then((png) => {
+            const listener = (img) => {
+              layer.drawImage(img, layer.x, layer.y, img.width, img.height);
+              console.log(`Finished loading layer: ${layer.name}`);
+              //echoIMG(img, 'layer.png');
+            };
+            ABtoIMG(ABtoAB(png), listener);
+          });
+        }
+        break;
+      default:
+        console.log('Unrecognized element:', parent.tagName);
+    }
+  }
+
+  for (const child of parent.childNodes) {
+    xmlToList(child, result, paths, depth + 1);
+  }
+}
+
 function readORA(result) {
   Fi.g();
 
@@ -1486,42 +1530,15 @@ function readORA(result) {
     const xmlText = decoder.decode(ab);
 
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlText, "application/xml");
-
-    const parent = xmlDoc.documentElement;
+    const parent = parser.parseFromString(xmlText, "application/xml").documentElement;
 
     canvas.width = parent.getAttribute('w');
     canvas.height = parent.getAttribute('h');
-
-    const layerelements = xmlDoc.getElementsByTagName('layer');
-    for (const e of layerelements) {
-      //console.log(e);
-      const src = e.getAttribute('src');
-      if (src in paths) {
-        const layer = newCanvas(canvas.width, canvas.height);
-
-        layer.alpha = e.getAttribute('opacity');
-        layer.x = e.getAttribute('x');
-        layer.y = e.getAttribute('y');
-        layer.visible = e.getAttribute('visibility') === 'visible';
-        layer.mode = toCanvasMode(e.getAttribute('composite-op'));
-        layer.name = e.getAttribute('name');
-
-        layers.push(layer);
-
-        extractFromZIP(result, paths[src]).then((png) => {
-          const listener = (img) => {
-            layer.drawImage(img, layer.x, layer.y, img.width, img.height);
-            console.log(`Finished loading layer: ${layer.name}`);
-            //echoIMG(img, 'layer.png');
-          };
-          ABtoIMG(ABtoAB(png), listener);
-        });
-      }
+    for (const child of parent.firstElementChild.childNodes) {
+      xmlToList(child, result, paths);
     }
-    layers.reverse();
     for (const [n, layer] of layers.entries()) {
-      layerlist.innerHTML += `${n} ${layer.visible} ${layer.alpha} 32bpp 0 0 ${layer.mode}\n`;
+      layerlist.innerHTML += `${' '.repeat(layer.depth)}${n} ${layer.visible} ${layer.alpha} 32bpp 0 0 ${layer.mode}\n`;
     }
         
     updatebutton(echolayers, echoMDP);
@@ -1613,16 +1630,15 @@ function readMDP(result) {
     }
 
     if (parseInt(layer.parentId) > 0) {
-      layerlist.innerHTML += ' ';
+      console.log('depth unimplemented');
     }
-    layerlist.innerHTML += `${LayerN} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.x} ${layer.y} ${layer.mode}\n`;
 
     const layerColor = layer.color;
 
     const dim = PAC.unpack(arri.buffer.slice(pos, pos + 4))[0];
     pos += 4;
 
-    const maskToLayer = (tilemask, data, x, y) => {
+    const maskToLayer = (tilemask, data) => {
       const tilemap = tilemask.createImageData(dim, dim);
       for (let n = 0; n < data.length*4; n += 4) {
         tilemap.data[n] = 0;
@@ -1631,11 +1647,10 @@ function readMDP(result) {
         tilemap.data[n+3] = data[Math.ceil(n/4)];
       }      
       tilemask.putImageData(tilemap, 0, 0);
-
-      layer.drawImage(tilemask.canvas, x*dim, y*dim, dim, dim);
+      return tilemask;
     }
 
-    const dataToLayer = (tilemask, data, x, y) => {
+    const dataToLayer = (tilemask, data) => {
       if (false) {
         // BGRA to RGBA tilemap
         const tilemap = tilemask.createImageData(dim, dim);
@@ -1656,7 +1671,7 @@ function readMDP(result) {
         tilemask.putImageData(new ImageData(new Uint8ClampedArray(data), dim, dim), 0, 0);
       }
 
-      layer.drawImage(tilemask.canvas, x*dim, y*dim, dim, dim);
+      return tilemask;
     }
 
     const dataToPNGToLayer = (tilemask, data, x, y) => {
@@ -1700,7 +1715,7 @@ function readMDP(result) {
 
       datastream(clean_IDAT).then((ab) => {
         const data = new Uint8Array(ab);
-        dataToLayer(tilemask, data, x, y);
+        layer.drawImage(dataToLayer(tilemask, data).canvas, x*dim, y*dim, dim, dim);
       });
       callback(interTileN + 1);
     };
@@ -1716,9 +1731,9 @@ function readMDP(result) {
       datastream(clean_IDAT).then((ab) => {
         const data = new Uint8Array(ab);
         if (isMask) {
-          maskToLayer(tilemask, data, x, y);
+          layer.drawImage(maskToLayer(tilemask, data).canvas, x*dim, y*dim, dim, dim);
         } else {
-          dataToLayer(tilemask, data, x, y);
+          layer.drawImage(dataToLayer(tilemask, data).canvas, x*dim, y*dim, dim, dim);
         }
       });
       callback(interTileN + 1);
@@ -1758,6 +1773,11 @@ function readMDP(result) {
     console.log(`${layer.name} with ${tileNum} tiles took ${(performance.now() - Fi.n[1])/1000} seconds`);
   }
   readLayer(0);
+
+  layers.reverse();
+  for (const [n, layer] of layers.entries()) {
+    layerlist.innerHTML += `${' '.repeat(layer.depth)}${n} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.x} ${layer.y} ${layer.mode}\n`;
+  }
 }
 
 function echoMDP() {
@@ -1767,9 +1787,10 @@ function echoMDP() {
   let visibleformask = false;
   let blendMode = 'source-over';
   let alpha = 1;
-
-  for (const next of splitlines(layerlist)) {
-    console.log('depth:', next.search(/[^ ]/));
+  const lines = splitlines(layerlist);
+  lines.reverse();
+  for (const next of lines) {
+    //console.log('depth:', next.search(/[^ ]/));
     const [ida, isVisible, opacity, isFolder, ofsx, ofsy, whatMode] = next.trim().split(/ +/);
 
     if (isVisible === 'false') {

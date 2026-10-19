@@ -1493,8 +1493,8 @@ function readORA(result) {
     canvas.width = parent.getAttribute('w');
     canvas.height = parent.getAttribute('h');
 
-    const layerelements = Array.from(xmlDoc.getElementsByTagName('layer'));
-    for (const [n, e] of layerelements.entries()) {
+    const layerelements = xmlDoc.getElementsByTagName('layer');
+    for (const e of layerelements) {
       //console.log(e);
       const src = e.getAttribute('src');
       if (src in paths) {
@@ -1508,17 +1508,22 @@ function readORA(result) {
         layer.name = e.getAttribute('name');
 
         layers.push(layer);
-        layerlist.innerHTML += `${n} ${layer.visible} ${layer.alpha} 32bpp 0 0 ${layer.mode}\n`;
 
         extractFromZIP(result, paths[src]).then((png) => {
           const listener = (img) => {
             layer.drawImage(img, layer.x, layer.y, img.width, img.height);
+            console.log(`Finished loading layer: ${layer.name}`);
             //echoIMG(img, 'layer.png');
           };
           ABtoIMG(ABtoAB(png), listener);
         });
       }
     }
+    layers.reverse();
+    for (const [n, layer] of layers.entries()) {
+      layerlist.innerHTML += `${n} ${layer.visible} ${layer.alpha} 32bpp 0 0 ${layer.mode}\n`;
+    }
+        
     updatebutton(echolayers, echoMDP);
   });
 }

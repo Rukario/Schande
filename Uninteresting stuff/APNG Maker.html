@@ -952,10 +952,11 @@ function magic_wand(satellite) {
   const color = context.getImageData(0, 0, canvas.width, canvas.height);
 
   const n = satellite[0] + satellite[1] * qixmask.width;
-  const rgba = ABtoInt32(color.data.slice(n*4, n*4+4));
+  const rgba = ABtoUint32(color.data.slice(n*4, n*4+4));
 
   const dv = new DataView(color.data.buffer);
   for (const n of Array.from({ length: canvas.width * canvas.height}).keys()) {
+    console.log(dv.getUint32(n*4));
     if (dv.getUint32(n*4) === rgba) {
       qixmap.data[n*4] = 128;
       qixmap.data[n*4+1] = 0;
@@ -2166,11 +2167,10 @@ function int32ToAB(int32) {
   return [int32 >>> 24 & 0xff, int32 >>> 16 & 0xff, int32 >>> 8 & 0xff, int32 & 0xff];
 };
 
-function ABtoInt32(ab) {
-  return (ab[0] << 24) | (ab[1] << 16) | (ab[2] << 8) | ab[3];
+function ABtoUint32(ab) {
+  // (...) >>> 0 converts signed 32-bit result to an unsigned 32-bit integer
+  return ((ab[0] << 24) | (ab[1] << 16) | (ab[2] << 8) | ab[3]) >>> 0;
 }
-
-
 
 var GIF89a_signature = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61];
 var NETSCAPE_sig = "NETSCAPE2.0";
@@ -2186,7 +2186,7 @@ function findPos(arri, type, any=true) {
   const indexes = [];
   while (offset < arri.length) {
     const chunk = arri.slice(offset, offset + 4);
-    let len = ABtoInt32(chunk);
+    let len = ABtoUint32(chunk);
     if (readString(arri.slice(offset + 4, offset + 8)) === type) {
       if (type === "IDAT" && (chunk[0] || chunk[1])) {
         len = arri.length - PNG_signature.length - 25 - 12 - IEND.length; //-IHDR -UNK

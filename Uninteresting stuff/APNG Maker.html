@@ -952,36 +952,11 @@ function magic_wand(satellite) {
   const color = context.getImageData(0, 0, canvas.width, canvas.height);
 
   const n = satellite[0] + satellite[1] * qixmask.width;
-  const rgba = color.data.slice(n*4, n*4+4);
+  const rgba = ABtoInt32(color.data.slice(n*4, n*4+4));
 
-  const monstermap = new Uint8Array(canvas.width * canvas.height);
-  let pixels = 0;
-
-  for (const n of Array(canvas.width * canvas.height).keys()) {
-    if (color.data.slice(n*4, n*4+4).every((r, i) => r === rgba[i])) {
-    //if (qixmap.data[n*4+3] === 255) {
-      monstermap[n] = 1;
-    } else {
-      pixels++;
-      monstermap[n] = 0;
-    }
-  }
-
-  // while (satellite.length > 0) {
-  //   const y = satellite.pop();
-  //   const x = satellite.pop();
-  //   if (x >= 0 && y >= 0 && x < canvas.width && y < canvas.height && monstermap[y*canvas.width + x]) {
-  //     monstermap[y * canvas.width + x] = 0;
-  //     satellite.push(x + 1, y);
-  //     satellite.push(x - 1, y);
-  //     satellite.push(x, y + 1);
-  //     satellite.push(x, y - 1);
-  //   }
-  // }
-
-  for (const [n, pixel] of monstermap.entries()) {
-    if (pixel) {
-      pixels++;
+  const dv = new DataView(color.data.buffer);
+  for (const n of Array.from({ length: canvas.width * canvas.height}).keys()) {
+    if (dv.getUint32(n*4) === rgba) {
       qixmap.data[n*4] = 128;
       qixmap.data[n*4+1] = 0;
       qixmap.data[n*4+2] = 255;

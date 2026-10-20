@@ -1331,7 +1331,7 @@ function toCanvasMode(vaguemode) {
       return "color";
     case 'luminosity':
       return "luminosity";
-    case 'div': //might that be synonymous with subtract?
+    case 'div': // might that be synonymous with subtract?
 
     case 'svg:multiply':
       return "multiply";
@@ -1340,10 +1340,10 @@ function toCanvasMode(vaguemode) {
     case 'svg:dst-in':
       return "destination-in";
     case 'svg:dst-out':
-      return "erase";
+      return "destination-out";
 
-    case 'through':
-      return "through";
+    case 'through': // synonymous with isolation and possible values: "auto", "isolate"
+      return "auto";
 
     default:
       console.log('unknown mode:', vaguemode);
@@ -1547,13 +1547,7 @@ function materializeMDP() {
   const offset3 = HeaderStruct.size;
 
   const readLayer = (layer) => {
-    //if (LayerN >= layers.length) {
-    //  return;
-    //}
-
-    //const layer = layers[LayerN];
-    if (layer.type === 'folder') {
-      //readLayer(LayerN+1);
+    if (['folder', 'mask'].includes(layer.type)) {
       return;
     };
 
@@ -1562,12 +1556,7 @@ function materializeMDP() {
     pos += 4;
 
     if (!tileNum) {
-      //readLayer(LayerN+1);
       return;
-    }
-
-    if (parseInt(layer.parentId) > 0) {
-      console.log('depth unimplemented');
     }
 
     const dim = PAC.unpack(bin.buffer.slice(pos, pos + 4))[0];
@@ -1662,10 +1651,6 @@ function materializeMDP() {
     const layerColor = layer.color;
     const readTile = (TileN) => {
       if (TileN >= tileNum) {
-        //// Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
-        //setTimeout(() => {
-        //  readLayer(LayerN + 1);
-        //}, 0);
         return;
       }
 
@@ -1692,9 +1677,9 @@ function materializeMDP() {
     readTile(0);
     console.log(`${layer.name} with ${tileNum} tiles took ${(performance.now() - Fi.n[1])/1000} seconds`);
   }
-  //readLayer(0);
   for (const layer of layers) {
     if (layer.visible === 'true') {
+      // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
       readLayer(layer);
     }
   }
@@ -1726,7 +1711,7 @@ function readORA(result) {
       xmlToList(child, paths);
     }
     for (const [n, layer] of layers.entries()) {
-      layerlist.innerHTML += `${' '.repeat(layer.depth)}${n} ${layer.visible} ${layer.alpha} 32bpp 0 0 ${layer.mode}\n`;
+      layerlist.innerHTML += `${' '.repeat(layer.depth)}${n} ${layer.visible} ${layer.alpha} ${layer.type} 0 0 ${layer.mode}\n`;
     }
         
     updatebutton(materializelayers, materializeORA);
@@ -1776,6 +1761,8 @@ function readMDP(result) {
   for (const e of layerelements) {
     const layer = newCanvas(canvas.width, canvas.height);
     //console.log(e.attributes);
+    layer.depth = 0;
+    layer.isMask = e.getAttribute('masking') === 'true';
     layer.path = e.getAttribute('bin');
     layer.offset = mdp_mdibin[layer.path];
     layer.type = e.getAttribute('type');
@@ -1784,86 +1771,124 @@ function readMDP(result) {
     layer.x = e.getAttribute('ofsx');
     layer.y = e.getAttribute('ofsy');
     layer.visible = e.getAttribute('visible');
-    layer.mode = e.getAttribute('masking') === 'true' ? 'erase' : toCanvasMode(e.getAttribute('mode'));
-    layer.parentId = e.getAttribute('parentId');
+    layer.mode = layer.isMask ? 'destination-out' : toCanvasMode(e.getAttribute('mode'));
     layer.name = e.getAttribute('name');
     layers.push(layer);
+
+    layer.id = e.getAttribute('id');
+    layer.parentId = e.getAttribute('parentId');
   }
   layers.reverse();
+
+  const parents = {};
+  for (const layer of layers) {
+    if (parseInt(layer.parentId) > 0) {
+      layer.depth = parents[layer.parentId] + 1;
+    }
+    parents[layer.id] = layer.depth;
+  }
 
   while (layerlist.firstChild) {
     layerlist.lastChild.remove()
   };
+
+  // convert mask layers
+  let depth_mask = 0;
+  let layerN = 0;
+  const oldlist = layers.map((l) => l);
+  for (const layer of oldlist) {
+    if (layer.isMask && !depth_mask) {
+      depth_mask += 1;
+      // insert 'folder' layer
+      const folder = newCanvas(canvas.width, canvas.height);
+      folder.depth = layer.depth;
+      folder.isMask = false;
+      folder.path = null;
+      folder.offset = 0;
+      folder.type = 'mask';
+      folder.color = false;
+      folder.alpha = 1;
+      folder.x = 0;
+      folder.y = 0;
+      folder.visible = 'true';
+      folder.mode = 'mask'; // mask_mode
+      folder.name = 'new folder';
+      layers.splice(layerN, 0, folder);
+      layerN += 1;
+    }
+    layer.depth += depth_mask;
+    if (!layer.isMask && depth_mask) {
+      depth_mask -= 1;
+    }
+    layerN += 1;
+  }
+
+  let mask_mode = 'source-over';
+  layers.reverse();
+  for (const layer of layers) {
+    if (layer.type !== 'mask') {
+      if (layer.mode !== 'destination-out') {
+        mask_mode = layer.mode;
+      }
+    } else {
+      layer.mode = mask_mode;
+    }
+  }
+  layers.reverse();
+
   const buffer = [];
-  for (const [n, layer] of layers.entries()) {
-    buffer.push(`${' '.repeat(layer.depth)}${n} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.x} ${layer.y} ${layer.mode}`);
+  layerN = 0;
+  for (const layer of layers) {
+    buffer.push(`${' '.repeat(layer.depth)}${layerN} ${layer.visible} ${layer.alpha} ${layer.type} ${layer.x} ${layer.y} ${layer.mode}`);
+    layerN += 1;
   }
   layerlist.innerHTML = buffer.join('\n');
   updatebutton(materializelayers, materializeMDP);
 }
 
 function composite() {
-  const ctx = newCanvas(canvas.width, canvas.height);
+  let comp = [newCanvas(canvas.width, canvas.height)];
 
-  let started = true;
-  let visibleformask = false;
-  let blendMode = 'source-over';
-  let alpha = 1;
   const lines = splitlines(layerlist);
   lines.reverse();
   for (const next of lines) {
-    //console.log('depth:', next.search(/[^ ]/));
-    const [ida, isVisible, opacity, isFolder, ofsx, ofsy, whatMode] = next.trim().split(/ +/);
+    const [ida, isVisible, opacity, type, ofsx, ofsy, mode] = next.trim().split(/ +/);
+    const id = parseInt(ida);
+    const alpha = parseFloat(opacity);
+    const d = next.search(/[^ ]/);
+    const layer = layers[id];
 
     if (isVisible === 'false') {
       continue;
-    } else if (isFolder === 'folder') {
-      visibleformask = false;
-      continue;
     }
 
-    const id = Math.abs(parseInt(ida));
-    switch (whatMode) {
-      case 'erase':
-        if (!visibleformask) {
-          continue;
-        }
-        const mask = newCanvas(canvas.width, canvas.height);
-
-        mask.drawImage(layers[id].canvas, 0, 0, canvas.width, canvas.height);
-        mask.globalCompositeOperation = 'source-out';
-        mask.drawImage(ctx.canvas, 0, 0, ctx.width, ctx.height);
-        mask.globalCompositeOperation = 'source-over';
-
-        ctx.clearRect(0, 0, ctx.width, ctx.height);
-        ctx.drawImage(mask.canvas, 0, 0, mask.width, mask.height);
-        break;
-      default:
-        visibleformask = true;
-        if (!started) {
-          context.globalCompositeOperation = blendMode;
-          context.globalAlpha = alpha;
-          context.drawImage(ctx.canvas, 0, 0, ctx.width, ctx.height);
-       
-          // reset
-          ctx.clearRect(0, 0, ctx.width, ctx.height);
-          context.globalCompositeOperation = 'source-over';
-          context.globalAlpha = 1;
-        } else {
-          started = false;
-        }
-
-        alpha = parseFloat(opacity);
-        blendMode = whatMode;
-
-        ctx.drawImage(layers[id].canvas, ofsx, ofsy, canvas.width, canvas.height);
-        break;
+    const depth = Math.max(d - comp.length+1, 0);
+    for (const n of Array.from({ length: depth }).keys()) {
+      comp.push(newCanvas(canvas.width, canvas.height));
     }
+
+    if (['folder', 'mask'].includes(type)) {
+      // clear fossil folder canvas
+      layer.clearRect(0, 0, layer.width, layer.height);
+
+      // transfer to folder canvas
+      const compd = comp[d+1];
+      layer.drawImage(compd.canvas, ofsx, ofsy, canvas.width, canvas.height)
+
+      // clear buffer
+      compd.clearRect(0, 0, canvas.width, canvas.height);
+      compd.globalCompositeOperation = 'source-over';
+      compd.globalAlpha = 1;
+    }
+
+    comp[d].globalCompositeOperation = mode;
+    comp[d].globalAlpha = alpha;
+    comp[d].drawImage(layer.canvas, ofsx, ofsy, canvas.width, canvas.height);
   }
 
-  context.globalCompositeOperation = blendMode;
-  context.globalAlpha = alpha;
-  context.drawImage(ctx.canvas, 0, 0, ctx.width, ctx.height);
+  context.globalCompositeOperation = 'source-over';
+  context.globalAlpha = 1;
+  context.drawImage(comp[0].canvas, 0, 0, comp[0].width, comp[0].height);
 
   echoCanvas(canvas);
 

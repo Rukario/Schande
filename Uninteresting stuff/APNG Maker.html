@@ -956,7 +956,6 @@ function magic_wand(satellite) {
 
   const dv = new DataView(color.data.buffer);
   for (const n of Array.from({ length: canvas.width * canvas.height}).keys()) {
-    console.log(dv.getUint32(n*4));
     if (dv.getUint32(n*4) === rgba) {
       qixmap.data[n*4] = 128;
       qixmap.data[n*4+1] = 0;

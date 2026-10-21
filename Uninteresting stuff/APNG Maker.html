@@ -420,19 +420,20 @@ var FFdown = (e_) => {
       true,
     );
   } else {
-    pointers[0].x = e_.x;
-    pointers[0].y = e_.y;
+    pointers[0].x = e_.pageX;
+    pointers[0].y = e_.pageY;
     pointers[0].down = true;
+    // cursordraw(0, true);
   }
 
   const container_id = e_.target;
   const parent = container_id.parentNode;
   const bounds = container_id.getBoundingClientRect();
   if (container_id.tagName === 'CANVAS') {
-    const powX = container_id.width/container_id.clientWidth;
-    const powY = container_id.height/container_id.clientHeight;
-    const x_in_element = Math.round((pointers[0].x - (bounds.left + globalThis.scrollX)) * powX);
-    const y_in_element = Math.round((pointers[0].y - (bounds.top + globalThis.scrollY)) * powY);
+    const anta_scaleWidth = container_id.width/container_id.clientWidth;
+    const anta_scaleHeight = container_id.height/container_id.clientHeight;
+    const x_in_element = Math.round((pointers[0].x - (bounds.left + globalThis.scrollX)) * anta_scaleWidth);
+    const y_in_element = Math.round((pointers[0].y - (bounds.top + globalThis.scrollY)) * anta_scaleHeight);
     magic_wand(qixmask, [x_in_element, y_in_element]);
     echoCanvas(qixmask.canvas);
   } else if (container_id.hasAttribute('data-tooltip')) {
@@ -461,8 +462,9 @@ var FFmove = (e_) => {
         },
       );
     } else {
-      pointers[0].x = e_.x;
-      pointers[0].y = e_.y;
+      pointers[0].x = e_.pageX;
+      pointers[0].y = e_.pageY;
+      // cursordraw(0);
     }
 
     if (!pointer_device.is_touch_device || e_.touches.length === 1) {
@@ -484,6 +486,7 @@ var FFup = (e_) => {
       );
     } else {
       pointers[0].down = false;
+      // cursordraw(0, false, true);
     }
   }
 }

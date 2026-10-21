@@ -272,6 +272,29 @@ ul {
   margin-top: 12px;
 }
 
+.touchloc, .touchloc_dot {
+  display: none;
+  pointer-events: none;
+  z-index: 4;
+  position: absolute;
+  animation: fade 1000ms linear 1;
+  border-width: 0;
+  mix-blend-mode: difference;
+}
+
+@keyframes fade {
+  50% {
+    opacity: 100%;
+  }
+  100% {
+    opacity: 0%;
+  }
+}
+
+.touchloc_dot {
+  background-color: #ffffff;
+}
+
 .aczo {
   font-family: courier;
   font-size: 12px;
@@ -304,16 +327,26 @@ ul {
 
 </style>
 <script>
-var isTouch = 'ontouchstart' in window;
-var busyclick = false;
-var mousepos = {
+const max_touches = 5;
+const pointers = Array.from({ length: max_touches }).map(() => {
+  return {
+    down: null,
+    identifier: null,
+    x: 0,
+    y: 0,
+    last_touch: {
+      x: 0,
+      y: 0,
+    },
+  };
+});
+
+const pointer_device = Object.seal({
+  is_touch_device: 'ontouchstart' in globalThis,
+  long_press_callback: null,
   x: 0,
-  y: 0
-};
-var rubbermouse = {
-  x: 0,
-  y: 0
-};
+  y: 0,
+});
 
 function getfontcolor(c, v){
   if(c[0] >= 'cc' && c[1] >= 'cc' && c[2] >= 'cc'){
@@ -355,47 +388,144 @@ if (sharp[0]) {
 }
 
 
-
-var FFdown = (e_) => {
-  if (e_) {
-    if (!isTouch || e_.touches.length === 1) {
-      mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft: e_.x;
-      mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop: e_.y;
+const qixmask = newCanvas();
+const fader = Array.from({ length: max_touches }).fill(false);
+const update_pointers = (e_, callback, touchstart = false) => {
+  for (const touch of e_.changedTouches) {
+    for (const [index, pointer] of pointers.entries()) {
+      if (
+        touchstart &&
+        !pointer.identifier ||
+        pointer.identifier === touch.identifier
+      ) {
+        callback(pointer, index, touch);
+        break;
+      }
     }
   }
+};
 
-  const t = e_.target;
-  const a = t.parentNode;
-  const rect = t.getBoundingClientRect();
-  if (t.tagName === 'CANVAS') {
-    const ws = t.width/t.offsetWidth;
-    const hs = t.height/t.offsetHeight;
+var FFdown = (e_) => {
+  if (pointer_device.is_touch_device) {
+    update_pointers(
+      e_,
+      (pointer, index, touch) => {
+        const { identifier, pageX, pageY } = touch;
+        pointer.x = pageX;
+        pointer.y = pageY;
+        pointer.down = true;
+        pointer.identifier = identifier;
+        cursordraw(index, true);
+      },
+      true,
+    );
+  } else {
+    pointers[0].x = e_.x;
+    pointers[0].y = e_.y;
+    pointers[0].down = true;
+  }
 
-    magic_wand([(mousepos.x - Math.ceil(rect.left)) * ws, (mousepos.y - Math.ceil(rect.top)) * hs]);
-  } else if (t.hasAttribute('data-tooltip')) {
+  const container_id = e_.target;
+  const parent = container_id.parentNode;
+  const bounds = container_id.getBoundingClientRect();
+  if (container_id.tagName === 'CANVAS') {
+    const powX = container_id.width/container_id.clientWidth;
+    const powY = container_id.height/container_id.clientHeight;
+    const x_in_element = Math.round((pointers[0].x - (bounds.left + globalThis.scrollX)) * powX);
+    const y_in_element = Math.round((pointers[0].y - (bounds.top + globalThis.scrollY)) * powY);
+    magic_wand(qixmask, [x_in_element, y_in_element]);
+    echoCanvas(qixmask.canvas);
+  } else if (container_id.hasAttribute('data-tooltip')) {
     tooltip.style.display = 'inline-block';
-    tooltip.innerHTML = t.dataset.tooltip;
+    tooltip.innerHTML = container_id.dataset.tooltip;
     const left = () => {
       setTimeout(() => {
         tooltip.style.display = 'none';
       }, 1250);
-      a.removeEventListener('mouseleave', left);
+      parent.removeEventListener('mouseleave', left);
     }
-    a.addEventListener('mouseleave', left);
+    parent.addEventListener('mouseleave', left);
   }
-}
-
-var FFup = (e_) => {
-
 }
 
 var FFmove = (e_) => {
   if (e_) {
-    if (!isTouch || e_.touches.length === 1) {
-      e_.preventDefault();
-      mousepos.x = isTouch ? e_.touches[0].clientX + window.visualViewport.offsetLeft: e_.x;
-      mousepos.y = isTouch ? e_.touches[0].clientY + window.visualViewport.offsetTop: e_.y;
+    if (pointer_device.is_touch_device) {
+      update_pointers(
+        e_,
+        (pointer, index, touch) => {
+          const { identifier, pageX, pageY } = touch;
+          pointer.x = pageX;
+          pointer.y = pageY;
+          cursordraw(index);
+        },
+      );
+    } else {
+      pointers[0].x = e_.x;
+      pointers[0].y = e_.y;
     }
+
+    if (!pointer_device.is_touch_device || e_.touches.length === 1) {
+      e_.preventDefault();
+    }
+  }
+}
+
+var FFup = (e_) => {
+  if (e_) {
+    if (pointer_device.is_touch_device) {
+      update_pointers(
+        e_,
+        (pointer, index, touch) => {
+          pointer.down = false;
+          pointer.identifier = false;
+          cursordraw(index, false, true);
+        },
+      );
+    } else {
+      pointers[0].down = false;
+    }
+  }
+}
+
+function cursordraw(tooie, start = false, end = false) {
+  const pos = cursors[tooie].pos.style;
+  const dot = cursors[tooie].dot.style;
+  const sc = window.visualViewport.scale;
+
+  const size = Math.ceil(3 / sc);
+  const center = Math.floor(size / 2);
+  const border = 1;
+
+  if (start) {
+    clearTimeout(fader[tooie]);
+
+    pos.display = 'block';
+    pos.animation = 'none';
+    pos.top = pointers[tooie].y - border - center + 'px';
+    pos.left = pointers[tooie].x - border - center + 'px';
+
+    dot.display = 'block';
+    dot.animation = 'none';
+  }
+
+  pos.width = size + 'px';
+  pos.height = size + 'px';
+  pos.boxShadow = 'inset 0 0 0 ' + border + 'px #fff';
+  pos.padding = border + 'px';
+
+  dot.top = pointers[tooie].y - center + 'px';
+  dot.left = pointers[tooie].x - center + 'px';
+  dot.width = size + 'px';
+  dot.height = size + 'px';
+
+  if (end) {
+    pos.animation = '';
+    dot.animation = '';
+    fader[tooie] = setTimeout(() => {
+      pos.display = 'none';
+      dot.display = 'none';
+    }, 900);
   }
 }
 
@@ -942,30 +1072,28 @@ function frame_diff(a, b, i) {
   dim[3] = [d.x[0], d.y[0], d.x[d.x.length-1]-d.x[0]+1, d.y[d.y.length-1]-d.y[0]+1];
 }
 
-const qixmask = newCanvas();
-
-function magic_wand(satellite) {
+function magic_wand(qixmask, satellite) {
   qixmask.width = qixmask.canvas.width = canvas.width;
   qixmask.height = qixmask.canvas.height = canvas.height;
 
   const qixmap = qixmask.createImageData(canvas.width, canvas.height);
   const color = context.getImageData(0, 0, canvas.width, canvas.height);
 
-  const n = satellite[0] + satellite[1] * qixmask.width;
-  const rgba = ABtoUint32(color.data.slice(n*4, n*4+4));
+  const xy = satellite[0] + satellite[1] * qixmask.width;
+  const rgba = ABtoUint32(color.data.slice(xy * 4, xy * 4 + 4));
 
   const dv = new DataView(color.data.buffer);
-  for (const n of Array.from({ length: canvas.width * canvas.height}).keys()) {
-    if (dv.getUint32(n*4) === rgba) {
-      qixmap.data[n*4] = 128;
-      qixmap.data[n*4+1] = 0;
-      qixmap.data[n*4+2] = 255;
-      qixmap.data[n*4+3] = 255;
+  const pixelCount = canvas.width * canvas.height;
+  for (let n = 0; n < pixelCount; n++) {
+    if (dv.getUint32(n * 4) === rgba) {
+      qixmap.data[n * 4] = 128;
+      qixmap.data[n * 4 + 1] = 0;
+      qixmap.data[n * 4 + 2] = 255;
+      qixmap.data[n * 4 + 3] = 255;
     }
   }
 
   qixmask.putImageData(qixmap, 0, 0);
-  echoCanvas(qixmask.canvas);
 }
 
 function draw(x, i) {
@@ -3134,45 +3262,74 @@ const new_stdout = () => {
   document.body.append(DOMwriter);
 }
 
+const poppyFF = (e_, dragscroll = false) => {
+  e_.addEventListener('touchstart', (e) => {
+    FFdown(e);
 
+    if (pointer_device.long_press_callback) {
+      clearTimeout(pointer_device.long_press_callback);
+      pointer_device.long_press_callback = null;
+    } else {
+      pointer_device.long_press_callback = setTimeout(() => {
+        right_click(e);
+      }, 500);
+    }
+  });
+  e_.addEventListener('touchmove', (e) => {
+    FFmove(e);
 
-window.onload = () => {
+    clearTimeout(pointer_device.long_press_callback);
+    pointer_device.long_press_callback = null;
+  });
+  e_.addEventListener('touchend', (e) => {
+    FFup(e);
+
+    clearTimeout(pointer_device.long_press_callback);
+    pointer_device.long_press_callback = null;
+  });
+  e_.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+  });
+};
+
+var cursors;
+window.addEventListener('load', () => {
   document.title = 'Make APNG';
-  if (isTouch) {
-    canvas.addEventListener('touchstart', (e_) => {
-      FFdown(e_);
-      if (busyclick) {
-        clearTimeout(busyclick);
-        busyclick = false;
-      } else {
-        busyclick = setTimeout(() => {rightc(e_)}, 500);
-      }
-    });
-    canvas.addEventListener('touchend', (e_) => {
-      FFup(e_);
-      clearTimeout(busyclick);
-      busyclick = false;
-    });
-    canvas.addEventListener('touchmove', (e_) => {
-      FFmove(e_);
-      clearTimeout(busyclick);
-      busyclick = false;
-    });
-    canvas.addEventListener('contextmenu', (e_) => {
-      e_.preventDefault();
-    });
+
+  document.body.innerHTML = "";
+
+  cursors = Array.from({ length: max_touches }).map(() => {
+    const pos = document.createElement('DIV');
+    pos.classList = 'touchloc';
+    document.body.appendChild(pos);
+
+    const dot = document.createElement('DIV');
+    dot.classList = 'touchloc_dot';
+    document.body.appendChild(dot);
+
+    DOMwriter = document.createElement('DIV');
+    DOMwriter.classList = 'hintscreen';
+    document.body.appendChild(DOMwriter);
+
+    const tail = document.createElement('DIV');
+    tail.classList = 'hint tail';
+    DOMwriter.appendChild(tail);
+
+    return { pos, dot, tail };
+  });
+
+
+
+  if (pointer_device.is_touch_device) {
+    poppyFF(canvas);
   } else {
     document.addEventListener('mousedown', FFdown);
     document.addEventListener('mouseup', FFup);
     document.addEventListener('mousemove', FFmove);
     document.addEventListener('contextmenu', (e_) => {
-      rightc(e_);
+      right_click(e_);
     });
   }
-
-
-
-  document.body.innerHTML = "";
 
 
 
@@ -3284,7 +3441,7 @@ window.onload = () => {
   if (sharp[1]) {
     newtip(filel[4] + " -(Uninitiated CSS)", "Download and extract \"" + sharp[0] + "\" (if that's spelled correctly) from <a href='https://highlightjs.org/download/' target='_blank'>highlight.js download page</a> directly next to HTML then reload this page");
   }
-}
+});
 
 </script></head><body class="exitmenu">1. Set up and run Schande.bat for its HTTP server from <a href="https://github.com/Rukario/Schande">https://github.com/Rukario/Schande</a><br>
 2. Take me to Schande.bat, then launch <a href="http://127.0.0.1:8886/APNG Maker.html">http://127.0.0.1:8886/APNG Maker.html</a></body></html>

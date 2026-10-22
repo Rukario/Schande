@@ -1709,32 +1709,38 @@ let bin = null;
 let sha = null;
 
 function materializeORA() {
-  const readLayer = (layer) => {
+  const readLayer = (layer, resolve) => {
     if (layer.type === 'folder') {
-      return;
-    };
-
-    extractFromZIP(bin, layer.offset).then((png) => {
-      const listener = (img) => {
-        layer.drawImage(img, layer.x, layer.y, img.width, img.height);
-        console.log(`Finished loading layer: ${layer.name}`);
-        //echoIMG(img, 'layer.png');
-      };
-      ABtoIMG(ABtoAB(png), listener);
-    });
-  }
-
-  for (const layer of layers) {
-    if (layer.visible === true) {
-      readLayer(layer);
+      resolve();
+    } else {
+      extractFromZIP(bin, layer.offset).then((png) => {
+        const listener = (img) => {
+          layer.drawImage(img, layer.x, layer.y, img.width, img.height);
+          resolve();
+          console.log(`Finished loading layer: ${layer.name}`);
+          //echoIMG(img, 'layer.png');
+        };
+        ABtoIMG(ABtoAB(png), listener);
+      });
     }
   }
-  updatebutton(echolayers, composite);
+
+  const promises = [];
+  for (const layer of layers) {
+    if (layer.visible === true) {
+      promises.push(new Promise((resolve, reject) => {
+        readLayer(layer, resolve);
+      }));
+    }
+  }
+
+  Promise.all(promises).then(() => {
+    updatebutton(echolayers, composite);
+  });
 }
 
 function materializeMDP() {
   const offset3 = HeaderStruct.size;
-  const promises = [];
   const readLayer = (layer, offset, resolve) => {
     let pos = offset;
     const tileNum = PAC.unpack(bin.buffer.slice(pos, pos + 4))[0];
@@ -1876,7 +1882,6 @@ function materializeMDP() {
     } else {
       const layer = layers[layerN];
       if (layer.visible === 'true') {
-        // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
         setTimeout(() => {
           layer.canvas.width = canvas.width;
           layer.canvas.height = canvas.height;
@@ -1887,7 +1892,7 @@ function materializeMDP() {
             const listener = () => {
               nextLayer(layerN + 1);
             }
-            loadLayer(layer, sha, offset).then((img) => {
+            loadLayer(layer, sha, offset).then(() => {
               console.log('Loading layer from IndexedDB', layerN);
               listener();
             }).catch(() => {
@@ -1901,6 +1906,9 @@ function materializeMDP() {
       }
     }
   };
+
+  // Safari has tendency to crash the webpage for loading large stuff
+  // Three strategies (theoretical): unparallelized, unload vestigial payloads, setTimeout with 0 timer
   nextLayer(0);
 }
 

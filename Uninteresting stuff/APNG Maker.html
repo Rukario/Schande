@@ -1834,15 +1834,17 @@ function materializeMDP() {
     };
 
     const layerColor = layer.color;
+    const tilemask = newCanvas(dim, dim);
     const readTile = (TileN) => {
       if (TileN >= tileNum) {
+        unloadCanvas(tilemask.canvas);
         saveLayer(sha, offset, layer);
         resolve();
-        console.log(`${layer.name} with ${tileNum} tiles took ${(performance.now() - Fi.n[1])/1000} seconds`);
+        //console.log(`${layer.name} with ${tileNum} tiles took ${(performance.now() - Fi.n[1])/1000} seconds`);
         return;
       }
+      tilemask.clearRect(0, 0, dim, dim);
 
-      const tilemask = newCanvas(dim, dim);
       if (layerColor) {
         const [a, r, g, b] = [layerColor.substring(0, 2), layerColor.substring(2, 4), layerColor.substring(4, 6), layerColor.substring(6, 8)];
         tilemask.fillStyle = `#${r}${g}${b}${a}`;
@@ -1867,24 +1869,23 @@ function materializeMDP() {
 
   deleteOtherStore('CanvasImageDB', sha);
 
-  //for (const layer of layers) {
   const nextLayer = (layerN) => {
     if (layerN >= layers.length) {
       console.log('All', layerN, 'layers processed');
+      updatebutton(echolayers, composite);
     } else {
       const layer = layers[layerN];
       if (layer.visible === 'true') {
-        layer.canvas.width = canvas.width;
-        layer.canvas.height = canvas.height;
         // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
-        if (['folder', 'mask'].includes(layer.type)) {
-          nextLayer(layerN + 1);
-        } else {
-          promises.push(new Promise((resolve, reject) => {
+        setTimeout(() => {
+          layer.canvas.width = canvas.width;
+          layer.canvas.height = canvas.height;
+          if (['folder', 'mask'].includes(layer.type)) {
+            nextLayer(layerN + 1);
+          } else {
             const offset = layer.offset;
             const listener = () => {
               nextLayer(layerN + 1);
-              resolve();
             }
             loadLayer(layer, sha, offset).then((img) => {
               console.log('Loading layer from IndexedDB', layerN);
@@ -1893,18 +1894,14 @@ function materializeMDP() {
               console.log('Loading layer from MDP', layerN);
               readLayer(layer, offset, listener);
             });
-          }));
-        }
+          }
+        }, 0);
       } else {
         nextLayer(layerN + 1);
       }
     }
   };
   nextLayer(0);
-
-  Promise.all(promises).then(() => {
-    updatebutton(echolayers, composite);
-  });
 }
 
 function readORA(result) {

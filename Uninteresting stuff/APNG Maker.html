@@ -1623,7 +1623,93 @@ function xmlToList(parent, paths, depth = 0) {
   }
 }
 
+function deleteOtherStore(DB_NAME, DB_STORE) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, Date.now());
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(DB_STORE)) {
+        db.createObjectStore(DB_STORE, { keyPath: "offset" });
+      }
+
+      // clean up stale
+      for (const store of db.objectStoreNames) {
+        if (store !== DB_STORE) {
+          console.log('bye bye', store);
+          db.deleteObjectStore(store);
+        }
+      }
+    }
+  });
+}
+
+function openDB(DB_NAME, DB_STORE) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME);
+    request.onsuccess = (event) => {
+      const db = event.target.result;
+      resolve(db);
+    };
+    request.onerror = (event) => {
+      reject(event.target.error);
+    };
+  });
+}
+
+function saveLayer(sha, offset, layer) {
+  return new Promise((resolve, reject) => {
+    openDB("CanvasImageDB", sha).then((db) => {
+      const listener = (blob) => {
+        const objectStore = db.transaction(sha, "readwrite").objectStore(sha);
+        const record = {
+          offset: offset,
+          blob: blob,
+          tick: Date.now(),// + (24 * 60 * 60 * 1000),
+        };
+        const request = objectStore.put(record);
+        request.onsuccess = () => {
+          resolve();
+          //echo(`Layer successfully stored for file with SHA256: ${sha}`);
+        };
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
+      };
+
+      layer.canvas.toBlob(listener, 'image/png');
+    });
+  });
+}
+
+function loadLayer(sha, offset) {
+  return new Promise((resolve, reject) => {
+    openDB("CanvasImageDB", sha).then((db) => {
+      const objectStore = db.transaction(sha, "readonly").objectStore(sha);
+      const request = objectStore.get(offset);
+      request.onsuccess = (event) => {
+        const record = event.target.result;
+        if (record) {
+          const imageUrl = URL.createObjectURL(record.blob);
+          const img = new Image();
+          img.src = imageUrl;
+          img.onload = () => {
+            resolve(img);
+            URL.revokeObjectURL(imageUrl);
+          }
+        } else {
+          new Error(`Layer for file with SHA256 ${sha} not found.`);
+          reject();
+        }
+      };
+      request.onerror = (event) => {
+        reject();
+      }
+    });
+  });
+}
+
 let bin = null;
+let sha = null;
 
 function materializeORA() {
   const readLayer = (layer) => {
@@ -1651,13 +1737,9 @@ function materializeORA() {
 
 function materializeMDP() {
   const offset3 = HeaderStruct.size;
-
-  const readLayer = (layer) => {
-    if (['folder', 'mask'].includes(layer.type)) {
-      return;
-    };
-
-    let pos = layer.offset;
+  const promises = [];
+  const readLayer = (layer, offset, resolve) => {
+    let pos = offset;
     const tileNum = PAC.unpack(bin.buffer.slice(pos, pos + 4))[0];
     pos += 4;
 
@@ -1750,13 +1832,16 @@ function materializeMDP() {
         } else {
           layer.drawImage(dataToLayer(tilemask, data).canvas, x*dim, y*dim, dim, dim);
         }
+        callback(interTileN + 1);
       });
-      callback(interTileN + 1);
     };
 
     const layerColor = layer.color;
     const readTile = (TileN) => {
       if (TileN >= tileNum) {
+        saveLayer(sha, offset, layer);
+        resolve();
+        console.log(`${layer.name} with ${tileNum} tiles took ${(performance.now() - Fi.n[1])/1000} seconds`);
         return;
       }
 
@@ -1781,22 +1866,47 @@ function materializeMDP() {
       }
     }
     readTile(0);
-    console.log(`${layer.name} with ${tileNum} tiles took ${(performance.now() - Fi.n[1])/1000} seconds`);
   }
+
+  deleteOtherStore('CanvasImageDB', sha);
+
   for (const layer of layers) {
     if (layer.visible === 'true') {
       // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
-      readLayer(layer);
+      if (['folder', 'mask'].includes(layer.type)) {
+        continue;
+      };
+
+      promises.push(new Promise((resolve, reject) => {
+        const offset = layer.offset;
+        loadLayer(sha, offset).then((img) => {
+          resolve();
+          layer.drawImage(img, 0, 0);
+        }).catch(() => {
+          readLayer(layer, offset, resolve);
+        });
+      }));
     }
   }
 
-  updatebutton(echolayers, composite);
+  Promise.all(promises).then(() => {
+    updatebutton(echolayers, composite);
+  });
 }
 
 function readORA(result) {
   Fi.g();
 
   bin = result;
+  try {
+    const hashBuffer = crypto.subtle.digest('SHA-256', bin);
+    hashBuffer.then((hb) => {
+      sha = new Uint8Array(hb).toHex();
+    })
+  } catch (err) {
+    echo(`Error while generating digest: "crypto.subtle.digest('SHA-256', arrayBuffer)" requires a secure context (HTTPS, or locally via localhost / 127.0.0.1)`);
+  }
+
   while (layerlist.firstChild) {
     layerlist.lastChild.remove()
   };
@@ -1828,6 +1938,15 @@ function readMDP(result) {
   Fi.g();
 
   bin = new Uint8Array(result);
+  try {
+    const hashBuffer = crypto.subtle.digest('SHA-256', bin);
+    hashBuffer.then((hb) => {
+      sha = new Uint8Array(hb).toHex();
+    })
+  } catch (err) {
+    echo(`Error while generating digest: "crypto.subtle.digest('SHA-256', arrayBuffer)" requires a secure context (HTTPS, or locally via localhost / 127.0.0.1)`);
+  }
+
   const offset1 = TMDIPack.size;
   const offset2 = TPackerHeader.size;
 

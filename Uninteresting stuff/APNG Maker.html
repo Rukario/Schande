@@ -715,12 +715,8 @@ function echoIMG(img, B) {
 
 function newCanvas(w, h) {
   const d = document.createElement('CANVAS').getContext('2d');
-  if (w) {
-    d.width = d.canvas.width = w;
-  }
-  if (h) {
-    d.height = d.canvas.height = h;
-  }
+  d.width = d.canvas.width = w ? w : 0;
+  d.height = d.canvas.height = h ? h : 0;
   return d;
 }
 
@@ -1681,7 +1677,7 @@ function saveLayer(sha, offset, layer) {
   });
 }
 
-function loadLayer(sha, offset) {
+function loadLayer(layer, sha, offset) {
   return new Promise((resolve, reject) => {
     openDB("CanvasImageDB", sha).then((db) => {
       const objectStore = db.transaction(sha, "readonly").objectStore(sha);
@@ -1693,8 +1689,9 @@ function loadLayer(sha, offset) {
           const img = new Image();
           img.src = imageUrl;
           img.onload = () => {
-            resolve(img);
+            layer.drawImage(img, 0, 0);
             URL.revokeObjectURL(imageUrl);
+            resolve();
           }
         } else {
           new Error(`Layer for file with SHA256 ${sha} not found.`);
@@ -1870,24 +1867,40 @@ function materializeMDP() {
 
   deleteOtherStore('CanvasImageDB', sha);
 
-  for (const layer of layers) {
-    if (layer.visible === 'true') {
-      // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
-      if (['folder', 'mask'].includes(layer.type)) {
-        continue;
-      };
-
-      promises.push(new Promise((resolve, reject) => {
-        const offset = layer.offset;
-        loadLayer(sha, offset).then((img) => {
-          resolve();
-          layer.drawImage(img, 0, 0);
-        }).catch(() => {
-          readLayer(layer, offset, resolve);
-        });
-      }));
+  //for (const layer of layers) {
+  const nextLayer = (layerN) => {
+    if (layerN >= layers.length) {
+      console.log('All', layerN, 'layers processed');
+    } else {
+      const layer = layers[layerN];
+      if (layer.visible === 'true') {
+        layer.canvas.width = canvas.width;
+        layer.canvas.height = canvas.height;
+        // Safari has tendency to lose canvas from large savefile, sometime crashing the webpage. How is Photopea able to get away with heavy layers?
+        if (['folder', 'mask'].includes(layer.type)) {
+          nextLayer(layerN + 1);
+        } else {
+          promises.push(new Promise((resolve, reject) => {
+            const offset = layer.offset;
+            const listener = () => {
+              nextLayer(layerN + 1);
+              resolve();
+            }
+            loadLayer(layer, sha, offset).then((img) => {
+              console.log('Loading layer from IndexedDB', layerN);
+              listener();
+            }).catch(() => {
+              console.log('Loading layer from MDP', layerN);
+              readLayer(layer, offset, listener);
+            });
+          }));
+        }
+      } else {
+        nextLayer(layerN + 1);
+      }
     }
-  }
+  };
+  nextLayer(0);
 
   Promise.all(promises).then(() => {
     updatebutton(echolayers, composite);
@@ -1898,14 +1911,6 @@ function readORA(result) {
   Fi.g();
 
   bin = result;
-  try {
-    const hashBuffer = crypto.subtle.digest('SHA-256', bin);
-    hashBuffer.then((hb) => {
-      sha = new Uint8Array(hb).toHex();
-    })
-  } catch (err) {
-    echo(`Error while generating digest: "crypto.subtle.digest('SHA-256', arrayBuffer)" requires a secure context (HTTPS, or locally via localhost / 127.0.0.1)`);
-  }
 
   while (layerlist.firstChild) {
     layerlist.lastChild.remove()
@@ -1984,7 +1989,7 @@ function readMDP(result) {
   layers = [];
   const layerelements = Mdiapp.getElementsByTagName('Layers')[0].getElementsByTagName('Layer');
   for (const e of layerelements) {
-    const layer = newCanvas(canvas.width, canvas.height);
+    const layer = newCanvas();
     //console.log(e.attributes);
     layer.depth = 0;
     layer.isMask = e.getAttribute('masking') === 'true';
@@ -2025,7 +2030,7 @@ function readMDP(result) {
     if (layer.isMask && !depth_mask) {
       depth_mask += 1;
       // insert 'folder' layer
-      const folder = newCanvas(canvas.width, canvas.height);
+      const folder = newCanvas();
       folder.depth = layer.depth;
       folder.isMask = false;
       folder.path = null;

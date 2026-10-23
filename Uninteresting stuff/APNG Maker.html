@@ -1735,6 +1735,7 @@ function materializeORA() {
   }
 
   Promise.all(promises).then(() => {
+    echoCanvas(canvas);
     updatebutton(echolayers, composite);
   });
 }
@@ -1878,6 +1879,7 @@ function materializeMDP() {
   const nextLayer = (layerN) => {
     if (layerN >= layers.length) {
       console.log('All', layerN, 'layers processed');
+      echoCanvas(canvas);
       updatebutton(echolayers, composite);
     } else {
       const layer = layers[layerN];
@@ -2082,8 +2084,7 @@ function readMDP(result) {
 }
 
 function composite() {
-  let comp = [newCanvas(canvas.width, canvas.height)];
-
+  context.clearRect(0, 0, canvas.width, canvas.height);
   const lines = splitlines(layerlist);
   lines.reverse();
   for (const next of lines) {
@@ -2097,36 +2098,30 @@ function composite() {
       continue;
     }
 
-    const depth = Math.max(d - comp.length+1, 0);
-    for (const n of Array.from({ length: depth }).keys()) {
-      comp.push(newCanvas(canvas.width, canvas.height));
+    const new_depth = Math.max(d - compositeBuffer.length + 1, 0);
+    for (const n of Array.from({ length: new_depth }).keys()) {
+      compositeBuffer.push(newCanvas(canvas.width, canvas.height));
     }
 
     if (['folder', 'mask'].includes(type)) {
       // clear fossil folder canvas
-      layer.clearRect(0, 0, layer.width, layer.height);
+      layer.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
 
       // transfer to folder canvas
-      const compd = comp[d+1];
-      layer.drawImage(compd.canvas, ofsx, ofsy, canvas.width, canvas.height)
+      const compd = compositeBuffer[d + 1];
+      const c = compd.canvas;
+      layer.drawImage(c, ofsx, ofsy, c.width, c.height);
 
       // clear buffer
-      compd.clearRect(0, 0, canvas.width, canvas.height);
+      compd.clearRect(0, 0, c.width, c.height);
       compd.globalCompositeOperation = 'source-over';
       compd.globalAlpha = 1;
     }
 
-    comp[d].globalCompositeOperation = mode;
-    comp[d].globalAlpha = alpha;
-    comp[d].drawImage(layer.canvas, ofsx, ofsy, canvas.width, canvas.height);
+    compositeBuffer[d].globalCompositeOperation = mode;
+    compositeBuffer[d].globalAlpha = alpha;
+    compositeBuffer[d].drawImage(layer.canvas, ofsx, ofsy, canvas.width, canvas.height);
   }
-
-  context.globalCompositeOperation = 'source-over';
-  context.globalAlpha = 1;
-  context.drawImage(comp[0].canvas, 0, 0, comp[0].width, comp[0].height);
-
-  echoCanvas(canvas);
-
   updatebutton(makepng, echoIMGfromCanvas, [canvas, name.split('.').slice(0, -1).join('.') + '.png']);
 }
 
@@ -3273,6 +3268,7 @@ const Fi = {
 };
 var canvas = document.createElement('canvas');
 var context = canvas.getContext('2d'); // { willReadFrequently: true }
+var compositeBuffer = [context];
 var frameBuffer = [false, false, false, false];
 var dim = [false, false, false, false, false]; // framearray[0]'s dim, main_dim, bg_dim, make_dim, compileapngs()
 var maxres = [0, 0, 1, 1];

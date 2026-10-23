@@ -434,8 +434,11 @@ var FFdown = (e_) => {
     const anta_scaleHeight = container_id.height/container_id.clientHeight;
     const x_in_element = Math.round((pointers[0].x - (bounds.left + globalThis.scrollX)) * anta_scaleWidth);
     const y_in_element = Math.round((pointers[0].y - (bounds.top + globalThis.scrollY)) * anta_scaleHeight);
-    magic_wand(qixmask, [x_in_element, y_in_element]);
-    echoCanvas(qixmask.canvas);
+    magic_wand_gl(qixmask, [x_in_element, y_in_element]);
+    if (!qixmask.visible) {
+      qixmask.visible = true;
+      echoCanvas(qixmask.canvas);
+    }
   } else if (container_id.hasAttribute('data-tooltip')) {
     tooltip.style.display = 'inline-block';
     tooltip.innerHTML = container_id.dataset.tooltip;
@@ -1072,17 +1075,18 @@ function frame_diff(a, b, i) {
 }
 
 function magic_wand(qixmask, satellite) {
-  qixmask.width = qixmask.canvas.width = canvas.width;
-  qixmask.height = qixmask.canvas.height = canvas.height;
+  const color = context.getImageData(0, 0, c.width, c.height);
 
-  const qixmap = qixmask.createImageData(canvas.width, canvas.height);
-  const color = context.getImageData(0, 0, canvas.width, canvas.height);
+  const c = qixmask.canvas;
+  c.width = canvas.width;
+  c.height = canvas.height;
+  const qixmap = qixmask.createImageData(c.width, c.height);
 
-  const xy = satellite[0] + satellite[1] * qixmask.width;
+  const xy = satellite[0] + satellite[1] * c.width;
   const rgba = ABtoUint32(color.data.slice(xy * 4, xy * 4 + 4));
 
   const dv = new DataView(color.data.buffer);
-  const pixelCount = canvas.width * canvas.height;
+  const pixelCount = c.width * c.height;
   for (let n = 0; n < pixelCount; n++) {
     if (dv.getUint32(n * 4) === rgba) {
       qixmap.data[n * 4] = 128;
@@ -1093,6 +1097,141 @@ function magic_wand(qixmask, satellite) {
   }
 
   qixmask.putImageData(qixmap, 0, 0);
+}
+
+
+function magic_wand_gl(qixmask, satellite) {
+  const glCanvas = document.createElement('canvas');
+  glCanvas.width = canvas.width;
+  glCanvas.height = canvas.height;
+
+  const gl = glCanvas.getContext('webgl', {
+    alpha: true,
+    premultipliedAlpha: false,
+    preserveDrawingBuffer: true
+  });
+
+  const vertexSource = `
+    attribute vec2 position;
+    varying vec2 uv;
+
+    void main() {
+      uv = position * 0.5 + 0.5;
+      gl_Position = vec4(position, 0.0, 1.0);
+    }
+  `;
+
+  const fragmentSource = `
+    precision highp float;
+
+    uniform sampler2D source;
+    uniform vec2 selectedUV;
+    uniform vec2 resolution;
+    varying vec2 uv;
+
+    void main() {
+      // Flip the output Y coordinate to match canvas orientation.
+      vec2 p = vec2(uv.x, 1.0 - uv.y);
+
+      vec4 pixel = texture2D(source, p);
+      vec4 target = texture2D(source, selectedUV);
+
+      bool sameColor = all(equal(pixel, target));
+
+      gl_FragColor = sameColor
+        ? vec4(128.0 / 255.0, 0.0, 1.0, 1.0)
+        : vec4(0.0);
+    }
+  `;
+
+  function compile(type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      throw new Error(gl.getShaderInfoLog(shader));
+    }
+
+    return shader;
+  }
+
+  const program = gl.createProgram();
+  gl.attachShader(
+    program,
+    compile(gl.VERTEX_SHADER, vertexSource)
+  );
+  gl.attachShader(
+    program,
+    compile(gl.FRAGMENT_SHADER, fragmentSource)
+  );
+  gl.linkProgram(program);
+
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    throw new Error(gl.getProgramInfoLog(program));
+  }
+
+  gl.useProgram(program);
+
+  // Upload the source canvas as a texture.
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.texImage2D(
+    gl.TEXTURE_2D, 0, gl.RGBA,
+    gl.RGBA, gl.UNSIGNED_BYTE, canvas
+  );
+
+  // Two triangles covering the entire output.
+  const vertices = new Float32Array([
+    -1, -1,
+     1, -1,
+    -1,  1,
+    -1,  1,
+     1, -1,
+     1,  1
+  ]);
+
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+  const position = gl.getAttribLocation(program, 'position');
+  gl.enableVertexAttribArray(position);
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+
+  // Texture unit 0.
+  gl.activeTexture(gl.TEXTURE0);
+  gl.uniform1i(gl.getUniformLocation(program, 'image'), 0);
+
+  // Convert canvas coordinates to normalized texture coordinates.
+  const x = satellite[0];
+  const y = satellite[1];
+
+  gl.uniform2f(
+    gl.getUniformLocation(program, 'selectedUV'),
+    (x + 0.5) / canvas.width,
+    (y + 0.5) / canvas.height
+  );
+
+  gl.viewport(0, 0, glCanvas.width, glCanvas.height);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+  const c = qixmask.canvas;
+  c.width = canvas.width;
+  c.height = canvas.height;
+  qixmask.globalCompositeOperation = 'source-over';
+  qixmask.clearRect(0, 0, c.width, c.height);
+  qixmask.drawImage(canvas, 0, 0);
+  qixmask.drawImage(glCanvas, 0, 0);
 }
 
 function draw(x, i) {

@@ -718,8 +718,8 @@ function echoIMG(img, B) {
 
 function newCanvas(w, h) {
   const d = document.createElement('CANVAS').getContext('2d');
-  d.width = d.canvas.width = w ? w : 0;
-  d.height = d.canvas.height = h ? h : 0;
+  d.canvas.width = w ? w : 0;
+  d.canvas.height = h ? h : 0;
   return d;
 }
 
@@ -1828,6 +1828,7 @@ function loadLayer(layer, sha, offset) {
           const img = new Image();
           img.src = imageUrl;
           img.onload = () => {
+            //layer.img = img;
             layer.drawImage(img, 0, 0);
             URL.revokeObjectURL(imageUrl);
             resolve();
@@ -2019,11 +2020,12 @@ function materializeMDP() {
     if (layerN >= layers.length) {
       console.log('All', layerN, 'layers processed');
       echoCanvas(canvas);
+      canvas.style.display = 'none';
       updatebutton(echolayers, composite);
     } else {
       const layer = layers[layerN];
       if (layer.visible === 'true') {
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           layer.canvas.width = canvas.width;
           layer.canvas.height = canvas.height;
           if (['folder', 'mask'].includes(layer.type)) {
@@ -2041,7 +2043,7 @@ function materializeMDP() {
               readLayer(layer, offset, listener);
             });
           }
-        }, 0);
+        });
       } else {
         nextLayer(layerN + 1);
       }
@@ -2223,20 +2225,30 @@ function readMDP(result) {
 }
 
 function composite() {
+  canvas.style.display = 'none';
   context.clearRect(0, 0, canvas.width, canvas.height);
   const lines = splitlines(layerlist);
   lines.reverse();
-  for (const next of lines) {
-    const [ida, isVisible, opacity, type, ofsx, ofsy, mode] = next.trim().split(/ +/);
+  //for (const line of lines) {
+  const nextLine = (lineN) => {
+    if (lineN >= lines.length) {
+      canvas.style.display = 'block';
+      updatebutton(makepng, echoIMGfromCanvas, [canvas, name.split('.').slice(0, -1).join('.') + '.png']);
+      return;
+    }
+    const line = lines[lineN];
+
+    const [ida, isVisible, opacity, type, ofsx, ofsy, mode] = line.trim().split(/ +/);
     const id = parseInt(ida);
     const alpha = parseFloat(opacity);
-    const d = next.search(/[^ ]/);
+    const d = line.search(/[^ ]/);
     const layer = layers[id];
 
     if (isVisible === 'false') {
-      continue;
+      nextLine(lineN + 1);
+      return;
+      //continue;
     }
-
     const new_depth = Math.max(d - compositeBuffer.length + 1, 0);
     for (const n of Array.from({ length: new_depth }).keys()) {
       compositeBuffer.push(newCanvas(canvas.width, canvas.height));
@@ -2259,9 +2271,13 @@ function composite() {
 
     compositeBuffer[d].globalCompositeOperation = mode;
     compositeBuffer[d].globalAlpha = alpha;
-    compositeBuffer[d].drawImage(layer.canvas, ofsx, ofsy, canvas.width, canvas.height);
+    compositeBuffer[d].drawImage(layer.img ? layer.img : layer.canvas, ofsx, ofsy, canvas.width, canvas.height);
+    requestAnimationFrame(() => {
+      nextLine(lineN + 1);
+    })
   }
-  updatebutton(makepng, echoIMGfromCanvas, [canvas, name.split('.').slice(0, -1).join('.') + '.png']);
+  //updatebutton(makepng, echoIMGfromCanvas, [canvas, name.split('.').slice(0, -1).join('.') + '.png']);
+  nextLine(0);
 }
 
 

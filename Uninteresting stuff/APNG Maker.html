@@ -4012,7 +4012,7 @@ window.addEventListener('load', () => {
 
   if (pointer_device.is_touch_device) {
     poppyFF(canvas);
-    poppyFF(qixmask);
+    poppyFF(qixmask.canvas);
   } else {
     document.addEventListener('mousedown', FFdown);
     document.addEventListener('mouseup', FFup);

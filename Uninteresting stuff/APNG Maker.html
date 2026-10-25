@@ -434,7 +434,7 @@ var FFdown = (e_) => {
     const anta_scaleHeight = container_id.height/container_id.clientHeight;
     const x_in_element = Math.round((pointers[0].x - (bounds.left + globalThis.scrollX)) * anta_scaleWidth);
     const y_in_element = Math.round((pointers[0].y - (bounds.top + globalThis.scrollY)) * anta_scaleHeight);
-    magic_wand_gl(qixmask, [x_in_element, y_in_element]);
+    magic_wand(qixmask, [x_in_element, y_in_element]);
     if (!qixmask.visible) {
       qixmask.visible = true;
       echoCanvas(qixmask.canvas);
@@ -1074,34 +1074,144 @@ function frame_diff(a, b, i) {
   dim[3] = [d.x[0], d.y[0], d.x[d.x.length-1]-d.x[0]+1, d.y[d.y.length-1]-d.y[0]+1];
 }
 
-function magic_wand(qixmask, satellite) {
-  const color = context.getImageData(0, 0, c.width, c.height);
+function magic_wand(qixmask, satellite, floodfill = false) {
+  const width = qixmask.canvas.width = canvas.width;
+  const height = qixmask.canvas.height = canvas.height;
+  const pixelCount = width * height;
 
-  const c = qixmask.canvas;
-  c.width = canvas.width;
-  c.height = canvas.height;
-  const qixmap = qixmask.createImageData(c.width, c.height);
-
-  const xy = satellite[0] + satellite[1] * c.width;
-  const rgba = ABtoUint32(color.data.slice(xy * 4, xy * 4 + 4));
-
+  const color = context.getImageData(0, 0, width, height);
+  const qixmap = qixmask.createImageData(width, height);
   const dv = new DataView(color.data.buffer);
-  const pixelCount = c.width * c.height;
-  for (let n = 0; n < pixelCount; n++) {
-    if (dv.getUint32(n * 4) === rgba) {
-      qixmap.data[n * 4] = 128;
-      qixmap.data[n * 4 + 1] = 0;
-      qixmap.data[n * 4 + 2] = 255;
-      qixmap.data[n * 4 + 3] = 255;
+  const rgba = new Set();
+
+  const satellite_xy = [];
+  while (satellite.length > 0) {
+    const y = satellite.pop();
+    const x = satellite.pop();
+    if (x >= 0 && y >= 0 && x < width && y < height) {
+      const picker = y * width + x;
+      rgba.add(ABtoUint32(color.data.slice(picker * 4, picker * 4 + 4)));
+      satellite_xy.push(y * width * 4 + x * 4);
     }
   }
 
+  if (floodfill) {
+    const visited = new Uint8Array(pixelCount);
+    const queue = new Uint32Array(pixelCount);
+
+    let head = 0;
+    let tail = 0;
+
+    const matches = (pixel) => {
+      return rgba.has(dv.getUint32(pixel * 4));
+    }
+
+    // Queue each seed pixel once.
+    for (const byteOffset of satellite_xy) {
+      const pixel = byteOffset / 4;
+    
+      if (!visited[pixel]) {
+        visited[pixel] = 1; // queued
+        queue[tail++] = pixel;
+      }
+    }
+
+    while (head < tail) {
+      const seed = queue[head++];
+
+      if (visited[seed] === 2 || !matches(seed)) {
+        continue;
+      }
+
+      const y = Math.floor(seed / width);
+      const row = y * width;
+      const seedX = seed - row;
+
+      let left = seedX;
+      let right = seedX;
+
+      while (
+        left > 0 &&
+        visited[row + left - 1] !== 2 &&
+        matches(row + left - 1)
+      ) {
+        left--;
+      }
+
+      while (
+        right + 1 < width &&
+        visited[row + right + 1] !== 2 &&
+        matches(row + right + 1)
+      ) {
+        right++;
+      }
+
+      for (let x = left; x <= right; x++) {
+        const pixel = row + x;
+        const offset = pixel * 4;
+
+        visited[pixel] = 2; // processed
+
+        qixmap.data[offset] = 128;
+        qixmap.data[offset + 1] = 0;
+        qixmap.data[offset + 2] = 255;
+        qixmap.data[offset + 3] = 255;
+      }
+
+      // Find matching runs in the row above and below.
+      for (const adjacentY of [y - 1, y + 1]) {
+        if (adjacentY < 0 || adjacentY >= height) {
+          continue;
+        }
+
+        const adjacentRow = adjacentY * width;
+        let x = left;
+
+        while (x <= right) {
+          const pixel = adjacentRow + x;
+
+          if (!matches(pixel)) {
+            x++;
+            continue;
+          }
+
+          // Skip the entire matching run, queueing one
+          // representative pixel if the run isn't processed.
+          let runSeed = -1;
+          while (x <= right && matches(adjacentRow + x)) {
+            const p = adjacentRow + x;
+            if (runSeed === -1 && visited[p] !== 2) {
+              runSeed = p;
+            }
+            x++;
+          }
+
+          if (runSeed !== -1 && visited[runSeed] === 0) {
+            visited[runSeed] = 1; // queued
+            queue[tail++] = runSeed;
+          }
+        }
+      }
+    }
+
+    console.log('done');
+  } else {
+    for (let n = 0; n < pixelCount; n++) {
+      if (rgba.has(dv.getUint32(n * 4))) {
+        qixmap.data[n * 4] = 128;
+        qixmap.data[n * 4 + 1] = 0;
+        qixmap.data[n * 4 + 2] = 255;
+        qixmap.data[n * 4 + 3] = 255;
+      }
+    }
+  }
   qixmask.putImageData(qixmap, 0, 0);
 }
 
 
+
 function magic_wand_gl(qixmask, satellite) {
-  const glCanvas = document.createElement('canvas');
+  const glCanvas = document.createElement('CANVAS');
   glCanvas.width = canvas.width;
   glCanvas.height = canvas.height;
 
@@ -1223,6 +1333,303 @@ function magic_wand_gl(qixmask, satellite) {
   gl.viewport(0, 0, glCanvas.width, glCanvas.height);
   gl.clearColor(0, 0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+  const c = qixmask.canvas;
+  c.width = canvas.width;
+  c.height = canvas.height;
+  qixmask.globalCompositeOperation = 'source-over';
+  qixmask.clearRect(0, 0, c.width, c.height);
+  qixmask.drawImage(canvas, 0, 0);
+  qixmask.drawImage(glCanvas, 0, 0);
+}
+
+function magic_wand_gl_sel(qixmask, satellite) {
+  const glCanvas = document.createElement("CANVAS");
+  glCanvas.width = canvas.width;
+  glCanvas.height = canvas.height;
+
+  const gl = glCanvas.getContext("webgl", {
+    alpha: true,
+    premultipliedAlpha: false
+  });
+
+  if (!gl) throw new Error("WebGL unavailable");
+
+  const vertex = `
+    attribute vec2 position;
+    varying vec2 uv;
+
+    void main() {
+      uv = position * 0.5 + 0.5;
+      gl_Position = vec4(position, 0.0, 1.0);
+    }
+  `;
+
+  const initialFragment = `
+    precision highp float;
+
+    uniform sampler2D source;
+    uniform vec2 selectedUV;
+    uniform vec2 texel;
+    varying vec2 uv;
+
+    void main() {
+      vec4 pixel = texture2D(source, uv);
+      vec4 target = texture2D(source, selectedUV);
+
+      bool sameColor = all(equal(pixel, target));
+
+      // Only the selected starting pixel is initially active.
+      bool seed =
+        abs(uv.x - selectedUV.x) < texel.x * 0.5 &&
+        abs(uv.y - selectedUV.y) < texel.y * 0.5;
+
+      float selected = (sameColor && seed) ? 1.0 : 0.0;
+
+      gl_FragColor = vec4(0.0, 0.0, 0.0, selected);
+    }
+  `;
+
+  const floodFragment = `
+    precision highp float;
+
+    uniform sampler2D source;
+    uniform sampler2D previousMask;
+    uniform vec2 selectedUV;
+    uniform vec2 texel;
+
+    varying vec2 uv;
+
+    void main() {
+      vec4 pixel = texture2D(source, uv);
+      vec4 target = texture2D(source, selectedUV);
+
+      bool sameColor = all(equal(pixel, target));
+
+      float here = texture2D(previousMask, uv).a;
+
+      float left = texture2D(
+        previousMask, uv - vec2(texel.x, 0.0)
+      ).a;
+
+      float right = texture2D(
+        previousMask, uv + vec2(texel.x, 0.0)
+      ).a;
+
+      float down = texture2D(
+        previousMask, uv - vec2(0.0, texel.y)
+      ).a;
+
+      float up = texture2D(
+        previousMask, uv + vec2(0.0, texel.y)
+      ).a;
+
+      bool connected =
+        here > 0.5 ||
+        left > 0.5 ||
+        right > 0.5 ||
+        down > 0.5 ||
+        up > 0.5;
+
+      float selected =
+        (sameColor && connected) ? 1.0 : 0.0;
+
+      gl_FragColor = vec4(0.0, 0.0, 0.0, selected);
+    }
+  `;
+
+  const outputFragment = `
+    precision highp float;
+
+    uniform sampler2D mask;
+    varying vec2 uv;
+
+    void main() {
+      vec2 sourceUV = vec2(uv.x, 1.0 - uv.y);
+      float selected = texture2D(mask, sourceUV).a;
+
+      gl_FragColor = selected > 0.5
+        ? vec4(128.0 / 255.0, 0.0, 1.0, 1.0)
+        : vec4(0.0);
+    }
+  `;
+
+  function makeShader(type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      throw new Error(gl.getShaderInfoLog(shader));
+    }
+
+    return shader;
+  }
+
+  function makeProgram(fragment) {
+    const program = gl.createProgram();
+
+    gl.attachShader(
+      program, makeShader(gl.VERTEX_SHADER, vertex)
+    );
+    gl.attachShader(
+      program, makeShader(gl.FRAGMENT_SHADER, fragment)
+    );
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      throw new Error(gl.getProgramInfoLog(program));
+    }
+
+    return program;
+  }
+
+  const initProgram = makeProgram(initialFragment);
+  const floodProgram = makeProgram(floodFragment);
+  const outputProgram = makeProgram(outputFragment);
+
+  // Full-screen rectangle.
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    -1, -1,
+     1, -1,
+    -1,  1,
+    -1,  1,
+     1, -1,
+     1,  1
+  ]), gl.STATIC_DRAW);
+
+  function bindProgram(program) {
+    gl.useProgram(program);
+
+    const loc = gl.getAttribLocation(program, "position");
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  }
+
+  function uniform2(program, name, x, y) {
+    gl.uniform2f(
+      gl.getUniformLocation(program, name), x, y
+    );
+  }
+
+  function bindTexture(texture, unit, program, name) {
+    gl.activeTexture(gl.TEXTURE0 + unit);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(
+      gl.getUniformLocation(program, name), unit
+    );
+  }
+
+  function makeTexture() {
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    return texture;
+  }
+
+  // Upload the source image.
+  const source = makeTexture();
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.bindTexture(gl.TEXTURE_2D, source);
+  gl.texImage2D(
+    gl.TEXTURE_2D, 0, gl.RGBA,
+    gl.RGBA, gl.UNSIGNED_BYTE, canvas
+  );
+
+  // Two ping-pong mask textures.
+  const masks = [makeTexture(), makeTexture()];
+
+  for (const texture of masks) {
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(
+      gl.TEXTURE_2D, 0, gl.RGBA,
+      glCanvas.width, glCanvas.height, 0,
+      gl.RGBA, gl.UNSIGNED_BYTE, null
+    );
+  }
+
+  const framebuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+  gl.viewport(0, 0, glCanvas.width, glCanvas.height);
+  gl.disable(gl.BLEND);
+  gl.disable(gl.DITHER);
+
+  function renderToMask(texture, program, drawSetup) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      texture,
+      0
+    );
+
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !==
+        gl.FRAMEBUFFER_COMPLETE) {
+      throw new Error("Mask framebuffer is incomplete");
+    }
+
+    bindProgram(program);
+    drawSetup();
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
+  const x = satellite[0];
+  const y = satellite[1];
+
+  if (
+    !Number.isInteger(x) || !Number.isInteger(y) ||
+    x < 0 || x >= glCanvas.width || y < 0 || y >= glCanvas.height
+  ) {
+    throw new RangeError("Selected pixel is out of bounds");
+  }
+
+  const selectedUV = [
+    (x + 0.5) / glCanvas.width,
+    (y + 0.5) / glCanvas.height
+  ];
+
+  const common = program => {
+    bindTexture(source, 0, program, "source");
+    uniform2(program, "selectedUV", ...selectedUV);
+    uniform2(program, "texel", 1 / glCanvas.width, 1 / glCanvas.height);
+  };
+
+  // Initialize with the starting pixel only.
+  renderToMask(masks[0], initProgram, () => {
+    common(initProgram);
+  });
+
+  let previous = 0;
+
+  // Each pass expands the selection by one pixel.
+  // This is a safe upper bound for 4-connected regions.
+  for (let i = 0; i < glCanvas.width + glCanvas.height - 2; i++) {
+    const next = 1 - previous;
+
+    renderToMask(masks[next], floodProgram, () => {
+      common(floodProgram);
+      bindTexture(masks[previous], 1, floodProgram, "previousMask");
+    });
+
+    previous = next;
+  }
+
+  // Render the purple mask to the visible WebGL canvas.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, glCanvas.width, glCanvas.height);
+  bindProgram(outputProgram);
+  bindTexture(masks[previous], 0, outputProgram, "mask");
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 
   const c = qixmask.canvas;
@@ -3605,6 +4012,7 @@ window.addEventListener('load', () => {
 
   if (pointer_device.is_touch_device) {
     poppyFF(canvas);
+    poppyFF(qixmask);
   } else {
     document.addEventListener('mousedown', FFdown);
     document.addEventListener('mouseup', FFup);

@@ -128,6 +128,7 @@ cd = batchname + " cd/"
 tcd = "\\" + batchname + " cd\\"
 htmlfile = batchname + ".html"
 rulefile = batchname + ".cd"
+ipfile = "mips.cd"
 sav = batchname + ".sav"
 savs = batchname + ".savs"
 savx = batchname + ".savx"
@@ -248,6 +249,9 @@ def mainmenu():
 def ready_input():
     if not busy[0]:
         echo(f"{tcolor.w}{clean}Your key: ", flush=True)
+def ready_input_ssh():
+    if not busy[0]:
+        echo(f"{tcolor.w}{clean}Test another letter, press X to re/start server: ", flush=True)
 def skull():
     return r"""                                    
               ______                
@@ -262,6 +266,7 @@ def skull():
             '--------'              
                                     """
 def help():
+    date = get_date().strftime("%Y-%m-XX")
     wild_html = f"{tcolor.b}...{tcolor.o}*{tcolor.b}..."
     wild_api = f"{tcolor.b}.{tcolor.g} > {tcolor.b}.{tcolor.g} > {tcolor.b}."
     return f"""
@@ -308,7 +313,7 @@ def help():
  - - - - Download directory - - - -
   Wildcard: Single asterisk only, capture for prepend/append before file extension, non-anchored http ending.
  +  {tcolor.b}...{tcolor.o}\\* for http{tcolor.b}...         {tcolor.x} custom dir for downloads, \\{batchname}\\ if no custom dir specified.
- |  {tcolor.b}...{tcolor.o}*date\\* for http{tcolor.b}...    {tcolor.x} custom dir for downloads, "*date" will become "{fdate}".
+ |  {tcolor.b}...{tcolor.o}*date\\* for http{tcolor.b}...    {tcolor.x} custom dir for downloads, "*date" will become "{date}".
  |  {tcolor.b}...{tcolor.o}\\{tcolor.g}pre{tcolor.o}*{tcolor.g}app{tcolor.o} for http{tcolor.b}...   {tcolor.x} and the file are also renamed (prepend/append).
  +  {tcolor.g}pre{tcolor.o}*{tcolor.g}app{tcolor.o} for http{tcolor.b}...       {tcolor.x} and they go to \\{batchname}\\ while renamed.
 
@@ -563,11 +568,9 @@ if sys.platform == "linux":
     if p.returncode != 0:
         kill(f" Additional prerequisites required - please execute in another command prompt with:\n\napk add tzdata\nln -sf /usr/share/zoneinfo/America/Los_Angeles /etc/localtime")
 
-offset = utcnow().astimezone().strftime('%z')[:-2]
-def get_date(offset):
-    date = utcnow() + timedelta(hours=int(offset))
-    return [date, date.strftime("%Y-%m-XX")]
-fdate = get_date(offset)[1]
+hours = int(utcnow().astimezone().strftime('%z')[:-2])
+def get_date():
+    return utcnow() + timedelta(hours=hours)
 
 
 
@@ -687,21 +690,21 @@ Mozilla/5.0 for http
 
 sys.stdout.write(tcolor.x + cls)
 
-def read_cd():
-    if os.path.getsize(rulefile) < 1:
+def read_cd(path, create=False):
+    if create and not os.path.exists(path):
+        open(path, 'w').close()
         return []
-    with open(rulefile, 'r', encoding="utf-8") as f:
+    elif os.path.getsize(path) < 1:
+        return []
+    with open(path, 'r', encoding="utf-8") as f:
         return f.read().splitlines()
 
-def write_cd(data):
+def write_cd(path, data):
     echo("Write to cd? (Y/N)", 0, 1)
     if watch_keypress("yn") == "KeyY":
-        with open(rulefile, 'wb') as f:
+        with open(path, 'wb') as f:
             f.write(bytes(data, 'utf-8'))
         echo(f"wrote to cd", 0, 1)
-
-if not os.path.exists(rulefile):
-    open(rulefile, 'w').close()
 
 def date_str(date, past_event):
     time_obj = date.replace(tzinfo=None) - past_event
@@ -709,18 +712,7 @@ def date_str(date, past_event):
     minutes = time_obj.seconds // 60 % 60
     return f"{time_obj.days:02}d {hours:02}:{minutes:02}"
 
-def current_ip(letter):
-    ip_checker = "https://checkip.amazonaws.com"
-    try:
-        resp = request.urlopen(request.Request(ip_checker))
-    except:
-        echo("No connection!", 0, 1)
-        return
-
-    utf8 = resp.read().decode('utf-8').strip()
-    echo(f"{utf8} {letter}", 0, 1)
-
-rules = read_cd()
+rules = read_cd(rulefile, True)
 
 new_setting = False
 pos = 0
@@ -935,7 +927,7 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             if q == HTTPserver:
                 return True
         buffer = ondisk.replace("/", "\\")
-        echo(f"""{(utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolor.g}{self.client_address[0]} {tcolor.r}<- {tcolor.z("CCCCCC")}{buffer}{tcolor.x} use {tcolor.g}?{HTTPserver}{tcolor.o}{'&' + tcolor.b + self.qs if self.qs else ''}{tcolor.x} query string to authorize this connection.""", 0, 1)
+        echo(f"""{(utcnow() + timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} stalled] {tcolor.g}{self.client_address[0]} {tcolor.r}<- {tcolor.z("CCCCCC")}{buffer}{tcolor.x} use {tcolor.g}?{HTTPserver}{tcolor.o}{'&' + tcolor.b + self.qs if self.qs else ''}{tcolor.x} query string to authorize this connection.""", 0, 1)
         self.close_connection = False
 
     def do_GET(self):
@@ -1142,7 +1134,7 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
         buffer = '' if dead else f' {size} bytes'
         ondisk = http2ondisk(self.path, self.directory).replace("/", "\\")
         if not ondisk.rsplit("\\", 1)[-1] in mute404:
-            echo(f"{(utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolor.g}{self.client_address[0]} {tcolor.r}<- {tcolor.r if dead else tcolor.b}{ondisk}{tcolor.x}{buffer}", 0, 1)
+            echo(f"{(utcnow() + timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')} [{self.command} {code}] {tcolor.g}{self.client_address[0]} {tcolor.r}<- {tcolor.r if dead else tcolor.b}{ondisk}{tcolor.x}{buffer}", 0, 1)
 
         if not hasattr(self, '_headers_buffer'):
             self._headers_buffer = []
@@ -1296,7 +1288,8 @@ def new_cookie():
 
 
 def ast(rule, key="0", key1="0"):
-    return rule.replace("*date", fdate).replace("*id", key).replace("*title", key1).replace("/", "\\")
+    date = get_date().strftime("%Y-%m-XX")
+    return rule.replace("*date", date).replace("*id", key).replace("*title", key1).replace("/", "\\")
 
 def saint(name=False, url=False, scheme=True):
     if url:
@@ -1793,7 +1786,7 @@ def timer(e="", listen=[], antalisten=[], clock=navigator["timeout"]):
             clock.update({0:[4, 8]})
             echo(f"""\n"#-# seconds rarity 100% 00:00" in {rulefile} to customize timer, add another timer to manipulate rarity/schedule.\n""", 1, 1)
 
-        now = int((utcnow() + timedelta(hours=int(offset))).strftime('%H%M'))
+        now = int((utcnow() + timedelta(hours=hours)).strftime('%H%M'))
         time_at = None
         next_clock = 0
         big_clock = 0
@@ -1813,12 +1806,12 @@ def timer(e="", listen=[], antalisten=[], clock=navigator["timeout"]):
         r = clock[time_at][randindex]
         s = r[0]+int((r[1]-r[0]+1)*random())
         if next_clock:
-            next_clock = int((utcnow() + timedelta(hours=int(offset))).strftime('%Y%m%d') + f'{next_clock:04}')
-            end = int((utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%Y%m%d%H%M'))
+            next_clock = int((utcnow() + timedelta(hours=hours)).strftime('%Y%m%d') + f'{next_clock:04}')
+            end = int((utcnow() + timedelta(hours=hours, seconds=s)).strftime('%Y%m%d%H%M'))
             if end > next_clock:
                 s = int(datetime.strptime(str(next_clock), '%Y%m%d%H%M').timestamp()) - int(time.time())
         end = int(time.time()) + s
-        endclock = (utcnow() + timedelta(hours=int(offset), seconds=s)).strftime('%H:%M')
+        endclock = (utcnow() + timedelta(hours=hours, seconds=s)).strftime('%H:%M')
         while True:
             ticking[0].clear()
             now = int(time.time())
@@ -4462,7 +4455,7 @@ def source_view():
 
 
 def remote_echo(remote, nolist):
-    echo(f" - - {(utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
+    echo(f" - - {(utcnow() + timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
     with subprocess.Popen([remote, "-l"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) as p:
         listed = False
         for line in p.stdout:
@@ -4483,7 +4476,7 @@ def remote_echo(remote, nolist):
         echo("", 0, 1)
 
 def remote_echo_files(remote, torrent_id):
-    echo(f" - - {(utcnow() + timedelta(hours=int(offset))).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
+    echo(f" - - {(utcnow() + timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')} - - ", 0, 1)
     with subprocess.Popen([remote, "-t", str(torrent_id), "-f"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as p:
         listed = False
         buffer = p.communicate()[0].decode().splitlines()
@@ -4503,33 +4496,6 @@ def remote_echo_files(remote, torrent_id):
         if not listed:
             echo("No files to list!", 0, 1)
         echo("", 0, 1)
-
-def openssh():
-    while True:
-        code = get_keypress("Test another letter, press X to re/start server: ", [*"abcdefghijklmnopqrstuvwxyz", "Zargon", "Zorori", *"0123456789"])
-        echo(f"{tcolor.x}{clean}")
-        if not code.startswith("Key"):
-            if code == "Zargon":
-                echo(f"{tcolor.o}{code}{tcolor.x}", 0, 1)
-            if code == "Zorori":
-                echo(f"{tcolor.y}{code}{tcolor.x}", 0, 1)
-            ready_input()
-        elif code[-1].isalpha():
-            if code == "KeyM":
-                return
-            elif code == "KeyX":
-                if sys.platform == "linux":
-                    os.system("killall -9 sshd 2>/dev/null")
-                    os.system("/usr/sbin/sshd")
-                    echo("Started OpenSSH server process", 0, 1)
-                else:
-                    echo("Only on Linux . . .", 0, 1)
-            else:
-                task["run"].put(("checkip", code[-1]))
-        else:
-            unrecognized(code)
-
-
 
 def killdaemon():
     if sys.platform == "linux":
@@ -4758,6 +4724,163 @@ def torrent_get(fp=""):
 
 
 
+def date_str(date, past_event):
+    time_obj = date.replace(tzinfo=None) - past_event
+    hours = time_obj.seconds // 3600
+    minutes = time_obj.seconds // 60 % 60
+    return f"{time_obj.days:02}d {hours:02}:{minutes:02}"
+
+def ip_element(utf8_lines):
+    out = []
+    for line in utf8_lines:
+        arr = line.split(' ')
+        out.append([arr[0], arr[1], f"{arr[2]} {arr[3]}", f"{arr[4]} {arr[5]}" if len(arr) > 4 else None])
+    return out
+
+def current_ip(letter):
+    ip_checker = "https://checkip.amazonaws.com"
+    try:
+        resp = request.urlopen(request.Request(ip_checker))
+    except:
+        echo("No connection!", 0, 1)
+        return
+
+    ip = resp.read().decode('utf-8').strip()
+    ip_used = 0
+    utf8_lines = read_cd(ipfile)
+    date = get_date()
+    fdate = date.strftime("%Y-%m-%d %H:%M")
+    counter = 0;
+
+    for pos, arr in enumerate(ip_element(utf8_lines)):
+        last_ip, last_letter, first, last = arr
+        if ip.rsplit('.', 2)[0] == last_ip.rsplit('.', 2)[0]:
+
+            if last:
+                last = datetime.strptime(last, "%Y-%m-%d %H:%M")
+
+            stdout = ""
+            if ip == last_ip:
+                if not ip_used:
+                    ip_used = 1
+                if letter == last_letter:
+                    counter += 1;
+                    stdout += f"{tcolor.g}same used!{tcolor.x}"
+                    if not last or date.replace(tzinfo=None) > (last + timedelta(minutes=20)):
+                        utf8_lines[pos] = f"{ip} {letter} {first} {fdate}"
+                        ip_used = 2
+                else:
+                    stdout += f"{tcolor.r}used by {last_letter}{tcolor.x}"
+            else:
+                very = f'{tcolor.r}V' if ip.rsplit('.', 1)[0] == last_ip.rsplit('.', 1)[0] else ' '
+                if letter == last_letter:
+                    if not very == ' ':
+                        counter += 1;
+                    stdout += f"{very} {tcolor.g}smlr used!   {last_ip}{tcolor.x}"
+                else:
+                    stdout += f"{very} {tcolor.o}clsly used {last_letter} {last_ip}{tcolor.x}"
+
+            first = datetime.strptime(first, "%Y-%m-%d %H:%M")
+            if date.replace(tzinfo=None) > (first + timedelta(days=30)):
+                stdout += f" {tcolor.g}{date_str(date, first)}{tcolor.x}"
+            else:
+                stdout += f" {tcolor.w}{date_str(date, first)}{tcolor.x}"
+
+            if last:
+                stdout += f" - {tcolor.w}{date_str(date, last)}{tcolor.x}"
+            else:
+                stdout += f" - {tcolor.w}one time{tcolor.x}"
+            echo(stdout, 0, 1)
+        elif last_letter == letter:
+            echo(f"{tcolor.b}{last_ip}{tcolor.x}", 0, 1)
+    echo(f"{ip} {letter}", 0, 1)
+    if not ip_used:
+        echo(f" {tcolor.g}new!{tcolor.x}", 0, 1)
+        allowance = int(144/9)
+        if counter == 0:
+            echo(f" {tcolor.r}{letter} similar IP allowance: {counter}/{allowance}{tcolor.x}", 0, 1)
+        elif counter >= allowance:
+            echo(f" {tcolor.o}{letter} similar IP allowance: {counter}/{allowance}{tcolor.x}", 0, 1)
+        else:
+            echo(f" {tcolor.g}{letter} similar IP allowance: {counter}/{allowance}{tcolor.x}", 0, 1)
+        utf8_lines.append(f"{ip} {letter} {fdate}")
+
+    if not ip_used == 1:
+        write_cd(ipfile, "\n".join(utf8_lines))
+
+def read_recent_letters():
+    letters = {}
+    utf8_lines = read_cd(ipfile)
+    for arr in ip_element(utf8_lines):
+        last_ip, last_letter, first, last = arr
+        if not last:
+            last = first
+        last = datetime.strptime(last, "%Y-%m-%d %H:%M")
+
+        if last_letter in letters:
+            if letters[last_letter] < last:
+                letters[last_letter] = last
+        else:
+            letters[last_letter] = last
+
+    date = get_date()
+    for k, v in sorted(letters.items(), key=lambda item: item[1]):
+        color = tcolor.g
+        if date.replace(tzinfo=None) > (v + timedelta(days=5)):
+            color = tcolor.o
+        elif date.replace(tzinfo=None) > (v + timedelta(days=4)):
+            color = tcolor.w
+        elif date.replace(tzinfo=None) > (v + timedelta(days=1)):
+            color = tcolor.b
+        echo(f"{tcolor.b}{k} - {color}{date_str(date, v)}{tcolor.x}", 0, 1)
+
+def openssh():
+    ready_input_ssh()
+    read_cd(ipfile, True)
+    while True:
+        code = get_keypress("", [*"abcdefghijklmnopqrstuvwxyz", "Zargon", "Zorori", *"0123456789"])
+        key_time, key_repeat = Keypress[code]
+        echo(f"{tcolor.x}{clean}")
+        if not code.startswith("Key") and not code.startswith("Digit"):
+            if code == "Zargon":
+                echo(f"{tcolor.o}{code}{tcolor.x}", 0, 1)
+            if code == "Zorori":
+                echo(f"{tcolor.y}{code}{tcolor.x}", 0, 1)
+            ready_input_ssh()
+        elif code[-1].isalpha():
+            if code == "KeyM":
+                return
+            elif code == "KeyX":
+                if sys.platform == "linux":
+                    os.system("killall -9 sshd 2>/dev/null")
+                    os.system("/usr/sbin/sshd")
+                    echo("Started OpenSSH server process", 0, 1)
+                else:
+                    echo("Only on Linux . . .", 0, 1)
+                ready_input_ssh()
+            elif code[-1] == "L":
+                read_recent_letters()
+                echo('', 0, 1)
+                ready_input_ssh()
+            elif busy[0]:
+                pressed_ssh(code)
+            else:
+                task["run"].put(("checkip", code[-1]))
+        elif code[-1].isdigit():
+            el = int(code[-1])
+            if el:
+                set_proxy(f"socks5://localhost:701{el}")
+                echo(f" PROXY: 701{el}", 1, 1)
+            else:
+                set_proxy(False)
+                echo(f" PROXY: Disabled", 1, 1)
+            ready_input_ssh()
+        else:
+            echo("", 1)
+            pressed_ssh("KeyZ")
+
+
+
 def read_input(fp, reveal=False):
     if any(word for word in navigator["pickers"].keys() if fp.startswith(word)):
         task["run"].put(("picker", fp))
@@ -4892,6 +5015,11 @@ def unrecognized(code):
 def pressed(code, s=time.time()):
     Keypress[code][0] = s
     ready_input()
+    if ticking[0]:
+        ticking[0].set()
+def pressed_ssh(code, s=time.time()):
+    Keypress[code][0] = s
+    ready_input_ssh()
     if ticking[0]:
         ticking[0].set()
 
@@ -5112,7 +5240,7 @@ def keylistener():
             echo("", 1)
             pressed("KeyZ")
 
-echo(f""" FDST: {get_date(offset)[1]}
+echo(f""" FDST: {get_date().strftime("%Y-%m-XX")}
 
  Key listener:
   > Press X to enable or disable indefinite retry on error downloading files (for this session).

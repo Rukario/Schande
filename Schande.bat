@@ -11,12 +11,12 @@ r"""
 :loaded
 set color=0e && set stopcolor=06
 color %color%
-set batchfile=%~0
+set batchfile=%~dpnx0
 if %cd:~-1%==\ (set batchdi=%cd:~0,-1%&&set batchdir=%cd%) else (set batchdi=%cd%&&set batchdir=%cd%\)
 
 setlocal enabledelayedexpansion
 set pythondir=%userprofile%\AppData\Local\Programs\Python\
-set x=Python 3.13
+set x=Python 3.14
 set cute=!x:.=!
 set cute=!cute: =!
 set pythondir=!pythondir!!cute!\
@@ -170,8 +170,8 @@ newfilen = [0]
 Keypress_prompt = [False]
 Keypress_buffer = ['']
 Fast_presser = 0.5
-Keypress = {'Key' + letter: False for letter in map(chr, range(65, 91))}
-Keypress_time = {k: [0, 0] for k in Keypress.keys()}
+Keypress = {f"Key{letter}": [0, 0] for letter in map(chr, range(65, 91))}
+Keypress.update({f"Digit{digit}": [0, 0] for digit in range(10)})
 
 task = {
   "httpserver": [],
@@ -214,6 +214,7 @@ class tcolor:
     b = ansi_color("0", "3B78FF")
     o = ansi_color("0", "FF9030")
     w = ansi_color("401707", "6")
+    t = ansi_color("004466", "6")
     y = ansi_color("0", "FBC762")
     c = ansi_color("0")
     if sys.platform == "darwin":
@@ -429,7 +430,7 @@ def help():
  |  {tcolor.o}.{tcolor.g}filetype   {tcolor.x} to whitelist file types.
  |  {tcolor.o}!.{tcolor.g}filetype  {tcolor.x} to blacklist file types.
  |  {tcolor.o}!{tcolor.g}pattern    {tcolor.x} to blacklist files by pattern match in their file names.
- |  {tcolor.o}!!{tcolor.g}pattern   {tcolor.x} to whitelist, "!!" irony operator used to distinguish from pattern exemptions for scanning/Sorter rules.
+ |  {tcolor.o}!!{tcolor.g}pattern   {tcolor.x} to whitelist, {tcolor.o}!!{tcolor.x} irony operator used to distinguish from pattern exemptions for scanning/Sorter rules.
  |
  | Filters are case insensitive.
  + Anchored ending if there's a period at the beginning, to avoid matching pattern of an extension name in file names.
@@ -448,12 +449,12 @@ def help():
 eps = 30
 stdtime = [int(time.time()*eps)]*2
 stdout = Queue()
-stdin = ["", ""]
+stdout_buffer = ["", ""]
 def echofriction():
     while True:
         sys.stdout.write("".join(stdout.get()))
-        stdin[0] = ""
-        stdin[1] = ""
+        stdout_buffer[0] = ""
+        stdout_buffer[1] = ""
         time.sleep(1/eps)
 Thread(target=echofriction, daemon=True).start()
 
@@ -477,8 +478,8 @@ def echo(t, b=0, f=0, clamp='', friction=False, flush=False):
             s = time.time()
             if stdtime[1] < int(s*eps):
                 stdtime[1] = int(s*eps)
-                stdin[1] = f"{b:<{c}}\r"
-                stdout.put((stdin))
+                stdout_buffer[1] = f"{b:<{c}}\r"
+                stdout.put((stdout_buffer))
             else:
                 stdtime[1] = int(s*eps)
         else:
@@ -527,8 +528,6 @@ def kill(threadn, e=None, r=None):
         echo(f"""{tcolor.r}Thread {threadn} was killed {"by" if "(" in e else "because"} {e}{tcolor.x}""", 0, 1)
     sys.exit()
 
-
-
 def whereami(e="echoed", b=0, f=1, kill=False, pause=False):
     dep = []
     for x in inspect.stack()[1:3]:
@@ -542,6 +541,11 @@ def whereami(e="echoed", b=0, f=1, kill=False, pause=False):
         choice("(C)ontinue?", "c")
         echo("", 1)
 
+def stalled():
+    while True:
+        echo("Stalled", 0, 1)
+        input("")
+
 
 
 def echo_pip():
@@ -554,6 +558,19 @@ def echo_pip():
 
 
 
+if sys.platform == "linux":
+    p = subprocess.run(f'cat /etc/localtime', stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, shell=True)
+    if p.returncode != 0:
+        kill(f" Additional prerequisites required - please execute in another command prompt with:\n\napk add tzdata\nln -sf /usr/share/zoneinfo/America/Los_Angeles /etc/localtime")
+
+offset = utcnow().astimezone().strftime('%z')[:-2]
+def get_date(offset):
+    date = utcnow() + timedelta(hours=int(offset))
+    return [date, date.strftime("%Y-%m-XX")]
+fdate = get_date(offset)[1]
+
+
+
 lostfocus = [False]
 def firework(bg=["%stopcolor%", "%color%"]):
     if sys.platform == "win32":
@@ -562,7 +579,7 @@ def firework(bg=["%stopcolor%", "%color%"]):
             os.system(f"color {b}")
         echo(tcolor.x)
 
-def choice(keys="", double=False):
+def choice(keys=""):
     if sys.platform == "win32":
         if keys:
             lostfocus[0] = False
@@ -586,60 +603,67 @@ done""")
             echo(f"{keys[el-1].upper()}\n", flush=True)
     if not keys:
         return
-    if el == 0:
-        echo("", 0, 1)
     if el < 0 or el > 100:
         whereami(f"Obscene return code {el}", kill=True)
-    if double and keys[el-1] in double:
-        key_time = Keypress_time["Key" + keys[el-1].upper()]
-        now = time.time()
-        if now > key_time[0]:
-            el = -el
-            key_time[1] = 0
-        else:
-            key_time[1] += 1
-        key_time[0] = now + Fast_presser
+
+    k = keys[el-1]
+    key = Keypress["Key" + k.upper() if k.isalpha() else "Digit" + k]
+    now = time.time()
+    if now > key[0]:
+        key[1] = 0
+    else:
+        key[1] += 1
+    key[0] = now + Fast_presser
+
     return el
 
-def get_keypress(i="Your key: ", choices=[], double=False):
-    dik = {}
+def get_keypress(i="Your key: ", choices=[]):
+    choice_set = {}
     for c in choices:
         key = c[0].upper()
-        dik.setdefault(key, set())
-        dik[key].add(c[1:])
-    keys = ''.join(dik.keys())
+        choice_set.setdefault(key, set())
+        choice_set[key].add(c[1:])
+    keys = ''.join(choice_set.keys())
     while True:
         echo(f"{tcolor.w}{clean}{i}{tcolor.y}", flush=True)
-        el = choice(keys.lower(), double=double)
+        el = choice(keys.lower())
         echo(tcolor.x, 0, 1)
 
-        if el < 1:
-            return "Slow" + keys[-el-1]
-        else:
-            key = keys[el-1]
-            nter = ""
-            if list(filter(None, dik[key])):
-                echo("", 1, 0)
-                if len(dik[key]) == 1:
-                    xter = ''.join(dik[key]).lower()
-                    nter = input("Type and enter to confirm, else to return: " + key + xter + f"\033[{len(xter)}D")
-                    if not busy[0]:
-                        echo("", 1, 0)
-                else:
-                    echo(''.join(f" {key}{e}" for e in dik[key]), 0, 1)
-                    nter = input(f"Enter provided values, obscene to return: {key}")
-                    if not busy[0]:
-                        echo("", 1, 0)
-                        echo("", 1, 0)
+        key = keys[el-1]
+        nter = ""
+        if list(filter(None, choice_set[key])):
+            echo("", 1, 0)
+            if len(choice_set[key]) == 1:
+                xter = ''.join(choice_set[key]).lower()
+                nter = input("Type and enter to confirm, else to return: " + key + xter + f"\033[{len(xter)}D")
+                if not busy[0]:
+                    echo("", 1, 0)
             else:
-                return "Key" + key
-            for element in dik[key]:
-                if not nter and not element:
-                    echo(f"{key}", flush=True)
-                    return "Key" + key
-                elif nter == element.lower():
-                    echo(f"{key}{nter}", flush=True)
-                    return key + nter
+                echo(''.join(f" {key}{e}" for e in choice_set[key]), 0, 1)
+                nter = input(f"Enter provided values, obscene to return: {key}")
+                if not busy[0]:
+                    echo("", 1, 0)
+                    echo("", 1, 0)
+        else:
+            return ("Key" if key.isalpha() else "Digit") + key
+        for element in choice_set[key]:
+            if not nter and not element:
+                echo(f"{key}", flush=True)
+                return ("Key" if key.isalpha() else "Digit") + key
+            elif nter == element.lower():
+                echo(f"{key}{nter}", flush=True)
+                return key + nter
+
+def watch_keypress(keys):
+    keys = [["Key" + k.upper()][0] for k in keys]
+    for k in keys:
+        Keypress[k] = [0, 0]
+    while not any(Keypress[k][0] for k in keys):
+        time.sleep(0.1)
+    for k in keys:
+        if Keypress[k][0]:
+            Keypress[k] = [0, 0]
+            return k
 
 def input(i="Your input: "):
     echo(f"{tcolor.w}{clean}{i}{tcolor.y}", flush=True)
@@ -671,13 +695,7 @@ def read_cd():
 
 def write_cd(data):
     echo("Write to cd? (Y/N)", 0, 1)
-    Keypress["KeyY"] = False
-    Keypress["KeyN"] = False
-    while not Keypress["KeyY"] and not Keypress["KeyN"]:
-        time.sleep(0.1)
-    Keypress["KeyN"] = False
-    if Keypress["KeyY"]:
-        Keypress["KeyY"] = False
+    if watch_keypress("yn") == "KeyY":
         with open(rulefile, 'wb') as f:
             f.write(bytes(data, 'utf-8'))
         echo(f"wrote to cd", 0, 1)
@@ -691,11 +709,22 @@ def date_str(date, past_event):
     minutes = time_obj.seconds // 60 % 60
     return f"{time_obj.days:02}d {hours:02}:{minutes:02}"
 
+def current_ip(letter):
+    ip_checker = "https://checkip.amazonaws.com"
+    try:
+        resp = request.urlopen(request.Request(ip_checker))
+    except:
+        echo("No connection!", 0, 1)
+        return
+
+    utf8 = resp.read().decode('utf-8').strip()
+    echo(f"{utf8} {letter}", 0, 1)
+
 rules = read_cd()
 
 new_setting = False
 pos = 0
-settings = ["Launch HTTP server = ", "Browser = ", "Mail = ", "Make SAVX = No", f"UTC offset = {utcnow().astimezone().strftime('%z')[:-2]}", "Proxy = socks5://"]
+settings = ["Launch HTTP server = ", "Port = 8886", "Browser = ", "Mail = ", "Make SAVX = No", "Proxy = socks5://"]
 for setting in settings:
     if not rules[pos].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if pos == 0:
@@ -720,8 +749,20 @@ for setting in settings:
 if new_setting:
     with open(rulefile, 'wb') as f:
         f.write(bytes("\n".join(rules), 'utf-8'))
-
-
+def declare(rule, boolean=False):
+    rule = rule.split("=", 1)
+    rule[1] = rule[1].strip()
+    if boolean and not rule[1] == "Yes" and not rule[1] == "No":
+        return
+    return rule[1]
+HTTPserver = declare(rules[0])
+if HTTPserver == "No":
+    HTTPserver = False
+Port = int(declare(rules[1]))
+Browser = declare(rules[2])
+Mail = declare(rules[3])
+SAVX = declare(rules[4], True)
+proxy = declare(rules[5])
 
 def status():
     return f"""🗎×{newfilen[0]}{f" ↺×{retries[0]}" if retries[0] else ""} {echoname[0]}"""
@@ -744,8 +785,8 @@ def echoMBs(threadn, Bytes, total):
     s = time.time()
     if stdtime[0] < int(s*eps):
         stdtime[0] = int(s*eps)
-        stdin[0] = "\n\033]0;" + f"""{status()} {''.join(Barray[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
-        stdout.put((stdin))
+        stdout_buffer[0] = "\n\033]0;" + f"""{status()} {''.join(Barray[0][:len(echothreadn) if threadn else 1])} {MBs[0]} MB/s""" + "\007\033[A"
+        stdout.put((stdout_buffer))
     else:
         stdtime[0] = int(s*eps)
     if Bstime[0] < int(s):
@@ -1172,7 +1213,7 @@ https_server = False
 openssl = ''
 if sys.platform == "win32":
     openssl = r"C:\Program Files\OpenSSL-Win64\bin\openssl.exe"
-    # https_server = True
+    https_server = True
     if https_server and not os.path.exists(openssl):
         echo('\n Download x64 lite version from https://slproweb.com/products/Win32OpenSSL.html\n\n Install in default location then try again.', 0, 1)
         sys.exit()
@@ -1228,12 +1269,12 @@ def stopserver():
 def restartserver():
     if sys.platform == "linux" and not busy[0] and not task["transmission"]:
         os.system("cat /dev/location > /dev/null &")
-    port = 8885
+    port = Port
     directories = [batchdir]
     for directory in directories:
-        port += 1
         Thread(target=startserver, args=(port,directory,), daemon=True).start()
-def portkilled(port=8886):
+        port += 1
+def portkilled(port=Port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(1)
     r = s.connect_ex(("127.0.0.1", port))
@@ -1361,19 +1402,6 @@ def at(s, r, cw=[], alt=0, key=False, name=False, folder=False, meta=False):
     if name or meta:
         if len(s) > site["seqN"]:
             site["seqN"] = len(s)
-
-def declare(rule, boolean=False):
-    rule = rule.split("=", 1)
-    rule[1] = rule[1].strip()
-    if boolean and not rule[1] == "Yes" and not rule[1] == "No":
-        return
-    return rule[1]
-
-offset = declare(rules[4])
-def get_date():
-    date = utcnow() + timedelta(hours=int(offset))
-    return [date, date.strftime("%Y-%m-XX")]
-fdate = get_date()[1]
 
 
 
@@ -1683,13 +1711,6 @@ if cli["bgcolor"]:
 
 
 
-HTTPserver = declare(rules[0])
-if HTTPserver == "No":
-    HTTPserver = False
-Browser = declare(rules[1])
-Mail = declare(rules[2])
-SAVX = declare(rules[3], True)
-proxy = declare(rules[5])
 if HTTPserver:
     restartserver()
 else:
@@ -1817,10 +1838,10 @@ def timer(e="", listen=[], antalisten=[], clock=navigator["timeout"]):
                 pgtime[0] = int(time.time()/5)
                 pg[0] = 0
                 title(monitor())
-            if Keypress["KeyZ"]:
-                Keypress["KeyZ"] = False
+            if Keypress["KeyZ"][0]:
+                Keypress["KeyZ"] = [0, 0]
                 break
-            if now > end-2 or any(Keypress[n] for n in listen) or any(not Keypress[n] for n in antalisten):
+            if now > end-2 or any(Keypress[k][0] for k in listen) or any(not Keypress[k][0] for k in antalisten):
                 break
         ticking[1] = False
     else:
@@ -1832,32 +1853,32 @@ def timer(e="", listen=[], antalisten=[], clock=navigator["timeout"]):
 Keypress_err = ["Some error happened. (R)etry un(P)ause (S)kip once (X)auto defuse antibot with (F)irefox: "]
 def retry(stderr):
     # Developer note: urllib has slight memory leak
-    Keypress["KeyR"] = False
+    Keypress["KeyR"] = [0, 0]
     while True:
         if not Keypress_prompt[0]:
             Keypress_prompt[0] = True
             if stderr:
-                if Keypress["KeyP"]:
+                if Keypress["KeyP"][0]:
                     e = f"{retries[0]} retries (R)etry now (P)ause (S)kip once (X)auto"
-                    if Keypress["KeyT"]:
+                    if Keypress["KeyT"][0]:
                         timer(f"{e} (T)imer off, reloading in", listen=["KeyR", "KeyS"], antalisten=["KeyP", "KeyT", "KeyX"])
                     else:
                         echo(f"{e} (T)imer on")
-                    Keypress["KeyR"] = True if Keypress["KeyP"] else False
-                if not Keypress["KeyR"]:
+                    Keypress["KeyR"] = [time.time(), 0] if Keypress["KeyP"][0] else [0, 0]
+                if not Keypress["KeyR"][0]:
                     title(monitor())
                     Keypress_err[0] = f"{stderr} (R)etry un(P)ause (S)kip once (X)auto defuse antibot with (F)irefox"
                     while True:
                         echo(Keypress_err[0])
                         ticking[0].clear()
-                        if Keypress["KeyR"] or Keypress["KeyP"]:
+                        if Keypress["KeyR"][0] or Keypress["KeyP"][0]:
                             break
-                        if Keypress["KeyS"]:
-                            Keypress["KeyS"] = False
+                        if Keypress["KeyS"][0]:
+                            Keypress["KeyS"] = [0, 0]
                             Keypress_prompt[0] = False
                             return
-                        if Keypress["KeyF"]:
-                            Keypress["KeyF"] = False
+                        if Keypress["KeyF"][0]:
+                            Keypress["KeyF"] = [0, 0]
                             return 2
                         ticking[0].wait()
                     ticking[0].set()
@@ -1868,8 +1889,8 @@ def retry(stderr):
             title(monitor())
             Keypress_prompt[0] = False
             return 1
-        elif Keypress["KeyR"]:
-            time.sleep(0.1) # so I don't return too soon to turn off another Keypress["KeyR"] used to turn off Keypress_prompt.
+        elif Keypress["KeyR"][0]:
+            time.sleep(0.1) # so I don't return too soon to turn off another Keypress["KeyR"][0] used to turn off Keypress_prompt.
             return True
         time.sleep(0.1)
 
@@ -1911,16 +1932,16 @@ def fetch(url, stderr="", dl=0, threadn=0, data=None, method=None, hydra=None):
             resp = request.urlopen(request.Request(saint(url=url), headers=headers, data=data, method=method if method else "POST" if data else "GET"))
             break
         except HTTPError as e:
-            if stderr or Keypress["KeyX"] and not Keypress["KeyS"]:
+            if stderr or Keypress["KeyX"][0] and not Keypress["KeyS"][0]:
                 el = retry(f"{stderr} ({e.code} {e.reason})")
                 if el == 2:
                     driver(saint(url=url))
                     Keypress_prompt[0] = False
-                    Keypress["KeyR"] = True
+                    Keypress["KeyR"] = [time.time(), 0]
                 elif not el:
                     return 0, str(e.code)
             else:
-                Keypress["KeyS"] = False
+                Keypress["KeyS"] = [0, 0]
                 return 0, str(e.code)
         except URLError as e:
             if "CERTIFICATE_VERIFY_FAILED" in str(e.reason):
@@ -1929,23 +1950,23 @@ def fetch(url, stderr="", dl=0, threadn=0, data=None, method=None, hydra=None):
                     kill(f""" {e.reason}\n\n They fucked up deploying their certificates (probably).\n Add "theyfuckedup" to {rulefile} to bypass this kind of error if you're willing to take risks.""")
                 else:
                     kill(f""" {e.reason}\n\n Either they fucked up deploying their certificates or this Python is just having shitty certificate validator.\n Try execute optional prerequisites in another command prompt with:\n\n{echo_pip()} install certifi""")
-            if stderr or Keypress["KeyX"] and not Keypress["KeyS"]:
+            if stderr or Keypress["KeyX"][0] and not Keypress["KeyS"][0]:
                 if not retry(f"{stderr} ({e.reason})"):
                     return 0, e.reason
             else:
-                Keypress["KeyS"] = False
+                Keypress["KeyS"] = [0, 0]
                 return 0, e.reason
         except:
-            if stderr or Keypress["KeyX"] and not Keypress["KeyS"]:
+            if stderr or Keypress["KeyX"][0] and not Keypress["KeyS"][0]:
                 el = retry(f"{stderr} (closed by host)")
                 if el == 2:
                     echo(" BROWSER: Maybe not.", 0, 1)
                     Keypress_prompt[0] = False
-                    Keypress["KeyR"] = True
+                    Keypress["KeyR"] = [time.time(), 0]
                 elif not el:
                     return 0, "closed by host"
             else:
-                Keypress["KeyS"] = False
+                Keypress["KeyS"] = [0, 0]
                 return 0, "closed by host"
     return resp, 0
 
@@ -1964,7 +1985,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
             dl = os.path.getsize(todisk + ".part")
     else:
         echo(threadn, "0 MB")
-    Keypress["KeyZ"] = False
+    Keypress["KeyZ"] = [0, 0]
     while echothreadn and echothreadn.index(threadn) >= dlslot[0]:
         time.sleep(0.1)
     resp, err = fetch(url, stderr, dl, threadn)
@@ -2031,13 +2052,13 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                 dl += Bytes
                 echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
                 echo(threadn, f"""{threadn:>3} Downloading {f"{dl/1073741824:.2f}" if GB else int(dl/1048576)} / {MB} {url}""", clamp='█', friction=True)
-                if Keypress["KeyZ"]:
+                if Keypress["KeyZ"][0]:
                     resp, err = fetch(url, stderr, dl, threadn)
                     if not resp:
                         return 0, err
                     if resp.status == 200 and dl > 0:
                         kill(threadn, "server doesn't allow resuming download. Delete the .part file to start again.")
-                    Keypress["KeyZ"] = False
+                    Keypress["KeyZ"] = [0, 0]
         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
         os.rename(todisk + ".part", todisk)
         if Keypress_prompt[0]:
@@ -2061,13 +2082,7 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
                                 except:
                                     todisk = saint(parse.unquote(url.split("/")[-1]))
                                     echo(f" Not an UTF-8 file! Save on disk as {todisk} to open it in another program? (S)ave or discard and (C)ontinue: ", flush=True)
-                                    Keypress["KeyC"] = False
-                                    Keypress["KeyS"] = False
-                                    while not Keypress["KeyC"] and not Keypress["KeyS"]:
-                                        time.sleep(0.1)
-                                    Keypress["KeyC"] = False
-                                    if Keypress["KeyS"]:
-                                        Keypress["KeyS"] = False
+                                    if watch_keypress("cs") == "KeyS":
                                         with open(todisk, 'wb') as f:
                                             f.write(data);
                                         echo(f"{threadn:>3} Download completed: {url}", 0, 1)
@@ -2108,14 +2123,14 @@ def get(url, todisk="", utf8=False, conflict=[[], []], headonly=False, stderr=""
             dl += Bytes
             echoMBs(threadn, Bytes, int(dl/total*256) if total else 0)
             echo(threadn, f"{int(dl/1048576)} MB", friction=True)
-            if Keypress["KeyZ"]:
+            if Keypress["KeyZ"][0]:
                 resp, err = fetch(url, stderr, dl, threadn)
                 if not resp:
                     return 0, err
                 if resp.status == 200:
                     data = bytearray()
                     dl = 0
-                Keypress["KeyZ"] = False
+                Keypress["KeyZ"] = [0, 0]
 
 
 
@@ -2229,21 +2244,19 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
             name = name[0]
         prepend, append = rule[0]
         todisk = f"{folder}{prepend}{name}{append}{ext}".replace("\\", "/") # "\\" in file["name"] can work like folder after prepend
-        dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
+
+    dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
+    dir_not_created = not dir in task["makedirs"] and not task["makedirs"].add(dir)
+
+    if rule:
         if isrej(todisk, pattern):
             link = ""
         elif not preview:
             if makedirs or [ast(x) for x in sorter["exempts"] if ast(x) == dir.replace("/", "\\")]:
-                if not dir in task["makedirs"] and not task["makedirs"].add(dir) and not os.path.exists(dir):
+                if dir_not_created and not os.path.exists(dir):
                     if makedirs == 2:
                         echo(f"(C)ontinue or (S)kip making a new directory: {dir}", 0, 1)
-                        Keypress["KeyS"] = False
-                        Keypress["KeyC"] = False
-                        while not Keypress["KeyS"] and not Keypress["KeyC"]:
-                            time.sleep(0.1)
-                        Keypress["KeyC"] = False
-                        if Keypress["KeyS"]:
-                            Keypress["KeyS"] = False
+                        if watch_keypress("cs") == "KeyS":
                             task["nodirs"].add(dir)
                     if not dir in task["nodirs"]:
                         try:
@@ -2251,7 +2264,7 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
                         except:
                             buffer = "\\" + dir.replace("/", "\\")
                             kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
-            elif not dir in task["makedirs"] and not task["makedirs"].add(dir) and not os.path.exists(dir):
+            elif dir_not_created and not os.path.exists(dir):
                 task["nodirs"].add(dir)
             if dir in task["nodirs"]:
                 error[1] += [todisk]
@@ -2259,26 +2272,19 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
                 print(f" Error downloading (dir): {link}")
                 link = ""
     elif not preview:
-        dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
         if isrej(todisk, pattern):
             link = ""
-        elif not dir in task["makedirs"] and not task["makedirs"].add(dir) and not os.path.exists(batchname + "/"):
+        elif dir_not_created and not os.path.exists(batchname + "/"):
             try:
                 os.makedirs(batchname + "/")
             except:
                 buffer = "\\" + batchname.replace("/", "\\")
                 kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
     if not preview:
-        if makedirs and not dir in task["makedirs"] and not task["makedirs"].add(dir) and not os.path.exists(dir):
+        if makedirs and dir_not_created and not os.path.exists(dir):
             if makedirs == 2:
                 echo(f"(C)ontinue or (S)kip making a new directory: {dir}", 0, 1)
-                Keypress["KeyS"] = False
-                Keypress["KeyC"] = False
-                while not Keypress["KeyS"] and not Keypress["KeyC"]:
-                    time.sleep(0.1)
-                Keypress["KeyC"] = False
-                if Keypress["KeyS"]:
-                    Keypress["KeyS"] = False
+                if watch_keypress("cs") == "KeyS":
                     task["nodirs"].add(dir)
             if not dir in task["nodirs"]:
                 try:
@@ -2524,10 +2530,7 @@ def new_driver():
             echo("", 0, 1)
             echo(f" SELENIUM: Additional prerequisites required - please execute in another command prompt with:\n\n{echo_pip()} install selenium", 0, 2)
             echo("(C)ontinue when finished installing required prerequisites.")
-            Keypress["KeyC"] = False
-            while not Keypress["KeyC"]:
-                time.sleep(0.1)
-            Keypress["KeyC"] = False
+            watch_keypress("c")
     if os.path.isfile(batchdir + "chromedriver.exe"):
         if not os.path.exists(batchdir + "chromedriver"):
             os.makedirs(batchdir + "chromedriver")
@@ -2610,10 +2613,7 @@ def driver(url):
         echo(f" BROWSER: My user-agent didn't match to an user-agent spoofer.", 0, 1)
     # ff_login(url)
     echo("(C)ontinue when finished defusing.")
-    Keypress["KeyC"] = False
-    while not Keypress["KeyC"]:
-        time.sleep(0.1)
-    Keypress["KeyC"] = False
+    watch_keypress("c")
     try:
         for bc in driver_running[0].get_cookies():
             if "httpOnly" in bc:
@@ -3212,7 +3212,7 @@ def pick_in_page():
                     proceed = True
                 else:
                     timer(f"{alerted[0]}, resuming unalerted pages in" if alerted[0] else "Not quite as expected! Reloading in", listen=["KeyC", "KeyS"])
-                    if not Keypress["KeyS"]:
+                    if not Keypress["KeyS"][0]:
                         more_pages += [[start, page, pagen]]
                         proceed = False
         if proceed and any(pick[x] for x in ["folder", "pages", "html", "icon", "dict", "file", "file_after"]) and not data:
@@ -3535,13 +3535,7 @@ def nextshelf(fromhtml):
                                 stdout += tcolor.g + "█" + h[1]["name"].rsplit("\\")[-1] + "█"
                         stdout += "\n"
         echo(f"""{stdout}{tcolor.x} ({tcolor.b}Download file {tcolor.r}-> {tcolor.g}to disk{tcolor.x}) - Add scraper instruction "ready" in {rulefile} to stop previews for this site (C)ontinue or return to (M)ain menu: """, flush=True)
-        Keypress["KeyM"] = False
-        Keypress["KeyC"] = False
-        while not Keypress["KeyM"] and not Keypress["KeyC"]:
-            time.sleep(0.1)
-        Keypress["KeyC"] = False
-        if Keypress["KeyM"]:
-            Keypress["KeyM"] = False
+        if watch_keypress("cm") == "KeyM":
             return
     downloadtodisk(fromhtml, makedirs=2)
 
@@ -3598,14 +3592,14 @@ def scrape(startpages):
             if not more_pages:
                 echo(alerted[0])
                 time.sleep(1)
-            if Keypress["KeyC"]:
-                Keypress["KeyC"] = False
+            if Keypress["KeyC"][0]:
+                Keypress["KeyC"] = [0, 0]
                 pages += alerted_pages
                 alerted_pages = []
                 alerted[0] = False
                 firework(["2e", "%color%"])
-            elif Keypress["KeyS"]:
-                Keypress["KeyS"] = False
+            elif Keypress["KeyS"][0]:
+                Keypress["KeyS"] = [0, 0]
                 alerted_pages = []
                 alerted[0] = False
                 firework(["2e", "%color%"])
@@ -4510,30 +4504,43 @@ def remote_echo_files(remote, torrent_id):
             echo("No files to list!", 0, 1)
         echo("", 0, 1)
 
+def openssh():
+    while True:
+        code = get_keypress("Test another letter, press X to re/start server: ", [*"abcdefghijklmnopqrstuvwxyz", "Zargon", "Zorori", *"0123456789"])
+        echo(f"{tcolor.x}{clean}")
+        if not code.startswith("Key"):
+            if code == "Zargon":
+                echo(f"{tcolor.o}{code}{tcolor.x}", 0, 1)
+            if code == "Zorori":
+                echo(f"{tcolor.y}{code}{tcolor.x}", 0, 1)
+            ready_input()
+        elif code[-1].isalpha():
+            if code == "KeyM":
+                return
+            elif code == "KeyX":
+                if sys.platform == "linux":
+                    os.system("killall -9 sshd 2>/dev/null")
+                    os.system("/usr/sbin/sshd")
+                    echo("Started OpenSSH server process", 0, 1)
+                else:
+                    echo("Only on Linux . . .", 0, 1)
+            else:
+                task["run"].put(("checkip", code[-1]))
+        else:
+            unrecognized(code)
 
 
-def killdaemon(code):
-    if code == "SlowK":
-        echo(f"Press K twice in fast sequence to kill transmission-daemon and return to main menu.", 1, 1)
-        return
+
+def killdaemon():
     if sys.platform == "linux":
         os.system("killall -9 transmission-daemon")
     else:
         os.system("taskkill -f /im transmission-daemon.exe")
     task["transmission"] = False
-    return True
 
-def uninstdaemon(code):
-    if sys.platform == "linux":
-        if code == "SlowU":
-            echo(f"Press U twice in fast sequence to uninstall Transmission and return to main menu.", 1, 1)
-        else:
-            os.system("apk del transmission-daemon")
-            os.system("apk del transmission-cli")
-    else:
-        echo("Keypress U makes use of 'apk del' command which is only understood by Linux computers,\nother computers should uninstall Daemon through their app management.", 1, 3)
-    return True
-
+def uninstdaemon():
+    os.system("apk del transmission-daemon")
+    os.system("apk del transmission-cli")
 
 def start_remote(remote):
     shuddup = {"stdout":subprocess.DEVNULL, "stderr":subprocess.DEVNULL}
@@ -4555,20 +4562,23 @@ def start_remote(remote):
     while True:
         code = ""
         if task["transmission"]:
-            code = get_keypress(f"Select TORRENT by number to {switch}: {f'{pos/10:g}' if pos else ''}", ["All", *"defgiklmrsu0123456789"], double="klu")
+            code = get_keypress(f"Select TORRENT by number to {switch}: {f'{pos/10:g}' if pos else ''}", ["All", *"defgiklmrsu0123456789"])
         else:
             code = get_keypress("(I)nput new torrent, (L)ist or return to (M)ain menu: ", [*"ilm"])
             task["transmission"] = True
 
+        key_repeat = Keypress[code][1]
         if code == "KeyD":
             pos -= 10 if pos > 0 else 0
+            echo("", 1)
             echo("", 1)
         elif code == "KeyF":
             pos += 10
             echo("", 1)
-        elif code in ["KeyL", "SlowL"]:
+            echo("", 1)
+        elif code == "KeyL":
             if last_code == "KeyR" and remove:
-                if code == "SlowL":
+                if key_repeat == 0:
                     if remove == "All":
                         echo("Press L twice in fast sequence to REMOVE ALL torrents.", 1, 1)
                     else:
@@ -4591,14 +4601,21 @@ def start_remote(remote):
                 remote_echo(remote, "No torrents to list!")
         elif code == "KeyM":
             return
-        elif code in ["KeyK", "SlowK"]:
-            if killdaemon(code):
+        elif code == "KeyK":
+            if key_repeat == 0:
+                echo(f"Press K twice in fast sequence to kill transmission-daemon and return to main menu.", 1, 1)
+            else:
+                killdaemon()
                 return
-            continue
-        elif code in ["KeyU", "SlowU"]:
-            if uninstdaemon(code):
-                return
-            continue
+        elif code == "KeyU":
+            if sys.platform == "linux":
+                if key_repeat == 0:
+                    echo(f"Press U twice in fast sequence to uninstall Transmission and return to main menu.", 1, 1)
+                else:
+                    uninstdaemon()
+                    return
+            else:
+                echo("Keypress U makes use of 'apk del' command which is only understood by Linux computers,\nother computers should uninstall Daemon through their app management.", 1, 3)
         elif code == "KeyI":
             echo("", 1)
             buffer = "cancel"
@@ -4656,9 +4673,6 @@ def start_remote(remote):
                     elif stdin == "KeyM":
                         echo("", 1)
                         break
-                    elif stdin in ["KeyK", "SlowK"]:
-                        if killdaemon(stdin):
-                            return
                     elif stdin in ["KeyG", "KeyS"]:
                         last_stdin = stdin
                         pos2 = 0
@@ -4668,7 +4682,7 @@ def start_remote(remote):
                         KeyGet = "-G" if last_stdin == "KeyS" else "-g"
                         KeyAll = "all" if stdin == "All" else str(num2-1+pos2)
                         subprocess.Popen([remote, "-t", str(num+pos), KeyGet, KeyAll], **shuddup)
-                    stdin = get_keypress(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", ["All", *"defgkms0123456789"], double="k")
+                    stdin = get_keypress(f"Select FILE by number to {switch2}, (A)ll: {f'{pos2/10:g}' if pos2 else ''}", ["All", *"defgms0123456789"])
         elif code == "All":
             if last_code == "KeyR":
                 remove = "All"
@@ -4694,10 +4708,10 @@ def start_remote(remote):
 strayrun = [False]
 def torrent_get(fp=""):
     if sys.platform == "win32":
-        daemon = "C:/Program Files/Transmission/transmission-daemon.exe"
-        remote = "C:/Program Files/Transmission/transmission-remote.exe"
-        # daemon = f"{batchdir}bin/transmission-daemon.exe"
-        # remote = f"{batchdir}bin/transmission-remote.exe"
+        transmission_dir = "C:/Program Files/Transmission/"
+        # transmission_dir = f"{batchdir}bin/"
+        daemon = f"{transmission_dir}transmission-daemon.exe"
+        remote = f"{transmission_dir}transmission-remote.exe"
         if not os.path.exists(daemon) or not os.path.exists(remote):
             echo(" Download and install Transmission x64 for Windows in default location from https://github.com/transmission/transmission/releases and then try again.", 0, 2)
             return
@@ -4744,15 +4758,15 @@ def torrent_get(fp=""):
 
 
 
-def read_input(fp, reveal):
+def read_input(fp, reveal=False):
     if any(word for word in navigator["pickers"].keys() if fp.startswith(word)):
-        task["run"].put((0, fp))
+        task["run"].put(("picker", fp))
     elif fp.startswith("http") and not fp.startswith("http://127.0.0.1"):
         if fp.endswith("/"):
             firework()
             echo(" I don't have a scraper for that!", 0, 2)
         else:
-            task["run"].put((1, fp))
+            task["run"].put(("scraper", fp))
     elif fp.startswith("magnet") or fp.endswith(".torrent"):
         if reveal:
             echo("", 0, 1)
@@ -4853,7 +4867,6 @@ def read_file(textread):
 
 
 
-demo = [0]
 if filelist:
     busy[0] = True
     if sys.platform == "linux" and not task["httpserver"]:
@@ -4873,14 +4886,11 @@ if filelist:
 
 
 
-def unrecognized(k):
-    echo("", 1)
-    echo(f"Keypress {k} unrecognized", 0, 1)
-    ready_input()
+def unrecognized(code):
+    echo(f"Keypress {code} unrecognized", 0, 1)
 
-def pressed(k, s=True):
-    echo("", 1)
-    Keypress[k] = s
+def pressed(code, s=time.time()):
+    Keypress[code][0] = s
     ready_input()
     if ticking[0]:
         ticking[0].set()
@@ -4903,189 +4913,196 @@ def not_busy():
 
 def keylistener():
     while True:
-        code = get_keypress("", ["All", *"bcdefghijklmnopqrstuvwxyz0123456789"], double="ejp")
-        echo(f"{tcolor.x}{clean}")
+        code = get_keypress("", ["All", *"bcdefghijklmnopqrstuvwxyz0123456789"])
+        key_time, key_repeat = Keypress[code]
+        echo(f"{tcolor.x}{clean}", 1)
 
-        if code == "All":
-            if not_busy():
-                echo(f"Reading {textfile} . . .", 0, 1)
-                task["run"].put((2, opensav(textfile).splitlines()))
-        elif code == "KeyB":
-            if sys.platform == "win32":
-                if not Browser:
-                    firework()
-                    echo(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""", 0, 1)
-                elif HTTPserver:
-                    os.system(f"""start "" "{Browser}" "http://127.0.0.1:8886/" """)
+        if not code.startswith("Key") and not code.startswith("Digit"):
+            if code == "All":
+                if not_busy():
+                    echo(f"Reading {textfile} . . .", 0, 1)
+                    task["run"].put(("scraper2", opensav(textfile).splitlines()))
+        elif code[-1].isalpha():
+            if code == "KeyB":
+                if sys.platform == "win32":
+                    if not Browser:
+                        firework()
+                        echo(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""", 0, 1)
+                    elif HTTPserver:
+                        os.system(f"""start "" "{Browser}" "http://127.0.0.1:8886/" """)
+                    else:
+                        echo(" HTTP SERVER: Maybe not.", 0, 1)
                 else:
-                    echo(" HTTP SERVER: Maybe not.", 0, 1)
-            else:
-                echo(" BROWSER: Maybe not.", 0, 1)
-            ready_input()
-        elif code == "KeyC":
-            pressed(code)
-        elif code == "KeyD":
-            if not_busy():
-                delmode()
+                    echo(" BROWSER: Maybe not.", 0, 1)
                 ready_input()
-        elif code == "KeyE":
-            if not_busy():
-                echo(help(), 0, 1)
+            elif code == "KeyC":
+                pressed(code)
+            elif code == "KeyD":
+                if not_busy():
+                    delmode()
+                    ready_input()
+            elif code == "KeyE":
+                if not_busy():
+                    if key_repeat == 0:
+                        echo("Press E twice in fast sequence to view help document.", 0, 1)
+                    else:
+                        echo(help(), 0, 1)
                 ready_input()
-        elif code == "SlowE":
-            echo("Press E twice in fast sequence to view help document.", 1, 1)
-            ready_input()
-        elif code == "KeyF":
-            pressed(code)
-        elif code == "KeyG":
-            if not_busy():
-                if not SAVX:
-                    firework()
-                    echo(" Make SAVX: Maybe not.", 0, 1)
-                else:
-                    tosavx()
+            elif code == "KeyF":
+                pressed(code)
+            elif code == "KeyG":
+                if not_busy():
+                    if not SAVX:
+                        firework()
+                        echo(" Make SAVX: Maybe not.", 0, 1)
+                    else:
+                        tosavx()
+                    ready_input()
+            elif code == "KeyH":
+                unrecognized(code)
                 ready_input()
-        elif code == "KeyH":
-            unrecognized(code)
-        elif code == "KeyI":
-            if not_busy():
-                if fp := input("Your input, enter nothing to cancel: ").rstrip().replace("\"", "").replace("\\", "/"):
-                    read_input(fp)
-                else:
-                    echo("", 1)
-                    echo("", 1)
-                ready_input()
-        elif code == "KeyJ":
-            echo("", 1)
-            key_time = Keypress_time["KeyJ"]
-            if key_time[1] == 3:
-                if not task["httpserver"]:
-                    restartserver()
-                echo(" HTTP SERVER: 10-second demo", 0, 1)
-                time.sleep(10)
-                stopserver()
-            elif key_time[1] == 1:
-                if task["httpserver"]:
+            elif code == "KeyI":
+                if not_busy():
+                    if fp := input("Your input, enter nothing to cancel: ").rstrip().replace("\"", "").replace("\\", "/"):
+                        read_input(fp)
+                    else:
+                        echo("", 1)
+                        echo("Canceled", 0, 1)
+                    ready_input()
+            elif code == "KeyJ":
+                echo("", 1)
+                if key_repeat == 0:
+                    if not task["httpserver"] or portkilled():
+                        echo("Press J twice in fast sequence to START server.", 0, 1)
+                    else:
+                        echo("Press J twice in fast sequence to STOP server.", 0, 1)
+                elif key_repeat == 1:
+                    if task["httpserver"]:
+                        stopserver()
+                    else:
+                        restartserver()
+                elif key_repeat == 3:
+                    if not task["httpserver"]:
+                        restartserver()
+                    echo(" HTTP SERVER: 10-second demo", 0, 1)
+                    time.sleep(10)
                     stopserver()
-                else:
-                    restartserver()
-            ready_input()
-        elif code == "SlowJ":
-            if not task["httpserver"] or portkilled():
-                echo("Press J twice in fast sequence to START server.", 1, 1)
-            else:
-                echo("Press J twice in fast sequence to STOP server.", 1, 1)
-            ready_input()
-        elif code == "KeyK":
-            c = False
-            for c in cookies:
-                echo(str(c), 1, 2)
-            if not c:
-                echo("No cookies!", 1, 1)
-            ready_input()
-        elif code == "KeyL":
-            if not not_busy():
-                continue
-            textread = opensav(textfile).splitlines()
-            textread = filter(None, [x.lstrip("# ") for x in textread])
-            echo(f"Reading {textfile} . . .", 0, 1)
-            d = input(f"Enter domain name starting with, enter nothing to cancel: ").lower()
-            echo("", 1)
-            if not d:
                 ready_input()
-                continue
-            textread = [x for x in textread if saint(url=x, scheme=False).lower().startswith(d)]
-            for line in textread:
-                line = line.replace(d, f"{tcolor.g}{d}{tcolor.o}", 1)
-                echo(f" > {tcolor.b}{line}{tcolor.x}", 0, 1)
-            urls = textread
-            while True:
-                stdin = input(f"Enter url containing, (C)ontinue or enter nothing to cancel: ").lower()
-                if stdin.lower() == "c":
-                    if urls:
-                        echo("", 1, 1)
-                        task["run"].put((2, urls))
+            elif code == "KeyK":
+                c = False
+                for c in cookies:
+                    echo(str(c), 1, 2)
+                if not c:
+                    echo("No cookies!", 1, 1)
+                ready_input()
+            elif code == "KeyL":
+                if not not_busy():
+                    continue
+                textread = opensav(textfile).splitlines()
+                textread = filter(None, [x.lstrip("# ") for x in textread])
+                echo(f"Reading {textfile} . . .", 0, 1)
+                d = input(f"Enter domain name starting with, enter nothing to cancel: ").lower()
+                echo("", 1)
+                if not d:
+                    echo("Canceled", 0, 1)
+                    ready_input()
+                    continue
+                textread = [x for x in textread if saint(url=x, scheme=False).lower().startswith(d)]
+                for line in textread:
+                    line = line.replace(d, f"{tcolor.g}{d}{tcolor.o}", 1)
+                    echo(f" > {tcolor.b}{line}{tcolor.x}", 0, 1)
+                urls = textread
+                while True:
+                    stdin = input(f"Enter url containing, (C)ontinue or enter nothing to cancel: ").lower()
+                    if stdin.lower() == "c":
+                        if urls:
+                            task["run"].put(("scraper2", urls))
+                        else:
+                            echo("Canceled", 1, 2)
+                            ready_input()
+                        break
+                    elif stdin:
+                        urls = [x for x in textread if stdin in saint(url=x, scheme=False).lower()]
+                        echo(f"{len(urls)} result(s)", 1, 1)
+                        for line in urls:
+                            line = line.replace(d, f"{tcolor.c}{d}{tcolor.o}", 1).replace(stdin, f"{tcolor.g}{stdin}{tcolor.o}", 1)
+                            echo(f" > {tcolor.b}{line}{tcolor.x}", 0, 1)
                     else:
                         echo("Canceled", 1, 2)
                         ready_input()
-                    break
-                elif stdin:
-                    urls = [x for x in textread if stdin in saint(url=x, scheme=False).lower()]
-                    echo(f"{len(urls)} result(s)", 1, 1)
-                    for line in urls:
-                        line = line.replace(d, f"{tcolor.c}{d}{tcolor.o}", 1).replace(stdin, f"{tcolor.g}{stdin}{tcolor.o}", 1)
-                        echo(f" > {tcolor.b}{line}{tcolor.x}", 0, 1)
+                        break
+            elif code == "KeyM":
+                if busy[0]:
+                    pressed(code)
+                    continue
+                stdin = get_keypress("(O)penSSH, (T)orrent manager, return to (M)ain: ", "mot")
+                if stdin == "KeyO":
+                    openssh()
+                elif stdin == "KeyT":
+                    torrent_get()
+                echo("", 1)
+                ready_input()
+            elif code == "KeyN":
+                if busy[1]:
+                    echo("", 1)
+                    Keypress_buffer[0] = input(Keypress_err[0])
+                    ticking[2].set()
                 else:
-                    echo("Canceled", 1, 2)
+                    echo("Number cleared", 1, 1)
+                    Keypress_buffer[0] = True
+                ready_input()
+            elif code == "KeyO":
+                if not_busy():
+                    finish_sort()
                     ready_input()
-                    break
-        elif code == "KeyM":
-            if busy[0]:
-                pressed(code)
-                continue
-            echo("", 1)
-            torrent_get()
-            echo("", 1)
-            ready_input()
-        elif code == "KeyN":
-            if busy[1]:
-                echo("", 1)
-                Keypress_buffer[0] = input(Keypress_err[0])
-                ticking[2].set()
-            else:
-                echo("", 1)
-                echo("Number cleared", 0, 1)
-                Keypress_buffer[0] = True
-            ready_input()
-        elif code == "KeyO":
-            if not_busy():
-                finish_sort()
-                ready_input()
-        elif code == "KeyP":
-            echo("Unpaused", 1, 2)
-            pressed(code)
-            Keypress["KeyX"] = True
-        elif code == "SlowP":
-            echo("Paused (press P twice in fast sequence to unpause)", 1, 2)
-            pressed(code, False)
-        elif code == "KeyQ":
-            if not_busy():
-                task["run"].put((3, True))
-        elif code == "KeyR":
-            pressed(code)
-        elif code == "KeyS":
-            pressed(code)
-        elif code == "KeyT":
-            if navigator["timeout"]:
-                echo(f"""COOLDOWN {"DISABLED" if Keypress["KeyT"] else "ENABLED"}""", 1, 2)
-            else:
-                echo(f"""Timer not enabled, please add "#-# seconds rarity 100% 00:00" in {rulefile}, add another timer to manipulate rarity.""", 1, 2)
-            pressed(code, False if Keypress["KeyT"] else True)
-        elif code == "KeyU":
-            unrecognized(code)
-        elif code == "KeyV":
-            if not_busy():
-                source_view()
-                ready_input()
-        elif code == "KeyW":
-            unrecognized(code)
-        elif code == "KeyX":
-            echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if Keypress["KeyX"] else "RETRY"}""", 1, 2)
-            pressed(code, False if Keypress["KeyX"] else True)
-            Keypress["KeyP"] = True
-        elif code == "KeyY":
-            if sys.platform == "linux":
-                # Developer note: Update to use htop if iSH app adds support to use it.
-                os.system("top")
-            else:
-                if os.path.exists("ntop.exe"):
-                    os.system("ntop.exe")
+            elif code == "KeyP":
+                if key_repeat == 0:
+                    echo("Paused (press P twice in fast sequence to unpause)", 1, 2)
                 else:
-                    subdir = batchdir.replace("/", "\\")
-                    echo(f"Save ntop.exe from https://github.com/gsass1/NTop/releases to {subdir} and then try again.", 0, 1)
-            ready_input()
-        elif code == "KeyZ":
-            pressed(code)
+                    echo("Unpaused", 1, 2)
+                    pressed(code)
+                    Keypress["KeyX"] = [time.time(), 0]
+                pressed(code, 0)
+            elif code == "KeyQ":
+                if not_busy():
+                    task["run"].put(("scraper3", True))
+            elif code == "KeyR":
+                pressed(code)
+            elif code == "KeyS":
+                pressed(code)
+            elif code == "KeyT":
+                if navigator["timeout"]:
+                    echo(f"""COOLDOWN {"DISABLED" if key_time else "ENABLED"}""", 1, 2)
+                else:
+                    echo(f"""Timer not enabled, please add "#-# seconds rarity 100% 00:00" in {rulefile}, add another timer to manipulate rarity.""", 1, 2)
+                pressed(code, 0 if key_time else time.time())
+            elif code == "KeyU":
+                unrecognized(code)
+                ready_input()
+            elif code == "KeyV":
+                if not_busy():
+                    source_view()
+                    ready_input()
+            elif code == "KeyW":
+                unrecognized(code)
+                ready_input()
+            elif code == "KeyX":
+                echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if key_time else "RETRY"}""", 1, 2)
+                pressed(code, 0 if key_time else time.time())
+                Keypress["KeyP"] = [time.time(), 0]
+            elif code == "KeyY":
+                if sys.platform == "linux":
+                    # Developer note: Update to use htop if iSH app adds support to use it.
+                    os.system("top")
+                else:
+                    if os.path.exists("ntop.exe"):
+                        os.system("ntop.exe")
+                    else:
+                        subdir = batchdir.replace("/", "\\")
+                        echo(f"Save ntop.exe from https://github.com/gsass1/NTop/releases to {subdir} and then try again.", 0, 1)
+                ready_input()
+            elif code == "KeyZ":
+                pressed(code)
         elif code[-1].isdigit():
             el = int(code[-1])
             dlslot[0] = el
@@ -5095,7 +5112,7 @@ def keylistener():
             echo("", 1)
             pressed("KeyZ")
 
-echo(f""" FDST: {get_date()[1]}
+echo(f""" FDST: {get_date(offset)[1]}
 
  Key listener:
   > Press X to enable or disable indefinite retry on error downloading files (for this session).
@@ -5113,20 +5130,23 @@ echo(mainmenu(), 0, 1)
 ready_input()
 Thread(target=keylistener, daemon=True).start()
 while True:
-    i, m = task["run"].get()
+    app, stdin = task["run"].get()
+    echo(f"{tcolor.x}{clean}", 1, 1)
     busy[0] = True
     if sys.platform == "linux" and not task["httpserver"] and not task["transmission"]:
         os.system("cat /dev/location > /dev/null &")
-    if i == 0:
-        scrape([["", m, [0]]])
-    elif i == 1:
+    if app == "picker":
+        scrape([["", stdin, [0]]])
+    elif app == "scraper":
         x = new_part()
-        x["partition"]["0"]["files"] = [new_link(m, parse.unquote(m.split("/")[-1]), 0)]
+        x["partition"]["0"]["files"] = [new_link(stdin, parse.unquote(stdin.split("/")[-1]), 0)]
         downloadtodisk(x)
-    elif i == 2:
-        read_file(m)
-    elif i == 3:
+    elif app == "scraper2":
+        read_file(stdin)
+    elif app == "scraper3":
         downloadtodisk(False)
+    elif app == "checkip":
+        current_ip(stdin)
     busy[0] = False
     if sys.platform == "linux" and not task["httpserver"] and not task["transmission"]:
         os.system("killall -9 cat")

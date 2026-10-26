@@ -706,12 +706,6 @@ def write_cd(path, data):
             f.write(bytes(data, 'utf-8'))
         echo(f"wrote to cd", 0, 1)
 
-def date_str(date, past_event):
-    time_obj = date.replace(tzinfo=None) - past_event
-    hours = time_obj.seconds // 3600
-    minutes = time_obj.seconds // 60 % 60
-    return f"{time_obj.days:02}d {hours:02}:{minutes:02}"
-
 rules = read_cd(rulefile, True)
 
 new_setting = False

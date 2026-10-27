@@ -4719,6 +4719,7 @@ def torrent_get(fp=""):
 
 
 def date_str(date, past_event):
+    # day attributes can take negative values, the negative does not continue into seconds, the string look misleading because of lack of comma.
     time_obj = date.replace(tzinfo=None) - past_event
     hours = time_obj.seconds // 3600
     minutes = time_obj.seconds // 60 % 60

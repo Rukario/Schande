@@ -825,7 +825,7 @@ function save() {
   a.click();
 }
 
-function toRelic() {
+function toRelic(dirs) {
   const tc = document.getElementById('editor_relic').textContent;
   const isAsked = document.getElementById('locatoon_relic').classList.contains('previous');
   const isFile2 = document.getElementById('pickerdiff_relic').classList.contains('previous');
@@ -860,7 +860,7 @@ function toRelic() {
     d.body = tc;
   }
 
-  document.body.textContent = JSON.stringify(d);
+  return JSON.stringify(d);
 }
 
 function locatoon(a) {
@@ -1355,10 +1355,14 @@ const new_stdout = () => {
 
 window.onload = () => {
   if (document.body.dataset.launched) {
-    toRelic();
+    document.body.textContent = toRelic(dirs);
     return;
   } else {
     document.body.dataset.launched = true;
+    const s = document.createElement('SCRIPT');
+    s.id = 'frellic';
+    s.textContent = `return ${toRelic.toString()}(dirs)`;
+    document.head.append(s);
   }
 
   new_stdout();

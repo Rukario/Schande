@@ -52,7 +52,7 @@ New Text - https://www.icloud.com/shortcuts/4a4a4580207540e5a4865c4d7c9781ae
 
 - Choose New Text from share sheet on another page to view its source.
 
-Save Text - https://www.icloud.com/shortcuts/b7023779316f492facc3b594d7f665a4
+Save Text - https://www.icloud.com/shortcuts/ed69932874a649118d8165384cddd251
 
 - Choose from share sheet on the text editor to save your precious document on iCloud/Ask where to save.
 

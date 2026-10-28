@@ -826,40 +826,51 @@ function save() {
 }
 
 function toRelic(dirs) {
-  const tc = document.getElementById('editor_relic').textContent;
+  const text = document.getElementById('editor_relic').textContent;
   const isAsked = document.getElementById('locatoon_relic').classList.contains('previous');
   const isFile2 = document.getElementById('pickerdiff_relic').classList.contains('previous');
   const name = document.title.replace(' *', '');
   const d = {
-    stderr1: false,
-    stderr2: false,
+    stderr_title: false,
+    stderr_message: false,
     ask: isAsked,
     dir: '',
     name: '',
     body: '',
   };
-
   if (isFile2) {
-    d.stderr1 = 'Cannot save while File 2 is active!';
-    d.stderr2 = 'Please switch to File 1 before saving.';
+    d.stderr_title = 'Cannot save while File 2 is active!';
+    d.stderr_message = 'Please switch to File 1 before saving.';
   } else {
-    const b = tc.split('\n', 4).join('\n');
-    for (const dir of dirs) {
-      n = dir.split(' for ');
-      nn = n[1].split(' ');
-      let rx = new RegExp(nn[0], 'g');
-      if (name.match(rx)) {
-        rx = new RegExp(nn[1], 'g')
-        if (b.match(rx)) {
-          d.dir = n[0];
-          break;
-        };
-      };
-    };
     d.name = name;
-    d.body = tc;
+    d.body = text;
+    for (const dir of dirs) {
+      let [fdst, ext, sub] = dir;
+      if (ext && ext.length > 0 && !ext.some(x => name.endsWith(x))) {
+        continue;
+      }
+      if (!sub) {
+        d.dir = fdst;
+        break;
+      }
+      let start = -1;
+      for (let i = 0; i < sub[0]; i++) {
+        start = text.indexOf('\n', start + 1);
+        if (start === -1) {
+          break;
+        }
+      }
+      if (start !== -1) {
+        start += 1;
+        const end = text.indexOf('\n', start);
+        const line = end === -1 ? text.slice(start) : text.slice(start, end);
+        if (sub[1] === true ? line.length > 0 : line.includes(sub[1])) {
+          d.dir = fdst;
+          break;
+        }
+      }
+    }
   }
-
   return JSON.stringify(d);
 }
 

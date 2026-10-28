@@ -126,7 +126,7 @@ ul {
 }
 
 ::placeholder {
-  color: #3cb;
+  color: #5b5;
 }
 
 #cursor_tooltip {
@@ -165,7 +165,7 @@ ul {
   font-size: 12px;
   position: relative;
   display: inline-block;
-  border: 1px solid #033;
+  border: 1px solid #030;
   border-radius: 0px;
   padding: 4px 11px;
   margin: 2px;
@@ -173,8 +173,8 @@ ul {
 }
 
 .next {
-  color: #6fe;
-  background-color: #066;
+  color: #7f7;
+  background-color: #171;
 }
 
 .ahref {
@@ -184,8 +184,8 @@ ul {
 }
 
 .previous {
-  color: #6fe;
-  background-color: #399;
+  color: #7f7;
+  background-color: #4c4;
 }
 
 .reverse {
@@ -227,8 +227,8 @@ ul {
   font-family: courier;
   font-size: 12px;
   border: none;
-  border-top: 1px solid #033;
-  border-bottom: 1px solid #033;
+  border-top: 1px solid #040;
+  border-bottom: 1px solid #040;
   margin: -4px 2px;
   text-align: center;
   display: inline-block;
@@ -257,7 +257,7 @@ ul {
 
 .bloom {
   background-color: rgba(255, 130, 40, 0.25);
-  border: 1px solid #ff8228;
+  outline: 1px solid #ff8228;
 }
 
 .cursed {
@@ -572,7 +572,7 @@ const FFup = () => {
 
   if (link.classList.contains('hyperlink')) {
     link.classList.add('pulse');
-    where = link.getBoundingClientRect();
+    const where = link.getBoundingClientRect();
     cursor_tooltip.style.left = (window.scrollX + where.left + 6) + 'px';
     cursor_tooltip.style.top = (window.scrollY + where.top + (where.top < 60 ? 30 : -30)) + 'px';
     const a = makelink('Open', 'linkitty');
@@ -654,7 +654,7 @@ function edit() {
   const sel = editor.ownerDocument.defaultView.getSelection();
   const pos = sel.getRangeAt(0);
   const preCaretRange = pos.cloneRange();
-  where = preCaretRange.getBoundingClientRect();
+  const where = preCaretRange.getBoundingClientRect();
   cursor_focus.style.left = Math.max(0, window.scrollX + where.left - 100) + 'px';
   cursor_focus.style.top = Math.max(0, window.scrollY + where.top - 200) + 'px';
 
@@ -792,29 +792,11 @@ function replace() {
   }
 }
 
-function fraktur() {
+function where() {
   if (rep.value) {
     const r = new RegExp('(' + rep.value + ')', 'g');
     editor.innerHTML = editor.innerHTML.replace(r, "<span class='bloom'>$1</span>")
-    return;
   }
-
-  let str = '';
-  let c = '';
-
-  for (const tc of editor.textContent) {
-    const ch = '0x' + tc.codePointAt(0).toString(16);
-    if (ch >= 0x41 && ch <= 0x5a) {
-      c = ch - 0x41 + 0x1d56c;
-    } else if (ch >= 0x61 && ch <= 0x7a) {
-      c = ch - 0x61 + 0x1d586;
-    } else {
-      c = ch;
-    }
-    str += String.fromCodePoint(c);
-  }
-
-  new_editor(str);
 }
 
 function save() {
@@ -1079,7 +1061,7 @@ function new_editor(utf8 = '<br>') {
   DOMwriter.insertAdjacentHTML("beforeend", "→");
   torep = inputcell("none");
   DOMwriter.appendChild(torep);
-  button("next", "where/𝕱𝖗𝖆𝖐𝖙𝖚𝖗", fraktur);
+  button("next", "where", where);
   DOMwriter.insertAdjacentHTML("beforeend", ") (can't be undone)");
   toolbar.appendChild(DOMwriter);
 
@@ -1264,7 +1246,7 @@ function new_editor(utf8 = '<br>') {
   calc.addEventListener("keyup", (e) => {
     let c = calc.value;
     if (!c) {
-      calc.style.backgroundColor = "#066";
+      calc.style.backgroundColor = "#171";
     } else if (e.keyCode === 13) {
       try {
         calc.value = new Function('return ' + c)().toFixed(10)*1;
@@ -1276,18 +1258,18 @@ function new_editor(utf8 = '<br>') {
     } else {
       try {
         new Function('return ' + c)();
-        calc.style.backgroundColor = "#066";
+        calc.style.backgroundColor = "#171";
       } catch {
         if (c.startsWith("u") && (!c.slice(1) || Number('0x'+c.slice(1)))) {
           if (c.length == 5) {
-            calc.style.backgroundColor = "#066";
+            calc.style.backgroundColor = "#171";
           } else if (c.length > 5) {
-            calc.style.backgroundColor = "#399";
+            calc.style.backgroundColor = "#4c4";
           } else if (c.length < 5) {
-            calc.style.backgroundColor = "#033";
+            calc.style.backgroundColor = "#040";
           }
         } else {
-          calc.style.backgroundColor = "#399";
+          calc.style.backgroundColor = "#4c4";
         }
       }
     }

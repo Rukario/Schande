@@ -484,7 +484,7 @@ if (sharpstart !== -1) {
 
 if (sharp[0]) {
   if (sharp[0].endsWith(".css")) {
-    var link = document.createElement("link");
+    const link = document.createElement("link");
     link.href = sharp[0];
     link.rel = "stylesheet"
     document.getElementsByTagName("head")[0].appendChild(link);
@@ -492,12 +492,12 @@ if (sharp[0]) {
       sharp[1] = true;
     }
   } else {
-    var s = document.createElement("style")
+    const s = document.createElement("style")
     s.innerHTML = getfontcolor("#" + sharp[0]);
     document.getElementsByTagName("head")[0].appendChild(s)
   }
 } else {
-  var a = document.createElement("a");
+  const a = document.createElement("a");
   a.href = "#2d0710";
   a.click()
 }
@@ -944,13 +944,15 @@ function opendiff(file) {
   pickerdiff.addEventListener("click", diff);
 }
 
-function newtip(y, z) {
-  const d = document.createElement("DIV");
-  d.innerHTML = y;
-  d.dataset.tooltip = z;
-  d.classList.add("local_tooltip");
-  local_backtip.appendChild(d);
-  local_backtip.style.display = "inline-block";
+function newtip(title, message) {
+  if (title) {
+    const d = document.createElement("DIV");
+    d.innerHTML = title;
+    d.dataset.tooltip = message;
+    d.classList.add("local_tooltip");
+    local_backtip.appendChild(d);
+    local_backtip.style.display = "inline-block";
+  }
 }
 
 function hyperlink(utf8) {
@@ -1347,7 +1349,7 @@ const new_stdout = () => {
   document.body.append(DOMwriter);
 }
 
-window.onload = () => {
+window.addEventListener('load', () => {
   if (document.body.dataset.launched) {
     document.body.textContent = toRelic(dirs);
     return;
@@ -1355,6 +1357,7 @@ window.onload = () => {
     document.body.dataset.launched = true;
     const s = document.createElement('SCRIPT');
     s.id = 'frellic';
+    s.type = 'text/plain';
     s.textContent = `return ${toRelic.toString()}(dirs)`;
     document.head.append(s);
   }
@@ -1379,37 +1382,40 @@ window.onload = () => {
     }
   };
 
-  const s = document.createElement('SCRIPT');
-  s.src = 'highlight.min.js'/* + Date.now()*/;
-  document.body.appendChild(s);
+  const postlaunch = (title, message) => {
+    if (partitiondb) {
+      document.title = partitiondb;
+      const promise = new Promise(loadpart(partitiondb));
+      promise.then((utf8) => {
+        new_editor(utf8);
+        newtip(title, message);
+      })
+    } else {
+      document.title = 'New Text.txt';
+      new_editor();
+      newtip(title, message);
+    }
+  };
 
+  const s = document.createElement('SCRIPT');
+  s.src = 'highlight.min.js'; // + '?' + Date.now();
+  document.body.appendChild(s);
   s.addEventListener('load', () => {
     canihljs = true;
+    postlaunch();
+  });
+  s.addEventListener('error', () => {
+    const [title, message] = [
+      `${filel[4]} -(Highlight)`,
+      "Download and extract highlight.min.js from <a href='https://highlightjs.org/download/' target='_blank'>highlight.js download page</a> directly next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.",
+    ];
+    postlaunch(title, message);
   });
 
-  function postlaunch() {  
-    s.addEventListener('error', () => {
-      newtip(filel[4] + " -(Highlight)", "Download and extract highlight.min.js from <a href='https://highlightjs.org/download/' target='_blank'>highlight.js download page</a> directly next to HTML then reload this page<br/> &gt; I recommend custom package with several languages you need.<br/> &gt; Most common language: HTML/XML, JavaScript, Python.");
-    });
-  
-    if (sharp[1]) {
-      newtip(filel[4] + ' -(Uninitiated CSS)', 'Download and extract "' + sharp[0] + "\" (if that's spelled correctly) from <a href='https://highlightjs.org/download/' target='_blank'>highlight.js download page</a> directly next to HTML then reload this page");
-    }
+  if (sharp[1]) {
+    newtip(filel[4] + ' -(Uninitiated CSS)', 'Download and extract "' + sharp[0] + "\" (if that's spelled correctly) from <a href='https://highlightjs.org/download/' target='_blank'>highlight.js download page</a> directly next to HTML then reload this page");
   }
-
-  if (partitiondb) {
-    document.title = partitiondb;
-    const promise = new Promise(loadpart(partitiondb));
-    promise.then((utf8) => {
-      new_editor(utf8);
-      postlaunch();
-    })
-  } else {
-    document.title = 'New Text.txt';
-    new_editor();
-    postlaunch();
-  }
-}
+});
 
 </script>
 </head>

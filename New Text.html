@@ -476,10 +476,10 @@ function getfontcolor(c) {
   return ".exitmenu{background-color:" + c + "; color:" + bg[Math.floor(r/32)*4*4 + Math.floor(g/64)*4 + Math.floor(b/64)] + ";}"
 }
 
-var sharp = [false, false];
-
-if (window.location.href.includes("#")) {
-  sharp[0] = window.location.href.split('#')[1]
+const sharp = [false, false];
+const sharpstart = window.location.href.indexOf('#');
+if (sharpstart !== -1) {
+  sharp[0] = window.location.href.slice(sharpstart + 1);
 }
 
 if (sharp[0]) {
@@ -703,21 +703,22 @@ function dehljs() {
 }
 
 function dedup() {
-  clean = [];
-  for (const line of editor.textContent.split('\n')) {
-    clean.push(line && clean.indexOf(line) < 0 ? line : '');
-  }
-  new_editor(clean.join('\n'));
-};
+  const seen = new Set();
+  new_editor(
+    editor.textContent
+      .split('\n')
+      .filter(line => line && !seen.has(line) && seen.add(line))
+      .join('\n')
+  );
+}
 
 function denew() {
-  clean = [];
-  for (const line of editor.textContent.split('\n')) {
-    if (line) {
-      clean.push(line);
-    }
-  }
-  new_editor(clean.join('\n'));
+  new_editor(
+    editor.textContent
+      .split('\n')
+      .filter(Boolean)
+      .join('\n')
+  );
 }
 
 function detab() {
@@ -800,8 +801,8 @@ function where() {
 }
 
 function save() {
-  var sav = new Blob([editor.textContent], {type: "application/octet-stream"});
-  var a = document.createElement('A');
+  const sav = new Blob([editor.textContent], {type: "application/octet-stream"});
+  const a = document.createElement('A');
   a.href = URL.createObjectURL(sav);
   a.download = document.title.replace(' *', '');
   a.click();

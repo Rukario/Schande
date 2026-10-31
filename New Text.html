@@ -686,10 +686,77 @@ function exitmenu() {
 }
 
 function rename() {
-  var newtitle = prompt('Use Save Text shortcut or Save button to save the document with this file name.', document.title.replace(' *', ''));
-  if (newtitle) {
-    document.title = newtitle;
+  const renameNow = (rename) => {
+    if (rename && ren.textContent) {
+      document.title = ren.textContent;
+    }
+    blanket.removeEventListener('mouseup', renameNow);
+    close.removeEventListener('mouseup', renameNow);
+    apply.removeEventListener('mouseup', renameNow);
+    blanket.remove();
   }
+
+  const blanket = document.createElement('DIV');
+  blanket.style.backgroundColor = 'rgba(0,0,0,0.5)';
+  blanket.style.display = 'grid';
+  blanket.style.placeItems = 'center';
+  blanket.style.width = '100vw';
+  blanket.style.height = '100vh';
+  blanket.style.position = 'absolute';
+  blanket.style.top = '0px';
+  blanket.style.zIndex = '1';
+  blanket.style.cursor = 'default';
+  blanket.addEventListener('mouseup', (event_) => {
+    if (blanket === event_.target) {
+      renameNow();
+    }
+  });
+  document.body.append(blanket);
+
+  const popup = document.createElement('DIV');
+  popup.style.outline = '1px solid #C07820';
+  popup.style.backgroundColor = '#000';
+  popup.style.color = '#0f0';
+  popup.style.borderRadius = '4px';
+  popup.style.padding = '10px';
+  popup.style.fontSize = '14px';
+  popup.style.lineHeight = '1';
+  blanket.append(popup);
+
+  const message = document.createElement('DIV');
+  message.textContent = 'Use Save Text shortcut or Save button to save the document with this file name.';
+
+  const ren = document.createElement('DIV');
+  ren.contentEditable = 'plaintext-only';
+  ren.textContent = document.title.replace(' *', '');
+  ren.classList = 'exitmenu';
+  ren.style.margin = '4px';
+  ren.style.cursor = 'text';
+  ren.spellcheck = false;
+
+  const apply = document.createElement('DIV');
+  apply.classList = 'next';
+  apply.textContent = 'Apply';
+  apply.addEventListener('mouseup', () => {
+    renameNow(true);
+  });
+
+  const close = document.createElement('DIV');
+  close.classList = 'next';
+  close.innerHTML = '&times;';
+  close.style.fontSize = '22px';
+  close.style.height = '12px';
+  close.style.verticalAlign = 'center';
+  close.style.display = 'inline-flex';
+  close.style.alignItems = 'center';
+  close.addEventListener('mouseup', () => {
+    renameNow(false);
+  });
+
+  popup.append(message);
+  popup.append(ren);
+  popup.append(apply);
+  popup.append(close);
 }
 
 function linksonly() {
@@ -1092,7 +1159,7 @@ function new_editor(utf8 = '<br>') {
   pickerdiff.id = "pickerdiff_relic";
   DOMwriter.appendChild(pickerdiff);
   DOMwriter.insertAdjacentHTML("beforeend", ") ");
-  button("next", filel[4] + " -(Save as)", rename);
+  button("next", filel[4] + " -(Save as)", rename); // Doesn't change saved file name and makes a copy upon saving, hence 'Save As'
   DOMwriter.insertAdjacentHTML("beforeend", " " + filel[4] + " -(");
   button("next", "Save", save);
   saver = button("next", "Text: iCloud", locatoon, ["Text: Ask"]);
@@ -1227,19 +1294,32 @@ function new_editor(utf8 = '<br>') {
 
   picker.addEventListener('change', (e) => {
     const f = e.target.files[0];
-    name = f.name;
-    document.title = name;
-
-    if (hljs) {
-      canihljs = true;
-    }
     const fr = new FileReader();
-    fr.readAsText(f);
-    fr.onload = () => {
-      utf8 = fr.result;
-      bigdoc = (utf8.length > 300000);
-      new_editor(utf8);
+    if (false && !isUTF8(get_ext(f))) {
+      name = "1024 bytes";
+
+      fr.readAsArrayBuffer(f);
+      fr.onload = () => {
+        const arri = new Uint8Array(fr.result);
+        const utf8 = Array.from(arri.slice(0, 1024), (a) => {
+          return a.toString(16).toUpperCase().padStart(2, '0')
+        }).join(' ').replace(/(.{48})/g, "$1\n");
+        new_editor(utf8);
+      }
+    } else {
+      name = f.name;
+      if (hljs) {
+        canihljs = true;
+      }
+
+      fr.readAsText(f);
+      fr.onload = () => {
+        const utf8 = fr.result;
+        bigdoc = (utf8.length > 300000);
+        new_editor(utf8);
+      }
     }
+    document.title = name;
   });
 
   pickerdiff.addEventListener('change', (event) => {

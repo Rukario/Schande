@@ -95,6 +95,17 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+.say-before {
+  list-style: disc;
+  padding: 0 24px;
+
+  &::before {
+    left: -20px;
+    content: attr(data-before);
+    position: relative;
+  }
+}
+
 input {
   &[type='text'] {
     cursor: text;
@@ -723,14 +734,24 @@ function rename() {
   popup.style.lineHeight = '1';
   blanket.append(popup);
 
+  const a = document.createElement('A');
+  a.href = 'https://www.icloud.com/shortcuts/ed69932874a649118d8165384cddd251';
+  a.target = '_blank';
+  a.textContent = 'Save Text shortcut';
+
+  const save = document.createElement('DIV');
+  save.textContent = 'Save';
+  save.classList = 'next';
+
   const message = document.createElement('DIV');
-  message.textContent = 'Use Save Text shortcut or Save button to save the document with this file name.';
+  message.append('Use ', a, ' or ', save, ' button to save the document with this file name.');
 
   const ren = document.createElement('DIV');
   ren.contentEditable = 'plaintext-only';
   ren.textContent = document.title.replace(' *', '');
   ren.classList = 'exitmenu';
   ren.style.margin = '4px';
+  ren.style.padding = '10px';
   ren.style.cursor = 'text';
   ren.spellcheck = false;
 
@@ -753,10 +774,7 @@ function rename() {
     renameNow(false);
   });
 
-  popup.append(message);
-  popup.append(ren);
-  popup.append(apply);
-  popup.append(close);
+  popup.append(message, ren, apply, close);
 }
 
 function linksonly() {

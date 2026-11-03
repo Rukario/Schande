@@ -696,14 +696,14 @@ function exitmenu() {
   dim.style.display = 'block';
 }
 
-function rename() {
-  const renameNow = (rename) => {
-    if (rename && ren.textContent) {
-      document.title = ren.textContent;
+function quick_input(msgs, callback) {
+  const listener = (proceed) => {
+    if (callback && proceed && text.textContent) {
+      callback(text.textContent);
     }
-    blanket.removeEventListener('mouseup', renameNow);
-    close.removeEventListener('mouseup', renameNow);
-    apply.removeEventListener('mouseup', renameNow);
+    blanket.removeEventListener('mouseup', listener);
+    close.removeEventListener('mouseup', listener);
+    apply.removeEventListener('mouseup', listener);
     blanket.remove();
   }
 
@@ -719,7 +719,7 @@ function rename() {
   blanket.style.cursor = 'default';
   blanket.addEventListener('mouseup', (event_) => {
     if (blanket === event_.target) {
-      renameNow();
+      listener();
     }
   });
   document.body.append(blanket);
@@ -734,32 +734,23 @@ function rename() {
   popup.style.lineHeight = '1';
   blanket.append(popup);
 
-  const a = document.createElement('A');
-  a.href = 'https://www.icloud.com/shortcuts/ed69932874a649118d8165384cddd251';
-  a.target = '_blank';
-  a.textContent = 'Save Text shortcut';
-
-  const save = document.createElement('DIV');
-  save.textContent = 'Save';
-  save.classList = 'next';
-
   const message = document.createElement('DIV');
-  message.append('Use ', a, ' or ', save, ' button to save the document with this file name.');
+  message.append(...msgs);
 
-  const ren = document.createElement('DIV');
-  ren.contentEditable = 'plaintext-only';
-  ren.textContent = document.title.replace(' *', '');
-  ren.classList = 'exitmenu';
-  ren.style.margin = '4px';
-  ren.style.padding = '10px';
-  ren.style.cursor = 'text';
-  ren.spellcheck = false;
+  const text = document.createElement('DIV');
+  text.contentEditable = 'plaintext-only';
+  text.textContent = document.title.replace(' *', '');
+  text.classList = 'exitmenu';
+  text.style.margin = '4px';
+  text.style.padding = '10px';
+  text.style.cursor = 'text';
+  text.spellcheck = false;
 
   const apply = document.createElement('DIV');
   apply.classList = 'next';
   apply.textContent = 'Apply';
   apply.addEventListener('mouseup', () => {
-    renameNow(true);
+    listener(true);
   });
 
   const close = document.createElement('DIV');
@@ -771,10 +762,31 @@ function rename() {
   close.style.display = 'inline-flex';
   close.style.alignItems = 'center';
   close.addEventListener('mouseup', () => {
-    renameNow(false);
+    listener();
   });
 
-  popup.append(message, ren, apply, close);
+  if (callback) {
+    popup.append(message, text, apply, close);
+  } else {
+    popup.append(message, close);
+  }
+}
+
+function rename() {
+  const as = document.createElement('A');
+  as.href = 'https://www.icloud.com/shortcuts/ed69932874a649118d8165384cddd251';
+  as.target = '_blank';
+  as.textContent = 'Save Text';
+
+  const save = document.createElement('DIV');
+  save.textContent = 'Save';
+  save.classList = 'next';
+
+  const listener = (ren) => {
+    document.title = ren;
+  }
+
+  quick_input(['Use ', as, ' shortcut or ', save, ' button to save the document with this file name.'], listener);
 }
 
 function linksonly() {
@@ -1176,6 +1188,15 @@ function new_editor(utf8 = '<br>') {
   pickerdiff = fileup(easter ? 'next aczo' : 'next', filel[1], true)[0];
   pickerdiff.id = "pickerdiff_relic";
   DOMwriter.appendChild(pickerdiff);
+
+  button("next", "View", () => {
+    const an = document.createElement('A');
+    an.href = 'https://www.icloud.com/shortcuts/4a4a4580207540e5a4865c4d7c9781ae';
+    an.target = '_blank';
+    an.textContent = 'New Text';
+    quick_input(['You may view page source with ', an, ' shortcut.\nChoose New Text from share sheet on another page to view its source.']);
+  });
+
   DOMwriter.insertAdjacentHTML("beforeend", ") ");
   button("next", filel[4] + " -(Save as)", rename); // Doesn't change saved file name and makes a copy upon saving, hence 'Save As'
   DOMwriter.insertAdjacentHTML("beforeend", " " + filel[4] + " -(");

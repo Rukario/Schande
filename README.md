@@ -42,19 +42,7 @@ Download and serve files, you define how are they downloaded and sorted!
 
 Schande.bat can launch HTTP server for directory listing, armed with several "viewer" HTMLs
   - <a href="https://github.com/Rukario/Schande/raw/main/View.html">View.html</a> - Viewer (<a href="https://rukario.github.io/Schande/View.html?partition=Uninteresting stuff/SOL/partition.json">demo</a>)
-  - <a href="https://github.com/Rukario/Schande/raw/main/New%20Text.html">New Text.html</a> - A good UTF-8 text editor for neglected OS but has good browser (<a href="https://rukario.github.io/Schande/New%20Text.html?open=View.html">demo</a> | <a href="https://rukario.github.io/Schande/New%20Text.html?🦦">easter egg</a>), collaborate with New Text and Save Text for iOS Shortcuts app
-
-New Text - https://www.icloud.com/shortcuts/4a4a4580207540e5a4865c4d7c9781ae
-
-- Open directly from Shortcuts screen for a prompt to save the demo HTML to Files app for offline use.
-
-- Create and edit text files as you would with a text editor! There are inline calculator and several text manipulation tools you should try. Bookmark the text editor UI to your Favorite screen for a faster access.
-
-- Choose New Text from share sheet on another page to view its source.
-
-Save Text - https://www.icloud.com/shortcuts/ed69932874a649118d8165384cddd251
-
-- Choose from share sheet on the text editor to save your precious document on iCloud/Ask where to save.
+  - <a href="https://github.com/Rukario/Schande/raw/main/New%20Text.html">New Text.html</a> - A good UTF-8 text editor for neglected OS but has good browser (<a href="https://rukario.github.io/Schande/New%20Text.html?open=View.html">demo</a> | <a href="https://rukario.github.io/Schande/New%20Text.html?🦦">easter egg</a>), contains several Apple Shortcut iCloud links to collaborate with the Shortcuts app. Create and edit text files as you would with a text editor! There are inline calculator and several text manipulation tools you should try. Bookmark the text editor UI to your Favorite screen for faster access.
 
 Here's some other uninteresting stuff
 

@@ -712,7 +712,7 @@ new_setting = False
 pos = 0
 settings = ["Launch HTTP server = ", "Port = 8886", "Browser = ", "Mail = ", "Make SAVX = No", "Proxy = socks5://"]
 for setting in settings:
-    if not rules[pos].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
+    if len(rules) < pos+1 or not rules[pos].replace(" ", "").startswith(setting.replace(" ", "").split("=")[0]):
         if pos == 0:
             while True:
                 code = get_keypress("Launch HTTP server? (Y)es/(N)o: ", "yn")
@@ -5052,7 +5052,7 @@ def keylistener():
                         firework()
                         echo(f""" No browser selected! Please check the "Browser =" setting in {rulefile}""", 0, 1)
                     elif HTTPserver:
-                        os.system(f"""start "" "{Browser}" "http://127.0.0.1:8886/" """)
+                        os.system(f"""start "" "{Browser}" "{'https' if https_server else 'http'}://127.0.0.1:8886/?{HTTPserver}" """)
                     else:
                         echo(" HTTP SERVER: Maybe not.", 0, 1)
                 else:

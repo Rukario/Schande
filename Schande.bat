@@ -2204,14 +2204,14 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
         todisk = f"{folder}{prepend}{name}{append}{ext}".replace("\\", "/") # "\\" in file["name"] can work like folder after prepend
 
     dir = subdir + x[0] + "/" if len(x := todisk.rsplit("/", 1)) == 2 else subdir
-    dir_not_created = not dir in task["makedirs"] and not task["makedirs"].add(dir)
-
+    def dir_not_created():
+        return not dir in task["makedirs"] and not task["makedirs"].add(dir)
     if rule:
         if isrej(todisk, pattern):
             link = ""
         elif not preview:
             if makedirs or [ast(x) for x in sorter["exempts"] if ast(x) == dir.replace("/", "\\")]:
-                if dir_not_created and not os.path.exists(dir):
+                if dir_not_created() and not os.path.exists(dir):
                     if makedirs == 2:
                         echo(f"(C)ontinue or (S)kip making a new directory: {dir}", 0, 1)
                         if watch_keypress("cs") == "KeyS":
@@ -2222,7 +2222,7 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
                         except:
                             buffer = "\\" + dir.replace("/", "\\")
                             kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
-            elif dir_not_created and not os.path.exists(dir):
+            elif dir_not_created() and not os.path.exists(dir):
                 task["nodirs"].add(dir)
             if dir in task["nodirs"]:
                 error[1] += [todisk]
@@ -2232,14 +2232,14 @@ def get_cd(subdir, file, pattern, makedirs=False, preview=False):
     elif not preview:
         if isrej(todisk, pattern):
             link = ""
-        elif dir_not_created and not os.path.exists(batchname + "/"):
+        elif dir_not_created() and not os.path.exists(batchname + "/"):
             try:
                 os.makedirs(batchname + "/")
             except:
                 buffer = "\\" + batchname.replace("/", "\\")
                 kill(f"Can't make folder {buffer} because there's a file using that name, I must exit!")
     if not preview:
-        if makedirs and dir_not_created and not os.path.exists(dir):
+        if makedirs and dir_not_created() and not os.path.exists(dir):
             if makedirs == 2:
                 echo(f"(C)ontinue or (S)kip making a new directory: {dir}", 0, 1)
                 if watch_keypress("cs") == "KeyS":

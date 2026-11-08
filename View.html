@@ -460,7 +460,7 @@ function edit_key(e) {
     var body = {[t.parentNode.id]: i.value};
     var b = JSON.stringify({
       kind: 'keywords',
-      ondisk: 'keywords.json',
+      ondisk: cd + 'keywords.json',
       body
     });
 

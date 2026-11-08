@@ -916,12 +916,7 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
         self.qs = ""
         if '?' in self.path:
             self.path, self.qs = self.path.split('?', 1)
-        dir = batchdir.rstrip("/") + saint(self.path).replace("\\", "/").rsplit("/", 1)[0] + "/"
-        for q in self.qs.split('&'):
-            if q.endswith(".json"):
-                cd = saint(q.split('=', 1)[-1].rsplit('/', 1)[0] + '/').replace("\\", "/")
-                dir += cd[1:] if cd.startswith('/') else cd
-                break
+        dir = batchdir.rstrip("/")
         if Bytes < 2000:
             data = self.rfile.read(Bytes).decode('utf-8')
             self.send_response(200, size=Bytes)
@@ -935,11 +930,11 @@ class RangeHTTPRequestHandler(StreamRequestHandler):
             ondisk = saint(api["ondisk"]).replace("\\", "/")
             if api["kind"] == "Save":
                 echo(f"Save {dir}{ondisk}", 0, 1)
-                schande_filelist[0][0] += [f"{dir}{ondisk}"]
+                schande_filelist[0] += [f"{dir}{ondisk}"]
                 self.wfile.write(bytes(f"Save list updated", 'utf-8'))
             elif api["kind"] == "Schande!":
                 echo(f"Schande! {dir}{ondisk}", 0, 1)
-                schande_filelist[0][1] += [f"{dir}{ondisk}"]
+                schande_filelist[1] += [f"{dir}{ondisk}"]
                 self.wfile.write(bytes(f"Schande list updated", 'utf-8'))
             elif api["kind"] == "keywords":
                 echo(f""" File updated: {dir}{ondisk}""", 0, 1)
@@ -4071,9 +4066,9 @@ def savenow(trashdir=False):
         #     f.write(bytes("\n".join(savread) + "\n", 'utf-8'))
         # with open(savx, 'wb') as f:
         #     f.write(bytes("\n".join(savxread) + "\n", 'utf-8'))
-    elif schande_filelist[0][0]:
+    elif schande_filelist[0]:
         buffer = ""
-        for ondisk in schande_filelist[0][0]:
+        for ondisk in schande_filelist[0]:
             next_new = [[], []]
             for line in savread:
                 if ondisk in line:
@@ -4103,7 +4098,7 @@ def savenow(trashdir=False):
 def delnow():
     stdout = ""
     trashlist = {}
-    for ondisk in schande_filelist[0][1]:
+    for ondisk in schande_filelist[1]:
         if os.path.exists(ondisk):
             dir, file = ondisk.rsplit("/", 1)
             if not dir in trashlist:
@@ -4125,7 +4120,7 @@ def delnow():
                     os.rename(f"{dir}/{file}", f"{trashdir}{file}")
         echo(skull(), 0, 1)
         firework(["4c", "%color%"])
-        schande_filelist[0][1] = []
+        schande_filelist[1] = []
     return True
 
 
@@ -4191,22 +4186,22 @@ def delmode_old(m):
         if file.lower() == "x":
             return
         if file.lower() == "v":
-            for x in schande_filelist[0][1]:
+            for x in schande_filelist[1]:
                 echo(x, 0, 1)
         elif file.lower() == "r":
             file = parse.unquote(input("Remove file from delete list: ").rstrip().replace("file:///", "").replace("http://127.0.0.1:8886/", batchdir))
             while True:
                 try:
-                    schande_filelist[0][1].remove(file)
+                    schande_filelist[1].remove(file)
                     firework(["2a", "%color%"])
                 except:
                     firework(["08", "%color%"])
                     break
-        elif file.lower() == "d" and schande_filelist[0][1]:
+        elif file.lower() == "d" and schande_filelist[1]:
             delnow()
         elif os.path.exists(file):
             firework(["4c", "%color%"])
-            schande_filelist[0][1] += [file]
+            schande_filelist[1] += [file]
         else:
             firework(["08", "%color%"])
 
@@ -4991,9 +4986,11 @@ def pressed(code, s=time.time() + Fast_presser):
     ready_input()
     if ticking[0]:
         ticking[0].set()
-def pressed_ssh(code, done=False):
-    if done:
-        Keypress[code][0] = 0
+def pressed_ssh(code, s=time.time() + Fast_presser):
+    if s == True:
+        Keypress[code][0] = time.time() + 60*60*24*365
+    else:
+        Keypress[code][0] = s
     ready_input_ssh()
     if ticking[0]:
         ticking[0].set()

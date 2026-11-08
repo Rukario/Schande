@@ -15,31 +15,22 @@ set batchfile=%~dpnx0
 if %cd:~-1%==\ (set batchdi=%cd:~0,-1%&&set batchdir=%cd%) else (set batchdi=%cd%&&set batchdir=%cd%\)
 
 setlocal enabledelayedexpansion
-set pythondir=%userprofile%\AppData\Local\Programs\Python\
-set x=Python 3.14
-set cute=!x:.=!
-set cute=!cute: =!
-set pythondir=!pythondir!!cute!\
-
-if exist "!pythondir!python.exe" goto check
-set warn1= SCRIPT: Got python.exe from command 'where python ^| find /V "WindowsApps"' and may run, %~nx0 is written
-set warn2= for !x! in non-existent location %%userprofile%%\AppData\Local\Programs\Python\!cute!\python.exe
 chcp 65001>nul
 for /f "delims=" %%i in ('where python ^| find /V "WindowsApps"') do set pythondir=%%~dpi&&chcp 437>nul&&goto check
 chcp 437>nul
 :check
 
+set x=3.15
 if exist "!pythondir!python.exe" (
   cd /d "!pythondir!"
   color %color%
 ) else (
   color %stopcolor%
-  echo  I can't seem to find python.exe^^! Install in the default location or check your path setting.
-  echo  Execute in another command prompt with:
+  echo %~nx0 is written for Python 3.15
   echo.
-  echo where python ^| find /V "WindowsApps"
-  echo.
-  echo  It shouldn't come out as empty. Download the latest !x! from https://www.python.org/downloads/
+  echo  I can't seem to find python.exe^^ by executing the command: where python ^| find /V "WindowsApps"!
+  echo  Install or check your path setting. You can re/install to update path setting and then proceed to reject ^(y/N: n^) etc.
+  echo  Download the latest or as written version from https://www.python.org/downloads/
   echo.
   echo  I must exit^^!
   pause%>nul
@@ -59,22 +50,8 @@ shift
 if not [%1]==[] goto loop
 :skip
 
-if exist Lib\site-packages\ (echo.) else (goto install)
-if exist Lib\site-packages\ (goto start) else (echo.)
-
-:install
-echo  Hold on . . . I need to install the missing packages.
-if exist "Scripts\pip.exe" (echo.) else (color %stopcolor%&&echo  PIP.exe doesn't seem to exist . . . Please install Python properly^^! I must exit^^!&&pause>nul&&exit)
-python -m pip install --upgrade pip
-::Scripts\pip.exe install name_of_the_missing_package
-::Scripts\pip.exe install what_else
-echo.
-pause
-
 :start
 cls
-if not [!warn1!]==[] echo !warn1!
-if not [!warn2!]==[] echo !warn2!
 color %color%
 "!pythondir!python.exe" -x "!batchfile!" "!filelist!" "!batchdi!" "!batchdir!"
 set filelist=
@@ -170,7 +147,7 @@ echoname = [batchfile]
 newfilen = [0]
 Keypress_prompt = [False]
 Keypress_buffer = ['']
-Fast_presser = 0.5
+Fast_presser = 0.25
 Keypress = {f"Key{letter}": [0, 0] for letter in map(chr, range(65, 91))}
 Keypress.update({f"Digit{digit}": [0, 0] for digit in range(10)})
 
@@ -555,7 +532,7 @@ def stalled():
 
 def echo_pip():
     if sys.platform == "win32":
-        return rf"{sys.exec_prefix}\Scripts\pip.exe"
+        return rf"{sys.exec_prefix}\python.exe -m pip"
     elif sys.platform == "darwin":
         return "sudo python3 -m pip"
     elif sys.platform == "linux":
@@ -718,11 +695,10 @@ for setting in settings:
                 code = get_keypress("Launch HTTP server? (Y)es/(N)o: ", "yn")
                 if code == "KeyY":
                     echo("", 1)
-                    i = input("Quick password for sensitive files serving, enter nothing to return to last prompt: ")
-                    if not i:
-                        echo("", 1)
+                    if i := input("Quick password for sensitive files serving, enter nothing to return to last prompt: "):
+                        setting += i
+                    else:
                         continue
-                    setting += i
                 else:
                     setting += "No"
                 break
@@ -5007,13 +4983,17 @@ if filelist:
 def unrecognized(code):
     echo(f"Keypress {code} unrecognized", 0, 1)
 
-def pressed(code, s=time.time()):
-    Keypress[code][0] = s
+def pressed(code, s=time.time() + Fast_presser):
+    if s == True:
+        Keypress[code][0] = time.time() + 60*60*24*365
+    else:
+        Keypress[code][0] = s
     ready_input()
     if ticking[0]:
         ticking[0].set()
-def pressed_ssh(code, s=time.time()):
-    Keypress[code][0] = s
+def pressed_ssh(code, done=False):
+    if done:
+        Keypress[code][0] = 0
     ready_input_ssh()
     if ticking[0]:
         ticking[0].set()
@@ -5181,11 +5161,11 @@ def keylistener():
             elif code == "KeyP":
                 if key_repeat == 0:
                     echo("Paused (press P twice in fast sequence to unpause)", 1, 2)
+                    pressed(code, key_time)
                 else:
                     echo("Unpaused", 1, 2)
-                    pressed(code)
-                    Keypress["KeyX"] = [time.time(), 0]
-                pressed(code, 0)
+                    Keypress["KeyX"] = [0, 0]
+                    pressed(code, 0)
             elif code == "KeyQ":
                 if not_busy():
                     task["run"].put(("scraper3", True))
@@ -5195,10 +5175,14 @@ def keylistener():
                 pressed(code)
             elif code == "KeyT":
                 if navigator["timeout"]:
-                    echo(f"""COOLDOWN {"DISABLED" if key_time else "ENABLED"}""", 1, 2)
+                    if key_repeat == 0:
+                        echo("COOLDOWN ENABLED", 1, 2)
+                        pressed(code, True)
+                    else:
+                        echo("COOLDOWN DISABLED", 1, 2)
+                        pressed(code, 0)
                 else:
                     echo(f"""Timer not enabled, please add "#-# seconds rarity 100% 00:00" in {rulefile}, add another timer to manipulate rarity.""", 1, 2)
-                pressed(code, 0 if key_time else time.time())
             elif code == "KeyU":
                 unrecognized(code)
                 ready_input()
@@ -5210,19 +5194,15 @@ def keylistener():
                 unrecognized(code)
                 ready_input()
             elif code == "KeyX":
-                echo(f"""SET ALL ERROR DOWNLOAD REQUESTS TO: {"SKIP" if key_time else "RETRY"}""", 1, 2)
-                pressed(code, 0 if key_time else time.time())
-                Keypress["KeyP"] = [time.time(), 0]
-            elif code == "KeyY":
-                if sys.platform == "linux":
-                    # Developer note: Update to use htop if iSH app adds support to use it.
-                    os.system("top")
+                if key_repeat == 0:
+                    echo("SET ALL ERROR DOWNLOAD REQUESTS TO: RETRY", 1, 2)
+                    pressed(code, True)
                 else:
-                    if os.path.exists("ntop.exe"):
-                        os.system("ntop.exe")
-                    else:
-                        subdir = batchdir.replace("/", "\\")
-                        echo(f"Save ntop.exe from https://github.com/gsass1/NTop/releases to {subdir} and then try again.", 0, 1)
+                    echo("SET ALL ERROR DOWNLOAD REQUESTS TO: SKIP", 1, 2)
+                    pressed(code, 0)
+                Keypress["KeyP"] = [key_time, 0]
+            elif code == "KeyY":
+                unrecognized(code)
                 ready_input()
             elif code == "KeyZ":
                 pressed(code)
@@ -5248,7 +5228,7 @@ echo(f""" FDST: {get_date().strftime("%Y-%m-XX")}
  Key listener (main menu):
   > Press I, L, A to enter (I)nput or (L)oad select/(A)ll list from {textfile}.
   > Press O to s(O)rt files.
-  > Press M, E to open torrent (M)anager or h(E)lp document.""", 0, 1)
+  > Press M, E to open (M)enu or h(E)lp document.""", 0, 1)
 echo(mainmenu(), 0, 1)
 ready_input()
 Thread(target=keylistener, daemon=True).start()
